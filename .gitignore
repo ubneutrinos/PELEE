@@ -2,3 +2,7 @@ root_files
 *.root
 plots
 *.pdf
+.ipynb_checkpoints/
+Background rejection.ipynb
+Sandbox.ipynb
+__pycache__/
