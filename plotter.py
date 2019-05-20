@@ -1,4 +1,5 @@
 import math
+import warnings
 from collections import defaultdict
 
 import numpy as np
@@ -67,6 +68,9 @@ class Plotter:
         self.weights = weights
         self.samples = samples
         self.pot = pot
+
+        if "dirt" not in samples:
+            warnings.warn("Missing dirt sample")
 
         necessary = ["trk_pfp_id", "category", "shr_pfp_id_v", "selected",
                      "backtracked_pdg", "nu_pdg", "ccnc", "trk_bkt_pdg", "shr_bkt_pdg"]
@@ -188,7 +192,8 @@ class Plotter:
             categorization = self._categorize_entries
             cat_labels = category_labels
         elif kind == "particle_pdg":
-            if isinstance(self.samples["mc"][variable][0], np.float32):
+            var = self.samples["mc"].query(query).eval(variable)
+            if var.dtype == np.float32:
                 categorization = self._categorize_entries_single_pdg
             else:
                 categorization = self._categorize_entries_pdg
@@ -216,12 +221,13 @@ class Plotter:
             var_dict[c].append(v)
             weight_dict[c].append(self.weights["nue"])
 
-        category, dirt_plotted_variable = categorization(
-            self.samples["dirt"], variable, query=query)
+        if "dirt" in self.samples:
+            category, dirt_plotted_variable = categorization(
+                self.samples["dirt"], variable, query=query)
 
-        for c, v in zip(category, dirt_plotted_variable):
-            var_dict[c].append(v)
-            weight_dict[c].append(self.weights["dirt"])
+            for c, v in zip(category, dirt_plotted_variable):
+                var_dict[c].append(v)
+                weight_dict[c].append(self.weights["dirt"])
 
         ext_plotted_variable = self._selection(
             variable, self.samples["ext"], query=query)
@@ -300,15 +306,18 @@ class Plotter:
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
 
-        dirt_uncertainties, bins = np.histogram(
-            dirt_plotted_variable, **plot_options)
-        err_dirt = np.array(
-            [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
+        err_dirt = np.array([0 for n in mc_uncertainties])
+        if "dirt" in self.samples:
+            dirt_uncertainties, bins = np.histogram(
+                dirt_plotted_variable, **plot_options)
+            err_dirt = np.array(
+                [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
 
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
         exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt)
+
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
         ax1.bar(bincenters, n_tot, width=0, yerr=exp_err)
@@ -353,7 +362,7 @@ class Plotter:
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
         fig.tight_layout()
-        fig.savefig("plots/%s_cat.pdf" % variable.replace("/", "_"))
+        # fig.savefig("plots/%s_cat.pdf" % variable.replace("/", "_"))
         return fig, ax1, ax2
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
@@ -376,19 +385,26 @@ class Plotter:
             ext_plotted_variable, variable, self.samples["ext"], query=query)
         ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
 
-        dirt_plotted_variable = self._selection(
-            variable, self.samples["dirt"], query=query)
-        dirt_plotted_variable = self._select_showers(
-            dirt_plotted_variable, variable, self.samples["dirt"], query=query)
-        dirt_weight = [self.weights["dirt"]] * len(dirt_plotted_variable)
+        if "dirt" in self.samples:
+            dirt_plotted_variable = self._selection(
+                variable, self.samples["dirt"], query=query)
+            dirt_plotted_variable = self._select_showers(
+                dirt_plotted_variable, variable, self.samples["dirt"], query=query)
+            dirt_weight = [self.weights["dirt"]] * len(dirt_plotted_variable)
 
         data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query)
         data_plotted_variable = self._select_showers(
             data_plotted_variable, variable, self.samples["data"], query=query)
-        total_variable = np.concatenate(
-            [mc_plotted_variable, nue_plotted_variable, ext_plotted_variable, dirt_plotted_variable])
-        total_weight = np.concatenate([mc_weight, nue_weight, ext_weight, dirt_weight])
+        if "dirt" in self.samples:
+            total_variable = np.concatenate(
+                [mc_plotted_variable, nue_plotted_variable, ext_plotted_variable, dirt_plotted_variable])
+            total_weight = np.concatenate([mc_weight, nue_weight, ext_weight, dirt_weight])
+        else:
+            total_variable = np.concatenate(
+                [mc_plotted_variable, nue_plotted_variable, ext_plotted_variable])
+            total_weight = np.concatenate(
+                [mc_weight, nue_weight, ext_weight])
 
         fig = plt.figure(figsize=(8, 7))
         gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
@@ -409,12 +425,14 @@ class Plotter:
             weights=nue_weight,
             label=r"$\nu_{e}$ overlay: %g entries" % sum(nue_weight))
 
-        n_dirt, dirt_bins, patches = ax1.hist(
-            dirt_plotted_variable,
-            **plot_options,
-            bottom=n_mc + n_nue,
-            weights=dirt_weight,
-            label=r"Dirt: %g entries" % sum(dirt_weight))
+        n_dirt = 0
+        if "dirt" in self.samples:
+            n_dirt, dirt_bins, patches = ax1.hist(
+                dirt_plotted_variable,
+                **plot_options,
+                bottom=n_mc + n_nue,
+                weights=dirt_weight,
+                label=r"Dirt: %g entries" % sum(dirt_weight))
 
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
@@ -438,8 +456,10 @@ class Plotter:
             [n * self.weights["nue"] * self.weights["nue"] for n in n_nue])
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
-        err_dirt = np.array(
-            [n * self.weights["dirt"] * self.weights["dirt"] for n in n_dirt])
+        err_dirt = np.array([0 for n in n_mc])
+        if "dirt" in self.samples:
+            err_dirt = np.array(
+                [n * self.weights["dirt"] * self.weights["dirt"] for n in n_dirt])
         tot_uncertainties = np.sqrt(err_mc + err_ext + err_nue + err_dirt)
 
         bincenters = 0.5 * (tot_bins[1:] + tot_bins[:-1])
@@ -476,7 +496,7 @@ class Plotter:
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
         fig.tight_layout()
-        fig.savefig("plots/%s_samples.pdf" % variable)
+        # fig.savefig("plots/%s_samples.pdf" % variable)
         return fig, ax1, ax2
 
     def _draw_ratio(self, ax, bins, n_tot, n_data, tot_err, data_err):
