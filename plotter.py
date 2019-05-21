@@ -1,6 +1,6 @@
 import math
 import warnings
-from collections import defaultdict
+from collections import defaultdict, Iterable
 
 import numpy as np
 
@@ -11,7 +11,8 @@ import scipy.stats
 
 category_labels = {
     1: r"$\nu_e$ CC",
-    11: r"$\nu_e$ CC0$\pi$-Np",
+    10: r"$\nu_e$ CC0$\pi$0p",
+    11: r"$\nu_e$ CC0$\pi$Np",
     2: r"$\nu_{\mu}$ CC",
     21: r"$\nu_{\mu}$ CC $\pi^{0}$",
     3: r"$\nu$ NC",
@@ -19,7 +20,7 @@ category_labels = {
     4: r"Cosmic",
     5: r"Out. fid. vol.",
     6: r"other",
-    0: r"Data"
+    0: r"No slice"
 }
 
 pdg_labels = {
@@ -45,8 +46,10 @@ category_colors = {
     3: "xkcd:cobalt",
     31: "xkcd:sky blue",
     1: "xkcd:green",
+    10: "xkcd:mint green",
     11: "xkcd:lime green",
-    6: "xkcd:grey"
+    6: "xkcd:grey",
+    0: "xkcd:black"
 }
 
 
@@ -188,6 +191,9 @@ class Plotter:
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category", **plot_options):
 
+        if not title:
+            title = variable
+
         if kind == "event_category":
             categorization = self._categorize_entries
             cat_labels = category_labels
@@ -251,6 +257,7 @@ class Plotter:
             "%s: %.1f" % (cat_labels[c], sum(weight_dict[c]))  # / total * 100)
             for c in var_dict.keys()
         ]
+
         if kind == "event_category":
             plot_options["color"] = [category_colors[c]
                                      for c in var_dict.keys()]
@@ -340,8 +347,11 @@ class Plotter:
         unit = title[title.find("[") +
                      1:title.find("]")] if "[" and "]" in title else ""
         xrange = plot_options["range"][1] - plot_options["range"][0]
-        ax1.set_ylabel(
-            "N. Entries / %g %s" % (xrange / plot_options["bins"], unit))
+        if isinstance(plot_options["bins"], Iterable):
+            ax1.set_ylabel("N. Entries")
+        else:
+            ax1.set_ylabel(
+                "N. Entries / %g %s" % (xrange / plot_options["bins"], unit))
         ax1.set_xticks([])
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
@@ -486,8 +496,11 @@ class Plotter:
         unit = title[title.find("[") + 1:title.find("]")
                      ] if "[" and "]" in title else ""
         xrange = plot_options["range"][1] - plot_options["range"][0]
-        ax1.set_ylabel(
-            "N. Entries / %g %s" % (xrange / plot_options["bins"], unit))
+        if isinstance(bins, Iterable):
+            ax1.set_ylabel("N. Entries")
+        else:
+            ax1.set_ylabel(
+                "N. Entries / %g %s" % (xrange / plot_options["bins"], unit))
         ax1.set_xticks([])
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
