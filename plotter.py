@@ -1,6 +1,33 @@
+# -*- coding: utf-8 -*-
+"""@package plotter
+Plotter for searchingfornues TTree
+
+This module produces plot from the TTree produced by the
+searchingfornues framework (https://github.com/ubneutrinos/searchingfornues)
+
+Example:
+    my_plotter = plotter.Plotter(samples, weights)
+    fig, ax1, ax2 = my_plotter.plot_variable(
+        "reco_e",
+        query="selected == 1"
+        kind="event_category",
+        title="$E_{deposited}$ [GeV]",
+        bins=20,
+        range=(0, 2)
+    )
+
+Attributes:
+    category_labels (dict): Description of event categories
+    pdg_labels (dict): Labels for PDG codes
+    category_colors (dict): Color scheme for event categories
+    pdg_colors (dict): Colors scheme for PDG codes
+"""
+
+
 import math
 import warnings
-from collections import defaultdict, Iterable
+from collections import defaultdict
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -13,6 +40,7 @@ category_labels = {
     1: r"$\nu_e$ CC",
     10: r"$\nu_e$ CC0$\pi$0p",
     11: r"$\nu_e$ CC0$\pi$Np",
+    111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
     21: r"$\nu_{\mu}$ CC $\pi^{0}$",
     3: r"$\nu$ NC",
@@ -48,10 +76,10 @@ category_colors = {
     1: "xkcd:green",
     10: "xkcd:mint green",
     11: "xkcd:lime green",
+    111: "xkcd:royal purple",
     6: "xkcd:grey",
     0: "xkcd:black"
 }
-
 
 pdg_colors = {
     2212: "#a6cee3",
@@ -66,6 +94,20 @@ pdg_colors = {
 
 
 class Plotter:
+    """Main plotter class
+
+    Args:
+        samples (dict): Dictionary of pandas dataframes.
+            mc`, `nue`, `data`, and `ext` are required. `lee` and `dirt` are optional.
+        weights (dict): Dictionary of global dataframes weights.
+            One for each entry in the samples dict.
+        pot (int): Number of protons-on-target. Defaults is 4.3e19.
+
+    Attributes:
+       samples (dict): Dictionary of pandas dataframes.
+       weights (dict): Dictionary of global dataframes weights.
+       pot (int): Number of protons-on-target.
+    """
 
     def __init__(self, samples, weights, pot=4.3e19):
         self.weights = weights
@@ -83,6 +125,32 @@ class Plotter:
         if missing.size > 0:
             raise ValueError(
                 "Missing necessary columns in the DataFrame: %s" % missing)
+
+    @staticmethod
+    def _sigma_calc_matrix(signal, background, scale_factor=1):
+        """It calculates the significance as the square root of the Δχ2 score
+
+        Args:
+            signal (np.array): array of signal histogram
+            background (np.array): array of background histogram
+            scale_factor (float, optional): signal and background scaling factor.
+                Default is 1
+
+        Returns:
+            Square root of S•B^(-1)•S^T
+        """
+
+        sig_array = signal * scale_factor
+        bkg_array = background * scale_factor
+        nbins = len(sig_array)
+
+        emtx = np.zeros((nbins, nbins))
+        np.fill_diagonal(emtx, bkg_array)
+
+        emtxinv = np.linalg.inv(emtx)
+        chisq = float(sig_array.dot(emtxinv).dot(sig_array.T))
+
+        return np.sqrt(chisq)
 
     @staticmethod
     def _ratio_err(num, den, num_err, den_err):
@@ -118,7 +186,7 @@ class Plotter:
         if variable.size > 0:
             if isinstance(variable[0], np.ndarray):
                 variable = np.hstack(variable)
-                if "shr" in variable_name:
+                if "shr" in variable_name and variable_name != "trkshr_score_v":
                     shr_score = np.hstack(self._selection(
                         "trkshr_score_v", sample, query=query, extra_cut=extra_cut).ravel())
                     shr_score_id = shr_score < score
@@ -190,7 +258,21 @@ class Plotter:
         return category, plotted_variable
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category", **plot_options):
+        """It plots the variable from the TTree, after applying an eventual query
 
+        Args:
+            variable (str): name of the variable.
+            query (str): pandas query. Default is ``selected``.
+            title (str, optional): title of the plot. Default is ``variable``.
+            kind (str, optional): Categorization of the plot.
+                Accepted values are ``event_category``, ``particle_pdg``, and ``sample``
+                Default is ``event_category``.
+            **plot_options: Additional options for matplotlib plot (e.g. range and bins).
+
+        Returns:
+            Figure, top subplot, and bottom subplot (ratio)
+
+        """
         if not title:
             title = variable
 
@@ -234,6 +316,20 @@ class Plotter:
             for c, v in zip(category, dirt_plotted_variable):
                 var_dict[c].append(v)
                 weight_dict[c].append(self.weights["dirt"])
+
+        if "lee" in self.samples:
+            category, lee_plotted_variable = categorization(
+                self.samples["lee"], variable, query=query)
+            leeweight = self.samples["lee"].query(query)["leeweight"]
+            for c, v, w in zip(category, lee_plotted_variable, leeweight):
+                var_dict[c].append(v)
+                weight_dict[c].append(self.weights["lee"] * w)
+
+            lee_hist, lee_bins = np.histogram(
+                var_dict[111],
+                bins=plot_options["bins"],
+                range=plot_options["range"],
+                weights=weight_dict[111])
 
         ext_plotted_variable = self._selection(
             variable, self.samples["ext"], query=query)
@@ -279,6 +375,13 @@ class Plotter:
 
         total_hist, total_bins = np.histogram(
             total_array, **plot_options, weights=total_weight)
+
+        if "lee" in self.samples:
+            try:
+                print("Significance stat. only: %g sigma" % self._sigma_calc_matrix(
+                    lee_hist, total_hist-lee_hist, scale_factor=1.3e21/4.26e19))
+            except np.linalg.LinAlgError:
+                print("Error calculating the significance")
 
         ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
         n_ext, ext_bins, patches = ax1.hist(
@@ -372,6 +475,9 @@ class Plotter:
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
         fig.tight_layout()
+        if title == variable:
+            ax1.set_title(query)
+        #     fig.suptitle(query)
         # fig.savefig("plots/%s_cat.pdf" % variable.replace("/", "_"))
         return fig, ax1, ax2
 
@@ -405,11 +511,19 @@ class Plotter:
         data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query)
         data_plotted_variable = self._select_showers(
-            data_plotted_variable, variable, self.samples["data"], query=query)
+            data_plotted_variable,
+            variable,
+            self.samples["data"],
+            query=query)
+
         if "dirt" in self.samples:
             total_variable = np.concatenate(
-                [mc_plotted_variable, nue_plotted_variable, ext_plotted_variable, dirt_plotted_variable])
-            total_weight = np.concatenate([mc_weight, nue_weight, ext_weight, dirt_weight])
+                [mc_plotted_variable,
+                nue_plotted_variable,
+                ext_plotted_variable,
+                dirt_plotted_variable])
+            total_weight = np.concatenate(
+                [mc_weight, nue_weight, ext_weight, dirt_weight])
         else:
             total_variable = np.concatenate(
                 [mc_plotted_variable, nue_plotted_variable, ext_plotted_variable])
