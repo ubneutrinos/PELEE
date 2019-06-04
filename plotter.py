@@ -26,6 +26,7 @@ Attributes:
 
 import math
 import warnings
+import bisect
 from collections import defaultdict
 from collections.abc import Iterable
 
@@ -34,7 +35,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
-import scipy.stats
 
 category_labels = {
     1: r"$\nu_e$ CC",
@@ -76,7 +76,7 @@ category_colors = {
     1: "xkcd:green",
     10: "xkcd:mint green",
     11: "xkcd:lime green",
-    111: "xkcd:royal purple",
+    111: "xkcd:goldenrod",
     6: "xkcd:grey",
     0: "xkcd:black"
 }
@@ -113,6 +113,7 @@ class Plotter:
         self.weights = weights
         self.samples = samples
         self.pot = pot
+        self.significance = 0
 
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
@@ -140,8 +141,13 @@ class Plotter:
             Square root of S•B^(-1)•S^T
         """
 
-        sig_array = signal * scale_factor
         bkg_array = background * scale_factor
+        empty_elements = np.where(bkg_array == 0)[0]
+        sig_array = signal * scale_factor
+
+        sig_array = np.delete(sig_array, empty_elements)
+        bkg_array = np.delete(bkg_array, empty_elements)
+
         nbins = len(sig_array)
 
         emtx = np.zeros((nbins, nbins))
@@ -149,6 +155,7 @@ class Plotter:
 
         emtxinv = np.linalg.inv(emtx)
         chisq = float(sig_array.dot(emtxinv).dot(sig_array.T))
+
 
         return np.sqrt(chisq)
 
@@ -257,6 +264,13 @@ class Plotter:
 
         return category, plotted_variable
 
+    @staticmethod
+    def _variable_bin_scaling(bins, bin_width, variable):
+        idx = bisect.bisect_left(bins, variable)
+        if len(bins) > idx:
+            return bin_width/(bins[idx]-bins[idx-1])
+        return 0
+
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category", **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
@@ -275,6 +289,9 @@ class Plotter:
         """
         if not title:
             title = variable
+
+        if "range" in plot_options:
+            query += "& %s > %g & %s < %g" % (variable, plot_options["range"][0], variable, plot_options["range"][1])
 
         if kind == "event_category":
             categorization = self._categorize_entries
@@ -376,13 +393,6 @@ class Plotter:
         total_hist, total_bins = np.histogram(
             total_array, **plot_options, weights=total_weight)
 
-        if "lee" in self.samples:
-            try:
-                print("Significance stat. only: %g sigma" % self._sigma_calc_matrix(
-                    lee_hist, total_hist-lee_hist, scale_factor=1.3e21/4.26e19))
-            except np.linalg.LinAlgError:
-                print("Error calculating the significance")
-
         ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
@@ -404,6 +414,14 @@ class Plotter:
             weights=total_weight,
             histtype="step",
             edgecolor="black")
+
+        if "lee" in self.samples:
+            try:
+                self.significance = self._sigma_calc_matrix(
+                    lee_hist, n_tot-lee_hist, scale_factor=1.3e21/4.26e19)
+                # print("Significance stat. only: %g sigma" % self.significance)
+            except np.linalg.LinAlgError:
+                print("Error calculating the significance")
 
         bincenters = 0.5 * (bin_edges[1:] + bin_edges[:-1])
         mc_uncertainties, bins = np.histogram(
@@ -440,7 +458,7 @@ class Plotter:
             xerr=bin_size,
             yerr=data_err,
             fmt='ko',
-            label="BNB: %i" % sum(n_data))
+            label="BNB: %i" % len(data_plotted_variable))
 
         leg = ax1.legend(
             frameon=False, ncol=3, title=r'MicroBooNE Preliminary %g POT' % self.pot)
@@ -460,17 +478,17 @@ class Plotter:
 
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
 
-        ax2.text(
-            0.88,
-            0.845,
-            r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
-            '\n' +
-            'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-            va='center',
-            ha='center',
-            ma='right',
-            fontsize=12,
-            transform=ax2.transAxes)
+        # ax2.text(
+        #     0.88,
+        #     0.845,
+        #     r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
+        #     '\n' +
+        #     'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+        #     va='center',
+        #     ha='center',
+        #     ma='right',
+        #     fontsize=12,
+        #     transform=ax2.transAxes)
 
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
@@ -600,7 +618,7 @@ class Plotter:
             xerr=bin_size,
             yerr=data_err,
             fmt='ko',
-            label="BNB: %i events" % sum(n_data))
+            label="BNB: %i events" % len(data_plotted_variable))
 
         leg = ax1.legend(
             frameon=False, title=r'MicroBooNE Preliminary %g POT' % self.pot)
