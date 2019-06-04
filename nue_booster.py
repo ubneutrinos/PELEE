@@ -24,7 +24,7 @@ variables = [
 ]
 
 def create_feature_map(features):
-    outfile = open('xgb.fmap', 'w')
+    outfile = open('pickles/xgb.fmap', 'w')
     for i, feat in enumerate(features):
         outfile.write('{0}\t{1}\tq\n'.format(i, feat))
     outfile.close()
@@ -32,7 +32,7 @@ def create_feature_map(features):
 
 def get_importance(gbm, features):
     create_feature_map(features)
-    importance = gbm.get_fscore(fmap='xgb.fmap')
+    importance = gbm.get_fscore(fmap='pickles/xgb.fmap')
     importance = sorted(importance.items(), key=itemgetter(1), reverse=True)
     return importance
 
