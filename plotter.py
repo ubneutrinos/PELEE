@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """@package plotter
 Plotter for searchingfornues TTree
 
@@ -23,13 +25,14 @@ Attributes:
     pdg_colors (dict): Colors scheme for PDG codes
 """
 
-
 import math
 import warnings
 import bisect
+
 from collections import defaultdict
 from collections.abc import Iterable
 
+import scipy.stats
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -55,9 +58,10 @@ pdg_labels = {
     2212: r"$p$",
     13: r"$\mu$",
     11: r"$e$",
+    111: r"$\pi^0$",
     -13: r"$\mu$",
     -11: r"$e$",
-    211: r"$\pi$",
+    211: r"$\pi^{\pm}$",
     -211: r"$\pi$",
     2112: r"$n$",
     22: r"$\gamma$",
@@ -86,6 +90,7 @@ pdg_colors = {
     22: "#1f78b4",
     13: "#b2df8a",
     211: "#33a02c",
+    111: "#137e6d",
     0: "#e31a1c",
     11: "#ff7f00",
     321: "#fdbf6f",
@@ -289,9 +294,10 @@ class Plotter:
         """
         if not title:
             title = variable
+        # pandas bug https://github.com/pandas-dev/pandas/issues/16363
+        if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and "_v" not in variable:
+            query += "& %s <= %g & %s >= %g" % (variable, plot_options["range"][1], variable, plot_options["range"][0])
 
-        if "range" in plot_options:
-            query += "& %s > %g & %s < %g" % (variable, plot_options["range"][0], variable, plot_options["range"][1])
 
         if kind == "event_category":
             categorization = self._categorize_entries
@@ -467,28 +473,28 @@ class Plotter:
 
         unit = title[title.find("[") +
                      1:title.find("]")] if "[" and "]" in title else ""
-        xrange = plot_options["range"][1] - plot_options["range"][0]
+        x_range = plot_options["range"][1] - plot_options["range"][0]
         if isinstance(plot_options["bins"], Iterable):
             ax1.set_ylabel("N. Entries")
         else:
             ax1.set_ylabel(
-                "N. Entries / %g %s" % (xrange / plot_options["bins"], unit))
+                "N. Entries / %g %s" % (x_range / plot_options["bins"], unit))
         ax1.set_xticks([])
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
 
-        # ax2.text(
-        #     0.88,
-        #     0.845,
-        #     r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
-        #     '\n' +
-        #     'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-        #     va='center',
-        #     ha='center',
-        #     ma='right',
-        #     fontsize=12,
-        #     transform=ax2.transAxes)
+        ax2.text(
+            0.88,
+            0.845,
+            r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
+            '\n' +
+            'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+            va='center',
+            ha='center',
+            ma='right',
+            fontsize=12,
+            transform=ax2.transAxes)
 
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
