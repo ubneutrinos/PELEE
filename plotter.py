@@ -161,7 +161,6 @@ class Plotter:
         emtxinv = np.linalg.inv(emtx)
         chisq = float(sig_array.dot(emtxinv).dot(sig_array.T))
 
-
         return np.sqrt(chisq)
 
     @staticmethod
@@ -295,9 +294,9 @@ class Plotter:
         if not title:
             title = variable
         # pandas bug https://github.com/pandas-dev/pandas/issues/16363
-        if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and "_v" not in variable:
-            query += "& %s <= %g & %s >= %g" % (variable, plot_options["range"][1], variable, plot_options["range"][0])
-
+        if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[:-2] != "_v":
+            query += "& %s <= %g & %s >= %g" % (
+                variable, plot_options["range"][1], variable, plot_options["range"][0])
 
         if kind == "event_category":
             categorization = self._categorize_entries
@@ -373,7 +372,8 @@ class Plotter:
         total = sum(sum(weight_dict[c]) for c in var_dict)
         total += sum([self.weights["ext"]] * len(ext_plotted_variable))
         labels = [
-            "%s: %.1f" % (cat_labels[c], sum(weight_dict[c]))  # / total * 100)
+            "%s: %.1f" % (cat_labels[c], sum(weight_dict[c])) \
+            if sum(weight_dict[c]) else ""
             for c in var_dict.keys()
         ]
 
@@ -405,9 +405,7 @@ class Plotter:
             **plot_options,
             weights=ext_weight,
             bottom=total_hist,
-            label="EXT: %.1f" %
-            # / total * 100),
-            (sum([self.weights["ext"]] * len(ext_plotted_variable))),
+            label="EXT: %.1f" % sum(ext_weight) if sum(ext_weight) else "",
             hatch="//",
             color="white")
 
@@ -464,7 +462,7 @@ class Plotter:
             xerr=bin_size,
             yerr=data_err,
             fmt='ko',
-            label="BNB: %i" % len(data_plotted_variable))
+            label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         leg = ax1.legend(
             frameon=False, ncol=3, title=r'MicroBooNE Preliminary %g POT' % self.pot)
@@ -507,6 +505,10 @@ class Plotter:
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
         nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
+        if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[:-2] != "_v":
+            query += "& %s <= %g & %s >= %g" % (
+                variable, plot_options["range"][1], variable, plot_options["range"][0])
+
         mc_plotted_variable = self._selection(
             variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
         mc_plotted_variable = self._select_showers(
@@ -543,9 +545,9 @@ class Plotter:
         if "dirt" in self.samples:
             total_variable = np.concatenate(
                 [mc_plotted_variable,
-                nue_plotted_variable,
-                ext_plotted_variable,
-                dirt_plotted_variable])
+                 nue_plotted_variable,
+                 ext_plotted_variable,
+                 dirt_plotted_variable])
             total_weight = np.concatenate(
                 [mc_weight, nue_weight, ext_weight, dirt_weight])
         else:
