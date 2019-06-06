@@ -30,7 +30,8 @@ variables = [
     "shr_dedx_Y", "shr_distance", "trk_chipr", "hits_y", "trk_distance", "pt",
     "is_signal", "shr_tkfit_dedx_Y", "shr_tkfit_dedx_U", "shr_tkfit_dedx_V", "p", "nu_e",
     "hits_ratio", "shr_dedx_U", "shr_dedx_V", "n_tracks_contained", "n_showers_contained",
-    "shr_theta", "trk_len", "train_weight", "trk_score", "shr_score", "shr_energy_tot", "trk_energy_tot"
+    "shr_theta", "trk_len", "train_weight", "trk_score", "shr_score", "shr_energy_tot", "trk_energy_tot",
+    "shr_phi", "trk_theta", "trk_phi", "tksh_angle", "tksh_distance"
 ]
 
 class NueBooster:
