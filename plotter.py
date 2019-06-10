@@ -34,7 +34,7 @@ from collections.abc import Iterable
 
 import scipy.stats
 import numpy as np
-
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
@@ -189,7 +189,9 @@ class Plotter:
     def _chisquare(data, mc, err_data, err_mc):
         num = (data - mc)**2
         den = err_mc**2
-        return sum(num / den) / np.count_nonzero(data)
+        if np.count_nonzero(data):
+            return sum(num / den) / np.count_nonzero(data)
+        return np.inf
 
     def _select_showers(self, variable, variable_name, sample, query="selected==1", score=0.5, extra_cut=None):
         variable = variable.ravel()
@@ -445,10 +447,22 @@ class Plotter:
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
 
+        err_lee = np.array([0 for n in mc_uncertainties])
+        if "lee" in self.samples:
+            if isinstance(plot_options["bins"], Iterable):
+                lee_bins = plot_options["bins"]
+            else:
+                bin_size = (plot_options["range"][1] - plot_options["range"][0])/plot_options["bins"]
+                lee_bins = [plot_options["range"][0]+n*bin_size for n in range(plot_options["bins"]+1)]
+
+            binned_lee = pd.cut(self.samples["lee"].query(query).eval(variable), lee_bins)
+            err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
+                "sum") * self.weights["lee"] * self.weights["lee"]
+
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt)
+        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee)
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
@@ -534,6 +548,14 @@ class Plotter:
                 dirt_plotted_variable, variable, self.samples["dirt"], query=query)
             dirt_weight = [self.weights["dirt"]] * len(dirt_plotted_variable)
 
+        if "lee" in self.samples:
+            lee_plotted_variable = self._selection(
+                variable, self.samples["lee"], query=query)
+            lee_plotted_variable = self._select_showers(
+                lee_plotted_variable, variable, self.samples["lee"], query=query)
+            lee_weight = self.samples["lee"].query(query)["leeweight"] * self.weights["lee"]
+
+
         data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query)
         data_plotted_variable = self._select_showers(
@@ -555,6 +577,13 @@ class Plotter:
                 [mc_plotted_variable, nue_plotted_variable, ext_plotted_variable])
             total_weight = np.concatenate(
                 [mc_weight, nue_weight, ext_weight])
+
+        if "lee" in self.samples:
+            total_variable = np.concatenate(
+                [total_variable,
+                 lee_plotted_variable])
+            total_weight = np.concatenate(
+                [total_weight, lee_weight])
 
         fig = plt.figure(figsize=(8, 7))
         gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
@@ -584,10 +613,19 @@ class Plotter:
                 weights=dirt_weight,
                 label=r"Dirt: %g entries" % sum(dirt_weight))
 
+        n_lee = 0
+        if "lee" in self.samples:
+            n_lee, lee_bins, patches = ax1.hist(
+                lee_plotted_variable,
+                **plot_options,
+                bottom=n_mc + n_nue + n_dirt,
+                weights=lee_weight,
+                label=r"MiniBooNE LEE: %g entries" % sum(lee_weight))
+
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
             **plot_options,
-            bottom=n_mc + n_nue + n_dirt,
+            bottom=n_mc + n_nue + n_dirt + n_lee,
             weights=ext_weight,
             label="EXT: %g entries" % sum(ext_weight),
             hatch="//",
@@ -600,17 +638,37 @@ class Plotter:
             histtype="step",
             edgecolor="black")
 
-        err_mc = np.array(
-            [n * self.weights["mc"] * self.weights["mc"] for n in n_mc])
+        mc_uncertainties, bins = np.histogram(
+            mc_plotted_variable, **plot_options)
+        nue_uncertainties, bins = np.histogram(
+            nue_plotted_variable, **plot_options)
+        ext_uncertainties, bins = np.histogram(
+            ext_plotted_variable, **plot_options)
+        err_mc = np.array([n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
         err_nue = np.array(
-            [n * self.weights["nue"] * self.weights["nue"] for n in n_nue])
+            [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
         err_ext = np.array(
-            [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
+            [n * self.weights["ext"] * self.weights["ext"] for n in ext_uncertainties])
         err_dirt = np.array([0 for n in n_mc])
+        err_lee = np.array([0 for n in n_mc])
         if "dirt" in self.samples:
+            dirt_uncertainties, bins = np.histogram(dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
-                [n * self.weights["dirt"] * self.weights["dirt"] for n in n_dirt])
-        tot_uncertainties = np.sqrt(err_mc + err_ext + err_nue + err_dirt)
+                [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
+        if "lee" in self.samples:
+            if isinstance(plot_options["bins"], Iterable):
+                lee_bins = plot_options["bins"]
+            else:
+                bin_size = (
+                    plot_options["range"][1] - plot_options["range"][0])/plot_options["bins"]
+                lee_bins = [plot_options["range"][0]+n *
+                            bin_size for n in range(plot_options["bins"]+1)]
+
+            binned_lee = pd.cut(self.samples["lee"].query(
+                query).eval(variable), lee_bins)
+            err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
+                "sum") * self.weights["lee"] * self.weights["lee"]
+        tot_uncertainties = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee)
 
         bincenters = 0.5 * (tot_bins[1:] + tot_bins[:-1])
         exp_err = tot_uncertainties
