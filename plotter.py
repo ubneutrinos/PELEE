@@ -119,6 +119,7 @@ class Plotter:
         self.samples = samples
         self.pot = pot
         self.significance = 0
+        self.significance_likelihood = 0
 
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
@@ -133,7 +134,30 @@ class Plotter:
                 "Missing necessary columns in the DataFrame: %s" % missing)
 
     @staticmethod
-    def _sigma_calc_matrix(signal, background, scale_factor=1):
+    def _sigma_calc_likelihood(sig, bkg, err_bkg, scale_factor=1):
+        """It calculates the significance with the profile likelihood ratio
+        assuming an uncertainity on the background entries.
+        Taken from http://www.pp.rhul.ac.uk/~cowan/stat/medsig/medsigNote.pdf
+        """
+        b = bkg * scale_factor
+        if not isinstance(err_bkg, Iterable):
+            e = np.array([err_bkg]) * scale_factor
+        else:
+            e = err_bkg * scale_factor
+
+        s = sig* scale_factor
+
+        p1 = (s+b)*np.log((s+b)*(b+e**2)/(b**2+(s+b)*e**2))
+
+        p2 = -s
+        if sum(e) > 0:
+            p2 = -b**2/(e**2)*np.log(1+e**2*s/(b*(b+e**2)))
+        z = 2*(p1+p2)
+
+        return math.sqrt(sum(z))
+
+    @staticmethod
+    def _sigma_calc_matrix(signal, background, bkg_err, scale_factor=1):
         """It calculates the significance as the square root of the Δχ2 score
 
         Args:
@@ -149,14 +173,14 @@ class Plotter:
         bkg_array = background * scale_factor
         empty_elements = np.where(bkg_array == 0)[0]
         sig_array = signal * scale_factor
-
+        err_array = bkg_err * scale_factor
         sig_array = np.delete(sig_array, empty_elements)
         bkg_array = np.delete(bkg_array, empty_elements)
 
         nbins = len(sig_array)
 
         emtx = np.zeros((nbins, nbins))
-        np.fill_diagonal(emtx, bkg_array)
+        np.fill_diagonal(emtx, bkg_array + err_array**2)
 
         emtxinv = np.linalg.inv(emtx)
         chisq = float(sig_array.dot(emtxinv).dot(sig_array.T))
@@ -421,14 +445,6 @@ class Plotter:
             histtype="step",
             edgecolor="black")
 
-        if "lee" in self.samples:
-            try:
-                self.significance = self._sigma_calc_matrix(
-                    lee_hist, n_tot-lee_hist, scale_factor=1.3e21/4.26e19)
-                # print("Significance stat. only: %g sigma" % self.significance)
-            except np.linalg.LinAlgError:
-                print("Error calculating the significance")
-
         bincenters = 0.5 * (bin_edges[1:] + bin_edges[:-1])
         mc_uncertainties, bins = np.histogram(
             mc_plotted_variable, **plot_options)
@@ -464,19 +480,30 @@ class Plotter:
 
         exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee)
 
+        if "lee" in self.samples:
+            bkg_err = np.sqrt(exp_err**2 - err_lee)
+            try:
+                self.significance = self._sigma_calc_matrix(
+                    lee_hist, n_tot-lee_hist, bkg_err, scale_factor=1.3e21/4.26e19)
+            except np.linalg.LinAlgError:
+                print("Error calculating the significance")
+            self.significance_likelihood = self._sigma_calc_likelihood(
+                lee_hist, n_tot-lee_hist, bkg_err, scale_factor=1.3e21/4.26e19)
+
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
         ax1.bar(bincenters, n_tot, width=0, yerr=exp_err)
 
         n_data, bins = np.histogram(data_plotted_variable, **plot_options)
         data_err = np.sqrt(n_data)
-        ax1.errorbar(
-            bincenters,
-            n_data,
-            xerr=bin_size,
-            yerr=data_err,
-            fmt='ko',
-            label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
+        if sum(n_data) > 0:
+            ax1.errorbar(
+                bincenters,
+                n_data,
+                xerr=bin_size,
+                yerr=data_err,
+                fmt='ko',
+                label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         leg = ax1.legend(
             frameon=False, ncol=3, title=r'MicroBooNE Preliminary %g POT' % self.pot)
@@ -495,18 +522,18 @@ class Plotter:
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-
-        ax2.text(
-            0.88,
-            0.845,
-            r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
-            '\n' +
-            'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-            va='center',
-            ha='center',
-            ma='right',
-            fontsize=12,
-            transform=ax2.transAxes)
+        if sum(n_data) > 0:
+            ax2.text(
+                0.88,
+                0.845,
+                r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
+                '\n' +
+                'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                va='center',
+                ha='center',
+                ma='right',
+                fontsize=12,
+                transform=ax2.transAxes)
 
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
