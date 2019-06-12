@@ -457,7 +457,7 @@ class Plotter:
 
             binned_lee = pd.cut(self.samples["lee"].query(query).eval(variable), lee_bins)
             err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
-                "sum") * self.weights["lee"] * self.weights["lee"]
+                "sum").values * self.weights["lee"] * self.weights["lee"]
 
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
@@ -667,11 +667,10 @@ class Plotter:
             binned_lee = pd.cut(self.samples["lee"].query(
                 query).eval(variable), lee_bins)
             err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
-                "sum") * self.weights["lee"] * self.weights["lee"]
-        tot_uncertainties = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee)
+                "sum").values * self.weights["lee"] * self.weights["lee"]
+        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee)
 
         bincenters = 0.5 * (tot_bins[1:] + tot_bins[:-1])
-        exp_err = tot_uncertainties
         bin_size = [(tot_bins[i + 1] - tot_bins[i]) / 2
                     for i in range(len(tot_bins) - 1)]
         ax1.bar(bincenters, n_tot, width=0, yerr=exp_err)
