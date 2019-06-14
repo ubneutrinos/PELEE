@@ -124,7 +124,7 @@ class Plotter:
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
 
-        necessary = ["trk_pfp_id", "category", "shr_pfp_id_v", "selected",
+        necessary = ["category", "shr_pfp_id_v", "selected",  # "trk_pfp_id",
                      "backtracked_pdg", "nu_pdg", "ccnc", "trk_bkt_pdg", "shr_bkt_pdg"]
 
         missing = np.setdiff1d(necessary, samples["mc"].columns)
@@ -169,14 +169,13 @@ class Plotter:
         Returns:
             Square root of S•B^(-1)•S^T
         """
-
         bkg_array = background * scale_factor
         empty_elements = np.where(bkg_array == 0)[0]
         sig_array = signal * scale_factor
         err_array = bkg_err * scale_factor
         sig_array = np.delete(sig_array, empty_elements)
         bkg_array = np.delete(bkg_array, empty_elements)
-
+        err_array = np.delete(err_array, empty_elements)
         nbins = len(sig_array)
 
         emtx = np.zeros((nbins, nbins))
@@ -482,13 +481,14 @@ class Plotter:
 
         if "lee" in self.samples:
             bkg_err = np.sqrt(exp_err**2 - err_lee)
-            try:
-                self.significance = self._sigma_calc_matrix(
+            if kind == "event_category":
+                try:
+                    self.significance = self._sigma_calc_matrix(
+                        lee_hist, n_tot-lee_hist, bkg_err, scale_factor=1.3e21/4.26e19)
+                except np.linalg.LinAlgError:
+                    print("Error calculating the significance")
+                self.significance_likelihood = self._sigma_calc_likelihood(
                     lee_hist, n_tot-lee_hist, bkg_err, scale_factor=1.3e21/4.26e19)
-            except np.linalg.LinAlgError:
-                print("Error calculating the significance")
-            self.significance_likelihood = self._sigma_calc_likelihood(
-                lee_hist, n_tot-lee_hist, bkg_err, scale_factor=1.3e21/4.26e19)
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
