@@ -418,10 +418,10 @@ class Plotter:
 
         ax1.hist(
             var_dict.values(),
-            **plot_options,
             weights=list(weight_dict.values()),
             stacked=True,
-            label=labels)
+            label=labels,
+            **plot_options)
 
         total_array = np.concatenate(list(var_dict.values()))
         total_weight = np.concatenate(list(weight_dict.values()))
@@ -429,27 +429,27 @@ class Plotter:
         plot_options.pop('color', None)
 
         total_hist, total_bins = np.histogram(
-            total_array, **plot_options, weights=total_weight)
+            total_array, weights=total_weight,  **plot_options)
 
         ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
-            **plot_options,
             weights=ext_weight,
             bottom=total_hist,
             label="EXT: %.1f" % sum(ext_weight) if sum(ext_weight) else "",
             hatch="//",
-            color="white")
+            color="white",
+            **plot_options)
 
         total_array = np.concatenate([total_array, ext_plotted_variable])
         total_weight = np.concatenate([total_weight, ext_weight])
 
         n_tot, bin_edges, patches = ax1.hist(
             total_array,
-            **plot_options,
             weights=total_weight,
             histtype="step",
-            edgecolor="black")
+            edgecolor="black",
+            **plot_options)
 
         bincenters = 0.5 * (bin_edges[1:] + bin_edges[:-1])
         mc_uncertainties, bins = np.histogram(
@@ -627,50 +627,50 @@ class Plotter:
 
         n_mc, mc_bins, patches = ax1.hist(
             mc_plotted_variable,
-            **plot_options,
             weights=mc_weight,
-            label="BNB overlay: %g entries" % sum(mc_weight))
+            label="BNB overlay: %g entries" % sum(mc_weight),
+            **plot_options)
 
         n_nue, nue_bins, patches = ax1.hist(
             nue_plotted_variable,
-            **plot_options,
             bottom=n_mc,
             weights=nue_weight,
-            label=r"$\nu_{e}$ overlay: %g entries" % sum(nue_weight))
+            label=r"$\nu_{e}$ overlay: %g entries" % sum(nue_weight),
+            **plot_options)
 
         n_dirt = 0
         if "dirt" in self.samples:
             n_dirt, dirt_bins, patches = ax1.hist(
                 dirt_plotted_variable,
-                **plot_options,
                 bottom=n_mc + n_nue,
                 weights=dirt_weight,
-                label=r"Dirt: %g entries" % sum(dirt_weight))
+                label=r"Dirt: %g entries" % sum(dirt_weight),
+                **plot_options)
 
         n_lee = 0
         if "lee" in self.samples:
             n_lee, lee_bins, patches = ax1.hist(
                 lee_plotted_variable,
-                **plot_options,
                 bottom=n_mc + n_nue + n_dirt,
                 weights=lee_weight,
-                label=r"MiniBooNE LEE: %g entries" % sum(lee_weight))
+                label=r"MiniBooNE LEE: %g entries" % sum(lee_weight),
+                **plot_options)
 
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
-            **plot_options,
             bottom=n_mc + n_nue + n_dirt + n_lee,
             weights=ext_weight,
             label="EXT: %g entries" % sum(ext_weight),
             hatch="//",
-            color="white")
+            color="white",
+            **plot_options)
 
         n_tot, tot_bins, patches = ax1.hist(
             total_variable,
-            **plot_options,
             weights=total_weight,
             histtype="step",
-            edgecolor="black")
+            edgecolor="black",
+            **plot_options)
 
         mc_uncertainties, bins = np.histogram(
             mc_plotted_variable, **plot_options)
