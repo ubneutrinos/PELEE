@@ -11,7 +11,9 @@ from operator import itemgetter
 
 import pandas as pd
 import xgboost as xgb
+import shap
 
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, recall_score, precision_score, average_precision_score
 
@@ -32,7 +34,7 @@ variables = [
     "hits_ratio", "shr_dedx_U", "shr_dedx_V", "n_tracks_contained", "n_showers_contained",
     "shr_theta", "trk_len", "train_weight", "trk_score", "shr_score", "shr_energy_tot", "trk_energy_tot",
     "shr_phi", "trk_theta", "trk_phi", "tksh_angle", "tksh_distance", "CosmicIP", "shr_bragg_p", "shr_chipr",
-    "shr_chimu", "trk_bragg_p"
+    "shr_chimu", "trk_bragg_p", "shr_pca_2"
 ]
 
 class NueBooster:
@@ -116,15 +118,19 @@ class NueBooster:
         print('recall score: {:.6f}'.format(score))
 
         imp = self.get_importance(gbm, features)
-        print('Importance array: ', imp)
+        # print('Importance array: ', imp)
 
         ############################################ ROC Curve
 
         # Compute micro-average ROC curve and ROC area
         fpr, tpr, _ = roc_curve(test[target].values, check)
         roc_auc = auc(fpr, tpr)
-        #xgb.plot_importance(gbm)
-        #plt.show()
+        # xgb.plot_importance(gbm)
+        # explainer = shap.TreeExplainer(gbm)
+        # shap_values = explainer.shap_values(train[features])
+        # shap.force_plot(explainer.expected_value, shap_values, train[features])
+        # shap.summary_plot(shap_values, train[features])
+        # plt.show()
 
         lw = 2
         ax.plot(fpr, tpr, lw=lw, label='%s (area = %0.2f)' % (title, roc_auc))
@@ -141,39 +147,25 @@ class NueBooster:
 
 
     def train_booster(self, ax, bkg_query=""):
-        print("Training %s..." % bkg_query)
-
-        nue = self.samples["nue"].query("nu_e < 0.8 & selected == 1 & category == 11")
-        filtered_nue = nue[self.variables]
 
         plt_title = 'Global'
-        if bkg_query:
+
+        if bkg_query in bkg_queries:
+            print("Training %s..." % labels[bkg_queries.index(bkg_query)])
             plt_title = r"%s background" % titles[bkg_queries.index(bkg_query)]
             bkg_query = "&" + bkg_query
 
-        mc = self.samples["mc"].query("nu_e < 0.8 & selected == 1" + bkg_query)
-        filtered_mc = mc[self.variables]
+        test_nue = self.samples["nue"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
+        train_nue = self.samples["nue"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
 
-        ext = self.samples["ext"].query("selected == 1" + bkg_query)
-        filtered_ext = ext[self.variables]
+        test_mc = self.samples["mc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
+        train_mc = self.samples["mc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
 
-        train_nue, test_nue = train_test_split(
-            filtered_nue, test_size=0.5, random_state=self.random_state)
+        test_ext = self.samples["ext"][0].query("trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
+        train_ext = self.samples["ext"][1].query("trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
 
-        train = train_nue
-        test = test_nue
-
-        if len(mc):
-            train_mc, test_mc = train_test_split(
-                filtered_mc, test_size=0.5, random_state=self.random_state)
-            train = pd.concat([train, train_mc])
-            test = pd.concat([test, test_mc])
-
-        if len(ext):
-            train_ext, test_ext = train_test_split(
-                filtered_ext, test_size=0.5, random_state=self.random_state)
-            train = pd.concat([train, train_ext])
-            test = pd.concat([test, test_ext])
+        train = pd.concat([train_nue, train_mc, train_ext])
+        test = pd.concat([test_nue, test_mc, test_ext])
 
         features = list(train.columns.values)
         features.remove('is_signal')

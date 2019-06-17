@@ -189,7 +189,6 @@ class Plotter:
     @staticmethod
     def _ratio_err(num, den, num_err, den_err):
         n, d, n_e, d_e = num, den, num_err, den_err
-        print("n, d", n, d)
         n[n == 0] = 0.00001
         d[d == 0] = 0.00001
         return np.array([
@@ -225,14 +224,14 @@ class Plotter:
         if variable.size > 0:
             if isinstance(variable[0], np.ndarray):
                 variable = np.hstack(variable)
-                if "shr" in variable_name and variable_name != "trkshr_score_v":
+                if "shr" in variable_name and variable_name != "shr_score_v":
                     shr_score = np.hstack(self._selection(
-                        "trkshr_score_v", sample, query=query, extra_cut=extra_cut).ravel())
+                        "shr_score_v", sample, query=query, extra_cut=extra_cut).ravel())
                     shr_score_id = shr_score < score
                     variable = variable[shr_score_id]
-                elif "trk" in variable_name and variable_name != "trkscore_v":
+                elif "trk" in variable_name and variable_name != "trk_score_v":
                     trk_score = np.hstack(self._selection(
-                        "trkscore_v", sample, query=query, extra_cut=extra_cut).ravel())
+                        "trk_score_v", sample, query=query, extra_cut=extra_cut).ravel())
                     trk_score_id = trk_score > score
                     variable = variable[trk_score_id]
 
