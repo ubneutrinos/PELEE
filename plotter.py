@@ -189,9 +189,12 @@ class Plotter:
     @staticmethod
     def _ratio_err(num, den, num_err, den_err):
         n, d, n_e, d_e = num, den, num_err, den_err
+        print("n, d", n, d)
+        n[n == 0] = 0.00001
+        d[d == 0] = 0.00001
         return np.array([
             n[i] / d[i] * math.sqrt((n_e[i] / n[i])**2 + (d_e[i] / d[i])**2)
-            for i in range(len(num))
+            for i, k in enumerate(num)
         ])
 
     @staticmethod
@@ -227,6 +230,11 @@ class Plotter:
                         "trkshr_score_v", sample, query=query, extra_cut=extra_cut).ravel())
                     shr_score_id = shr_score < score
                     variable = variable[shr_score_id]
+                elif "trk" in variable_name and variable_name != "trkscore_v":
+                    trk_score = np.hstack(self._selection(
+                        "trkscore_v", sample, query=query, extra_cut=extra_cut).ravel())
+                    trk_score_id = trk_score > score
+                    variable = variable[trk_score_id]
 
         return variable
 
