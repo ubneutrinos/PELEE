@@ -326,7 +326,8 @@ class Plotter:
         if not title:
             title = variable
         # pandas bug https://github.com/pandas-dev/pandas/issues/16363
-        if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[:-2] != "_v":
+        print(variable[:-2])
+        if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
 
@@ -334,6 +335,7 @@ class Plotter:
             categorization = self._categorize_entries
             cat_labels = category_labels
         elif kind == "particle_pdg":
+            print(query)
             var = self.samples["mc"].query(query).eval(variable)
             if var.dtype == np.float32:
                 categorization = self._categorize_entries_single_pdg
@@ -486,9 +488,10 @@ class Plotter:
                 bin_size = (plot_options["range"][1] - plot_options["range"][0])/plot_options["bins"]
                 lee_bins = [plot_options["range"][0]+n*bin_size for n in range(plot_options["bins"]+1)]
 
-            binned_lee = pd.cut(self.samples["lee"].query(query).eval(variable), lee_bins)
-            err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
-                "sum").values * self.weights["lee"] * self.weights["lee"]
+            if variable[-2:] != "_v":
+                binned_lee = pd.cut(self.samples["lee"].query(query).eval(variable), lee_bins)
+                err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
+                    "sum").values * self.weights["lee"] * self.weights["lee"]
 
         err_nc = np.array([0 for n in mc_uncertainties])
         if "nc" in self.samples:
