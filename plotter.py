@@ -346,7 +346,7 @@ class Plotter:
             raise ValueError(
                 "Unrecognized categorization, valid options are 'sample', 'event_category', and 'particle_pdg'")
 
-        nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
+        nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 != 0 & ccnc == 1)"
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=nu_pdg)
 
@@ -362,6 +362,15 @@ class Plotter:
         for c, v in zip(category, nue_plotted_variable):
             var_dict[c].append(v)
             weight_dict[c].append(self.weights["nue"])
+
+        if "nc" in self.samples:
+            category, nc_plotted_variable = categorization(
+                self.samples["nc"], variable, query=query, extra_cut="nu_pdg != 12")
+
+            for c, v in zip(category, nc_plotted_variable):
+                var_dict[c].append(v)
+                weight_dict[c].append(self.weights["nc"])
+
 
         if "dirt" in self.samples:
             category, dirt_plotted_variable = categorization(
@@ -481,10 +490,17 @@ class Plotter:
             err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
                 "sum").values * self.weights["lee"] * self.weights["lee"]
 
+        err_nc = np.array([0 for n in mc_uncertainties])
+        if "nc" in self.samples:
+            nc_uncertainties, bins = np.histogram(
+                nc_plotted_variable, **plot_options)
+            err_nc = np.array(
+                [n * self.weights["nc"] * self.weights["nc"] for n in nc_uncertainties])
+
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee)
+        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee + err_nc)
 
         if "lee" in self.samples:
             bkg_err = np.sqrt(exp_err**2 - err_lee)
@@ -552,7 +568,7 @@ class Plotter:
         return fig, ax1, ax2
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
-        nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
+        nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 != 0 & ccnc == 1)"
         if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[:-2] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
@@ -564,7 +580,7 @@ class Plotter:
         mc_weight = [self.weights["mc"]] * len(mc_plotted_variable)
 
         nue_plotted_variable = self._selection(
-            variable, self.samples["nue"], query=query,)
+            variable, self.samples["nue"], query=query)
         nue_plotted_variable = self._select_showers(
             nue_plotted_variable, variable, self.samples["nue"], query=query)
         nue_weight = [self.weights["nue"]] * len(nue_plotted_variable)
@@ -581,6 +597,13 @@ class Plotter:
             dirt_plotted_variable = self._select_showers(
                 dirt_plotted_variable, variable, self.samples["dirt"], query=query)
             dirt_weight = [self.weights["dirt"]] * len(dirt_plotted_variable)
+
+        if "nc" in self.samples:
+            nc_plotted_variable = self._selection(
+                variable, self.samples["nc"], query=query, extra_cut="nu_pdg != 12")
+            nc_plotted_variable = self._select_showers(
+                nc_plotted_variable, variable, self.samples["nc"], query=query)
+            nc_weight = [self.weights["nc"]] * len(nc_plotted_variable)
 
         if "lee" in self.samples:
             lee_plotted_variable = self._selection(
@@ -619,8 +642,15 @@ class Plotter:
             total_weight = np.concatenate(
                 [total_weight, lee_weight])
 
+        if "nc" in self.samples:
+            total_variable = np.concatenate(
+                [total_variable,
+                 nc_plotted_variable])
+            total_weight = np.concatenate(
+                [total_weight, nc_weight])
+
         fig = plt.figure(figsize=(8, 7))
-        gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
+        gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
 
         ax1 = plt.subplot(gs[0])
         ax2 = plt.subplot(gs[1])
@@ -647,18 +677,27 @@ class Plotter:
                 label=r"Dirt: %g entries" % sum(dirt_weight),
                 **plot_options)
 
+        n_nc = 0
+        if "nc" in self.samples:
+            n_nc, nc_bins, patches = ax1.hist(
+                nc_plotted_variable,
+                bottom=n_mc + n_nue + n_dirt,
+                weights=nc_weight,
+                label=r"NC$\pi^0$: %g entries" % sum(nc_weight),
+                **plot_options)
+
         n_lee = 0
         if "lee" in self.samples:
             n_lee, lee_bins, patches = ax1.hist(
                 lee_plotted_variable,
-                bottom=n_mc + n_nue + n_dirt,
+                bottom=n_mc + n_nue + n_dirt + n_nc,
                 weights=lee_weight,
                 label=r"MiniBooNE LEE: %g entries" % sum(lee_weight),
                 **plot_options)
 
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
-            bottom=n_mc + n_nue + n_dirt + n_lee,
+            bottom=n_mc + n_nue + n_dirt + n_lee + n_nc,
             weights=ext_weight,
             label="EXT: %g entries" % sum(ext_weight),
             hatch="//",
@@ -685,10 +724,18 @@ class Plotter:
             [n * self.weights["ext"] * self.weights["ext"] for n in ext_uncertainties])
         err_dirt = np.array([0 for n in n_mc])
         err_lee = np.array([0 for n in n_mc])
+
         if "dirt" in self.samples:
             dirt_uncertainties, bins = np.histogram(dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
+
+        err_nc = np.array([0 for n in n_mc])
+        if "nc" in self.samples:
+            nc_uncertainties, bins = np.histogram(nc_plotted_variable, **plot_options)
+            err_nc = np.array(
+                [n * self.weights["nc"] * self.weights["nc"] for n in nc_uncertainties])
+
         if "lee" in self.samples:
             if isinstance(plot_options["bins"], Iterable):
                 lee_bins = plot_options["bins"]
@@ -702,7 +749,7 @@ class Plotter:
                 query).eval(variable), lee_bins)
             err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
                 "sum").values * self.weights["lee"] * self.weights["lee"]
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee)
+        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee + err_nc)
 
         bincenters = 0.5 * (tot_bins[1:] + tot_bins[:-1])
         bin_size = [(tot_bins[i + 1] - tot_bins[i]) / 2
