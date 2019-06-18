@@ -249,8 +249,11 @@ class Plotter:
 
         if "trk" in variable:
             pfp_id_variable = "trk_pfp_id"
+            score_v = self._selection("trk_score_v", sample, query=query, extra_cut=extra_cut)
         else:
             pfp_id_variable = "shr_pfp_id_v"
+            score_v = self._selection("shr_score_v", sample, query=query, extra_cut=extra_cut)
+
 
         pfp_id = self._selection(
             pfp_id_variable, sample, query=query, extra_cut=extra_cut)
@@ -263,8 +266,14 @@ class Plotter:
         plotted_variable = self._select_showers(
             plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
 
+        if "trk" in variable:
+            pfp_id = np.array([pf_id[score > 0.5] for pf_id, score in zip(pfp_id, score_v)])
+        else:
+            pfp_id = np.array([pf_id[score <= 0.5] for pf_id, score in zip(pfp_id, score_v)])
+
         pfp_pdg = np.array([pdg[pfp_id]
                             for pdg, pfp_id in zip(backtracked_pdg, pfp_id)])
+
         pfp_pdg = np.hstack(pfp_pdg)
         pfp_pdg = abs(pfp_pdg)
 
@@ -326,7 +335,6 @@ class Plotter:
         if not title:
             title = variable
         # pandas bug https://github.com/pandas-dev/pandas/issues/16363
-        print(variable[:-2])
         if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
@@ -335,7 +343,6 @@ class Plotter:
             categorization = self._categorize_entries
             cat_labels = category_labels
         elif kind == "particle_pdg":
-            print(query)
             var = self.samples["mc"].query(query).eval(variable)
             if var.dtype == np.float32:
                 categorization = self._categorize_entries_single_pdg
