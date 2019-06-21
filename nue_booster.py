@@ -34,7 +34,8 @@ variables = [
     "hits_ratio", "shr_dedx_U", "shr_dedx_V", "n_tracks_contained", "n_showers_contained",
     "shr_theta", "trk_len", "train_weight", "trk_score", "shr_score", "shr_energy_tot", "trk_energy_tot",
     "shr_phi", "trk_theta", "trk_phi", "tksh_angle", "tksh_distance", "CosmicIP", "shr_bragg_p", "shr_chipr",
-    "shr_chimu", "trk_bragg_p", "shr_pca_2", "shr_pca_1", "shr_pca_0", "shr_bragg_mu", "trk_bragg_mu"
+    "shr_chimu", "trk_bragg_p", "shr_pca_2", "shr_pca_1", "shr_pca_0", "shr_bragg_mu", "trk_bragg_mu", "trk_pida",
+    "topological_score", "slpdg"
 ]
 
 class NueBooster:
@@ -126,11 +127,10 @@ class NueBooster:
         fpr, tpr, _ = roc_curve(test[target].values, check)
         roc_auc = auc(fpr, tpr)
         # xgb.plot_importance(gbm)
-        # explainer = shap.TreeExplainer(gbm)
-        # shap_values = explainer.shap_values(train[features])
-        # shap.force_plot(explainer.expected_value, shap_values, train[features])
-        # shap.summary_plot(shap_values, train[features])
-        # plt.show()
+        explainer = shap.TreeExplainer(gbm)
+        shap_values = explainer.shap_values(train[features])
+        shap.force_plot(explainer.expected_value, shap_values, train[features])
+        shap.summary_plot(shap_values, train[features], max_display=10)
 
         lw = 2
         ax.plot(fpr, tpr, lw=lw, label='%s (area = %0.2f)' % (title, roc_auc))
@@ -158,8 +158,8 @@ class NueBooster:
         test_nue = self.samples["nue"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
         train_nue = self.samples["nue"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
 
-        test_nc = self.samples["nc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
-        train_nc = self.samples["nc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
+        test_nc = self.samples["nc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1")[self.variables]
+        train_nc = self.samples["nc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1")[self.variables]
 
         test_mc = self.samples["mc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
         train_mc = self.samples["mc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
