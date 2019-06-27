@@ -106,7 +106,7 @@ class Plotter:
             mc`, `nue`, `data`, and `ext` are required. `lee` and `dirt` are optional.
         weights (dict): Dictionary of global dataframes weights.
             One for each entry in the samples dict.
-        pot (int): Number of protons-on-target. Defaults is 4.3e19.
+        pot (int): Number of protons-on-target. Defaults is 4.5e19.
 
     Attributes:
        samples (dict): Dictionary of pandas dataframes.
@@ -114,7 +114,7 @@ class Plotter:
        pot (int): Number of protons-on-target.
     """
 
-    def __init__(self, samples, weights, pot=4.3e19):
+    def __init__(self, samples, weights, pot=4.5e19):
         self.weights = weights
         self.samples = samples
         self.pot = pot
@@ -237,7 +237,7 @@ class Plotter:
                 elif "trk" in variable_name and variable_name != "trk_score_v":
                     trk_score = np.hstack(self._selection(
                         "trk_score_v", sample, query=query, extra_cut=extra_cut).ravel())
-                    trk_score_id = trk_score > score
+                    trk_score_id = trk_score >= score
                     variable = variable[trk_score_id]
 
         return variable
@@ -388,7 +388,11 @@ class Plotter:
             raise ValueError(
                 "Unrecognized categorization, valid options are 'sample', 'event_category', and 'particle_pdg'")
 
-        nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 != 0 & ccnc == 1)"
+        if "nc" in self.samples:
+            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 != 0 & ccnc == 1)"
+        else:
+            nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
+
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=nu_pdg)
 
@@ -413,9 +417,9 @@ class Plotter:
 
         if "nc" in self.samples:
             nc_genie_weights = self._get_genie_weight(
-                    self.samples["nc"], variable, query=query, extra_cut="nu_pdg != 12")
+                    self.samples["nc"], variable, query=query)
             category, nc_plotted_variable = categorization(
-                self.samples["nc"], variable, query=query, extra_cut="nu_pdg != 12")
+                self.samples["nc"], variable, query=query)
 
             for c, v, w in zip(category, nc_plotted_variable, nc_genie_weights):
                 var_dict[c].append(v)
@@ -572,7 +576,8 @@ class Plotter:
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
-        ax1.bar(bincenters, n_tot, width=0, yerr=exp_err)
+        ax1.bar(bincenters, n_tot, facecolor='none',
+                edgecolor='none', width=0, yerr=exp_err)
 
         n_data, bins = np.histogram(data_plotted_variable, **plot_options)
         data_err = np.sqrt(n_data)
@@ -625,7 +630,11 @@ class Plotter:
         return fig, ax1, ax2
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
-        nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 != 0 & ccnc == 1)"
+        if "nc" in self.samples:
+            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 != 0 & ccnc == 1)"
+        else:
+            nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
+
         if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
@@ -657,9 +666,9 @@ class Plotter:
 
         if "nc" in self.samples:
             nc_plotted_variable = self._selection(
-                variable, self.samples["nc"], query=query, extra_cut="nu_pdg != 12")
+                variable, self.samples["nc"], query=query)
             nc_plotted_variable = self._select_showers(
-                nc_plotted_variable, variable, self.samples["nc"], query=query, extra_cut="nu_pdg != 12")
+                nc_plotted_variable, variable, self.samples["nc"], query=query)
             nc_weight = [self.weights["nc"]] * len(nc_plotted_variable)
 
         if "lee" in self.samples:
@@ -692,12 +701,12 @@ class Plotter:
             total_weight = np.concatenate(
                 [mc_weight, nue_weight, ext_weight])
 
-        # if "lee" in self.samples:
-        #     total_variable = np.concatenate(
-        #         [total_variable,
-        #          lee_plotted_variable])
-        #     total_weight = np.concatenate(
-        #         [total_weight, lee_weight])
+        if "lee" in self.samples:
+            total_variable = np.concatenate(
+                [total_variable,
+                 lee_plotted_variable])
+            total_weight = np.concatenate(
+                [total_weight, lee_weight])
 
         if "nc" in self.samples:
             total_variable = np.concatenate(
@@ -715,14 +724,14 @@ class Plotter:
         n_mc, mc_bins, patches = ax1.hist(
             mc_plotted_variable,
             weights=mc_weight,
-            label="BNB overlay: %g entries" % sum(mc_weight),
+            label="BNB overlay: %.1f entries" % sum(mc_weight),
             **plot_options)
 
         n_nue, nue_bins, patches = ax1.hist(
             nue_plotted_variable,
             bottom=n_mc,
             weights=nue_weight,
-            label=r"$\nu_{e}$ overlay: %g entries" % sum(nue_weight),
+            label=r"$\nu_{e}$ overlay: %.1f entries" % sum(nue_weight),
             **plot_options)
 
         n_dirt = 0
@@ -731,7 +740,7 @@ class Plotter:
                 dirt_plotted_variable,
                 bottom=n_mc + n_nue,
                 weights=dirt_weight,
-                label=r"Dirt: %g entries" % sum(dirt_weight),
+                label=r"Dirt: %.1f entries" % sum(dirt_weight),
                 **plot_options)
 
         n_nc = 0
@@ -740,23 +749,23 @@ class Plotter:
                 nc_plotted_variable,
                 bottom=n_mc + n_nue + n_dirt,
                 weights=nc_weight,
-                label=r"NC$\pi^0$: %g entries" % sum(nc_weight),
+                label=r"NC$\pi^0$: %.1f entries" % sum(nc_weight),
                 **plot_options)
 
         n_lee = 0
-        # if "lee" in self.samples:
-        #     n_lee, lee_bins, patches = ax1.hist(
-        #         lee_plotted_variable,
-        #         bottom=n_mc + n_nue + n_dirt + n_nc,
-        #         weights=lee_weight,
-        #         label=r"MiniBooNE LEE: %g entries" % sum(lee_weight),
-        #         **plot_options)
+        if "lee" in self.samples:
+            n_lee, lee_bins, patches = ax1.hist(
+                lee_plotted_variable,
+                bottom=n_mc + n_nue + n_dirt + n_nc,
+                weights=lee_weight,
+                label=r"MiniBooNE LEE: %.1f entries" % sum(lee_weight),
+                **plot_options)
 
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
             bottom=n_mc + n_nue + n_dirt + n_lee + n_nc,
             weights=ext_weight,
-            label="EXT: %g entries" % sum(ext_weight),
+            label="EXT: %.1f entries" % sum(ext_weight),
             hatch="//",
             color="white",
             **plot_options)

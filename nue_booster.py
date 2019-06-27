@@ -104,8 +104,8 @@ class NueBooster:
             verbose_eval=False)
 
         print("Validating...")
-        check = gbm.predict(
-            xgb.DMatrix(test[features]), ntree_limit=gbm.best_iteration + 1)
+        # check = gbm.predict(
+        #     xgb.DMatrix(test[features]), ntree_limit=gbm.best_iteration + 1)
 
         #area under the precision-recall curve
         # score = average_precision_score(test[target].values, check)
@@ -124,17 +124,17 @@ class NueBooster:
         ############################################ ROC Curve
 
         # Compute micro-average ROC curve and ROC area
-        fpr, tpr, _ = roc_curve(test[target].values, check)
-        roc_auc = auc(fpr, tpr)
+        # fpr, tpr, _ = roc_curve(test[target].values, check)
+        # roc_auc = auc(fpr, tpr)
         # xgb.plot_importance(gbm)
-        explainer = shap.TreeExplainer(gbm)
-        shap_values = explainer.shap_values(train[features])
-        shap.force_plot(explainer.expected_value, shap_values, train[features])
-        shap.summary_plot(shap_values, train[features], max_display=10)
+        # explainer = shap.TreeExplainer(gbm)
+        # shap_values = explainer.shap_values(train[features])
+        # shap.force_plot(explainer.expected_value, shap_values, train[features])
+        # shap.summary_plot(shap_values, train[features], max_display=10)
 
-        lw = 2
-        ax.plot(fpr, tpr, lw=lw, label='%s (area = %0.2f)' % (title, roc_auc))
-        ax.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+        # lw = 2
+        # ax.plot(fpr, tpr, lw=lw, label='%s (area = %0.2f)' % (title, roc_auc))
+        # ax.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
 
         return gbm, imp, gbm.best_iteration + 1
 
