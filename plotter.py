@@ -349,6 +349,85 @@ class Plotter:
                 genie_weights = np.hstack(genie_weights)
         return genie_weights
 
+    def _get_variable(self, variable, query):
+        if "nc" in self.samples:
+            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 != 0 & ccnc == 1)"
+        else:
+            nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
+
+        # if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
+        #     query += "& %s <= %g & %s >= %g" % (
+        #         variable, plot_options["range"][1], variable, plot_options["range"][0])
+
+        mc_plotted_variable = self._selection(
+            variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+        mc_plotted_variable = self._select_showers(
+            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+        mc_weight = [self.weights["mc"]] * len(mc_plotted_variable)
+
+        nue_plotted_variable = self._selection(
+            variable, self.samples["nue"], query=query)
+        nue_plotted_variable = self._select_showers(
+            nue_plotted_variable, variable, self.samples["nue"], query=query)
+        nue_weight = [self.weights["nue"]] * len(nue_plotted_variable)
+
+        ext_plotted_variable = self._selection(
+            variable, self.samples["ext"], query=query)
+        ext_plotted_variable = self._select_showers(
+            ext_plotted_variable, variable, self.samples["ext"], query=query)
+        ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
+
+        dirt_weight = []
+        dirt_plotted_variable = []
+        if "dirt" in self.samples:
+            dirt_plotted_variable = self._selection(
+                variable, self.samples["dirt"], query=query)
+            dirt_plotted_variable = self._select_showers(
+                dirt_plotted_variable, variable, self.samples["dirt"], query=query)
+            dirt_weight = [self.weights["dirt"]] * len(dirt_plotted_variable)
+
+        nc_weight = []
+        nc_plotted_variable = []
+        if "nc" in self.samples:
+            nc_plotted_variable = self._selection(
+                variable, self.samples["nc"], query=query)
+            nc_plotted_variable = self._select_showers(
+                nc_plotted_variable, variable, self.samples["nc"], query=query)
+            nc_weight = [self.weights["nc"]] * len(nc_plotted_variable)
+
+        lee_weight = []
+        lee_plotted_variable = []
+        if "lee" in self.samples:
+            lee_plotted_variable = self._selection(
+                variable, self.samples["lee"], query=query)
+            lee_plotted_variable = self._select_showers(
+                lee_plotted_variable, variable, self.samples["lee"], query=query)
+            lee_weight = self.samples["lee"].query(
+                query)["leeweight"] * self.weights["lee"]
+
+        total_weight = np.concatenate((mc_weight, nue_weight, ext_weight, dirt_weight, nc_weight, lee_weight))
+        total_variable = np.concatenate((mc_plotted_variable, nue_plotted_variable, ext_plotted_variable, dirt_plotted_variable, nc_plotted_variable, lee_plotted_variable))
+        return total_variable, total_weight
+
+
+    def plot_2d(self, variable1, variable2, query="selected==1", title="", **plot_options):
+        variable1, weight1 = self._get_variable(variable1, query)
+        variable2, weight2 = self._get_variable(variable2, query)
+        total_weight = np.concatenate((weight1, weight2))
+        heatmap, xedges, yedges = np.histogram2d(variable1, variable2,
+                                                 range=[[plot_options["range_x"][0], plot_options["range_x"][1]], [plot_options["range_y"][0], plot_options["range_y"][1]]],
+                                                 bins=[plot_options["bins_x"], plot_options["bins_y"]],
+                                                 weights=weight1)
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+        fig, ax  = plt.subplots(1,1)
+        ax.imshow(heatmap.T, extent=extent, origin='lower', aspect="auto")
+        if "title" in plot_options:
+            ax.set_xlabel(plot_options["title"].split(";")[0])
+            ax.set_ylabel(plot_options["title"].split(";")[1])
+        else:
+            ax.set_xlabel(variable1)
+            ax.set_ylabel(variable2)
+
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category", **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 

@@ -32,7 +32,7 @@ variables = [
     "shr_dedx_Y", "shr_distance", "trk_chipr", "hits_y", "trk_distance", "pt", "trk_chimu",
     "is_signal", "shr_tkfit_dedx_Y", "shr_tkfit_dedx_U", "shr_tkfit_dedx_V", "p", "nu_e",
     "hits_ratio", "shr_dedx_U", "shr_dedx_V", "n_tracks_contained", "n_showers_contained",
-    "shr_theta", "trk_len", "train_weight", "trk_score", "shr_score", "shr_energy_tot", "trk_energy_tot",
+    "shr_theta", "trk_len", "train_weight", "trk_score", "shr_score", "shr_energy_tot_cali", "trk_energy_tot",
     "shr_phi", "trk_theta", "trk_phi", "tksh_angle", "tksh_distance", "CosmicIP", "shr_bragg_p", "shr_chipr",
     "shr_chimu", "trk_bragg_p", "shr_pca_2", "shr_pca_1", "shr_pca_0", "shr_bragg_mu", "trk_bragg_mu", "trk_pida",
     "topological_score", "slpdg"
@@ -104,8 +104,8 @@ class NueBooster:
             verbose_eval=False)
 
         print("Validating...")
-        # check = gbm.predict(
-        #     xgb.DMatrix(test[features]), ntree_limit=gbm.best_iteration + 1)
+        check = gbm.predict(
+            xgb.DMatrix(test[features]), ntree_limit=gbm.best_iteration + 1)
 
         #area under the precision-recall curve
         # score = average_precision_score(test[target].values, check)
@@ -118,23 +118,23 @@ class NueBooster:
         # score = recall_score(test[target].values, check2)
         # print('recall score: {:.6f}'.format(score))
 
-        imp = self.get_importance(gbm, features)
+        # imp = self.get_importance(gbm, features)
         # print('Importance array: ', imp)
 
         ############################################ ROC Curve
 
         # Compute micro-average ROC curve and ROC area
-        # fpr, tpr, _ = roc_curve(test[target].values, check)
-        # roc_auc = auc(fpr, tpr)
-        # xgb.plot_importance(gbm)
+        fpr, tpr, _ = roc_curve(test[target].values, check)
+        roc_auc = auc(fpr, tpr)
+        xgb.plot_importance(gbm)
         # explainer = shap.TreeExplainer(gbm)
         # shap_values = explainer.shap_values(train[features])
         # shap.force_plot(explainer.expected_value, shap_values, train[features])
         # shap.summary_plot(shap_values, train[features], max_display=10)
 
-        # lw = 2
-        # ax.plot(fpr, tpr, lw=lw, label='%s (area = %0.2f)' % (title, roc_auc))
-        # ax.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+        lw = 2
+        ax.plot(fpr, tpr, lw=lw, label='%s (area = %0.2f)' % (title, roc_auc))
+        ax.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
 
         return gbm, imp, gbm.best_iteration + 1
 
