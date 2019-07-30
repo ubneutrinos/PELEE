@@ -31,7 +31,6 @@ import bisect
 
 from collections import defaultdict
 from collections.abc import Iterable
-
 import scipy.stats
 import numpy as np
 import pandas as pd
@@ -69,6 +68,43 @@ pdg_labels = {
     -321: r"$K$",
     0: "Cosmic"
 }
+
+int_labels = {
+    0: "QE",
+    1: "Resonant",
+    2: "DIS",
+    3: "Coherent",
+    4: "Coherent Elastic",
+    5: "Electron scatt.",
+    6: "IMDAnnihilation",
+    7: r"Inverse $\beta$ decay",
+    8: "Glashow resonance",
+    9: "AMNuGamma",
+    10: "MEC",
+    11: "Diffractive",
+    12: "EM",
+    13: "Weak Mix"
+}
+
+
+int_colors = {
+    0: "bisque",
+    1: "darkorange",
+    2: "goldenrod",
+    3: "lightcoral",
+    4: "forestgreen",
+    5: "turquoise",
+    6: "teal",
+    7: "deepskyblue",
+    8: "steelblue",
+    9: "royalblue",
+    10: "crimson",
+    11: "mediumorchid",
+    12: "magenta",
+    13: "pink",
+    111: "black"
+}
+
 
 category_colors = {
     4: "xkcd:light red",
@@ -114,7 +150,7 @@ class Plotter:
        pot (int): Number of protons-on-target.
     """
 
-    def __init__(self, samples, weights, pot=4.5e19):
+    def __init__(self, samples, weights, pot=4.5e19,):
         self.weights = weights
         self.samples = samples
         self.pot = pot
@@ -145,7 +181,7 @@ class Plotter:
         else:
             e = err_bkg * scale_factor
 
-        s = sig* scale_factor
+        s = sig * scale_factor
 
         p1 = (s+b)*np.log((s+b)*(b+e**2)/(b**2+(s+b)*e**2))
 
@@ -157,7 +193,7 @@ class Plotter:
         return math.sqrt(sum(z))
 
     @staticmethod
-    def _sigma_calc_matrix(signal, background, bkg_err, scale_factor=1):
+    def _sigma_calc_matrix(signal, background, scale_factor=1, cov=None):
         """It calculates the significance as the square root of the Δχ2 score
 
         Args:
@@ -173,20 +209,11 @@ class Plotter:
         bkg_array = background * scale_factor
         empty_elements = np.where(bkg_array == 0)[0]
         sig_array = signal * scale_factor
-
-        err_array = bkg_err * scale_factor
+        cov = cov * scale_factor
         sig_array = np.delete(sig_array, empty_elements)
         bkg_array = np.delete(bkg_array, empty_elements)
-        err_array = np.delete(err_array, empty_elements)
-        nbins = len(sig_array)
-
-        emtx = np.zeros((nbins, nbins))
-        if err_array:
-            np.fill_diagonal(emtx, bkg_array + err_array**2)
-        else:
-            np.fill_diagonal(emtx, bkg_array)
-
-        emtxinv = np.linalg.inv(emtx)
+        cov[np.diag_indices_from(cov)] += bkg_array
+        emtxinv = np.linalg.inv(cov)
         chisq = float(sig_array.dot(emtxinv).dot(sig_array.T))
 
         return np.sqrt(chisq)
@@ -231,12 +258,12 @@ class Plotter:
                 variable = np.hstack(variable)
                 if "shr" in variable_name and variable_name != "shr_score_v":
                     shr_score = np.hstack(self._selection(
-                        "shr_score_v", sample, query=query, extra_cut=extra_cut).ravel())
+                        "shr_score_v", sample, query=query, extra_cut=extra_cut))
                     shr_score_id = shr_score < score
                     variable = variable[shr_score_id]
                 elif "trk" in variable_name and variable_name != "trk_score_v":
                     trk_score = np.hstack(self._selection(
-                        "trk_score_v", sample, query=query, extra_cut=extra_cut).ravel())
+                        "trk_score_v", sample, query=query, extra_cut=extra_cut))
                     trk_score_id = trk_score >= score
                     variable = variable[trk_score_id]
 
@@ -276,9 +303,8 @@ class Plotter:
         else:
             pfp_id = np.array([pf_id[score <= 0.5] for pf_id, score in zip(pfp_id, score_v)])
 
-        pfp_pdg = np.array([pdg[pfp_id]
-                            for pdg, pfp_id in zip(backtracked_pdg, pfp_id)])
-
+        pfp_pdg = np.array([pdg[pf_id]
+                            for pdg, pf_id in zip(backtracked_pdg, pfp_id)])
         pfp_pdg = np.hstack(pfp_pdg)
         pfp_pdg = abs(pfp_pdg)
 
@@ -309,18 +335,51 @@ class Plotter:
                 if "trk" in variable:
                     score = self._selection(
                         "trk_score_v", sample, query=query, extra_cut=extra_cut)
+                    category = np.array([
+                        np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
+                    ])
                 else:
                     score = self._selection(
                         "shr_score_v", sample, query=query, extra_cut=extra_cut)
-                category = np.array([
-                    np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
-                ])
+                    category = np.array([
+                        np.array([c] * len(v[s < 0.5])) for c, v, s in zip(category, plotted_variable, score)
+                    ])
                 category = np.hstack(category)
 
             plotted_variable = self._select_showers(
                 plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
 
         return category, plotted_variable
+
+    def _categorize_entries_int(self, sample, variable, query="selected==1", extra_cut=None):
+        category = self._selection(
+            "interaction", sample, query=query, extra_cut=extra_cut)
+        plotted_variable = self._selection(
+            variable, sample, query=query, extra_cut=extra_cut)
+
+
+        if plotted_variable.size > 0:
+            if isinstance(plotted_variable[0], np.ndarray):
+                if "trk" in variable:
+                    score = self._selection(
+                        "trk_score_v", sample, query=query, extra_cut=extra_cut)
+                    category = np.array([
+                        np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
+                    ])
+                else:
+                    score = self._selection(
+                        "shr_score_v", sample, query=query, extra_cut=extra_cut)
+                    category = np.array([
+                        np.array([c] * len(v[s < 0.5])) for c, v, s in zip(category, plotted_variable, score)
+                    ])
+                category = np.hstack(category)
+
+            plotted_variable = self._select_showers(
+                plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
+
+        return category, plotted_variable
+
+
 
     @staticmethod
     def _variable_bin_scaling(bins, bin_width, variable):
@@ -334,7 +393,7 @@ class Plotter:
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut)
         genie_weights = self._selection(
-            "genie_weight", sample, query=query, extra_cut=extra_cut)
+            "weightSpline", sample, query=query, extra_cut=extra_cut)
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
@@ -410,25 +469,54 @@ class Plotter:
         return total_variable, total_weight
 
 
-    def plot_2d(self, variable1, variable2, query="selected==1", title="", **plot_options):
-        variable1, weight1 = self._get_variable(variable1, query)
-        variable2, weight2 = self._get_variable(variable2, query)
-        total_weight = np.concatenate((weight1, weight2))
+    def plot_2d(self, variable1_name, variable2_name, query="selected==1", **plot_options):
+        variable1, weight1 = self._get_variable(variable1_name, query)
+        variable2, weight2 = self._get_variable(variable2_name, query)
+
         heatmap, xedges, yedges = np.histogram2d(variable1, variable2,
                                                  range=[[plot_options["range_x"][0], plot_options["range_x"][1]], [plot_options["range_y"][0], plot_options["range_y"][1]]],
                                                  bins=[plot_options["bins_x"], plot_options["bins_y"]],
                                                  weights=weight1)
-        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
-        fig, ax  = plt.subplots(1,1)
-        ax.imshow(heatmap.T, extent=extent, origin='lower', aspect="auto")
-        if "title" in plot_options:
-            ax.set_xlabel(plot_options["title"].split(";")[0])
-            ax.set_ylabel(plot_options["title"].split(";")[1])
-        else:
-            ax.set_xlabel(variable1)
-            ax.set_ylabel(variable2)
 
-    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", **plot_options):
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+        fig, axes  = plt.subplots(1,3, figsize=(12,3))
+
+        axes[0].imshow(heatmap.T, extent=extent, origin='lower', aspect="auto")
+
+        data_variable1 = self._selection(variable1_name, self.samples["data"], query=query)
+        data_variable1 = self._select_showers(data_variable1, variable1_name, self.samples["data"], query=query)
+
+        data_variable2 = self._selection(
+            variable2_name, self.samples["data"], query=query)
+        data_variable2 = self._select_showers(
+            data_variable2, variable2_name, self.samples["data"], query=query)
+
+        heatmap_data, xedges, yedges = np.histogram2d(data_variable1, data_variable2, range=[[plot_options["range_x"][0], plot_options["range_x"][1]], [
+                                                      plot_options["range_y"][0], plot_options["range_y"][1]]],
+                                                      bins=[plot_options["bins_x"],
+                                                      plot_options["bins_y"]])
+
+        axes[1].imshow(heatmap_data.T, extent=extent, origin='lower', aspect="auto")
+
+        ratio = heatmap_data/heatmap
+        im_ratio = axes[2].imshow(ratio.T, extent=extent, origin='lower', aspect='auto', vmin=0, vmax=2, cmap="coolwarm")
+        fig.colorbar(im_ratio)
+
+        axes[0].title.set_text('MC+EXT')
+        axes[1].title.set_text('Data')
+        axes[2].title.set_text('Data/(MC+EXT)')
+        if "title" in plot_options:
+            axes[0].set_xlabel(plot_options["title"].split(";")[0])
+            axes[0].set_ylabel(plot_options["title"].split(";")[1])
+            axes[1].set_xlabel(plot_options["title"].split(";")[0])
+            axes[2].set_xlabel(plot_options["title"].split(";")[0])
+        else:
+            axes[0].set_xlabel(variable1_name)
+            axes[0].set_ylabel(variable2_name)
+            axes[1].set_xlabel(variable1_name)
+            axes[2].set_xlabel(variable1_name)
+
+    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
         Args:
@@ -461,6 +549,9 @@ class Plotter:
             else:
                 categorization = self._categorize_entries_pdg
             cat_labels = pdg_labels
+        elif kind == "interaction":
+            categorization = self._categorize_entries_int
+            cat_labels = int_labels
         elif kind == "sample":
             return self._plot_variable_samples(variable, query, title, **plot_options)
         else:
@@ -506,8 +597,6 @@ class Plotter:
 
 
         if "dirt" in self.samples:
-            dirt_genie_weights = self._selection(
-                "genie_weight", self.samples["dirt"], query=query)
             dirt_genie_weights = self._get_genie_weight(
                 self.samples["dirt"], variable, query=query)
             category, dirt_plotted_variable = categorization(
@@ -518,10 +607,9 @@ class Plotter:
                 weight_dict[c].append(self.weights["dirt"] * w)
 
         if "lee" in self.samples:
-
             category, lee_plotted_variable = categorization(
                 self.samples["lee"], variable, query=query)
-            leeweight = self.samples["lee"].query(query)["leeweight"] * self._selection("genie_weight", self.samples["lee"], query=query)
+            leeweight = self.samples["lee"].query(query)["leeweight"] * self._selection("weightSpline", self.samples["lee"], query=query)
 
             for c, v, w in zip(category, lee_plotted_variable, leeweight):
                 var_dict[c].append(v)
@@ -560,11 +648,13 @@ class Plotter:
         if kind == "event_category":
             plot_options["color"] = [category_colors[c]
                                      for c in var_dict.keys()]
-        else:
+        elif kind == "particle_pdg":
             plot_options["color"] = [pdg_colors[c]
                                      for c in var_dict.keys()]
-
-        ax1.hist(
+        else:
+            plot_options["color"] = [int_colors[c]
+                                     for c in var_dict.keys()]
+        stacked = ax1.hist(
             var_dict.values(),
             weights=list(weight_dict.values()),
             stacked=True,
@@ -642,19 +732,29 @@ class Plotter:
 
         exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee + err_nc)
 
+        bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
+                    for i in range(len(bin_edges) - 1)]
+
+        cov = np.zeros([len(exp_err), len(exp_err)])
+
+        if draw_sys:
+            cov = self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"]) + \
+                  self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"]) + \
+                  self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"])
+            exp_err = np.sqrt(np.diag(cov) + exp_err*exp_err)
+
+        cov[np.diag_indices_from(cov)] += err_mc + err_ext + err_nue + err_dirt + err_nc
+
         if "lee" in self.samples:
-            bkg_err = np.sqrt(exp_err**2 - err_lee)
             if kind == "event_category":
                 try:
                     self.significance = self._sigma_calc_matrix(
-                        lee_hist, n_tot-lee_hist, 0, scale_factor=1.3e21/4.26e19)
-                except np.linalg.LinAlgError:
-                    print("Error calculating the significance")
-                self.significance_likelihood = self._sigma_calc_likelihood(
-                    lee_hist, n_tot-lee_hist, 0, scale_factor=1.3e21/4.26e19)
+                        lee_hist, n_tot-lee_hist, scale_factor=1.3e21/self.pot, cov=cov)
+                    self.significance_likelihood = self._sigma_calc_likelihood(
+                        lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_nc), scale_factor=1.3e21/self.pot)
+                except (np.linalg.LinAlgError, ValueError) as err:
+                    print("Error calculating the significance", err)
 
-        bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
-                    for i in range(len(bin_edges) - 1)]
         ax1.bar(bincenters, n_tot, facecolor='none',
                 edgecolor='none', width=0, yerr=exp_err)
 
@@ -686,18 +786,18 @@ class Plotter:
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-        # if sum(n_data) > 0:
-        #     ax2.text(
-        #         0.88,
-        #         0.845,
-        #         r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
-        #         '\n' +
-        #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-        #         va='center',
-        #         ha='center',
-        #         ma='right',
-        #         fontsize=12,
-        #         transform=ax2.transAxes)
+        if sum(n_data) > 0:
+            ax2.text(
+                0.88,
+                0.845,
+                r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
+                '\n' +
+                'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                va='center',
+                ha='center',
+                ma='right',
+                fontsize=12,
+                transform=ax2.transAxes)
 
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
@@ -952,6 +1052,60 @@ class Plotter:
             color="grey",
             alpha=0.5)
 
-        ax.set_ylim(0.5, 1.5)
+        ax.set_ylim(0, 2)
         ax.set_ylabel("BNB / (MC+EXT)")
         ax.axhline(1, linestyle="--", color="k")
+
+    def sys_err(self, name, var_name, query, x_range, n_bins):
+
+        n_tot = np.empty([50, n_bins])
+        n_cv_tot = np.empty(n_bins)
+        n_tot.fill(0)
+        n_cv_tot.fill(0)
+
+        for t in self.samples:
+            if t in ["ext", "data", "lee"]:
+                continue
+
+            tree = self.samples[t]
+
+            extra_query = ""
+            if t == "mc":
+                extra_query = "& ~(nu_pdg == 12 & ccnc == 0) & ~(npi0 != 0 & ccnc == 1)"
+
+            queried_tree = tree.query(query+extra_query)
+            variable = queried_tree[var_name]
+            genie_weights = queried_tree[name]
+            spline_fix = queried_tree["weightSpline"] * self.weights[t]
+
+            s = genie_weights
+            df = pd.DataFrame(s.values.tolist())
+
+            n_cv, bins = np.histogram(
+                variable,
+                range=x_range,
+                bins=n_bins,
+                weights=spline_fix)
+            n_cv_tot += n_cv
+
+            if not df.empty:
+                for i in range(50):
+                    weight = df[i].values
+                    weight[np.isnan(weight)] = 1
+                    weight[weight > 100] = 1
+
+                    n, bins = np.histogram(
+                        variable, weights=weight*spline_fix, range=x_range, bins=n_bins)
+                    n_tot[i] += n
+
+        cov = np.empty([len(n_cv), len(n_cv)])
+        cov.fill(0)
+
+        for n in n_tot:
+            for i in range(len(n_cv)):
+                for j in range(len(n_cv)):
+                    cov[i][j] += (n[i] - n_cv_tot[i]) * (n[j] - n_cv_tot[j])
+
+        cov /= 50
+
+        return cov

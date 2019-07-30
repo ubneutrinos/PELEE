@@ -17,25 +17,26 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, recall_score, precision_score, average_precision_score
 
-labels = ["ncpi0", "cc", "ccpi0", "cosmic", "ext"]
+labels = ["ext", "ncpi0", "cc", "ccpi0", "cosmic"]
 
 titles = [
-    r"$\nu$ NC $\pi^{0}$", r"$\nu_{\mu}$ CC", r"$\nu_{\mu}$ CC $\pi^{0}$",
-    r"Cosmic", r"EXT"
+    r"EXT", r"$\nu$ NC $\pi^{0}$", r"$\nu_{\mu}$ CC", r"$\nu_{\mu}$ CC $\pi^{0}$",
+    r"Cosmic"
 ]
 
 bkg_queries = [
-    "category==31", "category==2", "category==21", "category==4", "category==0"
+     "category==0", "category==31", "category==2", "category==21", "category==4"
 ]
 
 variables = [
-    "shr_dedx_Y", "shr_distance", "trk_chipr", "hits_y", "trk_distance", "pt", "trk_chimu",
+    "shr_dedx_Y", "shr_distance", "trk_chipr", "trk_distance", "pt", "trk_chimu", "hits_y",
     "is_signal", "shr_tkfit_dedx_Y", "shr_tkfit_dedx_U", "shr_tkfit_dedx_V", "p", "nu_e",
     "hits_ratio", "shr_dedx_U", "shr_dedx_V", "n_tracks_contained", "n_showers_contained",
     "shr_theta", "trk_len", "train_weight", "trk_score", "shr_score", "shr_energy_tot_cali", "trk_energy_tot",
     "shr_phi", "trk_theta", "trk_phi", "tksh_angle", "tksh_distance", "CosmicIP", "shr_bragg_p", "shr_chipr",
-    "shr_chimu", "trk_bragg_p", "shr_pca_2", "shr_pca_1", "shr_pca_0", "shr_bragg_mu", "trk_bragg_mu", "trk_pida",
-    "topological_score", "slpdg"
+    "shr_chimu", "trk_bragg_p", "shr_bragg_mu", "trk_bragg_mu", "trk_pida", "shr_pca_2", "shr_pca_1", "shr_pca_0",
+    "topological_score", "slpdg", #"crtveto", "crthitpe", "_closestNuCosmicDist"
+
 ]
 
 class NueBooster:
@@ -108,17 +109,17 @@ class NueBooster:
             xgb.DMatrix(test[features]), ntree_limit=gbm.best_iteration + 1)
 
         #area under the precision-recall curve
-        # score = average_precision_score(test[target].values, check)
-        # print('area under the precision-recall curve: {:.6f}'.format(score))
+        score = average_precision_score(test[target].values, check)
+        print('area under the precision-recall curve: {:.6f}'.format(score))
 
-        # check2 = check.round()
-        # score = precision_score(test[target].values, check2)
-        # print('precision score: {:.6f}'.format(score))
+        check2 = check.round()
+        score = precision_score(test[target].values, check2)
+        print('precision score: {:.6f}'.format(score))
 
-        # score = recall_score(test[target].values, check2)
-        # print('recall score: {:.6f}'.format(score))
+        score = recall_score(test[target].values, check2)
+        print('recall score: {:.6f}'.format(score))
 
-        # imp = self.get_importance(gbm, features)
+        imp = self.get_importance(gbm, features)
         # print('Importance array: ', imp)
 
         ############################################ ROC Curve
@@ -126,15 +127,14 @@ class NueBooster:
         # Compute micro-average ROC curve and ROC area
         fpr, tpr, _ = roc_curve(test[target].values, check)
         roc_auc = auc(fpr, tpr)
-        xgb.plot_importance(gbm)
+        # xgb.plot_importance(gbm)
         # explainer = shap.TreeExplainer(gbm)
         # shap_values = explainer.shap_values(train[features])
         # shap.force_plot(explainer.expected_value, shap_values, train[features])
-        # shap.summary_plot(shap_values, train[features], max_display=10)
+        # shap.summary_plot(shap_values, train[features], max_display=5)
 
-        lw = 2
-        ax.plot(fpr, tpr, lw=lw, label='%s (area = %0.2f)' % (title, roc_auc))
-        ax.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+        ax.plot(fpr, tpr, lw=2, label='%s (area = %0.2f)' % (title, roc_auc))
+        ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
 
         return gbm, imp, gbm.best_iteration + 1
 
@@ -158,8 +158,10 @@ class NueBooster:
         test_nue = self.samples["nue"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
         train_nue = self.samples["nue"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
 
-        test_nc = self.samples["nc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1")[self.variables]
-        train_nc = self.samples["nc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1")[self.variables]
+
+        if "nc" in self.samples:
+            test_nc = self.samples["nc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1")[self.variables]
+            train_nc = self.samples["nc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1")[self.variables]
 
         test_mc = self.samples["mc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
         train_mc = self.samples["mc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
@@ -167,13 +169,19 @@ class NueBooster:
         test_ext = self.samples["ext"][0].query("trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
         train_ext = self.samples["ext"][1].query("trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
 
-        train = pd.concat([train_nue, train_mc, train_ext, train_nc])
-        test = pd.concat([test_nue, test_mc, test_ext, test_nc])
+        if "nc" in self.samples:
+            train = pd.concat([train_nue, train_mc, train_ext, train_nc])
+            test = pd.concat([test_nue, test_mc, test_ext, test_nc])
+        else:
+            train = pd.concat([train_nue, train_mc, train_ext])
+            test = pd.concat([test_nue, test_mc, test_ext])
 
         features = list(train.columns.values)
         features.remove('is_signal')
         features.remove('nu_e')
         features.remove('train_weight')
+        # features.remove('shr_energy_tot_cali')
+        # features.remove('trk_energy_tot')
 
         preds, imp, num_boost_rounds = self._run_single(
             train,
