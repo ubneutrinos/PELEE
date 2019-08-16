@@ -730,7 +730,7 @@ class Plotter:
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee + err_nc)
+        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_nc)
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
@@ -786,18 +786,18 @@ class Plotter:
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-        if sum(n_data) > 0:
-            ax2.text(
-                0.88,
-                0.845,
-                r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
-                '\n' +
-                'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-                va='center',
-                ha='center',
-                ma='right',
-                fontsize=12,
-                transform=ax2.transAxes)
+        # if sum(n_data) > 0:
+        #     ax2.text(
+        #         0.88,
+        #         0.845,
+        #         r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
+        #         '\n' +
+        #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+        #         va='center',
+        #         ha='center',
+        #         ma='right',
+        #         fontsize=12,
+        #         transform=ax2.transAxes)
 
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
