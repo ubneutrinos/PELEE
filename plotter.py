@@ -749,7 +749,7 @@ class Plotter:
             if kind == "event_category":
                 try:
                     self.significance = self._sigma_calc_matrix(
-                        lee_hist, n_tot-lee_hist, scale_factor=1.3e21/self.pot, cov=cov)
+                        lee_hist, n_tot-lee_hist, scale_factor=1e20/self.pot, cov=cov)
                     self.significance_likelihood = self._sigma_calc_likelihood(
                         lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_nc), scale_factor=1.3e21/self.pot)
                 except (np.linalg.LinAlgError, ValueError) as err:
