@@ -62,7 +62,7 @@ class NueBooster:
         self.preselection = "selected==1"
 
         eta = 0.1
-        max_depth = 10
+        max_depth = 4
         subsample = 1
         colsample_bytree = 1
         min_child_weight = 1
