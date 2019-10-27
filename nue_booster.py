@@ -59,6 +59,7 @@ class NueBooster:
         self.samples = samples
         self.random_state = random_state
         self.variables = training_vars
+        self.preselection = "selected==1"
 
         eta = 0.1
         max_depth = 10
@@ -138,6 +139,8 @@ class NueBooster:
 
         return gbm, imp, gbm.best_iteration + 1
 
+    def set_preselection(self,preselection):
+        self.preselection = preselection;
 
     def get_importance(self, gbm, features):
         self.create_feature_map(features)
@@ -155,19 +158,19 @@ class NueBooster:
             plt_title = r"%s background" % titles[bkg_queries.index(bkg_query)]
             bkg_query = "&" + bkg_query
 
-        test_nue = self.samples["nue"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
-        train_nue = self.samples["nue"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1 & category == 11")[self.variables]
+        test_nue = self.samples["nue"][1].query("%s & category == 11"%self.preselection)[self.variables]
+        train_nue = self.samples["nue"][0].query("%s & category == 11"%self.preselection)[self.variables]
 
 
         if "nc" in self.samples:
-            test_nc = self.samples["nc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1")[self.variables]
-            train_nc = self.samples["nc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1")[self.variables]
+            test_nc = self.samples["nc"][1].query(self.preselection)[self.variables]
+            train_nc = self.samples["nc"][0].query(self.preselection)[self.variables]
 
-        test_mc = self.samples["mc"][1].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
-        train_mc = self.samples["mc"][0].query("nu_e < 0.8 & trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
+        test_mc = self.samples["mc"][1].query(self.preselection + bkg_query)[self.variables]
+        train_mc = self.samples["mc"][0].query(self.preselection + bkg_query)[self.variables]
 
-        test_ext = self.samples["ext"][1].query("trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
-        train_ext = self.samples["ext"][0].query("trk_chipr > 0 & selected == 1" + bkg_query)[self.variables]
+        test_ext = self.samples["ext"][1].query(self.preselection + bkg_query)[self.variables]
+        train_ext = self.samples["ext"][0].query(self.preselection + bkg_query)[self.variables]
 
         if "nc" in self.samples:
             train = pd.concat([train_nue, train_mc, train_ext, train_nc])
