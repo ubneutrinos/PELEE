@@ -35,7 +35,7 @@ variables = [
     "shr_theta", "trk_len", "train_weight", "trk_score", "shr_score", "shr_energy_tot_cali", "trk_energy_tot",
     "shr_phi", "trk_theta", "trk_phi", "tksh_angle", "tksh_distance", "CosmicIP", "shr_bragg_p", "shr_chipr",
     "shr_chimu", "trk_bragg_p", "shr_bragg_mu", "trk_bragg_mu", "trk_pida", "shr_pca_2", "shr_pca_1", "shr_pca_0",
-    "topological_score", "slpdg", #"crtveto", "crthitpe", "_closestNuCosmicDist"
+    "topological_score", "slpdg","crtveto", "crthitpe", "_closestNuCosmicDist"
 
 ]
 
@@ -139,7 +139,7 @@ class NueBooster:
 
         return gbm, imp, gbm.best_iteration + 1
 
-    def set_preselection(self,preselection):
+    def set_preselection(self, preselection):
         self.preselection = preselection;
 
     def get_importance(self, gbm, features):
