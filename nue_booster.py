@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, recall_score, precision_score, average_precision_score
 
+import localSettings as ls
+
 labels = ["ext", "ncpi0", "cc", "ccpi0", "cosmic"]
 
 titles = [
@@ -144,7 +146,7 @@ class NueBooster:
 
     def get_importance(self, gbm, features):
         self.create_feature_map(features)
-        importance = gbm.get_fscore(fmap='pickles/xgb.fmap')
+        importance = gbm.get_fscore(fmap=ls.pickle_path+'xgb.fmap')
         importance = sorted(importance.items(), key=itemgetter(1), reverse=True)
         return importance
 
@@ -204,7 +206,7 @@ class NueBooster:
 
     @staticmethod
     def create_feature_map(features):
-        outfile = open('pickles/xgb.fmap', 'w')
+        outfile = open(ls.pickle_path+'xgb.fmap', 'w')
         for i, feat in enumerate(features):
             outfile.write('{0}\t{1}\tq\n'.format(i, feat))
         outfile.close()
