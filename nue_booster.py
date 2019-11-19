@@ -62,12 +62,14 @@ class NueBooster:
         self.random_state = random_state
         self.variables = training_vars
         self.preselection = "selected==1"
-
-        eta = 0.1
-        max_depth = 4
+        # set all to default values (https://xgboost.readthedocs.io/en/latest/parameter.html)
+        eta = 0.3
+        max_depth = 6
+        gamma = 0
         subsample = 1
-        colsample_bytree = 1
         min_child_weight = 1
+        max_delta_step = 0
+        colsample_bytree = 1
         self.params = {
             "objective": "binary:logistic",
             "booster": "gbtree",
@@ -80,6 +82,8 @@ class NueBooster:
             "silent": 1,
             "min_child_weight": min_child_weight,
             "seed": random_state,
+            "gammma": gamma,
+            "max_delta_step": max_delta_step
             #"num_class" : 22,
         }
         print(
