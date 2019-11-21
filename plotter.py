@@ -209,7 +209,7 @@ class Plotter:
         bkg_array = background * scale_factor
         empty_elements = np.where(bkg_array == 0)[0]
         sig_array = signal * scale_factor
-        cov = cov * scale_factor
+        cov = cov * scale_factor * scale_factor
         sig_array = np.delete(sig_array, empty_elements)
         bkg_array = np.delete(bkg_array, empty_elements)
         cov[np.diag_indices_from(cov)] += bkg_array
@@ -664,6 +664,9 @@ class Plotter:
         total_array = np.concatenate(list(var_dict.values()))
         total_weight = np.concatenate(list(weight_dict.values()))
 
+        #print(stacked)
+        #print(labels)
+
         plot_options.pop('color', None)
 
         total_hist, total_bins = np.histogram(
@@ -743,7 +746,7 @@ class Plotter:
                   self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"])
             exp_err = np.sqrt(np.diag(cov) + exp_err*exp_err)
 
-        cov[np.diag_indices_from(cov)] += err_mc + err_ext + err_nue + err_dirt + err_nc
+        cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_nc)
 
         if "lee" in self.samples:
             if kind == "event_category":
