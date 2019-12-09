@@ -172,13 +172,23 @@ class NueBooster:
             test_nc = self.samples["nc"][1].query(self.preselection)[self.variables]
             train_nc = self.samples["nc"][0].query(self.preselection)[self.variables]
 
+        if "cc" in self.samples:
+            test_cc = self.samples["cc"][1].query(self.preselection)[self.variables]
+            train_cc = self.samples["cc"][0].query(self.preselection)[self.variables]
+
         test_mc = self.samples["mc"][1].query(self.preselection + bkg_query)[self.variables]
         train_mc = self.samples["mc"][0].query(self.preselection + bkg_query)[self.variables]
 
         test_ext = self.samples["ext"][1].query(self.preselection + bkg_query)[self.variables]
         train_ext = self.samples["ext"][0].query(self.preselection + bkg_query)[self.variables]
 
-        if "nc" in self.samples:
+        if ( ("cc" in self.samples) and ("nc" in self.samples) ):
+            train = pd.concat([train_nue, train_mc, train_ext, train_nc, train_cc])
+            test = pd.concat([test_nue, test_mc, test_ext, test_nc, test_cc])
+        elif "cc" in self.samples:
+            train = pd.concat([train_nue, train_mc, train_ext, train_cc])
+            test = pd.concat([test_nue, test_mc, test_ext, test_cc])
+        elif "nc" in self.samples:
             train = pd.concat([train_nue, train_mc, train_ext, train_nc])
             test = pd.concat([test_nue, test_mc, test_ext, test_nc])
         else:
