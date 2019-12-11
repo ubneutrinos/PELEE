@@ -138,7 +138,7 @@ void slimmer_1e0p(TString fname)
    for (auto i : ROOT::TSeqI(nentries)) {
       oldtree->GetEntry(i);
       eventweight=leeweight*weightSpline;
-      reco_e = ((shr_energy_tot_cali+0.030)/0.079) + trk_energy_tot;
+      reco_e = ((shr_energy_tot_cali+0.030)/0.79) + trk_energy_tot;
       
       // for text-file based selection
       /*
@@ -159,7 +159,7 @@ void slimmer_1e0p(TString fname)
       */
       
       
-      // if (fabs(nu_pdg) == 12) continue;// only for bnb MC in nue selection
+      //       if (fabs(nu_pdg) == 12) continue;// only for bnb MC in nue selection
 
       
       /*if ( (nslice == 1) &&  (crtveto !=1) && (_closestNuCosmicDist > 20.) && (topological_score > 0.06) && (trk_len > 20.) &&
