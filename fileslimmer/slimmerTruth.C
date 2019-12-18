@@ -1,6 +1,6 @@
 #include "Riostream.h"
 
-void slimmer(TString fname)
+void slimmerTruth(TString fname)
 {
 
 
@@ -27,16 +27,13 @@ void slimmer(TString fname)
    // Deactivate all branches
    oldtree->SetBranchStatus("*", 0);
    // Activate only four of them
-   for (auto activeBranchName : {"run","weights","shr_energy_tot","slpdg","nu_e","nslice","selected","NeutrinoEnergy2","crtveto","crthitpe","trk_len",
-	 "_closestNuCosmicDist","topological_score","nu_pdg","leeweight","weightSpline",
-	 "reco_nu_vtx_sce_x","reco_nu_vtx_sce_y","reco_nu_vtx_sce_z","n_showers_contained","hits_y","hits_ratio","CosmicIP","shr_distance","tksh_distance","trk_distance",
-	 "tksh_angle","shr_tkfit_dedx_Y","shr_score","trk_score","slclustfrac","trk_chipr","shrsubclusters0","shrsubclusters1","shrsubclusters2",
-	 "run","sub","evt"
-	 })
-      oldtree->SetBranchStatus(activeBranchName, 1);
-
-
-   float weightSpline;
+   for (auto activeBranchName : {"run","weights","weightSpline","nu_e","nu_pdg","leeweight" })
+     oldtree->SetBranchStatus(activeBranchName, 1);
+   
+   int nu_pdg;
+   oldtree->SetBranchAddress("nu_pdg", &nu_pdg);   
+   
+   /*
    int run,sub,evt;
    int nslice;
    int nu_pdg;
@@ -63,7 +60,8 @@ void slimmer(TString fname)
    unsigned int shrsubclusters0, shrsubclusters1, shrsubclusters2;
    float trk_chipr;
      
-   
+
+
    //std::map<std::string,std::vector<float>> weightsMap;
    //Event *event = nullptr;
 
@@ -73,7 +71,7 @@ void slimmer(TString fname)
    
    //oldtree->SetBranchAddress("bdt_global", &bdt_global);
    oldtree->SetBranchAddress("nslice", &nslice);
-   oldtree->SetBranchAddress("nu_pdg", &nu_pdg);
+
    oldtree->SetBranchAddress("selected", &selected);
    oldtree->SetBranchAddress("selected", &selected);
    oldtree->SetBranchAddress("_closestNuCosmicDist",&_closestNuCosmicDist);
@@ -84,7 +82,6 @@ void slimmer(TString fname)
    
    // nue variables
    oldtree->SetBranchAddress("leeweight",&leeweight);
-   oldtree->SetBranchAddress("weightSpline",&weightSpline);
    oldtree->SetBranchAddress("reco_nu_vtx_sce_x",&reco_nu_vtx_sce_x);
    oldtree->SetBranchAddress("reco_nu_vtx_sce_y",&reco_nu_vtx_sce_y);
    oldtree->SetBranchAddress("reco_nu_vtx_sce_z",&reco_nu_vtx_sce_z);
@@ -105,51 +102,19 @@ void slimmer(TString fname)
    oldtree->SetBranchAddress("shrsubclusters0",&shrsubclusters0);
    oldtree->SetBranchAddress("shrsubclusters1",&shrsubclusters1);
    oldtree->SetBranchAddress("shrsubclusters2",&shrsubclusters2);
-
-   // new branch with weight = leeweight * weightSpline
-   float eventweight;
+   */
    
    // Create a new file + a clone of old tree in new file
    TFile newfile(foutname, "recreate");
    auto newtree = oldtree->CloneTree(0);
-   newtree->Branch("eventweight",&eventweight,"eventweight/F");
    for (auto i : ROOT::TSeqI(nentries)) {
       oldtree->GetEntry(i);
 
-      eventweight = leeweight * weightSpline;
-      
       // for numu files
-      //if (fabs(nu_pdg) == 12) continue;
-
-      // for text-file based selection
-      // is this event in the text file of selected events?
-      infile.clear();
-      infile.seekg(0,ios::beg);
-      bool foundevent = false;
-      while (1) {
-	infile >> runf >> subf >> evtf;
-	if (!infile.good()) break;
-	if ( (run != runf) || (sub != subf) || (evt != evtf) )
-	  continue;
-	foundevent = true;
-	//printf("run = %i, sub = %i, evt = %i",run,sub,evt);
-      }
-
-      if (foundevent == false) continue;
-
-      newtree->Fill();
-
-      /*
       if (fabs(nu_pdg) == 12) continue;
-      if ( (nslice == 1) &&  (crtveto !=1) && (_closestNuCosmicDist > 20.) && (topological_score > 0.06) && (trk_len > 20.) &&
-	   (reco_nu_vtx_sce_x > 5.) && (reco_nu_vtx_sce_x < 251.) && (reco_nu_vtx_sce_y > -110) && (reco_nu_vtx_sce_y < 110) && (reco_nu_vtx_sce_z > 20.) && (reco_nu_vtx_sce_z < 986) ) {
 
-      
       newtree->Fill();
 
-      }
-      */
-      
    }// for all entries
    newtree->Print();
    newfile.Write();
