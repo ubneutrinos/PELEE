@@ -19,15 +19,17 @@ from sklearn.metrics import roc_curve, auc, recall_score, precision_score, avera
 
 import localSettings as ls
 
-labels = ["ext", "ncpi0", "cc", "ccpi0", "cosmic"]
+labels = ["ext", "ncpi0", "cc", "ccpi0", "cosmic", 
+          "bkg", "pi0", "nonpi0"]
 
 titles = [
-    r"EXT", r"$\nu$ NC $\pi^{0}$", r"$\nu_{\mu}$ CC", r"$\nu_{\mu}$ CC $\pi^{0}$",
-    r"Cosmic"
+    r"EXT", r"$\nu$ NC $\pi^{0}$", r"$\nu_{\mu}$ CC", r"$\nu_{\mu}$ CC $\pi^{0}$", r"Cosmic", 
+    r"bkg", r"$\pi^{0}$", "non-$\pi^{0}$"
 ]
 
 bkg_queries = [
-     "category==0", "category==31", "category==2", "category==21", "category==4"
+     "category==0", "category==31", "category==2", "category==21", "category==4",
+     "category!=10 and category!=11 and category!=111", "npi0>0","category!=10 and category!=11 and category!=111 and npi0==0"
 ]
 
 variables = [
@@ -127,8 +129,17 @@ class NueBooster:
         print('recall score: {:.6f}'.format(score))
 
         imp = self.get_importance(gbm, features)
-        # print('Importance array: ', imp)
+        #print('Importance array: ', imp)
+        
+        #print('Importance (gain):',gbm.get_score(importance_type='gain'))
+        #print('Importance (total_gain):',gbm.get_score(importance_type='total_gain'))
+        #print('Importance (weight):',gbm.get_score(importance_type='weight'))
 
+        d = gbm.get_score(importance_type='total_gain')
+        print('Importance (total_gain):')
+        for w in sorted(d, key=d.get, reverse=True):
+              print(w, d[w])
+        
         ############################################ ROC Curve
 
         # Compute micro-average ROC curve and ROC area
@@ -199,6 +210,7 @@ class NueBooster:
         features.remove('is_signal')
         features.remove('nu_e')
         features.remove('train_weight')
+        print(features)
         # features.remove('shr_energy_tot_cali')
         # features.remove('trk_energy_tot')
 
