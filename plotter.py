@@ -393,7 +393,7 @@ class Plotter:
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut)
         genie_weights = self._selection(
-            "weightSpline", sample, query=query, extra_cut=extra_cut)
+            "weightSplineTimesTune", sample, query=query, extra_cut=extra_cut)
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
@@ -636,7 +636,7 @@ class Plotter:
         if "lee" in self.samples:
             category, lee_plotted_variable = categorization(
                 self.samples["lee"], variable, query=query)
-            leeweight = self.samples["lee"].query(query)["leeweight"] * self._selection("weightSpline", self.samples["lee"], query=query)
+            leeweight = self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query)
 
             for c, v, w in zip(category, lee_plotted_variable, leeweight):
                 var_dict[c].append(v)
@@ -775,9 +775,10 @@ class Plotter:
         cov = np.zeros([len(exp_err), len(exp_err)])
 
         if draw_sys:
-            cov = self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"]) + \
-                  self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"]) + \
-                  self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"])
+            #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
+            cov = self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], "weightSpline") + \
+                  self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") #+ \
+                  #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             exp_err = np.sqrt(np.diag(cov) + exp_err*exp_err)
 
         cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_nc + err_cc)
@@ -1130,7 +1131,7 @@ class Plotter:
         ax.set_ylabel("BNB / (MC+EXT)")
         ax.axhline(1, linestyle="--", color="k")
 
-    def sys_err(self, name, var_name, query, x_range, n_bins):
+    def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
 
         n_tot = np.empty([50, n_bins])
         n_cv_tot = np.empty(n_bins)
@@ -1149,10 +1150,10 @@ class Plotter:
 
             queried_tree = tree.query(query+extra_query)
             variable = queried_tree[var_name]
-            genie_weights = queried_tree[name]
-            spline_fix = queried_tree["weightSpline"] * self.weights[t]
+            syst_weights = queried_tree[name]
+            spline_fix = queried_tree[weightVar] * self.weights[t]
 
-            s = genie_weights
+            s = syst_weights
             df = pd.DataFrame(s.values.tolist())
 
             n_cv, bins = np.histogram(
@@ -1162,11 +1163,17 @@ class Plotter:
                 weights=spline_fix)
             n_cv_tot += n_cv
 
+            # how many universes?
+            Nuniverse = 50 #len(df)
+            print ('Nuniverse: %i'%Nuniverse)
+
             if not df.empty:
-                for i in range(50):
+                for i in range(Nuniverse):
                     weight = df[i].values
                     weight[np.isnan(weight)] = 1
                     weight[weight > 100] = 1
+                    weight[weight < 0] = 1
+                    weight[weight == np.inf] = 1
 
                     n, bins = np.histogram(
                         variable, weights=weight*spline_fix, range=x_range, bins=n_bins)
@@ -1180,6 +1187,6 @@ class Plotter:
                 for j in range(len(n_cv)):
                     cov[i][j] += (n[i] - n_cv_tot[i]) * (n[j] - n_cv_tot[j])
 
-        cov /= 50
+        cov /= Nuniverse
 
         return cov
