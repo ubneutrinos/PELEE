@@ -7,10 +7,10 @@ void slimmer(TString fname)
 
   
    // Get old file, old tree and set top branch address
-   TString dir = "/home/david/data/searchingfornues/v08_00_00_25/cc0pinp/1205/";
+   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0109/";
    TString fullpath = dir + fname + ".root";
-   TString textpath = dir + fname + "_nueinclusive.txt";
-   TString foutname = dir + fname + "_nueinclusive_sbnfit" + ".root";
+   TString textpath = dir + "txt/" + fname + ".txt";
+   TString foutname = dir + "SBNFit/" + fname + "_1eNp_sbnfit" + ".root";
    gSystem->ExpandPathName(dir);
    //const auto filename = gSystem->AccessPathName(dir) ? "./Event.root" : "$ROOTSYS/test/Event.root";
    TFile oldfile(fullpath);
@@ -91,6 +91,7 @@ void slimmer(TString fname)
    float trk_energy_tot;
    float trk_chipr;
    int npi0, category;
+   float nu_e, NeutrinoEnergy2;
      
    
    //std::map<std::string,std::vector<float>> weightsMap;
@@ -108,6 +109,7 @@ void slimmer(TString fname)
    oldtree->SetBranchAddress("_closestNuCosmicDist",&_closestNuCosmicDist);
    oldtree->SetBranchAddress("topological_score",&topological_score);
    oldtree->SetBranchAddress("trk_len",&trk_len);
+   oldtree->SetBranchAddress("NeutrinoEnergy2",&NeutrinoEnergy2);
    oldtree->SetBranchAddress("crthitpe",&crthitpe);
    oldtree->SetBranchAddress("crtveto",&crtveto);
    oldtree->SetBranchAddress("category",&category);
@@ -115,6 +117,7 @@ void slimmer(TString fname)
    oldtree->SetBranchAddress("ccnc",&ccnc);
    
    // nue variables
+   oldtree->SetBranchAddress("nu_e",&nu_e);
    oldtree->SetBranchAddress("leeweight",&leeweight);
    oldtree->SetBranchAddress("weightSpline",&weightSpline);
    oldtree->SetBranchAddress("reco_nu_vtx_sce_x",&reco_nu_vtx_sce_x);
@@ -150,15 +153,27 @@ void slimmer(TString fname)
    //newtree->Branch("eventweight",&eventweight,"eventweight/F");
    //newtree->Branch("reco_e",&reco_e,"reco_e/F");
    
+   double nu_e_d, NeutrinoEnergy2_d, reco_e_d,trk_len_d;
+   newtree->Branch("nu_e_d",&nu_e_d,"nu_e_d/D");
+   newtree->Branch("NeutrinoEnergy2_d",&NeutrinoEnergy2_d,"NeutrinoEnergy2_d/D");
+   newtree->Branch("reco_e_d",&reco_e_d,"reco_e_d/D");
+   newtree->Branch("trk_len_d",&trk_len_d,"trk_len_d/D");
+   
    for (auto i : ROOT::TSeqI(nentries)) {
       oldtree->GetEntry(i);
 
       //eventweight = leeweight * weightSpline;
       reco_e = ((shr_energy_tot_cali+0.030)/0.79) + trk_energy_tot;
 
+
+      nu_e_d = nu_e;
+      NeutrinoEnergy2_d = NeutrinoEnergy2;
+      reco_e_d = reco_e;
+      trk_len_d = trk_len;
+      
       // for numu files
-      //if (fabs(nu_pdg) == 12) continue;
-      //if ( (npi0 == 1) && (category != 5)) continue;
+      if (fabs(nu_pdg) == 12) continue;
+      if ( (npi0 == 1) && (category != 5)) continue;
 
       // for pi0 files
       //if (category == 5) continue;
