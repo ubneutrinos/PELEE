@@ -19,17 +19,19 @@ from sklearn.metrics import roc_curve, auc, recall_score, precision_score, avera
 
 import localSettings as ls
 
-labels = ["ext", "ncpi0", "cc", "ccpi0", "cosmic", 
-          "bkg", "pi0", "nonpi0"]
+labels = [#"ext", "ncpi0", "cc", "ccpi0", "cosmic", "bkg", 
+          "pi0", "nonpi0"]
 
 titles = [
-    r"EXT", r"$\nu$ NC $\pi^{0}$", r"$\nu_{\mu}$ CC", r"$\nu_{\mu}$ CC $\pi^{0}$", r"Cosmic", 
-    r"bkg", r"$\pi^{0}$", "non-$\pi^{0}$"
+    #r"EXT", r"$\nu$ NC $\pi^{0}$", r"$\nu_{\mu}$ CC", r"$\nu_{\mu}$ CC $\pi^{0}$", r"Cosmic", 
+    #r"bkg", 
+    r"$\pi^{0}$", "non-$\pi^{0}$"
 ]
 
 bkg_queries = [
-     "category==0", "category==31", "category==2", "category==21", "category==4",
-     "category!=10 and category!=11 and category!=111", "npi0>0","category!=10 and category!=11 and category!=111 and npi0==0"
+     #"category==0", "category==31", "category==2", "category==21", "category==4",
+     #"category!=10 and category!=11 and category!=111", 
+     "npi0>0","category!=10 and category!=11 and category!=111 and npi0==0"
 ]
 
 variables = [
@@ -135,10 +137,10 @@ class NueBooster:
         #print('Importance (total_gain):',gbm.get_score(importance_type='total_gain'))
         #print('Importance (weight):',gbm.get_score(importance_type='weight'))
 
-        d = gbm.get_score(importance_type='total_gain')
+        gain_imp = gbm.get_score(importance_type='total_gain')
         print('Importance (total_gain):')
-        for w in sorted(d, key=d.get, reverse=True):
-              print(w, d[w])
+        for w in sorted(gain_imp, key=gain_imp.get, reverse=True):
+              print(w, gain_imp[w])
         
         ############################################ ROC Curve
 
@@ -154,7 +156,7 @@ class NueBooster:
         ax.plot(fpr, tpr, lw=2, label='%s (area = %0.2f)' % (title, roc_auc))
         ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
 
-        return gbm, imp, gbm.best_iteration + 1
+        return gbm, imp, gbm.best_iteration, gain_imp
 
     def set_preselection(self, preselection):
         self.preselection = preselection;
@@ -164,7 +166,6 @@ class NueBooster:
         importance = gbm.get_fscore(fmap=ls.pickle_path+'xgb.fmap')
         importance = sorted(importance.items(), key=itemgetter(1), reverse=True)
         return importance
-
 
     def train_booster(self, ax, bkg_query=""):
 
@@ -214,7 +215,7 @@ class NueBooster:
         # features.remove('shr_energy_tot_cali')
         # features.remove('trk_energy_tot')
 
-        preds, imp, num_boost_rounds = self._run_single(
+        preds, imp, num_boost_rounds, gain_imp = self._run_single(
             train,
             test,
             features,
@@ -222,7 +223,7 @@ class NueBooster:
             ax,
             title=plt_title)
 
-        return preds
+        return preds, gain_imp
 
     @staticmethod
     def get_features(train):
