@@ -409,14 +409,17 @@ class Plotter:
         return genie_weights
 
     def _get_variable(self, variable, query):
-        if ( ("cc" in self.samples) and ("nc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
-        elif ( ("nc" in self.samples) and not ("cc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & ccnc == 1 & category != 5)"
-        elif ( not ("nc" in self.samples) and ("cc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & ccnc == 0 & category != 5)"
-        else:
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
+        nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
+        if ("ccpi0" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 1 & ccnc == 0 & category != 5)"
+        if ("ncpi0" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 1 & ccnc == 1 & category != 5)"
+        if ("ccnopi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion == 0 & (pion_e-0.13957)<=0. & ( ((muon_e-0.105)>0.02 & muon_e < 0.3) | pi0truth_elec_etot>=15 ) & ccnc == 0 & category != 5)"
+        if ("nccpi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion <= 1 & (pion_e-0.13957)>0. & ccnc == 1 & category != 5)"
+        if ("ncnopi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion == 0 & (pion_e-0.13957)<=0. & ccnc == 1 & nu_e>0.9 & category != 5)"
             
         # if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
         #     query += "& %s <= %g & %s >= %g" % (
@@ -449,23 +452,50 @@ class Plotter:
                 dirt_plotted_variable, variable, self.samples["dirt"], query=query)
             dirt_weight = [self.weights["dirt"]] * len(dirt_plotted_variable)
 
-        nc_weight = []
-        nc_plotted_variable = []
-        if "nc" in self.samples:
-            nc_plotted_variable = self._selection(
-                variable, self.samples["nc"], query=query)
-            nc_plotted_variable = self._select_showers(
-                nc_plotted_variable, variable, self.samples["nc"], query=query)
-            nc_weight = [self.weights["nc"]] * len(nc_plotted_variable)
+        ncpi0_weight = []
+        ncpi0_plotted_variable = []
+        if "ncpi0" in self.samples:
+            ncpi0_plotted_variable = self._selection(
+                variable, self.samples["ncpi0"], query=query)
+            ncpi0_plotted_variable = self._select_showers(
+                ncpi0_plotted_variable, variable, self.samples["ncpi0"], query=query)
+            ncpi0_weight = [self.weights["ncpi0"]] * len(ncpi0_plotted_variable)
 
-        cc_weight = []
-        cc_plotted_variable = []
-        if "cc" in self.samples:
-            cc_plotted_variable = self._selection(
-                variable, self.samples["cc"], query=query)
-            cc_plotted_variable = self._select_showers(
-                cc_plotted_variable, variable, self.samples["cc"], query=query)
-            cc_weight = [self.weights["cc"]] * len(cc_plotted_variable)
+        ccpi0_weight = []
+        ccpi0_plotted_variable = []
+        if "ccpi0" in self.samples:
+            ccpi0_plotted_variable = self._selection(
+                variable, self.samples["ccpi0"], query=query)
+            ccpi0_plotted_variable = self._select_showers(
+                ccpi0_plotted_variable, variable, self.samples["ccpi0"], query=query)
+            ccpi0_weight = [self.weights["ccpi0"]] * len(ccpi0_plotted_variable)
+
+        ccnopi_weight = []
+        ccnopi_plotted_variable = []
+        if "ccnopi" in self.samples:
+            ccnopi_plotted_variable = self._selection(
+                variable, self.samples["ccnopi"], query=query)
+            ccnopi_plotted_variable = self._select_showers(
+                ccnopi_plotted_variable, variable, self.samples["ccnopi"], query=query)
+            ccnopi_weight = [self.weights["ccnopi"]] * len(ccnopi_plotted_variable)
+
+        nccpi_weight = []
+        nccpi_plotted_variable = []
+        if "nccpi" in self.samples:
+            nccpi_plotted_variable = self._selection(
+                variable, self.samples["nccpi"], query=query)
+            nccpi_plotted_variable = self._select_showers(
+                nccpi_plotted_variable, variable, self.samples["nccpi"], query=query)
+            nccpi_weight = [self.weights["nccpi"]] * len(nccpi_plotted_variable)
+
+        ncnopi_weight = []
+        ncnopi_plotted_variable = []
+        if "ncnopi" in self.samples:
+            ncnopi_plotted_variable = self._selection(
+                variable, self.samples["ncnopi"], query=query)
+            ncnopi_plotted_variable = self._select_showers(
+                ncnopi_plotted_variable, variable, self.samples["ncnopi"], query=query)
+            ncnopi_weight = [self.weights["ncnopi"]] * len(ncnopi_plotted_variable)
 
         lee_weight = []
         lee_plotted_variable = []
@@ -477,8 +507,8 @@ class Plotter:
             lee_weight = self.samples["lee"].query(
                 query)["leeweight"] * self.weights["lee"]
 
-        total_weight = np.concatenate((mc_weight, nue_weight, ext_weight, dirt_weight, nc_weight, cc_weight, lee_weight))
-        total_variable = np.concatenate((mc_plotted_variable, nue_plotted_variable, ext_plotted_variable, dirt_plotted_variable, nc_plotted_variable, cc_plotted_variable, lee_plotted_variable))
+        total_weight = np.concatenate((mc_weight, nue_weight, ext_weight, dirt_weight, ncpi0_weight, ccpi0_weight, ccnopi_weight, nccpi_weight, ncnopi_weight, lee_weight))
+        total_variable = np.concatenate((mc_plotted_variable, nue_plotted_variable, ext_plotted_variable, dirt_plotted_variable, ncpi0_plotted_variable, ccpi0_plotted_variable, ccnopi_plotted_variable, nccpi_plotted_variable, ncnopi_plotted_variable, lee_plotted_variable))
         return total_variable, total_weight
 
 
@@ -571,14 +601,17 @@ class Plotter:
             raise ValueError(
                 "Unrecognized categorization, valid options are 'sample', 'event_category', and 'particle_pdg'")
 
-        if ( ("cc" in self.samples) and ("nc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
-        elif ( ("nc" in self.samples) and not ("cc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & ccnc == 1 & category != 5)"
-        elif ( not ("nc" in self.samples) and ("cc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & ccnc == 0 & category != 5)"
-        else:
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
+        nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
+        if ("ccpi0" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 1 & ccnc == 0 & category != 5)"
+        if ("ncpi0" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 1 & ccnc == 1 & category != 5)"
+        if ("ccnopi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion == 0 & (pion_e-0.13957)<=0. & (((muon_e-0.105)>0.02 & muon_e < 0.3) | pi0truth_elec_etot>=15 ) & ccnc == 0 & category != 5)"
+        if ("nccpi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion <= 1 & (pion_e-0.13957)>0. & ccnc == 1 & category != 5)"
+        if ("ncnopi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion == 0 & (pion_e-0.13957)<=0. & ccnc == 1 & nu_e>0.9 & category != 5)"
         
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=nu_pdg)
@@ -602,26 +635,55 @@ class Plotter:
             var_dict[c].append(v)
             weight_dict[c].append(self.weights["nue"] * w)
 
-        if "nc" in self.samples:
-            nc_genie_weights = self._get_genie_weight(
-                    self.samples["nc"], variable, query=query)
-            category, nc_plotted_variable = categorization(
-                self.samples["nc"], variable, query=query)
+        if "ncpi0" in self.samples:
+            ncpi0_genie_weights = self._get_genie_weight(
+                    self.samples["ncpi0"], variable, query=query)
+            category, ncpi0_plotted_variable = categorization(
+                self.samples["ncpi0"], variable, query=query)
 
-            for c, v, w in zip(category, nc_plotted_variable, nc_genie_weights):
+            for c, v, w in zip(category, ncpi0_plotted_variable, ncpi0_genie_weights):
                 var_dict[c].append(v)
-                weight_dict[c].append(self.weights["nc"] * w)
+                weight_dict[c].append(self.weights["ncpi0"] * w)
 
-        if "cc" in self.samples:
-            cc_genie_weights = self._get_genie_weight(
-                    self.samples["cc"], variable, query=query)
-            category, cc_plotted_variable = categorization(
-                self.samples["cc"], variable, query=query)
+        if "ccpi0" in self.samples:
+            ccpi0_genie_weights = self._get_genie_weight(
+                    self.samples["ccpi0"], variable, query=query)
+            category, ccpi0_plotted_variable = categorization(
+                self.samples["ccpi0"], variable, query=query)
 
-            for c, v, w in zip(category, cc_plotted_variable, cc_genie_weights):
+            for c, v, w in zip(category, ccpi0_plotted_variable, ccpi0_genie_weights):
                 var_dict[c].append(v)
-                weight_dict[c].append(self.weights["cc"] * w)
+                weight_dict[c].append(self.weights["ccpi0"] * w)
 
+        if "ccnopi" in self.samples:
+            ccnopi_genie_weights = self._get_genie_weight(
+                    self.samples["ccnopi"], variable, query=query)
+            category, ccnopi_plotted_variable = categorization(
+                self.samples["ccnopi"], variable, query=query)
+
+            for c, v, w in zip(category, ccnopi_plotted_variable, ccnopi_genie_weights):
+                var_dict[c].append(v)
+                weight_dict[c].append(self.weights["ccnopi"] * w)
+
+        if "nccpi" in self.samples:
+            nccpi_genie_weights = self._get_genie_weight(
+                    self.samples["nccpi"], variable, query=query)
+            category, nccpi_plotted_variable = categorization(
+                self.samples["nccpi"], variable, query=query)
+
+            for c, v, w in zip(category, nccpi_plotted_variable, nccpi_genie_weights):
+                var_dict[c].append(v)
+                weight_dict[c].append(self.weights["nccpi"] * w)
+
+        if "ncnopi" in self.samples:
+            ncnopi_genie_weights = self._get_genie_weight(
+                    self.samples["ncnopi"], variable, query=query)
+            category, ncnopi_plotted_variable = categorization(
+                self.samples["ncnopi"], variable, query=query)
+
+            for c, v, w in zip(category, ncnopi_plotted_variable, ncnopi_genie_weights):
+                var_dict[c].append(v)
+                weight_dict[c].append(self.weights["ncnopi"] * w)
 
         if "dirt" in self.samples:
             dirt_genie_weights = self._get_genie_weight(
@@ -750,24 +812,45 @@ class Plotter:
                 err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
                     "sum").values * self.weights["lee"] * self.weights["lee"]
 
-        err_nc = np.array([0 for n in mc_uncertainties])
-        if "nc" in self.samples:
-            nc_uncertainties, bins = np.histogram(
-                nc_plotted_variable, **plot_options)
-            err_nc = np.array(
-                [n * self.weights["nc"] * self.weights["nc"] for n in nc_uncertainties])
+        err_ncpi0 = np.array([0 for n in mc_uncertainties])
+        if "ncpi0" in self.samples:
+            ncpi0_uncertainties, bins = np.histogram(
+                ncpi0_plotted_variable, **plot_options)
+            err_ncpi0 = np.array(
+                [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
 
-        err_cc = np.array([0 for n in mc_uncertainties])
-        if "cc" in self.samples:
-            cc_uncertainties, bins = np.histogram(
-                cc_plotted_variable, **plot_options)
-            err_cc = np.array(
-                [n * self.weights["cc"] * self.weights["cc"] for n in nc_uncertainties])
+        err_ccpi0 = np.array([0 for n in mc_uncertainties])
+        if "ccpi0" in self.samples:
+            ccpi0_uncertainties, bins = np.histogram(
+                ccpi0_plotted_variable, **plot_options)
+            err_ccpi0 = np.array(
+                [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
+
+        err_ccnopi = np.array([0 for n in mc_uncertainties])
+        if "ccnopi" in self.samples:
+            ccnopi_uncertainties, bins = np.histogram(
+                ccnopi_plotted_variable, **plot_options)
+            err_ccnopi = np.array(
+                [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
+
+        err_nccpi = np.array([0 for n in mc_uncertainties])
+        if "nccpi" in self.samples:
+            nccpi_uncertainties, bins = np.histogram(
+                nccpi_plotted_variable, **plot_options)
+            err_nccpi = np.array(
+                [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
+
+        err_ncnopi = np.array([0 for n in mc_uncertainties])
+        if "ncnopi" in self.samples:
+            ncnopi_uncertainties, bins = np.histogram(
+                ncnopi_plotted_variable, **plot_options)
+            err_ncnopi = np.array(
+                [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
 
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_nc + err_cc)
+        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_nccpi + err_ncnopi)
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
@@ -781,7 +864,7 @@ class Plotter:
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             exp_err = np.sqrt(np.diag(cov) + exp_err*exp_err)
 
-        cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_nc + err_cc)
+        cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_nccpi + err_ncnopi)
 
         if "lee" in self.samples:
             if kind == "event_category":
@@ -789,7 +872,7 @@ class Plotter:
                     self.significance = self._sigma_calc_matrix(
                         lee_hist, n_tot-lee_hist, scale_factor=1.3e21/self.pot, cov=cov)
                     self.significance_likelihood = self._sigma_calc_likelihood(
-                        lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_nc + err_cc), scale_factor=1.3e21/self.pot)
+                        lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_nccpi + err_ncnopi), scale_factor=1.3e21/self.pot)
                 except (np.linalg.LinAlgError, ValueError) as err:
                     print("Error calculating the significance", err)
                     self.significance = -1
@@ -850,15 +933,18 @@ class Plotter:
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
 
-        if ( ("cc" in self.samples) and ("nc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
-        elif ( ("nc" in self.samples) and not ("cc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & ccnc == 1 & category != 5)"
-        elif ( not ("nc" in self.samples) and ("cc" in self.samples) ):
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & ccnc == 0 & category != 5)"
-        else:
-            nu_pdg = "~(nu_pdg == 12 & ccnc == 0)"
-        
+        nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
+        if ("ccpi0" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 1 & ccnc == 0 & category != 5)"
+        if ("ncpi0" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 1 & ccnc == 1 & category != 5)"
+        if ("ccnopi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion == 0 & (pion_e-0.13957)<=0. & (((muon_e-0.105)>0.02 & muon_e < 0.3) | pi0truth_elec_etot>=15 ) & ccnc == 0 & category != 5)"
+        if ("nccpi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion <= 1 & (pion_e-0.13957)>0. & ccnc == 1 & category != 5)"
+        if ("ncnopi" in self.samples):
+            nu_pdg = nu_pdg+" & ~(npi0 == 0 & npion == 0 & (pion_e-0.13957)<=0. & ccnc == 1 & nu_e>0.9 & category != 5)"
+
         if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
@@ -888,19 +974,40 @@ class Plotter:
                 dirt_plotted_variable, variable, self.samples["dirt"], query=query)
             dirt_weight = [self.weights["dirt"]] * len(dirt_plotted_variable)
 
-        if "nc" in self.samples:
-            nc_plotted_variable = self._selection(
-                variable, self.samples["nc"], query=query)
-            nc_plotted_variable = self._select_showers(
-                nc_plotted_variable, variable, self.samples["nc"], query=query)
-            nc_weight = [self.weights["nc"]] * len(nc_plotted_variable)
+        if "ncpi0" in self.samples:
+            ncpi0_plotted_variable = self._selection(
+                variable, self.samples["ncpi0"], query=query)
+            ncpi0_plotted_variable = self._select_showers(
+                ncpi0_plotted_variable, variable, self.samples["ncpi0"], query=query)
+            ncpi0_weight = [self.weights["ncpi0"]] * len(ncpi0_plotted_variable)
 
-        if "cc" in self.samples:
-            cc_plotted_variable = self._selection(
-                variable, self.samples["cc"], query=query)
-            cc_plotted_variable = self._select_showers(
-                cc_plotted_variable, variable, self.samples["cc"], query=query)
-            cc_weight = [self.weights["cc"]] * len(cc_plotted_variable)            
+        if "ccpi0" in self.samples:
+            ccpi0_plotted_variable = self._selection(
+                variable, self.samples["ccpi0"], query=query)
+            ccpi0_plotted_variable = self._select_showers(
+                ccpi0_plotted_variable, variable, self.samples["ccpi0"], query=query)
+            ccpi0_weight = [self.weights["ccpi0"]] * len(ccpi0_plotted_variable)            
+
+        if "ccnopi" in self.samples:
+            ccnopi_plotted_variable = self._selection(
+                variable, self.samples["ccnopi"], query=query)
+            ccnopi_plotted_variable = self._select_showers(
+                ccnopi_plotted_variable, variable, self.samples["ccnopi"], query=query)
+            ccnopi_weight = [self.weights["ccnopi"]] * len(ccnopi_plotted_variable)            
+
+        if "nccpi" in self.samples:
+            nccpi_plotted_variable = self._selection(
+                variable, self.samples["nccpi"], query=query)
+            nccpi_plotted_variable = self._select_showers(
+                nccpi_plotted_variable, variable, self.samples["nccpi"], query=query)
+            nccpi_weight = [self.weights["nccpi"]] * len(nccpi_plotted_variable)            
+
+        if "ncnopi" in self.samples:
+            ncnopi_plotted_variable = self._selection(
+                variable, self.samples["ncnopi"], query=query)
+            ncnopi_plotted_variable = self._select_showers(
+                ncnopi_plotted_variable, variable, self.samples["ncnopi"], query=query)
+            ncnopi_weight = [self.weights["ncnopi"]] * len(ncnopi_plotted_variable)            
 
         if "lee" in self.samples:
             lee_plotted_variable = self._selection(
@@ -939,19 +1046,40 @@ class Plotter:
             total_weight = np.concatenate(
                 [total_weight, lee_weight])
 
-        if "nc" in self.samples:
+        if "ncpi0" in self.samples:
             total_variable = np.concatenate(
                 [total_variable,
-                 nc_plotted_variable])
+                 ncpi0_plotted_variable])
             total_weight = np.concatenate(
-                [total_weight, nc_weight])
+                [total_weight, ncpi0_weight])
 
-        if "cc" in self.samples:
+        if "ccpi0" in self.samples:
             total_variable = np.concatenate(
                 [total_variable,
-                 cc_plotted_variable])
+                 ccpi0_plotted_variable])
             total_weight = np.concatenate(
-                [total_weight, cc_weight])
+                [total_weight, ccpi0_weight])
+
+        if "ccnopi" in self.samples:
+            total_variable = np.concatenate(
+                [total_variable,
+                 ccnopi_plotted_variable])
+            total_weight = np.concatenate(
+                [total_weight, ccnopi_weight])
+
+        if "nccpi" in self.samples:
+            total_variable = np.concatenate(
+                [total_variable,
+                 nccpi_plotted_variable])
+            total_weight = np.concatenate(
+                [total_weight, nccpi_weight])
+
+        if "ncnopi" in self.samples:
+            total_variable = np.concatenate(
+                [total_variable,
+                 ncnopi_plotted_variable])
+            total_weight = np.concatenate(
+                [total_weight, ncnopi_weight])
 
             
         fig = plt.figure(figsize=(8, 7))
@@ -982,36 +1110,63 @@ class Plotter:
                 label=r"Dirt: %.1f entries" % sum(dirt_weight),
                 **plot_options)
 
-        n_nc = 0
-        if "nc" in self.samples:
-            n_nc, nc_bins, patches = ax1.hist(
-                nc_plotted_variable,
+        n_ncpi0 = 0
+        if "ncpi0" in self.samples:
+            n_ncpi0, ncpi0_bins, patches = ax1.hist(
+                ncpi0_plotted_variable,
                 bottom=n_mc + n_nue + n_dirt,
-                weights=nc_weight,
-                label=r"NC$\pi^0$: %.1f entries" % sum(nc_weight),
+                weights=ncpi0_weight,
+                label=r"NC$\pi^0$: %.1f entries" % sum(ncpi0_weight),
                 **plot_options)
 
-        n_cc = 0
-        if "cc" in self.samples:
-            n_cc, cc_bins, patches = ax1.hist(
-                cc_plotted_variable,
-                bottom=n_mc + n_nue + n_dirt + n_nc,
-                weights=nc_weight,
-                label=r"CC$\pi^0$: %.1f entries" % sum(cc_weight),
+        n_ccpi0 = 0
+        if "ccpi0" in self.samples:
+            n_ccpi0, ccpi0_bins, patches = ax1.hist(
+                ccpi0_plotted_variable,
+                bottom=n_mc + n_nue + n_dirt + n_ncpi0,
+                weights=ccpi0_weight,
+                label=r"CC$\pi^0$: %.1f entries" % sum(ccpi0_weight),
+                **plot_options)
+
+        n_ccnopi = 0
+        if "ccnopi" in self.samples:
+            n_ccnopi, ccnopi_bins, patches = ax1.hist(
+                ccnopi_plotted_variable,
+                bottom=n_mc + n_nue + n_dirt + n_ncpi0 + n_ccpi0,
+                weights=ccnopi_weight,
+                label=r"CCNoPi: %.1f entries" % sum(ccnopi_weight),
+                **plot_options)
+
+        n_nccpi = 0
+        if "nccpi" in self.samples:
+            n_nccpi, nccpi_bins, patches = ax1.hist(
+                nccpi_plotted_variable,
+                bottom=n_mc + n_nue + n_dirt + n_ncpi0 + n_ccpi0 + n_ccnopi,
+                weights=nccpi_weight,
+                label=r"NCcPi: %.1f entries" % sum(nccpi_weight),
+                **plot_options)
+
+        n_ncnopi = 0
+        if "ncnopi" in self.samples:
+            n_ncnopi, ncnopi_bins, patches = ax1.hist(
+                ncnopi_plotted_variable,
+                bottom=n_mc + n_nue + n_dirt + n_ncpi0 + n_ccpi0 + n_ccnopi + n_nccpi,
+                weights=ncnopi_weight,
+                label=r"Ncnopi: %.1f entries" % sum(ncnopi_weight),
                 **plot_options)
 
         n_lee = 0
         if "lee" in self.samples:
             n_lee, lee_bins, patches = ax1.hist(
                 lee_plotted_variable,
-                bottom=n_mc + n_nue + n_dirt + n_nc + n_cc,
+                bottom=n_mc + n_nue + n_dirt + n_ncpi0 + n_ccpi0 + n_ccnopi + n_nccpi + n_ncnopi,
                 weights=lee_weight,
                 label=r"MiniBooNE LEE: %.1f entries" % sum(lee_weight),
                 **plot_options)
 
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
-            bottom=n_mc + n_nue + n_dirt + n_lee + n_nc + n_cc,
+            bottom=n_mc + n_nue + n_dirt + n_lee + n_ncpi0 + n_ccpi0 + n_ccnopi + n_nccpi + n_ncnopi,
             weights=ext_weight,
             label="EXT: %.1f entries" % sum(ext_weight),
             hatch="//",
@@ -1044,17 +1199,35 @@ class Plotter:
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
 
-        err_nc = np.array([0 for n in n_mc])
-        if "nc" in self.samples:
-            nc_uncertainties, bins = np.histogram(nc_plotted_variable, **plot_options)
-            err_nc = np.array(
-                [n * self.weights["nc"] * self.weights["nc"] for n in nc_uncertainties])
+        err_ncpi0 = np.array([0 for n in n_mc])
+        if "ncpi0" in self.samples:
+            ncpi0_uncertainties, bins = np.histogram(ncpi0_plotted_variable, **plot_options)
+            err_ncpi0 = np.array(
+                [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
 
-        err_cc = np.array([0 for n in n_mc])
-        if "cc" in self.samples:
-            cc_uncertainties, bins = np.histogram(cc_plotted_variable, **plot_options)
-            err_cc = np.array(
-                [n * self.weights["cc"] * self.weights["cc"] for n in cc_uncertainties])
+        err_ccpi0 = np.array([0 for n in n_mc])
+        if "ccpi0" in self.samples:
+            ccpi0_uncertainties, bins = np.histogram(ccpi0_plotted_variable, **plot_options)
+            err_ccpi0 = np.array(
+                [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
+
+        err_ccnopi = np.array([0 for n in n_mc])
+        if "ccnopi" in self.samples:
+            ccnopi_uncertainties, bins = np.histogram(ccnopi_plotted_variable, **plot_options)
+            err_ccnopi = np.array(
+                [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
+
+        err_nccpi = np.array([0 for n in n_mc])
+        if "nccpi" in self.samples:
+            nccpi_uncertainties, bins = np.histogram(nccpi_plotted_variable, **plot_options)
+            err_nccpi = np.array(
+                [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
+
+        err_ncnopi = np.array([0 for n in n_mc])
+        if "ncnopi" in self.samples:
+            ncnopi_uncertainties, bins = np.histogram(ncnopi_plotted_variable, **plot_options)
+            err_ncnopi = np.array(
+                [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
 
         if "lee" in self.samples:
             if isinstance(plot_options["bins"], Iterable):
@@ -1069,7 +1242,7 @@ class Plotter:
                 query).eval(variable), lee_bins)
             err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
                 "sum").values * self.weights["lee"] * self.weights["lee"]
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee + err_nc + err_cc)
+        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee + err_ncpi0 + err_ccpi0 + err_ccnopi + err_nccpi + err_ncnopi)
 
         bincenters = 0.5 * (tot_bins[1:] + tot_bins[:-1])
         bin_size = [(tot_bins[i + 1] - tot_bins[i]) / 2
@@ -1146,7 +1319,7 @@ class Plotter:
 
             extra_query = ""
             if t == "mc":
-                extra_query = "& ~(nu_pdg == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
+                extra_query = "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
 
             queried_tree = tree.query(query+extra_query)
             variable = queried_tree[var_name]
