@@ -559,7 +559,7 @@ class Plotter:
             axes[1].set_xlabel(variable1_name)
             axes[2].set_xlabel(variable1_name)
 
-    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, **plot_options):
+    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=False, **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
         Args:
@@ -726,32 +726,59 @@ class Plotter:
         ax1 = plt.subplot(gs[0])
         ax2 = plt.subplot(gs[1])
 
-        total = sum(sum(weight_dict[c]) for c in var_dict)
+        # order stacked distributions
+        order_dict = {}
+        order_var_dict    = {}
+        order_weight_dict = {}
+        if (stacksort == True):
+            for c in var_dict.keys():
+                order_dict[c] = sum(weight_dict[c])
+                order_dict = {k: v for k, v in sorted(order_dict.items(), key=lambda item: item[1])}
+            for c in order_dict.keys():
+                order_var_dict[c] = var_dict[c]
+            for c in order_dict.keys():
+                order_weight_dict[c] = weight_dict[c]
+        else:
+            for c in var_dict.keys():
+                order_var_dict[c] = var_dict[c]
+            for c in weight_dict.keys():
+                order_weight_dict[c] = weight_dict[c]
+        
+        total = sum(sum(order_weight_dict[c]) for c in order_var_dict)
         total += sum([self.weights["ext"]] * len(ext_plotted_variable))
         labels = [
-            "%s: %.1f" % (cat_labels[c], sum(weight_dict[c])) \
-            if sum(weight_dict[c]) else ""
-            for c in var_dict.keys()
+            "%s: %.1f" % (cat_labels[c], sum(order_weight_dict[c])) \
+            if sum(order_weight_dict[c]) else ""
+            for c in order_var_dict.keys()
         ]
 
+        
         if kind == "event_category":
             plot_options["color"] = [category_colors[c]
-                                     for c in var_dict.keys()]
+                                     for c in order_var_dict.keys()]
         elif kind == "particle_pdg":
             plot_options["color"] = [pdg_colors[c]
-                                     for c in var_dict.keys()]
+                                     for c in order_var_dict.keys()]
         else:
             plot_options["color"] = [int_colors[c]
-                                     for c in var_dict.keys()]
+                                     for c in order_var_dict.keys()]
+
+        #for key in order_var_dict:
+        #    print ('key ',key)
+        #    print ('val ',order_var_dict[key])
+        #for key in order_weight_dict:
+        #    print ('key ',key)
+        #    print ('val ',order_weight_dict[key])
+            
         stacked = ax1.hist(
-            var_dict.values(),
-            weights=list(weight_dict.values()),
+            order_var_dict.values(),
+            weights=list(order_weight_dict.values()),
             stacked=True,
             label=labels,
             **plot_options)
 
-        total_array = np.concatenate(list(var_dict.values()))
-        total_weight = np.concatenate(list(weight_dict.values()))
+        total_array = np.concatenate(list(order_var_dict.values()))
+        total_weight = np.concatenate(list(order_weight_dict.values()))
 
         #print(stacked)
         #print(labels)
