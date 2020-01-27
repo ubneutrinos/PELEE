@@ -7,9 +7,9 @@ void slimmer_numu(TString fname)
 
   
    // Get old file, old tree and set top branch address
-   TString dir = "/home/david/data/searchingfornues/v08_00_00_25/cc0pinp/1205/";
+   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0109/";
    TString fullpath = dir + fname + ".root";
-   TString textpath = dir + fname + "_numu.txt";
+   TString textpath = dir + "txt/" + fname + "_numu.txt";
    TString foutname = dir + fname + "_numu_sbnfit" + ".root";
    gSystem->ExpandPathName(dir);
    //const auto filename = gSystem->AccessPathName(dir) ? "./Event.root" : "$ROOTSYS/test/Event.root";
@@ -22,8 +22,10 @@ void slimmer_numu(TString fname)
   infile.open(textpath);
 
   int runf,subf,evtf;
+  float muonenergyf, neutrinoenergyf, muonanglef;
 
-  std::map<int,std::vector<int>> run_event_map;
+  // 2nd map links event to <muon angle, muon energy, neutrino energy>
+  std::map<int, std::vector< std::pair<int, std::vector<float> > > > run_event_map;
 
   // for text-file based selection
   // is this event in the text file of selected events?
@@ -35,26 +37,31 @@ void slimmer_numu(TString fname)
   while (1) {
     if (!infile.good()) break;
     nlines += 1;
-    infile >> runf >> subf >> evtf;
+    infile >> runf >> subf >> evtf >> muonanglef >> muonenergyf >> neutrinoenergyf;
     if (run_event_map.find(runf) == run_event_map.end()) {
-      std::vector<int> evt_v = {evtf};
+
+      std::vector<float> muoninfo{ muonanglef, muonenergyf, neutrinoenergyf };
+      std::pair<int, std::vector<float> > eventinfo = std::make_pair( evtf, muoninfo );
+      std::vector< std::pair<int, std::vector<float> > > evt_v{eventinfo};
+      
       run_event_map[runf] = evt_v;
     }
     else {
-      run_event_map[runf].push_back( evtf );
+
+      std::vector<float> muoninfo{ muonanglef, muonenergyf, neutrinoenergyf };
+      std::pair<int, std::vector<float> > eventinfo = std::make_pair( evtf, muoninfo );
+            
+      run_event_map[runf].push_back( eventinfo );
     }
   }
   
-   const auto nentries = oldtree->GetEntries();
+  const auto nentries = oldtree->GetEntries();
 
    // Deactivate all branches
    oldtree->SetBranchStatus("*", 0);
    // Activate only four of them
-   for (auto activeBranchName : {"run","weights","shr_energy_tot","slpdg","nu_e","nslice","selected","NeutrinoEnergy2","crtveto","crthitpe","trk_len",
-	 "_closestNuCosmicDist","topological_score","nu_pdg","leeweight","weightSpline","weightTune","weightSplineTimesTune",
-	 "NeutrinoEnergy2","trk_theta","trk_energy_muon",
-	 "reco_nu_vtx_sce_x","reco_nu_vtx_sce_y","reco_nu_vtx_sce_z","n_showers_contained","hits_y","hits_ratio","CosmicIP","shr_distance","tksh_distance","trk_distance",
-	 "tksh_angle","shr_tkfit_dedx_Y","shr_score","trk_score","slclustfrac","trk_chipr","shrsubclusters0","shrsubclusters1","shrsubclusters2","shr_energy_tot_cali","trk_energy_tot",
+   for (auto activeBranchName : {"run","weights","nu_e","nslice","selected"
+	 "nu_pdg","leeweight","weightSpline","weightTune","weightSplineTimesTune",
 	 "run","sub","evt","npi0","category","ccnc"
 	 })
       oldtree->SetBranchStatus(activeBranchName, 1);
@@ -104,6 +111,7 @@ void slimmer_numu(TString fname)
    
    //oldtree->SetBranchAddress("bdt_global", &bdt_global);
    oldtree->SetBranchAddress("nslice", &nslice);
+   /*
    oldtree->SetBranchAddress("nu_pdg", &nu_pdg);
    oldtree->SetBranchAddress("selected", &selected);
    oldtree->SetBranchAddress("selected", &selected);
@@ -144,41 +152,57 @@ void slimmer_numu(TString fname)
    oldtree->SetBranchAddress("NeutrinoEnergy2",&NeutrinoEnergy2);
    oldtree->SetBranchAddress("trk_energy_muon",&trk_energy_muon);
    oldtree->SetBranchAddress("trk_theta",&trk_theta);
+   */
 
    // new branch with weight = leeweight * weightSpline
    float eventweight;
    float reco_e;
+   float muonangle, muonenergy, neutrinoenergy;
    
    // Create a new file + a clone of old tree in new file
    TFile newfile(foutname, "recreate");
    auto newtree = oldtree->CloneTree(0);
    newtree->Branch("eventweight",&eventweight,"eventweight/F");
    newtree->Branch("reco_e",&reco_e,"reco_e/F");
+   newtree->Branch("muonangle",&muonangle,"muonangle/F");
+   newtree->Branch("muonenergy",&muonenergy,"muonenergy/F");
+   newtree->Branch("neutrinoenergy",&neutrinoenergy,"neutrinoenergy/F");
    
    for (auto i : ROOT::TSeqI(nentries)) {
       oldtree->GetEntry(i);
 
 
-      if ( (nslice == 1) &&  
-	   (reco_nu_vtx_sce_x > 5.) && (reco_nu_vtx_sce_x < 251.) && (reco_nu_vtx_sce_y > -110) && (reco_nu_vtx_sce_y < 110) && (reco_nu_vtx_sce_z > 20.) && (reco_nu_vtx_sce_z < 986) &&
-	   ( (reco_nu_vtx_sce_z < 675.) || (reco_nu_vtx_sce_z > 775.) ) &&
-	   ( topological_score> 0.06) ) { //&&
+      if (nslice == 1) { // &&  
+	//(reco_nu_vtx_sce_x > 5.) && (reco_nu_vtx_sce_x < 251.) && (reco_nu_vtx_sce_y > -110) && (reco_nu_vtx_sce_y < 110) && (reco_nu_vtx_sce_z > 20.) && (reco_nu_vtx_sce_z < 986) &&
+	//  ( (reco_nu_vtx_sce_z < 675.) || (reco_nu_vtx_sce_z > 775.) ) &&
+	//  ( topological_score> 0.06) ) { //&&
 	//(crtveto!=1 || crthitpe < 100.) && (_closestNuCosmicDist > 5.) ) {
 	
 	eventweight = leeweight * weightSpline;
 	reco_e = NeutrinoEnergy2/1000. + 0.105; // ((shr_energy_tot_cali+0.030)/0.79) + trk_energy_tot;
-	
-	printf("new event. run : %i evt : %i \n",run,evt);
+
+	if (i % 1000 == 0) 
+	  printf("new event. run : %i evt : %i \n",run,evt);
 	
 	// find in run/event map
 	if (run_event_map.find(run) == run_event_map.end())
 	  continue;
 
-	auto evt_v = run_event_map[run];
+	auto eventinfo_v = run_event_map[run];
 
 	bool found = false;
-	for (size_t ne=0; ne < evt_v.size(); ne++) {
-	  if (evt == evt_v[ne]) {
+	
+	for (size_t ne=0; ne < eventinfo_v.size(); ne++) {
+
+	  auto eventinfo = eventinfo_v[ne];
+
+	  int evtf = eventinfo.first;
+	  auto muoninfo = eventinfo.second;
+	  muonangle      = muoninfo[0];
+	  muonenergy     = muoninfo[1];
+	  neutrinoenergy = muoninfo[2];
+	  
+	  if (evt == evtf) {
 	    found = true;
 	    break;
 	  }
@@ -186,7 +210,7 @@ void slimmer_numu(TString fname)
 	
 	if (found == false) continue;
 
-	printf("\t found! \n");
+	//printf("\t found! \n");
 	
 	newtree->Fill();
 	
