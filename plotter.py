@@ -160,7 +160,7 @@ class Plotter:
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
 
-        necessary = ["category", "shr_pfp_id_v", "selected",  # "trk_pfp_id",
+        necessary = ["category", "selected",  # "trk_pfp_id", "shr_pfp_id_v", 
                      "backtracked_pdg", "nu_pdg", "ccnc", "trk_bkt_pdg", "shr_bkt_pdg"]
 
         missing = np.setdiff1d(necessary, samples["mc"].columns)
@@ -886,8 +886,8 @@ class Plotter:
 
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
-            cov = self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], "weightSpline") + \
-                  self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") #+ \
+            cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") + \
+                  self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], "weightSpline") #+ \
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             exp_err = np.sqrt(np.diag(cov) + exp_err*exp_err)
 
@@ -1333,16 +1333,24 @@ class Plotter:
 
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
 
-        n_tot = np.empty([50, n_bins])
+        # how many universes?
+        Nuniverse = 50 #len(df)
+        if (name == "weightsGenie"):
+            Nuniverse = 100
+
+        
+        n_tot = np.empty([Nuniverse, n_bins])
         n_cv_tot = np.empty(n_bins)
         n_tot.fill(0)
         n_cv_tot.fill(0)
 
         for t in self.samples:
-            if t in ["ext", "data", "lee"]:
+            if t in ["ext", "data", "lee","dirt","ccnopi","nccpi","ncnopi"]:
                 continue
 
             tree = self.samples[t]
+
+            print ('sample : ',t)
 
             extra_query = ""
             if t == "mc":
@@ -1363,9 +1371,9 @@ class Plotter:
                 weights=spline_fix)
             n_cv_tot += n_cv
 
-            # how many universes?
-            Nuniverse = 50 #len(df)
             print ('Nuniverse: %i'%Nuniverse)
+
+            print ('for variation %s the number of universes is %i'%(name,Nuniverse))
 
             if not df.empty:
                 for i in range(Nuniverse):
