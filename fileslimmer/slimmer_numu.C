@@ -8,9 +8,9 @@ void slimmer_numu(TString fname)
   
    // Get old file, old tree and set top branch address
    TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0109/";
-   TString fullpath = dir + fname + ".root";
-   TString textpath = dir + "txt/" + fname + "_numu.txt";
-   TString foutname = dir + fname + "_numu_sbnfit" + ".root";
+   TString fullpath = dir + "detsys/" + fname + ".root";
+   TString textpath = dir + "txt/detsys/" + fname + ".txt";
+   TString foutname = dir + "SBNFit/" +  fname + "_numu_sbnfit_detsys" + ".root";
    gSystem->ExpandPathName(dir);
    //const auto filename = gSystem->AccessPathName(dir) ? "./Event.root" : "$ROOTSYS/test/Event.root";
    TFile oldfile(fullpath);
@@ -33,6 +33,8 @@ void slimmer_numu(TString fname)
   infile.seekg(0,ios::beg);
   bool foundevent = false;
   int nlines = 0;
+
+  int numevts = 0;
   
   while (1) {
     if (!infile.good()) break;
@@ -45,6 +47,9 @@ void slimmer_numu(TString fname)
       std::vector< std::pair<int, std::vector<float> > > evt_v{eventinfo};
       
       run_event_map[runf] = evt_v;
+
+      numevts += 1;
+      
     }
     else {
 
@@ -52,8 +57,13 @@ void slimmer_numu(TString fname)
       std::pair<int, std::vector<float> > eventinfo = std::make_pair( evtf, muoninfo );
             
       run_event_map[runf].push_back( eventinfo );
+
+      numevts += 1;
+      
     }
   }
+  
+  printf("there are %i events to be fetched!",numevts);
   
   const auto nentries = oldtree->GetEntries();
 
@@ -155,30 +165,32 @@ void slimmer_numu(TString fname)
    */
 
    // new branch with weight = leeweight * weightSpline
-   float eventweight;
-   float reco_e;
-   float muonangle, muonenergy, neutrinoenergy;
+   double eventweight;
+   double reco_e;
+   double muonangle, muonenergy, neutrinoenergy;
    
    // Create a new file + a clone of old tree in new file
    TFile newfile(foutname, "recreate");
    auto newtree = oldtree->CloneTree(0);
-   newtree->Branch("eventweight",&eventweight,"eventweight/F");
-   newtree->Branch("reco_e",&reco_e,"reco_e/F");
-   newtree->Branch("muonangle",&muonangle,"muonangle/F");
-   newtree->Branch("muonenergy",&muonenergy,"muonenergy/F");
-   newtree->Branch("neutrinoenergy",&neutrinoenergy,"neutrinoenergy/F");
+   newtree->Branch("eventweight",&eventweight,"eventweight/D");
+   newtree->Branch("reco_e",&reco_e,"reco_e/D");
+   newtree->Branch("muonangle",&muonangle,"muonangle/D");
+   newtree->Branch("muonenergy",&muonenergy,"muonenergy/D");
+   newtree->Branch("neutrinoenergy",&neutrinoenergy,"neutrinoenergy/D");
    
    for (auto i : ROOT::TSeqI(nentries)) {
+
       oldtree->GetEntry(i);
 
 
+      
       if (nslice == 1) { // &&  
 	//(reco_nu_vtx_sce_x > 5.) && (reco_nu_vtx_sce_x < 251.) && (reco_nu_vtx_sce_y > -110) && (reco_nu_vtx_sce_y < 110) && (reco_nu_vtx_sce_z > 20.) && (reco_nu_vtx_sce_z < 986) &&
 	//  ( (reco_nu_vtx_sce_z < 675.) || (reco_nu_vtx_sce_z > 775.) ) &&
 	//  ( topological_score> 0.06) ) { //&&
 	//(crtveto!=1 || crthitpe < 100.) && (_closestNuCosmicDist > 5.) ) {
 	
-	eventweight = leeweight * weightSpline;
+	eventweight = weightSpline;
 	reco_e = NeutrinoEnergy2/1000. + 0.105; // ((shr_energy_tot_cali+0.030)/0.79) + trk_energy_tot;
 
 	if (i % 1000 == 0) 

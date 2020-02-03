@@ -9,8 +9,8 @@ void slimmer(TString fname)
    // Get old file, old tree and set top branch address
    TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0109/";
    TString fullpath = dir + fname + ".root";
-   TString textpath = dir + "txt/" + fname + ".txt";
-   TString foutname = dir + "SBNFit/" + fname + "_1eNp_sbnfit" + ".root";
+   TString textpath = dir + "txt/detsys/" + fname + ".txt";
+   TString foutname = dir + "SBNFit/" + fname + "_1eNp_sbnfit_detsys" + ".root";
    gSystem->ExpandPathName(dir);
    //const auto filename = gSystem->AccessPathName(dir) ? "./Event.root" : "$ROOTSYS/test/Event.root";
    TFile oldfile(fullpath);
@@ -172,8 +172,8 @@ void slimmer(TString fname)
       trk_len_d = trk_len;
       
       // for numu files
-      if (fabs(nu_pdg) == 12) continue;
-      if ( (npi0 == 1) && (category != 5)) continue;
+      //if (fabs(nu_pdg) == 12) continue;
+      //if ( (npi0 == 1) && (category != 5)) continue;
 
       // for pi0 files
       //if (category == 5) continue;
