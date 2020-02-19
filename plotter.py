@@ -156,6 +156,7 @@ class Plotter:
         self.pot = pot
         self.significance = 0
         self.significance_likelihood = 0
+        self.chisqdatamc = 0
 
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
@@ -889,7 +890,7 @@ class Plotter:
             cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") + \
                   self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], "weightSpline") #+ \
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
-            exp_err = np.sqrt(np.diag(cov) + exp_err*exp_err)
+            exp_err = np.sqrt(np.diag(cov) )# + exp_err*exp_err)
 
         cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_nccpi + err_ncnopi)
 
@@ -935,19 +936,21 @@ class Plotter:
         ax1.set_xticks([])
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
+        self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
+        
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-        # if sum(n_data) > 0:
-        #     ax2.text(
-        #         0.88,
-        #         0.845,
-        #         r'$\chi^2 /$n.d.f. = %.2f' % self._chisquare(n_data, n_tot, data_err, exp_err) +
-        #         '\n' +
-        #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-        #         va='center',
-        #         ha='center',
-        #         ma='right',
-        #         fontsize=12,
-        #         transform=ax2.transAxes)
+        if sum(n_data) > 0:
+            ax2.text(
+                0.88,
+                0.845,
+                r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc, #+
+                #         '\n' +
+                #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                va='center',
+                ha='center',
+                ma='right',
+                fontsize=12,
+                transform=ax2.transAxes)
 
         ax2.set_xlabel(title)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
@@ -1345,7 +1348,7 @@ class Plotter:
         n_cv_tot.fill(0)
 
         for t in self.samples:
-            if t in ["ext", "data", "lee","dirt","ccnopi","nccpi","ncnopi"]:
+            if t in ["ext", "data", "lee"]: #,"dirt","ccnopi","nccpi","ncnopi","ncpi0","mc","ccpi0"]:
                 continue
 
             tree = self.samples[t]
