@@ -1337,7 +1337,7 @@ class Plotter:
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
 
         # how many universes?
-        Nuniverse = 50 #len(df)
+        Nuniverse = 100 #len(df)
         if (name == "weightsGenie"):
             Nuniverse = 100
 
