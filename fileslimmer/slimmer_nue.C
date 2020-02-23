@@ -1,7 +1,7 @@
 #include "Riostream.h"
 #include <map>
 
-void slimmer(TString fname)
+void slimmer(TString fname,float splinexsecshift=0.)
 {
 
 
@@ -17,7 +17,42 @@ void slimmer(TString fname)
    TTree *oldtree;
    oldfile.GetObject("nuselection/NeutrinoSelectionFilter", oldtree);
 
-  // load input text file with event/subrun/run
+
+   // load MCC8 SPLINE XSEC
+   TString splinepath = "/home/david/Downloads/ccqe_spline_ratios.root";
+   TFile splines(splinepath);
+   TGraph *MCC9spline;
+   splines.GetObject("nu_e_ccqe_v304a", MCC9spline);
+   double energy,xsec;
+   size_t nsplinepoints = MCC9spline->GetN();
+   std::vector<float> spline_energy_v;
+   std::vector<float> spline_xsec_v;
+   for (size_t n=0; n < nsplinepoints; n++) {
+     MCC9spline->GetPoint(n,energy,xsec);
+     if (energy > 2.5) continue;
+     spline_energy_v.push_back( energy );
+     spline_xsec_v.push_back( xsec );
+     //printf("xsec @ energy %f is %f\n",energy,xsec);     
+   }
+   float spline_binwidth = (spline_energy_v[1] - spline_energy_v[0]);
+   int binshift = int(splinexsecshift / spline_binwidth);
+   printf("spline bin width is %f \n",spline_binwidth);
+   for (int n=0; n < spline_energy_v.size(); n++) {
+     if (n%10 != 0) continue;
+     float xsecratio = 1.;
+     if ( (n+binshift >= 0) && (n+binshift < spline_energy_v.size())) {
+       if (spline_xsec_v[n] < 1e-5)
+	 xsecratio = 1e3;
+       else if (spline_xsec_v[n+binshift] < 1e-5)
+	 xsecratio = 0.;
+       else
+	 xsecratio = spline_xsec_v[n+binshift]/spline_xsec_v[n];
+     }
+     printf("the bin shift %f at energy %f is %f \n",splinexsecshift,spline_energy_v[n],xsecratio);
+   }
+
+
+   // load input text file with event/subrun/run
   ifstream infile;
   infile.open(textpath);
 
@@ -56,13 +91,14 @@ void slimmer(TString fname)
 	 "_closestNuCosmicDist","topological_score","nu_pdg","leeweight","weightSpline","weightTune","weightSplineTimesTune",
 	 "reco_nu_vtx_sce_x","reco_nu_vtx_sce_y","reco_nu_vtx_sce_z","n_showers_contained","hits_y","hits_ratio","CosmicIP","shr_distance","tksh_distance","trk_distance",
 	 "tksh_angle","shr_tkfit_dedx_Y","shr_score","trk_score","slclustfrac","trk_chipr","shrsubclusters0","shrsubclusters1","shrsubclusters2","shr_energy_tot_cali","trk_energy_tot",
-	 "run","sub","evt","npi0","category","ccnc"
+	 "run","sub","evt","npi0","category","ccnc","interaction"
 	 })
       oldtree->SetBranchStatus(activeBranchName, 1);
 
 
    float weightSpline;
    int run,sub,evt;
+   int interaction;
    int ccnc;
    int nslice;
    int nu_pdg;
@@ -100,7 +136,12 @@ void slimmer(TString fname)
    oldtree->SetBranchAddress("run", &run);
    oldtree->SetBranchAddress("sub", &evt);
    oldtree->SetBranchAddress("evt", &evt);
+   oldtree->SetBranchAddress("interaction", &interaction);
+   oldtree->SetBranchAddress("ccnc",&ccnc);
+   oldtree->SetBranchAddress("nu_e",&nu_e);
+   //oldtree->SetBranchAddress("category",&category);
    
+   /*
    //oldtree->SetBranchAddress("bdt_global", &bdt_global);
    oldtree->SetBranchAddress("nslice", &nslice);
    oldtree->SetBranchAddress("nu_pdg", &nu_pdg);
@@ -142,10 +183,17 @@ void slimmer(TString fname)
    oldtree->SetBranchAddress("shrsubclusters2",&shrsubclusters2);
    oldtree->SetBranchAddress("shr_energy_tot_cali",&shr_energy_tot_cali);
    oldtree->SetBranchAddress("trk_energy_tot",&trk_energy_tot);
+   */
+
+   oldtree->SetBranchAddress("trk_len",&trk_len);
+   oldtree->SetBranchAddress("NeutrinoEnergy2",&NeutrinoEnergy2);
+   oldtree->SetBranchAddress("shr_energy_tot_cali",&shr_energy_tot_cali);
+   oldtree->SetBranchAddress("trk_energy_tot",&trk_energy_tot);
 
    // new branch with weight = leeweight * weightSpline
    float eventweight;
    float reco_e;
+   double mcc8weight; // scaling for xsec shift
    
    // Create a new file + a clone of old tree in new file
    TFile newfile(foutname, "recreate");
@@ -158,6 +206,7 @@ void slimmer(TString fname)
    newtree->Branch("NeutrinoEnergy2_d",&NeutrinoEnergy2_d,"NeutrinoEnergy2_d/D");
    newtree->Branch("reco_e_d",&reco_e_d,"reco_e_d/D");
    newtree->Branch("trk_len_d",&trk_len_d,"trk_len_d/D");
+   newtree->Branch("mcc8weight",&mcc8weight,"mcc8weight/D");
    
    for (auto i : ROOT::TSeqI(nentries)) {
       oldtree->GetEntry(i);
@@ -195,6 +244,22 @@ void slimmer(TString fname)
       }
       
       if (found == false) continue;
+
+      // set MCC8 weight
+      mcc8weight = 1.0;
+      if ( (interaction == 0) && (ccnc == 0) && (nu_e < 2.5) ) {
+	// energy bin for xsec ratio:
+	int ebin = int(nu_e/spline_binwidth);
+	if ( (ebin+binshift >= 0) && (ebin+binshift < spline_energy_v.size())) {
+	  if (spline_xsec_v[ebin] < 1e-5)
+	    mcc8weight = 1e3;
+	  else if (spline_xsec_v[ebin+binshift] < 1e-5)
+	    mcc8weight = 0.;
+	  else
+	    mcc8weight = spline_xsec_v[ebin+binshift]/spline_xsec_v[ebin];
+	}
+	printf("for energy %f and energy bin %i the ratio is %f \n",nu_e,ebin,mcc8weight);
+      }
       
       printf("\t found! \n");
       
