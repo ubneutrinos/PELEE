@@ -804,8 +804,8 @@ class Plotter:
         total_array = np.concatenate(list(order_var_dict.values()))
         total_weight = np.concatenate(list(order_weight_dict.values()))
 
-        print(stacked)
-        print(labels)
+        #print(stacked)
+        #print(labels)
 
         plot_options.pop('color', None)
 
