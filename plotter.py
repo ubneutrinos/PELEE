@@ -781,8 +781,8 @@ class Plotter:
         total_array = np.concatenate(list(order_var_dict.values()))
         total_weight = np.concatenate(list(order_weight_dict.values()))
 
-        #print(stacked)
-        #print(labels)
+        print(stacked)
+        print(labels)
 
         plot_options.pop('color', None)
 
@@ -921,7 +921,7 @@ class Plotter:
                 label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         leg = ax1.legend(
-            frameon=False, ncol=3, title=r'MicroBooNE Preliminary %g POT' % self.pot)
+            frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
         leg._legend_box.align = "left"
         plt.setp(leg.get_title(), fontweight='bold')
 
@@ -929,16 +929,28 @@ class Plotter:
                      1:title.find("]")] if "[" and "]" in title else ""
         x_range = plot_options["range"][1] - plot_options["range"][0]
         if isinstance(plot_options["bins"], Iterable):
-            ax1.set_ylabel("N. Entries")
+            ax1.set_ylabel("N. Entries",fontsize=16)
         else:
             ax1.set_ylabel(
-                "N. Entries / %g %s" % (x_range / plot_options["bins"], unit))
+                "N. Entries / %g %s" % (x_range / plot_options["bins"], unit),fontsize=16)
         ax1.set_xticks([])
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
+
+        '''
+        ax1.fill_between(
+            bincenters+(bincenters[1]-bincenters[0])/2.,
+            n_tot - exp_err,
+            n_tot + exp_err,
+            step="pre",
+            color="grey",
+            alpha=0.5)
+        '''
+
 
         self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
         
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
+        '''
         if sum(n_data) > 0:
             ax2.text(
                 0.88,
@@ -951,8 +963,9 @@ class Plotter:
                 ma='right',
                 fontsize=12,
                 transform=ax2.transAxes)
+        '''
 
-        ax2.set_xlabel(title)
+        ax2.set_xlabel(title,fontsize=18)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
         fig.tight_layout()
         if title == variable:
@@ -1373,10 +1386,6 @@ class Plotter:
                 bins=n_bins,
                 weights=spline_fix)
             n_cv_tot += n_cv
-
-            print ('Nuniverse: %i'%Nuniverse)
-
-            print ('for variation %s the number of universes is %i'%(name,Nuniverse))
 
             if not df.empty:
                 for i in range(Nuniverse):
