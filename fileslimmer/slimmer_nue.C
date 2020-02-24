@@ -7,15 +7,16 @@ void slimmer(TString fname,float splinexsecshift=0.)
 
   
    // Get old file, old tree and set top branch address
-   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0109/";
+   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0218/run3/";
    TString fullpath = dir + fname + ".root";
-   TString textpath = dir + "txt/detsys/" + fname + ".txt";
-   TString foutname = dir + "SBNFit/" + fname + "_1eNp_sbnfit_detsys" + ".root";
+   TString textpath = dir + "txt/" + fname + ".txt";
+   TString foutname = dir + "SBNFit/" + fname + "_1eNp_sbnfit" + ".root";
    gSystem->ExpandPathName(dir);
    //const auto filename = gSystem->AccessPathName(dir) ? "./Event.root" : "$ROOTSYS/test/Event.root";
    TFile oldfile(fullpath);
    TTree *oldtree;
-   oldfile.GetObject("nuselection/NeutrinoSelectionFilter", oldtree);
+   //oldfile.GetObject("nuselection/NeutrinoSelectionFilter", oldtree);
+   oldfile.GetObject("searchingfornues/NeutrinoSelectionFilter", oldtree);
 
 
    // load MCC8 SPLINE XSEC
@@ -36,7 +37,7 @@ void slimmer(TString fname,float splinexsecshift=0.)
    }
    float spline_binwidth = (spline_energy_v[1] - spline_energy_v[0]);
    int binshift = int(splinexsecshift / spline_binwidth);
-   printf("spline bin width is %f \n",spline_binwidth);
+   //printf("spline bin width is %f \n",spline_binwidth);
    for (int n=0; n < spline_energy_v.size(); n++) {
      if (n%10 != 0) continue;
      float xsecratio = 1.;
@@ -48,7 +49,7 @@ void slimmer(TString fname,float splinexsecshift=0.)
        else
 	 xsecratio = spline_xsec_v[n+binshift]/spline_xsec_v[n];
      }
-     printf("the bin shift %f at energy %f is %f \n",splinexsecshift,spline_energy_v[n],xsecratio);
+     //printf("the bin shift %f at energy %f is %f \n",splinexsecshift,spline_energy_v[n],xsecratio);
    }
 
 
@@ -212,7 +213,7 @@ void slimmer(TString fname,float splinexsecshift=0.)
       oldtree->GetEntry(i);
 
       //eventweight = leeweight * weightSpline;
-      reco_e = ((shr_energy_tot_cali+0.030)/0.79) + trk_energy_tot;
+      reco_e = ((shr_energy_tot_cali+0.0)/0.83) + trk_energy_tot;
 
 
       nu_e_d = nu_e;
