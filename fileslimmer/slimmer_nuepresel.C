@@ -7,7 +7,7 @@ void slimmer_nuepresel(TString fname)
 
   
    // Get old file, old tree and set top branch address
-   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0218/run1/";
+   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0218/run3/";
    TString fullpath = dir + fname + ".root";
    TString foutname = dir + fname + "_nuepresel" + ".root";
    gSystem->ExpandPathName(dir);
