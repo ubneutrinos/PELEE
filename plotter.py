@@ -571,7 +571,7 @@ class Plotter:
             axes[1].set_xlabel(variable1_name)
             axes[2].set_xlabel(variable1_name)
 
-    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=False, **plot_options):
+    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=0, **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
         Args:
@@ -754,10 +754,40 @@ class Plotter:
         order_dict = {}
         order_var_dict    = {}
         order_weight_dict = {}
-        if (stacksort == True):
+        if (stacksort >= 1):
+            # figure out ordering based on total yield.
+            # Options are to have no exceptions (stacksort=1),
+            # put eLEE on top (stacksort=2), or put nue+eLEE on top (stacksort=3)
+            has1 = False
+            has10 = False
+            has11 = False
+            has111 = False
             for c in var_dict.keys():
+                if stacksort>=2:
+                    if int(c)==111:
+                        has111 = True
+                        continue
+                if stacksort>=3:
+                    if int(c)==1:
+                        has1 = True
+                        continue
+                    if int(c)==10:
+                        has10 = True
+                        continue
+                    if int(c)==11:
+                        has11 = True
+                        continue
                 order_dict[c] = sum(weight_dict[c])
                 order_dict = {k: v for k, v in sorted(order_dict.items(), key=lambda item: item[1])}
+            if has1:
+                order_dict[1] = sum(weight_dict[1])
+            if has10:
+                order_dict[10] = sum(weight_dict[10])
+            if has11:
+                order_dict[11] = sum(weight_dict[11])
+            if has111:
+                order_dict[111] = sum(weight_dict[111])
+            # now that the order has been sorted out, fill the actual dicts
             for c in order_dict.keys():
                 order_var_dict[c] = var_dict[c]
             for c in order_dict.keys():
@@ -928,9 +958,9 @@ class Plotter:
             if kind == "event_category":
                 try:
                     self.significance = self._sigma_calc_matrix(
-                        lee_hist, n_tot-lee_hist, scale_factor=1.3e21/self.pot, cov=cov)
+                        lee_hist, n_tot-lee_hist, scale_factor=1.01e21/self.pot, cov=cov)
                     self.significance_likelihood = self._sigma_calc_likelihood(
-                        lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi), scale_factor=1.3e21/self.pot)
+                        lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi), scale_factor=1.01e21/self.pot)
                 except (np.linalg.LinAlgError, ValueError) as err:
                     print("Error calculating the significance", err)
                     self.significance = -1
@@ -989,7 +1019,7 @@ class Plotter:
             ax1.set_title(query)
         #     fig.suptitle(query)
         # fig.savefig("plots/%s_cat.pdf" % variable.replace("/", "_"))
-        return fig, ax1, ax2
+        return fig, ax1, ax2, stacked, labels, n_ext
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
 
