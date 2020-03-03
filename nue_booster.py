@@ -176,36 +176,44 @@ class NueBooster:
             plt_title = r"%s background" % titles[bkg_queries.index(bkg_query)]
             bkg_query = "&" + bkg_query
 
-        test_nue = self.samples["nue"][1].query("%s & category == 11"%self.preselection)[self.variables]
-        train_nue = self.samples["nue"][0].query("%s & category == 11"%self.preselection)[self.variables]
-
-
-        if "nc" in self.samples:
-            test_nc = self.samples["nc"][1].query(self.preselection)[self.variables]
-            train_nc = self.samples["nc"][0].query(self.preselection)[self.variables]
-
-        if "cc" in self.samples:
-            test_cc = self.samples["cc"][1].query(self.preselection)[self.variables]
-            train_cc = self.samples["cc"][0].query(self.preselection)[self.variables]
+        test_nue  = self.samples["nue"][1].query("%s & (category == 10 | category == 11)"%self.preselection)[self.variables]
+        train_nue = self.samples["nue"][0].query("%s & (category == 10 | category == 11)"%self.preselection)[self.variables]
 
         test_mc = self.samples["mc"][1].query(self.preselection + bkg_query)[self.variables]
         train_mc = self.samples["mc"][0].query(self.preselection + bkg_query)[self.variables]
 
-        test_ext = self.samples["ext"][1].query(self.preselection + bkg_query)[self.variables]
-        train_ext = self.samples["ext"][0].query(self.preselection + bkg_query)[self.variables]
+        train = pd.concat([train_nue, train_mc])
+        test = pd.concat([test_nue, test_mc])
 
-        if ( ("cc" in self.samples) and ("nc" in self.samples) ):
-            train = pd.concat([train_nue, train_mc, train_ext, train_nc, train_cc])
-            test = pd.concat([test_nue, test_mc, test_ext, test_nc, test_cc])
-        elif "cc" in self.samples:
-            train = pd.concat([train_nue, train_mc, train_ext, train_cc])
-            test = pd.concat([test_nue, test_mc, test_ext, test_cc])
-        elif "nc" in self.samples:
-            train = pd.concat([train_nue, train_mc, train_ext, train_nc])
-            test = pd.concat([test_nue, test_mc, test_ext, test_nc])
-        else:
-            train = pd.concat([train_nue, train_mc, train_ext])
-            test = pd.concat([test_nue, test_mc, test_ext])
+        if "ncpi0" in self.samples:
+            test_ncpi0 = self.samples["ncpi0"][1].query(self.preselection)[self.variables]
+            train_ncpi0 = self.samples["ncpi0"][0].query(self.preselection)[self.variables]
+            train = pd.concat([train, train_ncpi0])
+            test = pd.concat([test, test_ncpi0])
+
+        if "ccpi0" in self.samples:
+            test_ccpi0 = self.samples["ccpi0"][1].query(self.preselection)[self.variables]
+            train_ccpi0 = self.samples["ccpi0"][0].query(self.preselection)[self.variables]
+            train = pd.concat([train, train_ccpi0])
+            test = pd.concat([test, test_ccpi0])
+
+        if "ncnopi" in self.samples:
+            test_ncnopi = self.samples["ncnopi"][1].query(self.preselection)[self.variables]
+            train_ncnopi = self.samples["ncnopi"][0].query(self.preselection)[self.variables]
+            train = pd.concat([train, train_ncnopi])
+            test = pd.concat([test, test_ncnopi])
+
+        if "ccnopi" in self.samples:
+            test_ccnopi = self.samples["ccnopi"][1].query(self.preselection)[self.variables]
+            train_ccnopi = self.samples["ccnopi"][0].query(self.preselection)[self.variables]
+            train = pd.concat([train, train_ccnopi])
+            test = pd.concat([test, test_ccnopi])
+
+        if "ext" in self.samples:
+            test_ext = self.samples["ext"][1].query(self.preselection + bkg_query)[self.variables]
+            train_ext = self.samples["ext"][0].query(self.preselection + bkg_query)[self.variables]
+            train = pd.concat([train, train_ext])
+            test = pd.concat([test, test_ext])
 
         features = list(train.columns.values)
         features.remove('is_signal')
