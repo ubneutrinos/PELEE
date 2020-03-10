@@ -7,10 +7,10 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
 
   
    // Get old file, old tree and set top branch address
-   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0109/";
-   TString fullpath = dir + "detsys/" + fname + ".root";
-   TString textpath = dir + "txt/detsys/" + fname + ".txt";
-   TString foutname = dir + "SBNFit/" +  fname + "_numu_sbnfit_detsys" + ".root";
+   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0218/run3/";
+   TString fullpath = dir + fname + ".root";
+   TString textpath = dir + "txt/" + fname + "_numuconstraint.txt";
+   TString foutname = dir + "SBNFit/" +  fname + "_numuconstraint" + ".root";
    gSystem->ExpandPathName(dir);
    //const auto filename = gSystem->AccessPathName(dir) ? "./Event.root" : "$ROOTSYS/test/Event.root";
    TFile oldfile(fullpath);
@@ -36,7 +36,7 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
    }
    float spline_binwidth = (spline_energy_v[1] - spline_energy_v[0]);
    int binshift = int(splinexsecshift / spline_binwidth);
-   printf("spline bin width is %f \n",spline_binwidth);
+   //printf("spline bin width is %f \n",spline_binwidth);
    for (int n=0; n < spline_energy_v.size(); n++) {
      if (n%10 != 0) continue;
      float xsecratio = 1.;
@@ -50,7 +50,7 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
 	   xsecratio = spline_xsec_v[n+binshift]/spline_xsec_v[n];
        }
      }
-     printf("the bin shift %f at energy %f is %f \n",splinexsecshift,spline_energy_v[n],xsecratio);
+     //printf("the bin shift %f at energy %f is %f \n",splinexsecshift,spline_energy_v[n],xsecratio);
    }
 
   // load input text file with event/subrun/run
@@ -99,7 +99,7 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
     }
   }
   
-  printf("there are %i events to be fetched!",numevts);
+  printf("there are %i events to be fetched! \n",numevts);
   
   const auto nentries = oldtree->GetEntries();
 
@@ -179,6 +179,8 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
    newtree->Branch("muonenergy",&muonenergy,"muonenergy/D");
    newtree->Branch("neutrinoenergy",&neutrinoenergy,"neutrinoenergy/D");
    newtree->Branch("mcc8weight",&mcc8weight,"mcc8weight/D");
+
+   int nfill = 0;
    
    for (auto i : ROOT::TSeqI(nentries)) {
 
@@ -189,7 +191,7 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
 	eventweight = weightSpline;
 	reco_e = NeutrinoEnergy2/1000. + 0.105; // ((shr_energy_tot_cali+0.030)/0.79) + trk_energy_tot;
 
-	if (i % 1000 == 0) 
+	if (i % 10000 == 0) 
 	  printf("new event. run : %i evt : %i \n",run,evt);
 	
 	// find in run/event map
@@ -239,6 +241,8 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
 
 	
 	//printf("\t found! \n");
+
+	nfill += 1;
 	
 	newtree->Fill();
 	
@@ -246,6 +250,9 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
       }// if cuts pass
       
    }// for all entries
+
+   printf("saved %i entries \n",nfill);
+   
    newtree->Print();
    newfile.Write();
 }
