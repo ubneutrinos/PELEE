@@ -19,20 +19,13 @@ from sklearn.metrics import roc_curve, auc, recall_score, precision_score, avera
 
 import localSettings as ls
 
-labels = [#"ext", "ncpi0", "cc", "ccpi0", "cosmic", "bkg", 
-          "pi0", "nonpi0"]
+labels = ["bkg", "pi0", "nonpi0"]
 
-titles = [
-    #r"EXT", r"$\nu$ NC $\pi^{0}$", r"$\nu_{\mu}$ CC", r"$\nu_{\mu}$ CC $\pi^{0}$", r"Cosmic", 
-    #r"bkg", 
-    r"$\pi^{0}$", "non-$\pi^{0}$"
-]
+titles = [r"bkg", r"$\pi^{0}$", "non-$\pi^{0}$"]
 
-bkg_queries = [
-     #"category==0", "category==31", "category==2", "category==21", "category==4",
-     #"category!=10 and category!=11 and category!=111", 
-     "npi0>0","category!=10 and category!=11 and category!=111 and npi0==0"
-]
+bkg_queries = ["category!=10 and category!=11",
+               "category!=10 and category!=11 and npi0>0",
+               "category!=10 and category!=11 and npi0==0"]
 
 variables = [
     "shr_dedx_Y", "shr_distance", "trk_chipr", "trk_distance", "pt", "trk_chimu", "hits_y",
@@ -42,7 +35,6 @@ variables = [
     "shr_phi", "trk_theta", "trk_phi", "tksh_angle", "tksh_distance", "CosmicIP", "shr_bragg_p", "shr_chipr",
     "shr_chimu", "trk_bragg_p", "shr_bragg_mu", "trk_bragg_mu", "trk_pida", "shr_pca_2", "shr_pca_1", "shr_pca_0",
     "topological_score", "slpdg","crtveto", "crthitpe", "_closestNuCosmicDist"
-
 ]
 
 class NueBooster:
@@ -66,18 +58,18 @@ class NueBooster:
         self.random_state = random_state
         self.variables = training_vars
         self.preselection = "selected==1"
-        # set all to default values (https://xgboost.readthedocs.io/en/latest/parameter.html)
-        eta = 0.3
-        max_depth = 6
-        gamma = 0
-        subsample = 1
+        # parameters set following https://towardsdatascience.com/fine-tuning-xgboost-in-python-like-a-boss-b4543ed8b1e
+        eta = 0.02
+        max_depth = 3
+        gamma = 1
+        subsample = 0.8
         min_child_weight = 1
         max_delta_step = 0
         colsample_bytree = 1
         self.params = {
             "objective": "binary:logistic",
             "booster": "gbtree",
-            "eval_metric": "auc",
+            "eval_metric": ["error", "logloss", "auc"],
             "eta": eta,
             "tree_method": 'exact',
             "max_depth": max_depth,
@@ -105,6 +97,7 @@ class NueBooster:
             train[features], y_train, weight=train["train_weight"])
         dvalid = xgb.DMatrix(
             test[features], y_valid, weight=test["train_weight"])
+        evals_result = {}
 
         watchlist = [(dtrain, 'train'), (dvalid, 'eval')]
         gbm = xgb.train(
@@ -112,6 +105,7 @@ class NueBooster:
             dtrain,
             num_boost_round,
             evals=watchlist,
+            evals_result=evals_result,
             early_stopping_rounds=early_stopping_rounds,
             verbose_eval=False)
 
@@ -156,7 +150,7 @@ class NueBooster:
         ax.plot(fpr, tpr, lw=2, label='%s (area = %0.2f)' % (title, roc_auc))
         ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
 
-        return gbm, imp, gbm.best_iteration, gain_imp
+        return gbm, imp, gbm.best_iteration, gain_imp, evals_result
 
     def set_preselection(self, preselection):
         self.preselection = preselection;
@@ -223,7 +217,7 @@ class NueBooster:
         # features.remove('shr_energy_tot_cali')
         # features.remove('trk_energy_tot')
 
-        preds, imp, num_boost_rounds, gain_imp = self._run_single(
+        preds, imp, num_boost_rounds, gain_imp, evals_result = self._run_single(
             train,
             test,
             features,
@@ -231,7 +225,7 @@ class NueBooster:
             ax,
             title=plt_title)
 
-        return preds, gain_imp
+        return preds, gain_imp, evals_result
 
     @staticmethod
     def get_features(train):
