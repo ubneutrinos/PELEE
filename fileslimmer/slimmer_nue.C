@@ -1,13 +1,14 @@
 #include "Riostream.h"
 #include <map>
 
-void slimmer(TString fname,float splinexsecshift=0.)
+
+void slimmer(TString runstr, TString fname,float splinexsecshift=0.)
 {
 
 
   
    // Get old file, old tree and set top branch address
-   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0218/run3/";
+   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0304/" + runstr + "/";
    TString fullpath = dir + fname + ".root";
    TString textpath = dir + "txt/" + fname + ".txt";
    TString foutname = dir + "SBNFit/" + fname + "_1eNp_sbnfit" + ".root";
@@ -195,6 +196,7 @@ void slimmer(TString fname,float splinexsecshift=0.)
    float eventweight;
    float reco_e;
    double mcc8weight; // scaling for xsec shift
+   double truenuenergy;
    
    // Create a new file + a clone of old tree in new file
    TFile newfile(foutname, "recreate");
@@ -208,6 +210,7 @@ void slimmer(TString fname,float splinexsecshift=0.)
    newtree->Branch("reco_e_d",&reco_e_d,"reco_e_d/D");
    newtree->Branch("trk_len_d",&trk_len_d,"trk_len_d/D");
    newtree->Branch("mcc8weight",&mcc8weight,"mcc8weight/D");
+   newtree->Branch("truenuenergy",&truenuenergy,"truenuenergy/D");
    
    for (auto i : ROOT::TSeqI(nentries)) {
       oldtree->GetEntry(i);
@@ -246,6 +249,8 @@ void slimmer(TString fname,float splinexsecshift=0.)
       
       if (found == false) continue;
 
+      truenuenergy = nu_e;
+      
       // set MCC8 weight
       mcc8weight = 1.0;
       if ( (interaction == 0) && (ccnc == 0) && (nu_e < 2.5) ) {
@@ -259,15 +264,61 @@ void slimmer(TString fname,float splinexsecshift=0.)
 	  else
 	    mcc8weight = spline_xsec_v[ebin+binshift]/spline_xsec_v[ebin];
 	}
-	printf("for energy %f and energy bin %i the ratio is %f \n",nu_e,ebin,mcc8weight);
+	//printf("for energy %f and energy bin %i the ratio is %f \n",nu_e,ebin,mcc8weight);
       }
       
-      printf("\t found! \n");
+      //printf("\t found! \n");
       
       
       newtree->Fill();
       
    }// for all entries
-   newtree->Print();
+   //newtree->Print();
+   printf("new tree saved with %lli entries \n",newtree->GetEntries());
    newfile.Write();
+}
+
+
+void slimmerbulk(bool userun1, float xsecshift) {
+
+  TString run1 = "run1";
+  TString run3 = "run3";
+
+  std::vector<TString> string_v;
+  
+  if (userun1 == true) {
+      TString f1 = "prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2_nuepresel";
+      TString f2 = "prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2_nuepresel";
+      TString f3 = "prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run1_reco2_nuepresel";
+      TString f4 = "prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run1_reco2_reco2_nuepresel";
+      TString f5 = "prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
+      TString f6 = "prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
+      TString f7 = "prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2_nuepresel";
+      TString f8 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_all_reco2_nuepresel";
+      TString f9 = "prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2_nuepresel";
+      TString f10 = "data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19_nuepresel";
+      TString f11 = "prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
+    string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10};
+    for (size_t i=0; i < string_v.size(); i++)
+      slimmer(run1,string_v[i],xsecshift);
+  }
+  else{
+    TString f1 = "prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2_nuepresel";
+    TString f2 = "prodgenie_nc_pi0_uboone_overlay_mcc9.1_v08_00_00_26_run3_G_reco2_nuepresel";
+    TString f3 = "prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run3_G_reco2_nuepresel";
+    TString f4 = "prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run3_reco2_reco2_nuepresel";
+    TString f5 = "prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run3_reco2_reco2_nuepresel";
+    TString f6 = "prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_new_run3_reco2_reco2_nuepresel";
+    TString f7 = "prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_New_run3_reco2_reco2_nuepresel";
+    TString f8 = "prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2_nuepresel";
+    TString f9 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_all_reco2_nuepresel";
+    TString f10 = "data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19_nuepresel";
+    TString f11 = "prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2_nuepresel";
+    string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10};
+    for (size_t i=0; i < string_v.size(); i++)
+      slimmer(run3,string_v[i],xsecshift);
+  }
+
+  return;
+  
 }
