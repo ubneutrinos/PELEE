@@ -161,8 +161,8 @@ class Plotter:
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
 
-        necessary = ["category", "selected",  # "trk_pfp_id", "shr_pfp_id_v", 
-                     "backtracked_pdg", "nu_pdg", "ccnc", "trk_bkt_pdg", "shr_bkt_pdg"]
+        necessary = ["category"]#, "selected",  # "trk_pfp_id", "shr_pfp_id_v", 
+                     #"backtracked_pdg", "nu_pdg", "ccnc", "trk_bkt_pdg", "shr_bkt_pdg"]
 
         missing = np.setdiff1d(necessary, samples["mc"].columns)
 
@@ -744,6 +744,8 @@ class Plotter:
         data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
 
+        #fig = plt.figure(figsize=(7, 5))
+        #gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
         fig = plt.figure(figsize=(8, 7))
         gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
 
@@ -948,7 +950,7 @@ class Plotter:
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") + \
-                  self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], "weightSpline") #+ \
+                  self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") #+ \
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             exp_err = np.sqrt(np.diag(cov) )# + exp_err*exp_err)
 
@@ -968,6 +970,17 @@ class Plotter:
 
         ax1.bar(bincenters, n_tot, facecolor='none',
                 edgecolor='none', width=0, yerr=exp_err)
+        #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
+        '''
+        ax1.fill_between(
+            bincenters+(bincenters[1]-bincenters[0])/2.,
+            n_tot-exp_err,
+            n_tot+exp_err,
+            step="pre",
+            color="grey",
+            alpha=0.5)
+        '''
+
 
         n_data, bins = np.histogram(data_plotted_variable, **plot_options)
         data_err = np.sqrt(n_data)
@@ -1033,6 +1046,7 @@ class Plotter:
         #     fig.suptitle(query)
         # fig.savefig("plots/%s_cat.pdf" % variable.replace("/", "_"))
         return fig, ax1, ax2, stacked, labels, n_ext
+        #return fig, ax1, stacked, labels, n_ext
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
 
@@ -1201,11 +1215,14 @@ class Plotter:
                 [total_weight, ncnopi_weight])
 
             
-        fig = plt.figure(figsize=(8, 7))
-        gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
+        fig = plt.figure(figsize=(7, 7))
+        #fig = plt.figure(figsize=(8, 7))
+        gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
+        #gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
+        print (gs[0])
 
         ax1 = plt.subplot(gs[0])
-        ax2 = plt.subplot(gs[1])
+        #ax2 = plt.subplot(gs[1])
 
         n_mc, mc_bins, patches = ax1.hist(
             mc_plotted_variable,
@@ -1406,16 +1423,17 @@ class Plotter:
         else:
             ax1.set_ylabel(
                 "N. Entries / %g %s" % (xrange / plot_options["bins"], unit))
-        ax1.set_xticks([])
+        #ax1.set_xticks([])
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
-        self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
+        #self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
 
-        ax2.set_xlabel(title)
-        ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
+        #ax2.set_xlabel(title)
+        ax1.set_xlabel(title)
+        #ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
         fig.tight_layout()
         # fig.savefig("plots/%s_samples.pdf" % variable)
-        return fig, ax1, ax2
+        return fig, ax1#, ax2
 
     def _draw_ratio(self, ax, bins, n_tot, n_data, tot_err, data_err):
         bincenters = 0.5 * (bins[1:] + bins[:-1])
