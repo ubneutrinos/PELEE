@@ -11,7 +11,7 @@ void slimmer(TString runstr, TString fname,float splinexsecshift=0.)
    TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0304/" + runstr + "/";
    TString fullpath = dir + fname + ".root";
    TString textpath = dir + "txt/" + fname + ".txt";
-   TString foutname = dir + "SBNFit/" + fname + "_1eNp_sbnfit" + ".root";
+   TString foutname = dir + "SBNFit/" + fname + "_1eNp_BDT_sbnfit" + ".root";
    gSystem->ExpandPathName(dir);
    //const auto filename = gSystem->AccessPathName(dir) ? "./Event.root" : "$ROOTSYS/test/Event.root";
    TFile oldfile(fullpath);
@@ -19,7 +19,8 @@ void slimmer(TString runstr, TString fname,float splinexsecshift=0.)
    //oldfile.GetObject("nuselection/NeutrinoSelectionFilter", oldtree);
    oldfile.GetObject("searchingfornues/NeutrinoSelectionFilter", oldtree);
 
-
+   printf("run : %s file-name : %s \n",runstr.Data(),fname.Data());
+   
    // load MCC8 SPLINE XSEC
    TString splinepath = "/home/david/Downloads/ccqe_spline_ratios.root";
    TFile splines(splinepath);
@@ -84,62 +85,62 @@ void slimmer(TString runstr, TString fname,float splinexsecshift=0.)
 
   printf("there are %i lines \n",nlines);
   
-   const auto nentries = oldtree->GetEntries();
-
-   // Deactivate all branches
-   oldtree->SetBranchStatus("*", 0);
-   // Activate only four of them
-   for (auto activeBranchName : {"run","weights","shr_energy_tot","slpdg","nu_e","nslice","selected","NeutrinoEnergy2","crtveto","crthitpe","trk_len",
-	 "_closestNuCosmicDist","topological_score","nu_pdg","leeweight","weightSpline","weightTune","weightSplineTimesTune",
-	 "reco_nu_vtx_sce_x","reco_nu_vtx_sce_y","reco_nu_vtx_sce_z","n_showers_contained","hits_y","hits_ratio","CosmicIP","shr_distance","tksh_distance","trk_distance",
-	 "tksh_angle","shr_tkfit_dedx_Y","shr_score","trk_score","slclustfrac","trk_chipr","shrsubclusters0","shrsubclusters1","shrsubclusters2","shr_energy_tot_cali","trk_energy_tot",
-	 "run","sub","evt","npi0","category","ccnc","interaction"
-	 })
-      oldtree->SetBranchStatus(activeBranchName, 1);
-
-
-   float weightSpline;
-   int run,sub,evt;
-   int interaction;
-   int ccnc;
-   int nslice;
-   int nu_pdg;
-   int selected;
-   int crtveto;
-   float leeweight;
-   float crthitpe;
-   float trk_len;
-   double _closestNuCosmicDist;
-   float topological_score;
-
-   // nue variables
-   float reco_nu_vtx_sce_x, reco_nu_vtx_sce_y, reco_nu_vtx_sce_z;
-   unsigned int n_showers_contained;
-   float shr_energy_tot;
-   unsigned int hits_y;
-   float hits_ratio;
-   float CosmicIP;
-   float shr_distance, trk_distance, tksh_distance;
-   float tksh_angle;
-   float shr_tkfit_dedx_Y;
-   float shr_score, trk_score;
-   float slclustfrac;
-   unsigned int shrsubclusters0, shrsubclusters1, shrsubclusters2;
-   float shr_energy_tot_cali;
-   float trk_energy_tot;
-   float trk_chipr;
-   int npi0, category;
-   float nu_e, NeutrinoEnergy2;
-     
-   
-   //std::map<std::string,std::vector<float>> weightsMap;
-   //Event *event = nullptr;
-
-   oldtree->SetBranchAddress("run", &run);
-   oldtree->SetBranchAddress("sub", &evt);
-   oldtree->SetBranchAddress("evt", &evt);
-   oldtree->SetBranchAddress("interaction", &interaction);
-   oldtree->SetBranchAddress("ccnc",&ccnc);
+  const auto nentries = oldtree->GetEntries();
+  
+  // Deactivate all branches
+  oldtree->SetBranchStatus("*", 0);
+  // Activate only four of them
+  for (auto activeBranchName : {"run","weights","shr_energy_tot","slpdg","nu_e","nslice","selected","NeutrinoEnergy2","crtveto","crthitpe","trk_len",
+	"topological_score","nu_pdg","leeweight","weightSpline","weightTune","weightSplineTimesTune",
+	"reco_nu_vtx_sce_x","reco_nu_vtx_sce_y","reco_nu_vtx_sce_z","n_showers_contained","hits_y","hits_ratio","CosmicIP","shr_distance","tksh_distance","trk_distance",
+	"tksh_angle","shr_tkfit_dedx_Y","shr_score","trk_score","slclustfrac","trk_chipr","shrsubclusters0","shrsubclusters1","shrsubclusters2","shr_energy_tot_cali","trk_energy_tot",
+	"run","sub","evt","npi0","category","ccnc","interaction"
+	})
+    oldtree->SetBranchStatus(activeBranchName, 1);
+  
+  
+  float weightSpline;
+  int run,sub,evt;
+  int interaction;
+  int ccnc;
+  int nslice;
+  int nu_pdg;
+  int selected;
+  int crtveto;
+  float leeweight;
+  float crthitpe;
+  float trk_len;
+  double _closestNuCosmicDist;
+  float topological_score;
+  
+  // nue variables
+  float reco_nu_vtx_sce_x, reco_nu_vtx_sce_y, reco_nu_vtx_sce_z;
+  unsigned int n_showers_contained;
+  float shr_energy_tot;
+  unsigned int hits_y;
+  float hits_ratio;
+  float CosmicIP;
+  float shr_distance, trk_distance, tksh_distance;
+  float tksh_angle;
+  float shr_tkfit_dedx_Y;
+  float shr_score, trk_score;
+  float slclustfrac;
+  unsigned int shrsubclusters0, shrsubclusters1, shrsubclusters2;
+  float shr_energy_tot_cali;
+  float trk_energy_tot;
+  float trk_chipr;
+  int npi0, category;
+  float nu_e, NeutrinoEnergy2;
+  
+  
+  //std::map<std::string,std::vector<float>> weightsMap;
+  //Event *event = nullptr;
+  
+  oldtree->SetBranchAddress("run", &run);
+  oldtree->SetBranchAddress("sub", &evt);
+  oldtree->SetBranchAddress("evt", &evt);
+  oldtree->SetBranchAddress("interaction", &interaction);
+  oldtree->SetBranchAddress("ccnc",&ccnc);
    oldtree->SetBranchAddress("nu_e",&nu_e);
    //oldtree->SetBranchAddress("category",&category);
    
@@ -298,7 +299,7 @@ void slimmerbulk(bool userun1, float xsecshift) {
       TString f9 = "prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2_nuepresel";
       TString f10 = "data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19_nuepresel";
       TString f11 = "prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
-    string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10};
+      string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11};
     for (size_t i=0; i < string_v.size(); i++)
       slimmer(run1,string_v[i],xsecshift);
   }
@@ -314,11 +315,60 @@ void slimmerbulk(bool userun1, float xsecshift) {
     TString f9 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_all_reco2_nuepresel";
     TString f10 = "data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19_nuepresel";
     TString f11 = "prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2_nuepresel";
-    string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10};
+    string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11};
     for (size_t i=0; i < string_v.size(); i++)
       slimmer(run3,string_v[i],xsecshift);
   }
 
+  return;
+  
+}
+
+
+void slimmerBDT(float xsecshift) {
+
+  TString run1 = "run1";
+  TString run2 = "run2";
+  TString run3 = "run3";
+
+  std::vector<TString> string_v;
+  
+  TString f1 = "prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2_nuepresel";
+  TString f2 = "prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2_nuepresel";
+  TString f3 = "prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run1_reco2_nuepresel";
+  TString f4 = "prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run1_reco2_reco2_nuepresel";
+  TString f5 = "prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
+  TString f6 = "prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
+  TString f7 = "prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2_nuepresel";
+  TString f8 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_all_reco2_nuepresel";
+  TString f9 = "prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2_nuepresel";
+  TString f10 = "data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19_nuepresel";
+  TString f11 = "prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
+  string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11};
+  for (size_t i=0; i < string_v.size(); i++)
+    slimmer(run1,string_v[i],xsecshift);
+
+  f1 = "prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2_nuepresel";
+  f2 = "prodgenie_nc_pi0_uboone_overlay_mcc9.1_v08_00_00_26_run3_G_reco2_nuepresel";
+  f3 = "prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run3_G_reco2_nuepresel";
+  f4 = "prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run3_reco2_reco2_nuepresel";
+  f5 = "prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run3_reco2_reco2_nuepresel";
+  f6 = "prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_new_run3_reco2_reco2_nuepresel";
+  f7 = "prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_New_run3_reco2_reco2_nuepresel";
+  f8 = "prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2_nuepresel";
+  f9 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_all_reco2_nuepresel";
+  f10 = "data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19_nuepresel";
+  f11 = "prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2_nuepresel";
+  string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11};
+  for (size_t i=0; i < string_v.size(); i++)
+    slimmer(run3,string_v[i],xsecshift);
+
+  f1 = "prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run2_reco2_D1D2_reco2_nuepresel";
+  f2 = "prodgenie_bnb_intrinsic_nue_overlay_run2_v08_00_00_35_run2a_reco2_reco2_nuepresel";
+  string_v = {f1,f2};
+  for (size_t i=0; i < string_v.size(); i++)
+    slimmer(run2,string_v[i],xsecshift);
+  
   return;
   
 }
