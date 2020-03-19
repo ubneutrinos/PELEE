@@ -133,7 +133,6 @@ pdg_colors = {
     2112: "#cab2d6",
 }
 
-
 class Plotter:
     """Main plotter class
 
@@ -161,7 +160,7 @@ class Plotter:
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
 
-        necessary = ["category"]#, "selected",  # "trk_pfp_id", "shr_pfp_id_v", 
+        necessary = ["category"]#, "selected",  # "trk_pfp_id", "shr_pfp_id_v",
                      #"backtracked_pdg", "nu_pdg", "ccnc", "trk_bkt_pdg", "shr_bkt_pdg"]
 
         missing = np.setdiff1d(necessary, samples["mc"].columns)
@@ -270,31 +269,76 @@ class Plotter:
 
         return variable
 
-    def _selection(self, variable, sample, query="selected==1", extra_cut=None):
+
+    def _apply_track_cuts(self,df,variable,track_cuts):
+        #need to do this fancy business with the apply function to make masks
+        mask = df['trk_score_v'].apply(lambda x: x == x) #start with all True mask
+        for (var,op,val) in track_cuts:
+            if type(op) == list:
+                #this means treat two conditions in an 'or' fashion
+                mask *= df[var].apply(lambda x: eval("x{}{} or x{}{}".format(op[0],val[0],op[1],val[1]))) #layer on each cut mask
+            else:
+                mask *= df[var].apply(lambda x: eval("x{}{}".format(op,val))) #layer on each cut mask
+        vars = (df[variable]*mask).apply(lambda x: x[x != False]) #apply mask
+        vars = vars[vars.apply(lambda x: len(x) > 0)] #clean up empty slices
+        #fix list comprehension issue for non '_v' variables
+        if variable[-2:] != "_v":
+            vars = vars.apply(lambda x: x[0])
+
+        return vars, mask
+
+    def _select_longest(self,df, vars, mask=None):
+        if mask == None:
+            mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask
+        print("selecting longest...")
+        trk_lens = (df['trk_len_v']*mask).apply(lambda x: x[x != False])#apply mask to track lengths
+        trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up empty slices
+        longest_mask = trk_lens.apply(lambda x: x == x[list(x).index(max(x))])#identify longest
+        vars = (vars*longest_mask).apply(lambda x: x[x!=False])#apply mask
+        if len(vars.iloc[0]) == 1:
+            vars = vars.apply(lambda x: x[0])#expect values, not lists, for each event
+        else:
+            raise ValueError(
+            "There are more than one longest track per slice")
+
+        return vars, longest_mask
+
+    def _selection(self, variable, sample, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         sel_query = query
 
         if extra_cut is not None:
             sel_query += "& %s" % extra_cut
 
-        return sample.query(sel_query).eval(variable).ravel()
+        df = sample.query(sel_query).copy()
 
-    def _categorize_entries_pdg(self, sample, variable, query="selected==1", extra_cut=None):
+        if track_cuts is not None:
+            vars, track_cuts_mask = self._apply_track_cuts(df,variable,track_cuts)
+        else:
+            vars = df[variable]
+        #vars is now a Series object that passes all the cuts
+
+        if variable[-2:] == "_v" and select_longest:
+            vars, longest_mask = self._select_longest(df, vars, track_cuts_mask)
+
+        return vars.ravel()
+
+    def _categorize_entries_pdg(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
 
         if "trk" in variable:
             pfp_id_variable = "trk_pfp_id"
-            score_v = self._selection("trk_score_v", sample, query=query, extra_cut=extra_cut)
+            score_v = self._selection("trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         else:
             pfp_id_variable = "shr_pfp_id_v"
-            score_v = self._selection("shr_score_v", sample, query=query, extra_cut=extra_cut)
+            score_v = self._selection("shr_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
 
 
         pfp_id = self._selection(
-            pfp_id_variable, sample, query=query, extra_cut=extra_cut)
+            pfp_id_variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         plotted_variable = self._selection(
-            variable, sample, query=query, extra_cut=extra_cut)
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         pfp_id = np.subtract(pfp_id, 1)
         backtracked_pdg = np.abs(self._selection(
-            "backtracked_pdg", sample, query=query, extra_cut=extra_cut))
+            "backtracked_pdg", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest))
 
         plotted_variable = self._select_showers(
             plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
@@ -311,37 +355,39 @@ class Plotter:
 
         return pfp_pdg, plotted_variable
 
-    def _categorize_entries_single_pdg(self, sample, variable, query="selection==1", extra_cut=None):
+    def _categorize_entries_single_pdg(self, sample, variable, query="selection==1", extra_cut=None, track_cuts=None, select_longest=True):
         if "trk" in variable:
             bkt_variable = "trk_bkt_pdg"
         else:
             bkt_variable = "shr_bkt_pdg"
 
         backtracked_pdg = np.abs(self._selection(
-            bkt_variable, sample, query=query, extra_cut=extra_cut))
+            bkt_variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest))
         plotted_variable = self._selection(
-            variable, sample, query=query, extra_cut=extra_cut)
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
 
         return backtracked_pdg, plotted_variable
 
-    def _categorize_entries(self, sample, variable, query="selected==1", extra_cut=None):
+    def _categorize_entries(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
-            "category", sample, query=query, extra_cut=extra_cut)
+            "category", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         plotted_variable = self._selection(
-            variable, sample, query=query, extra_cut=extra_cut)
-
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
 
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
                     score = self._selection(
-                        "trk_score_v", sample, query=query, extra_cut=extra_cut)
+                        "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+                    print("category111111",category)
+                    print("score",score)
+                    print("plotted var",plotted_variable)
                     category = np.array([
                         np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
                     ])
                 else:
                     score = self._selection(
-                        "shr_score_v", sample, query=query, extra_cut=extra_cut)
+                        "shr_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
                     category = np.array([
                         np.array([c] * len(v[s < 0.5])) for c, v, s in zip(category, plotted_variable, score)
                     ])
@@ -352,24 +398,24 @@ class Plotter:
 
         return category, plotted_variable
 
-    def _categorize_entries_int(self, sample, variable, query="selected==1", extra_cut=None):
+    def _categorize_entries_int(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
-            "interaction", sample, query=query, extra_cut=extra_cut)
+            "interaction", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         plotted_variable = self._selection(
-            variable, sample, query=query, extra_cut=extra_cut)
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
 
 
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
                     score = self._selection(
-                        "trk_score_v", sample, query=query, extra_cut=extra_cut)
+                        "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
                     category = np.array([
                         np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
                     ])
                 else:
                     score = self._selection(
-                        "shr_score_v", sample, query=query, extra_cut=extra_cut)
+                        "shr_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
                     category = np.array([
                         np.array([c] * len(v[s < 0.5])) for c, v, s in zip(category, plotted_variable, score)
                     ])
@@ -389,20 +435,20 @@ class Plotter:
             return bin_width/(bins[idx]-bins[idx-1])
         return 0
 
-    def _get_genie_weight(self, sample, variable, query="selected==1", extra_cut=None):
+    def _get_genie_weight(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
 
         plotted_variable = self._selection(
-            variable, sample, query=query, extra_cut=extra_cut)
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         genie_weights = self._selection(
-            "weightSplineTimesTune", sample, query=query, extra_cut=extra_cut)
+            "weightSplineTimesTune", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
                     score = self._selection(
-                        "trk_score_v", sample, query=query, extra_cut=extra_cut)
+                        "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
                 else:
                     score = self._selection(
-                        "shr_score_v", sample, query=query, extra_cut=extra_cut)
+                        "shr_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
                 genie_weights = np.array([
                     np.array([c] * len(v[s > 0.5])) for c, v, s in zip(genie_weights, plotted_variable, score)
                 ])
@@ -423,7 +469,7 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
-            
+
         # if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
         #     query += "& %s <= %g & %s >= %g" % (
         #         variable, plot_options["range"][1], variable, plot_options["range"][0])
@@ -571,7 +617,7 @@ class Plotter:
             axes[1].set_xlabel(variable1_name)
             axes[2].set_xlabel(variable1_name)
 
-    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=0, **plot_options):
+    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=0, track_cuts=None, select_longest=True, **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
         Args:
@@ -581,6 +627,13 @@ class Plotter:
             kind (str, optional): Categorization of the plot.
                 Accepted values are ``event_category``, ``particle_pdg``, and ``sample``
                 Default is ``event_category``.
+            track_cuts (list of tuples (var, operation, cut val), optional):
+                List of cuts ot be made on track-level variables ("_v" in variable name)
+                These get applied one at a time in self._selection
+            select_longest (bool): if variable is a track-level variable
+                setting to True will take the longest track of each slice
+                    after QUERY and track_cuts have been applied
+                select_longest = False might have some bugs...
             **plot_options: Additional options for matplotlib plot (e.g. range and bins).
 
         Returns:
@@ -626,24 +679,24 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
-        
+
         category, mc_plotted_variable = categorization(
-            self.samples["mc"], variable, query=query, extra_cut=nu_pdg)
+            self.samples["mc"], variable, query=query, extra_cut=nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
 
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
         mc_genie_weights = self._get_genie_weight(
-            self.samples["mc"], variable, query=query, extra_cut=nu_pdg)
+            self.samples["mc"], variable, query=query, extra_cut=nu_pdg, track_cuts=track_cuts,select_longest=select_longest)
 
         for c, v, w in zip(category, mc_plotted_variable, mc_genie_weights):
             var_dict[c].append(v)
             weight_dict[c].append(self.weights["mc"] * w)
 
         nue_genie_weights = self._get_genie_weight(
-            self.samples["nue"], variable, query=query)
+            self.samples["nue"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
         category, nue_plotted_variable = categorization(
-            self.samples["nue"], variable, query=query)
+            self.samples["nue"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
         for c, v, w in zip(category, nue_plotted_variable, nue_genie_weights):
             var_dict[c].append(v)
@@ -651,9 +704,9 @@ class Plotter:
 
         if "ncpi0" in self.samples:
             ncpi0_genie_weights = self._get_genie_weight(
-                    self.samples["ncpi0"], variable, query=query)
+                    self.samples["ncpi0"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
             category, ncpi0_plotted_variable = categorization(
-                self.samples["ncpi0"], variable, query=query)
+                self.samples["ncpi0"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, ncpi0_plotted_variable, ncpi0_genie_weights):
                 var_dict[c].append(v)
@@ -661,9 +714,9 @@ class Plotter:
 
         if "ccpi0" in self.samples:
             ccpi0_genie_weights = self._get_genie_weight(
-                    self.samples["ccpi0"], variable, query=query)
+                    self.samples["ccpi0"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
             category, ccpi0_plotted_variable = categorization(
-                self.samples["ccpi0"], variable, query=query)
+                self.samples["ccpi0"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, ccpi0_plotted_variable, ccpi0_genie_weights):
                 var_dict[c].append(v)
@@ -671,9 +724,9 @@ class Plotter:
 
         if "ccnopi" in self.samples:
             ccnopi_genie_weights = self._get_genie_weight(
-                    self.samples["ccnopi"], variable, query=query)
+                    self.samples["ccnopi"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
             category, ccnopi_plotted_variable = categorization(
-                self.samples["ccnopi"], variable, query=query)
+                self.samples["ccnopi"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, ccnopi_plotted_variable, ccnopi_genie_weights):
                 var_dict[c].append(v)
@@ -681,9 +734,9 @@ class Plotter:
 
         if "cccpi" in self.samples:
             cccpi_genie_weights = self._get_genie_weight(
-                    self.samples["cccpi"], variable, query=query)
+                    self.samples["cccpi"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
             category, cccpi_plotted_variable = categorization(
-                self.samples["cccpi"], variable, query=query)
+                self.samples["cccpi"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, cccpi_plotted_variable, cccpi_genie_weights):
                 var_dict[c].append(v)
@@ -691,9 +744,9 @@ class Plotter:
 
         if "nccpi" in self.samples:
             nccpi_genie_weights = self._get_genie_weight(
-                    self.samples["nccpi"], variable, query=query)
+                    self.samples["nccpi"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
             category, nccpi_plotted_variable = categorization(
-                self.samples["nccpi"], variable, query=query)
+                self.samples["nccpi"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, nccpi_plotted_variable, nccpi_genie_weights):
                 var_dict[c].append(v)
@@ -701,9 +754,9 @@ class Plotter:
 
         if "ncnopi" in self.samples:
             ncnopi_genie_weights = self._get_genie_weight(
-                    self.samples["ncnopi"], variable, query=query)
+                    self.samples["ncnopi"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
             category, ncnopi_plotted_variable = categorization(
-                self.samples["ncnopi"], variable, query=query)
+                self.samples["ncnopi"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, ncnopi_plotted_variable, ncnopi_genie_weights):
                 var_dict[c].append(v)
@@ -711,9 +764,9 @@ class Plotter:
 
         if "dirt" in self.samples:
             dirt_genie_weights = self._get_genie_weight(
-                self.samples["dirt"], variable, query=query)
+                self.samples["dirt"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
             category, dirt_plotted_variable = categorization(
-                self.samples["dirt"], variable, query=query)
+                self.samples["dirt"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, dirt_plotted_variable, dirt_genie_weights):
                 var_dict[c].append(v)
@@ -721,8 +774,8 @@ class Plotter:
 
         if "lee" in self.samples:
             category, lee_plotted_variable = categorization(
-                self.samples["lee"], variable, query=query)
-            leeweight = self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query)
+                self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
+            leeweight = self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, lee_plotted_variable, leeweight):
                 var_dict[c].append(v)
@@ -735,14 +788,15 @@ class Plotter:
                 weights=weight_dict[111])
 
         ext_plotted_variable = self._selection(
-            variable, self.samples["ext"], query=query)
+            variable, self.samples["ext"], query=query, track_cuts=track_cuts, select_longest=select_longest)
         ext_plotted_variable = self._select_showers(
             ext_plotted_variable, variable, self.samples["ext"], query=query)
 
         data_plotted_variable = self._selection(
-            variable, self.samples["data"], query=query)
+            variable, self.samples["data"], query=query, track_cuts=track_cuts, select_longest=select_longest)
         data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
+
 
         #fig = plt.figure(figsize=(7, 5))
         #gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
@@ -799,7 +853,7 @@ class Plotter:
                 order_var_dict[c] = var_dict[c]
             for c in weight_dict.keys():
                 order_weight_dict[c] = weight_dict[c]
-        
+
         total = sum(sum(order_weight_dict[c]) for c in order_var_dict)
         total += sum([self.weights["ext"]] * len(ext_plotted_variable))
         labels = [
@@ -808,7 +862,7 @@ class Plotter:
             for c in order_var_dict.keys()
         ]
 
-        
+
         if kind == "event_category":
             plot_options["color"] = [category_colors[c]
                                      for c in order_var_dict.keys()]
@@ -825,7 +879,7 @@ class Plotter:
         #for key in order_weight_dict:
         #    print ('key ',key)
         #    print ('val ',order_weight_dict[key])
-            
+
         stacked = ax1.hist(
             order_var_dict.values(),
             weights=list(order_weight_dict.values()),
@@ -1021,7 +1075,7 @@ class Plotter:
 
 
         self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
-        
+
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
         '''
         if sum(n_data) > 0:
@@ -1105,7 +1159,7 @@ class Plotter:
                 variable, self.samples["ccpi0"], query=query)
             ccpi0_plotted_variable = self._select_showers(
                 ccpi0_plotted_variable, variable, self.samples["ccpi0"], query=query)
-            ccpi0_weight = [self.weights["ccpi0"]] * len(ccpi0_plotted_variable)            
+            ccpi0_weight = [self.weights["ccpi0"]] * len(ccpi0_plotted_variable)
 
         if "ccnopi" in self.samples:
             ccnopi_plotted_variable = self._selection(
@@ -1126,14 +1180,14 @@ class Plotter:
                 variable, self.samples["nccpi"], query=query)
             nccpi_plotted_variable = self._select_showers(
                 nccpi_plotted_variable, variable, self.samples["nccpi"], query=query)
-            nccpi_weight = [self.weights["nccpi"]] * len(nccpi_plotted_variable)            
+            nccpi_weight = [self.weights["nccpi"]] * len(nccpi_plotted_variable)
 
         if "ncnopi" in self.samples:
             ncnopi_plotted_variable = self._selection(
                 variable, self.samples["ncnopi"], query=query)
             ncnopi_plotted_variable = self._select_showers(
                 ncnopi_plotted_variable, variable, self.samples["ncnopi"], query=query)
-            ncnopi_weight = [self.weights["ncnopi"]] * len(ncnopi_plotted_variable)            
+            ncnopi_weight = [self.weights["ncnopi"]] * len(ncnopi_plotted_variable)
 
         if "lee" in self.samples:
             lee_plotted_variable = self._selection(
@@ -1214,7 +1268,7 @@ class Plotter:
             total_weight = np.concatenate(
                 [total_weight, ncnopi_weight])
 
-            
+
         fig = plt.figure(figsize=(7, 7))
         #fig = plt.figure(figsize=(8, 7))
         gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
@@ -1463,7 +1517,7 @@ class Plotter:
         if (name == "weightsGenie"):
             Nuniverse = 100
 
-        
+
         n_tot = np.empty([Nuniverse, n_bins])
         n_cv_tot = np.empty(n_bins)
         n_tot.fill(0)
