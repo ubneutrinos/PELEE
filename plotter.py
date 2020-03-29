@@ -149,7 +149,7 @@ class Plotter:
        pot (int): Number of protons-on-target.
     """
 
-    def __init__(self, samples, weights, pot=4.5e19,):
+    def __init__(self, samples, weights, pot=4.5e19):
         self.weights = weights
         self.samples = samples
         self.pot = pot
@@ -617,7 +617,24 @@ class Plotter:
             axes[1].set_xlabel(variable1_name)
             axes[2].set_xlabel(variable1_name)
 
-    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=0, track_cuts=None, select_longest=True, **plot_options):
+    def add_detsys_error(self,sample,mc_entries_v,weight):
+        print ("sample is ",sample)
+        detsys_v = np.zeros(len(mc_entries_v))
+        if sample in self.detsys:
+            if (len(self.detsys[sample]) == len(mc_entries_v)):
+                print ('len matches!')
+                for i,n in enumerate(mc_entries_v):
+                    detsys_v[i] = (self.detsys[sample][i] * n * weight)**2
+            else:
+                print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))            
+        print ('errors are : ',detsys_v)
+        return detsys_v
+
+
+            
+    def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
+                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=True,
+                      detsys=None,**plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
         Args:
@@ -638,8 +655,12 @@ class Plotter:
 
         Returns:
             Figure, top subplot, and bottom subplot (ratio)
-
+        
         """
+
+        if (detsys != None):
+            self.detsys = detsys
+        
         if not title:
             title = variable
         # pandas bug https://github.com/pandas-dev/pandas/issues/16363
@@ -923,17 +944,20 @@ class Plotter:
             mc_plotted_variable, **plot_options)
         err_mc = np.array(
             [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
+        err_mc += self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"]) 
 
         nue_uncertainties, bins = np.histogram(
             nue_plotted_variable, **plot_options)
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
+        err_nue += self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"]) 
 
         err_dirt = np.array([0 for n in mc_uncertainties])
         if "dirt" in self.samples:
             dirt_uncertainties, bins = np.histogram(
                 dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
+                #[float(n) for n in dirt_uncertainties])
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
 
         err_lee = np.array([0 for n in mc_uncertainties])
@@ -955,6 +979,7 @@ class Plotter:
                 ncpi0_plotted_variable, **plot_options)
             err_ncpi0 = np.array(
                 [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
+            err_ncpi0 += self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"]) 
 
         err_ccpi0 = np.array([0 for n in mc_uncertainties])
         if "ccpi0" in self.samples:
@@ -962,6 +987,7 @@ class Plotter:
                 ccpi0_plotted_variable, **plot_options)
             err_ccpi0 = np.array(
                 [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
+            err_ccpi0 += self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"]) 
 
         err_ccnopi = np.array([0 for n in mc_uncertainties])
         if "ccnopi" in self.samples:
@@ -969,6 +995,7 @@ class Plotter:
                 ccnopi_plotted_variable, **plot_options)
             err_ccnopi = np.array(
                 [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
+            err_ccnopi += self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"]) 
 
         err_cccpi = np.array([0 for n in mc_uncertainties])
         if "cccpi" in self.samples:
@@ -976,6 +1003,7 @@ class Plotter:
                 cccpi_plotted_variable, **plot_options)
             err_cccpi = np.array(
                 [n * self.weights["cccpi"] * self.weights["cccpi"] for n in cccpi_uncertainties])
+            err_cccpi += self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])                             
 
         err_nccpi = np.array([0 for n in mc_uncertainties])
         if "nccpi" in self.samples:
@@ -983,6 +1011,7 @@ class Plotter:
                 nccpi_plotted_variable, **plot_options)
             err_nccpi = np.array(
                 [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
+            err_nccpi += self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])                             
 
         err_ncnopi = np.array([0 for n in mc_uncertainties])
         if "ncnopi" in self.samples:
@@ -990,12 +1019,15 @@ class Plotter:
                 ncnopi_plotted_variable, **plot_options)
             err_ncnopi = np.array(
                 [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
-
+            err_ncnopi += self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
+            
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
         exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
 
+        print ('total exp_err : ', exp_err)
+        
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
 
@@ -1008,7 +1040,7 @@ class Plotter:
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             exp_err = np.sqrt(np.diag(cov) )# + exp_err*exp_err)
 
-        cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+            cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
 
         if "lee" in self.samples:
             if kind == "event_category":
@@ -1077,7 +1109,7 @@ class Plotter:
         self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
 
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-        '''
+        #'''
         if sum(n_data) > 0:
             ax2.text(
                 0.88,
@@ -1090,7 +1122,7 @@ class Plotter:
                 ma='right',
                 fontsize=12,
                 transform=ax2.transAxes)
-        '''
+        #'''
 
         ax2.set_xlabel(title,fontsize=18)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
