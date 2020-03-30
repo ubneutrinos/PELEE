@@ -156,6 +156,7 @@ class Plotter:
         self.significance = 0
         self.significance_likelihood = 0
         self.chisqdatamc = 0
+        self.detsys = None
 
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
@@ -290,7 +291,7 @@ class Plotter:
     def _select_longest(self,df, vars, mask=None):
         if mask == None:
             mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask
-        print("selecting longest...")
+        #print("selecting longest...")
         trk_lens = (df['trk_len_v']*mask).apply(lambda x: x[x != False])#apply mask to track lengths
         trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up empty slices
         longest_mask = trk_lens.apply(lambda x: x == x[list(x).index(max(x))])#identify longest
@@ -379,9 +380,9 @@ class Plotter:
                 if "trk" in variable:
                     score = self._selection(
                         "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
-                    print("category111111",category)
-                    print("score",score)
-                    print("plotted var",plotted_variable)
+                    #print("category111111",category)
+                    #print("score",score)
+                    #print("plotted var",plotted_variable)
                     category = np.array([
                         np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
                     ])
@@ -618,16 +619,21 @@ class Plotter:
             axes[2].set_xlabel(variable1_name)
 
     def add_detsys_error(self,sample,mc_entries_v,weight):
-        print ("sample is ",sample)
-        detsys_v = np.zeros(len(mc_entries_v))
+        #print ("sample is ",sample)
+        detsys_v  = np.zeros(len(mc_entries_v))
+        entries_v = np.zeros(len(mc_entries_v))
+        if (self.detsys == None): return detsys_v
         if sample in self.detsys:
             if (len(self.detsys[sample]) == len(mc_entries_v)):
-                print ('len matches!')
+                #print ('len matches!')
                 for i,n in enumerate(mc_entries_v):
-                    detsys_v[i] = (self.detsys[sample][i] * n * weight)**2
+                    detsys_v[i] = (self.detsys[sample][i] * n * weight)#**2
+                    entries_v[i] = n * weight
             else:
-                print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))            
-        print ('errors are : ',detsys_v)
+                print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))
+        #print ('sample : ',sample)
+        #print ('errors  are : ',detsys_v)
+        #print ('entries are : ',entries_v)
         return detsys_v
 
 
@@ -658,8 +664,8 @@ class Plotter:
         
         """
 
-        if (detsys != None):
-            self.detsys = detsys
+        #if (detsys != None):
+        self.detsys = detsys
         
         if not title:
             title = variable
@@ -944,21 +950,21 @@ class Plotter:
             mc_plotted_variable, **plot_options)
         err_mc = np.array(
             [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
-        err_mc += self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"]) 
+        sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"]) 
 
         nue_uncertainties, bins = np.histogram(
             nue_plotted_variable, **plot_options)
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
-        err_nue += self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"]) 
+        sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"]) 
 
         err_dirt = np.array([0 for n in mc_uncertainties])
         if "dirt" in self.samples:
             dirt_uncertainties, bins = np.histogram(
                 dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
-                #[float(n) for n in dirt_uncertainties])
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
+        sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"]) 
 
         err_lee = np.array([0 for n in mc_uncertainties])
         if "lee" in self.samples:
@@ -974,59 +980,67 @@ class Plotter:
                     "sum").values * self.weights["lee"] * self.weights["lee"]
 
         err_ncpi0 = np.array([0 for n in mc_uncertainties])
+        sys_ncpi0 = np.array([0 for n in mc_uncertainties])
         if "ncpi0" in self.samples:
             ncpi0_uncertainties, bins = np.histogram(
                 ncpi0_plotted_variable, **plot_options)
             err_ncpi0 = np.array(
                 [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
-            err_ncpi0 += self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"]) 
+            sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"]) 
 
         err_ccpi0 = np.array([0 for n in mc_uncertainties])
+        sys_ccpi0 = np.array([0 for n in mc_uncertainties])
         if "ccpi0" in self.samples:
             ccpi0_uncertainties, bins = np.histogram(
                 ccpi0_plotted_variable, **plot_options)
             err_ccpi0 = np.array(
                 [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
-            err_ccpi0 += self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"]) 
+            sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"]) 
 
         err_ccnopi = np.array([0 for n in mc_uncertainties])
+        sys_ccnopi = np.array([0 for n in mc_uncertainties])
         if "ccnopi" in self.samples:
             ccnopi_uncertainties, bins = np.histogram(
                 ccnopi_plotted_variable, **plot_options)
             err_ccnopi = np.array(
                 [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
-            err_ccnopi += self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"]) 
+            sys_ccnopi += self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"]) 
 
         err_cccpi = np.array([0 for n in mc_uncertainties])
+        sys_cccpi = np.array([0 for n in mc_uncertainties])
         if "cccpi" in self.samples:
             cccpi_uncertainties, bins = np.histogram(
                 cccpi_plotted_variable, **plot_options)
             err_cccpi = np.array(
                 [n * self.weights["cccpi"] * self.weights["cccpi"] for n in cccpi_uncertainties])
-            err_cccpi += self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])                             
+            sys_cccpi += self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])
 
         err_nccpi = np.array([0 for n in mc_uncertainties])
+        sys_nccpi = np.array([0 for n in mc_uncertainties])
         if "nccpi" in self.samples:
             nccpi_uncertainties, bins = np.histogram(
                 nccpi_plotted_variable, **plot_options)
             err_nccpi = np.array(
                 [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
-            err_nccpi += self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])                             
+            sys_nccpi = self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])                             
 
         err_ncnopi = np.array([0 for n in mc_uncertainties])
+        sys_ncnopi = np.array([0 for n in mc_uncertainties])
         if "ncnopi" in self.samples:
             ncnopi_uncertainties, bins = np.histogram(
                 ncnopi_plotted_variable, **plot_options)
             err_ncnopi = np.array(
                 [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
-            err_ncnopi += self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
+            sys_ncnopi = self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
             
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        exp_err    = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
+        exp_err = np.sqrt(exp_err**2 + detsys_err**2)
 
-        print ('total exp_err : ', exp_err)
+        #print ('total exp_err : ', exp_err)
         
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
@@ -1561,7 +1575,7 @@ class Plotter:
 
             tree = self.samples[t]
 
-            print ('sample : ',t)
+            #print ('sample : ',t)
 
             extra_query = ""
             if t == "mc":
