@@ -303,7 +303,6 @@ class Plotter:
 
         return vars, mask
 
-<<<<<<< HEAD
     def _select_longest(self,df, variable, mask):
         '''
         df: dataframe for sample
@@ -314,12 +313,14 @@ class Plotter:
             list of values of variable corresponding to longest track in each slices
             boolean mask for longest tracks in df
         '''
-=======
-    def _select_longest(self,df, vars, mask=None):
-        if mask == None:
-            mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask
+
+    def _select_longest(self,df, variable, mask):
+        '''
+        mask can be all true, i.e.:
+            mask = df[ver].apply(lambda x: x==x)
+        '''
+
         #print("selecting longest...")
->>>>>>> aa9dcf0e3ecb9f0ace4fc8beedf8ec982e3480b2
         trk_lens = (df['trk_len_v']*mask).apply(lambda x: x[x != False])#apply mask to track lengths
         trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up empty slices
         variable = variable[variable.apply(lambda x: len(x) > 0)] #clean up empty slices
@@ -428,12 +429,6 @@ class Plotter:
                 if "trk" in variable:
                     score = self._selection(
                         "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
-<<<<<<< HEAD
-=======
-                    #print("category111111",category)
-                    #print("score",score)
-                    #print("plotted var",plotted_variable)
->>>>>>> aa9dcf0e3ecb9f0ace4fc8beedf8ec982e3480b2
                     category = np.array([
                         np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
                     ])
@@ -669,7 +664,6 @@ class Plotter:
             axes[1].set_xlabel(variable1_name)
             axes[2].set_xlabel(variable1_name)
 
-<<<<<<< HEAD
         return fig, axes
 
     def plot_2d_oneplot(self, variable1_name, variable2_name, query="selected==1", track_cuts=None, **plot_options):
@@ -701,8 +695,7 @@ class Plotter:
 
         return fig, axis, image
 
-    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=0, track_cuts=None, select_longest=True, **plot_options):
-=======
+
     def add_detsys_error(self,sample,mc_entries_v,weight):
         #print ("sample is ",sample)
         detsys_v  = np.zeros(len(mc_entries_v))
@@ -722,11 +715,10 @@ class Plotter:
         return detsys_v
 
 
-            
+
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=True,
                       detsys=None,**plot_options):
->>>>>>> aa9dcf0e3ecb9f0ace4fc8beedf8ec982e3480b2
         """It plots the variable from the TTree, after applying an eventual query
 
         Args:
@@ -747,16 +739,12 @@ class Plotter:
 
         Returns:
             Figure, top subplot, and bottom subplot (ratio)
-        
+
         """
-<<<<<<< HEAD
-        # try to correct for expected deviations from proper input
-=======
 
         #if (detsys != None):
         self.detsys = detsys
-        
->>>>>>> aa9dcf0e3ecb9f0ace4fc8beedf8ec982e3480b2
+
         if not title:
             title = variable
         if not query:
@@ -1044,13 +1032,13 @@ class Plotter:
             mc_plotted_variable, **plot_options)
         err_mc = np.array(
             [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
-        sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"]) 
+        sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"])
 
         nue_uncertainties, bins = np.histogram(
             nue_plotted_variable, **plot_options)
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
-        sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"]) 
+        sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"])
 
         err_dirt = np.array([0 for n in mc_uncertainties])
         if "dirt" in self.samples:
@@ -1058,7 +1046,7 @@ class Plotter:
                 dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
-        sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"]) 
+        sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"])
 
         err_lee = np.array([0 for n in mc_uncertainties])
         if "lee" in self.samples:
@@ -1080,7 +1068,7 @@ class Plotter:
                 ncpi0_plotted_variable, **plot_options)
             err_ncpi0 = np.array(
                 [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
-            sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"]) 
+            sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"])
 
         err_ccpi0 = np.array([0 for n in mc_uncertainties])
         sys_ccpi0 = np.array([0 for n in mc_uncertainties])
@@ -1089,7 +1077,7 @@ class Plotter:
                 ccpi0_plotted_variable, **plot_options)
             err_ccpi0 = np.array(
                 [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
-            sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"]) 
+            sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"])
 
         err_ccnopi = np.array([0 for n in mc_uncertainties])
         sys_ccnopi = np.array([0 for n in mc_uncertainties])
@@ -1098,7 +1086,7 @@ class Plotter:
                 ccnopi_plotted_variable, **plot_options)
             err_ccnopi = np.array(
                 [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
-            sys_ccnopi += self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"]) 
+            sys_ccnopi += self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"])
 
         err_cccpi = np.array([0 for n in mc_uncertainties])
         sys_cccpi = np.array([0 for n in mc_uncertainties])
@@ -1116,7 +1104,7 @@ class Plotter:
                 nccpi_plotted_variable, **plot_options)
             err_nccpi = np.array(
                 [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
-            sys_nccpi = self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])                             
+            sys_nccpi = self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])
 
         err_ncnopi = np.array([0 for n in mc_uncertainties])
         sys_ncnopi = np.array([0 for n in mc_uncertainties])
@@ -1126,7 +1114,7 @@ class Plotter:
             err_ncnopi = np.array(
                 [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
             sys_ncnopi = self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
-            
+
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
@@ -1135,7 +1123,7 @@ class Plotter:
         exp_err = np.sqrt(exp_err**2 + detsys_err**2)
 
         #print ('total exp_err : ', exp_err)
-        
+
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
 
