@@ -149,13 +149,14 @@ class Plotter:
        pot (int): Number of protons-on-target.
     """
 
-    def __init__(self, samples, weights, pot=4.5e19,):
+    def __init__(self, samples, weights, pot=4.5e19):
         self.weights = weights
         self.samples = samples
         self.pot = pot
         self.significance = 0
         self.significance_likelihood = 0
         self.chisqdatamc = 0
+        self.detsys = None
 
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
@@ -302,6 +303,7 @@ class Plotter:
 
         return vars, mask
 
+<<<<<<< HEAD
     def _select_longest(self,df, variable, mask):
         '''
         df: dataframe for sample
@@ -312,6 +314,12 @@ class Plotter:
             list of values of variable corresponding to longest track in each slices
             boolean mask for longest tracks in df
         '''
+=======
+    def _select_longest(self,df, vars, mask=None):
+        if mask == None:
+            mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask
+        #print("selecting longest...")
+>>>>>>> aa9dcf0e3ecb9f0ace4fc8beedf8ec982e3480b2
         trk_lens = (df['trk_len_v']*mask).apply(lambda x: x[x != False])#apply mask to track lengths
         trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up empty slices
         variable = variable[variable.apply(lambda x: len(x) > 0)] #clean up empty slices
@@ -420,6 +428,12 @@ class Plotter:
                 if "trk" in variable:
                     score = self._selection(
                         "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+<<<<<<< HEAD
+=======
+                    #print("category111111",category)
+                    #print("score",score)
+                    #print("plotted var",plotted_variable)
+>>>>>>> aa9dcf0e3ecb9f0ace4fc8beedf8ec982e3480b2
                     category = np.array([
                         np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
                     ])
@@ -655,6 +669,7 @@ class Plotter:
             axes[1].set_xlabel(variable1_name)
             axes[2].set_xlabel(variable1_name)
 
+<<<<<<< HEAD
         return fig, axes
 
     def plot_2d_oneplot(self, variable1_name, variable2_name, query="selected==1", track_cuts=None, **plot_options):
@@ -687,6 +702,31 @@ class Plotter:
         return fig, axis, image
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=0, track_cuts=None, select_longest=True, **plot_options):
+=======
+    def add_detsys_error(self,sample,mc_entries_v,weight):
+        #print ("sample is ",sample)
+        detsys_v  = np.zeros(len(mc_entries_v))
+        entries_v = np.zeros(len(mc_entries_v))
+        if (self.detsys == None): return detsys_v
+        if sample in self.detsys:
+            if (len(self.detsys[sample]) == len(mc_entries_v)):
+                #print ('len matches!')
+                for i,n in enumerate(mc_entries_v):
+                    detsys_v[i] = (self.detsys[sample][i] * n * weight)#**2
+                    entries_v[i] = n * weight
+            else:
+                print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))
+        #print ('sample : ',sample)
+        #print ('errors  are : ',detsys_v)
+        #print ('entries are : ',entries_v)
+        return detsys_v
+
+
+            
+    def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
+                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=True,
+                      detsys=None,**plot_options):
+>>>>>>> aa9dcf0e3ecb9f0ace4fc8beedf8ec982e3480b2
         """It plots the variable from the TTree, after applying an eventual query
 
         Args:
@@ -707,9 +747,16 @@ class Plotter:
 
         Returns:
             Figure, top subplot, and bottom subplot (ratio)
-
+        
         """
+<<<<<<< HEAD
         # try to correct for expected deviations from proper input
+=======
+
+        #if (detsys != None):
+        self.detsys = detsys
+        
+>>>>>>> aa9dcf0e3ecb9f0ace4fc8beedf8ec982e3480b2
         if not title:
             title = variable
         if not query:
@@ -997,11 +1044,13 @@ class Plotter:
             mc_plotted_variable, **plot_options)
         err_mc = np.array(
             [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
+        sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"]) 
 
         nue_uncertainties, bins = np.histogram(
             nue_plotted_variable, **plot_options)
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
+        sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"]) 
 
         err_dirt = np.array([0 for n in mc_uncertainties])
         if "dirt" in self.samples:
@@ -1009,6 +1058,7 @@ class Plotter:
                 dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
+        sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"]) 
 
         err_lee = np.array([0 for n in mc_uncertainties])
         if "lee" in self.samples:
@@ -1024,52 +1074,68 @@ class Plotter:
                     "sum").values * self.weights["lee"] * self.weights["lee"]
 
         err_ncpi0 = np.array([0 for n in mc_uncertainties])
+        sys_ncpi0 = np.array([0 for n in mc_uncertainties])
         if "ncpi0" in self.samples:
             ncpi0_uncertainties, bins = np.histogram(
                 ncpi0_plotted_variable, **plot_options)
             err_ncpi0 = np.array(
                 [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
+            sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"]) 
 
         err_ccpi0 = np.array([0 for n in mc_uncertainties])
+        sys_ccpi0 = np.array([0 for n in mc_uncertainties])
         if "ccpi0" in self.samples:
             ccpi0_uncertainties, bins = np.histogram(
                 ccpi0_plotted_variable, **plot_options)
             err_ccpi0 = np.array(
                 [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
+            sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"]) 
 
         err_ccnopi = np.array([0 for n in mc_uncertainties])
+        sys_ccnopi = np.array([0 for n in mc_uncertainties])
         if "ccnopi" in self.samples:
             ccnopi_uncertainties, bins = np.histogram(
                 ccnopi_plotted_variable, **plot_options)
             err_ccnopi = np.array(
                 [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
+            sys_ccnopi += self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"]) 
 
         err_cccpi = np.array([0 for n in mc_uncertainties])
+        sys_cccpi = np.array([0 for n in mc_uncertainties])
         if "cccpi" in self.samples:
             cccpi_uncertainties, bins = np.histogram(
                 cccpi_plotted_variable, **plot_options)
             err_cccpi = np.array(
                 [n * self.weights["cccpi"] * self.weights["cccpi"] for n in cccpi_uncertainties])
+            sys_cccpi += self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])
 
         err_nccpi = np.array([0 for n in mc_uncertainties])
+        sys_nccpi = np.array([0 for n in mc_uncertainties])
         if "nccpi" in self.samples:
             nccpi_uncertainties, bins = np.histogram(
                 nccpi_plotted_variable, **plot_options)
             err_nccpi = np.array(
                 [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
+            sys_nccpi = self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])                             
 
         err_ncnopi = np.array([0 for n in mc_uncertainties])
+        sys_ncnopi = np.array([0 for n in mc_uncertainties])
         if "ncnopi" in self.samples:
             ncnopi_uncertainties, bins = np.histogram(
                 ncnopi_plotted_variable, **plot_options)
             err_ncnopi = np.array(
                 [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
-
+            sys_ncnopi = self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
+            
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        exp_err    = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
+        exp_err = np.sqrt(exp_err**2 + detsys_err**2)
 
+        #print ('total exp_err : ', exp_err)
+        
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
 
@@ -1082,7 +1148,7 @@ class Plotter:
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             exp_err = np.sqrt(np.diag(cov) )# + exp_err*exp_err)
 
-        cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+            cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
 
         if "lee" in self.samples:
             if kind == "event_category":
@@ -1151,7 +1217,7 @@ class Plotter:
         self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
 
         self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-        '''
+        #'''
         if sum(n_data) > 0:
             ax2.text(
                 0.88,
@@ -1164,7 +1230,7 @@ class Plotter:
                 ma='right',
                 fontsize=12,
                 transform=ax2.transAxes)
-        '''
+        #'''
 
         ax2.set_xlabel(title,fontsize=18)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
@@ -1603,7 +1669,7 @@ class Plotter:
 
             tree = self.samples[t]
 
-            print ('sample : ',t)
+            #print ('sample : ',t)
 
             extra_query = ""
             if t == "mc":
