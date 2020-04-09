@@ -149,13 +149,14 @@ class Plotter:
        pot (int): Number of protons-on-target.
     """
 
-    def __init__(self, samples, weights, pot=4.5e19,):
+    def __init__(self, samples, weights, pot=4.5e19):
         self.weights = weights
         self.samples = samples
         self.pot = pot
         self.significance = 0
         self.significance_likelihood = 0
         self.chisqdatamc = 0
+        self.detsys = None
 
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
@@ -270,13 +271,25 @@ class Plotter:
         return variable
 
 
-    def _apply_track_cuts(self,df,variable,track_cuts):
+    def _apply_track_cuts(self,df,variable,track_cuts,mask):
+        '''
+        df is dataframe of the sample of interest
+        variable is what values will be in the output
+        track_cuts are list of tuples defining track_cuts
+        input mask to be built upon
+
+        returns
+            Series of values of variable that pass all track_cuts
+            boolean mask that represents union of input mask and new cut mask
+        '''
         #need to do this fancy business with the apply function to make masks
-        mask = df['trk_score_v'].apply(lambda x: x == x) #start with all True mask
+        #this is because unflattened DataFrames are used
         for (var,op,val) in track_cuts:
             if type(op) == list:
                 #this means treat two conditions in an 'or' fashion
-                mask *= df[var].apply(lambda x: eval("x{}{} or x{}{}".format(op[0],val[0],op[1],val[1]))) #layer on each cut mask
+                or_mask1 = df[var].apply(lambda x: eval("x{}{}".format(op[0],val[0])))#or condition 1
+                or_mask2 = df[var].apply(lambda x: eval("x{}{}".format(op[1],val[1])))#or condition 2
+                mask *= (or_mask1 + or_mask2) #just add the booleans for "or"
             else:
                 mask *= df[var].apply(lambda x: eval("x{}{}".format(op,val))) #layer on each cut mask
         vars = (df[variable]*mask).apply(lambda x: x[x != False]) #apply mask
@@ -284,42 +297,79 @@ class Plotter:
         #fix list comprehension issue for non '_v' variables
         if variable[-2:] != "_v":
             vars = vars.apply(lambda x: x[0])
+        elif "_v" not in variable:
+            print("_v not found in variable, assuming event-level")
+            print("not fixing list comprehension bug for this variable")
 
         return vars, mask
 
-    def _select_longest(self,df, vars, mask=None):
-        if mask == None:
-            mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask
-        print("selecting longest...")
+    def _select_longest(self,df, variable, mask):
+        '''
+        df: dataframe for sample
+        variable: Series of values that pass cuts defined by mask
+        mask: mask used to find variable
+
+        returns
+            list of values of variable corresponding to longest track in each slices
+            boolean mask for longest tracks in df
+        '''
+
+    def _select_longest(self,df, variable, mask):
+        '''
+        mask can be all true, i.e.:
+            mask = df[ver].apply(lambda x: x==x)
+        '''
+
+        #print("selecting longest...")
         trk_lens = (df['trk_len_v']*mask).apply(lambda x: x[x != False])#apply mask to track lengths
         trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up empty slices
+        variable = variable[variable.apply(lambda x: len(x) > 0)] #clean up empty slices
         longest_mask = trk_lens.apply(lambda x: x == x[list(x).index(max(x))])#identify longest
-        vars = (vars*longest_mask).apply(lambda x: x[x!=False])#apply mask
-        if len(vars.iloc[0]) == 1:
-            vars = vars.apply(lambda x: x[0])#expect values, not lists, for each event
+        variable = (variable*longest_mask).apply(lambda x: x[x!=False])#apply mask
+        if len(variable.iloc[0]) == 1:
+            variable = variable.apply(lambda x: x[0] if len(x)>0 else -999)#expect values, not lists, for each event
         else:
-            raise ValueError(
-            "There are more than one longest track per slice")
+            if len(variable.iloc[0]) == 0:
+                raise ValueError(
+                    "There is no longest track per slice")
+            elif len(variable.iloc[0]) > 1:
+                raise ValueError(
+                    "There is more than one longest track per slice")
 
-        return vars, longest_mask
+        return variable, longest_mask
 
     def _selection(self, variable, sample, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+        '''
+        variable,  must be specified
+        select_longest, True by default, keeps from multiple tracks of same event making it through
+        query must be a string defining event-level cuts
+        track_cuts is a list of cuts of which each entry looks like
+            (variable_tobe_cut_on, '>'or'<'or'=='etc, cut value )
+            or
+            (variable, [operator1, operator2], [cutval1, cutval2]) to do an 'or' cut
+        track_
+        returns an Series of values that pass all track_cuts
+        '''
         sel_query = query
-
         if extra_cut is not None:
             sel_query += "& %s" % extra_cut
 
-        df = sample.query(sel_query).copy()
+        df = sample.copy().query(sel_query) #don't want to eliminate anything from memory
 
+        track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
         if track_cuts is not None:
-            vars, track_cuts_mask = self._apply_track_cuts(df,variable,track_cuts)
+            vars, track_cuts_mask = self._apply_track_cuts(df,variable,track_cuts,track_cuts_mask)
         else:
             vars = df[variable]
         #vars is now a Series object that passes all the cuts
 
+        #select longest of the cut passing tracks
+        #assuming all track-level variables end in _v
         if variable[-2:] == "_v" and select_longest:
             vars, longest_mask = self._select_longest(df, vars, track_cuts_mask)
-
+        elif "_v_" in variable:
+            print("Variable is being interpretted as event-level, not track_level, despite having _v in name")
+            print("the longest track is NOT being selected")
         return vars.ravel()
 
     def _categorize_entries_pdg(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
@@ -379,9 +429,6 @@ class Plotter:
                 if "trk" in variable:
                     score = self._selection(
                         "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
-                    print("category111111",category)
-                    print("score",score)
-                    print("plotted var",plotted_variable)
                     category = np.array([
                         np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
                     ])
@@ -455,7 +502,7 @@ class Plotter:
                 genie_weights = np.hstack(genie_weights)
         return genie_weights
 
-    def _get_variable(self, variable, query):
+    def _get_variable(self, variable, query, track_cuts=None):
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
         if ("ccpi0" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ccpi0==1)"
@@ -475,19 +522,19 @@ class Plotter:
         #         variable, plot_options["range"][1], variable, plot_options["range"][0])
 
         mc_plotted_variable = self._selection(
-            variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+            variable, self.samples["mc"], query=query, extra_cut=nu_pdg, track_cuts=track_cuts)
         mc_plotted_variable = self._select_showers(
             mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
         mc_weight = [self.weights["mc"]] * len(mc_plotted_variable)
 
         nue_plotted_variable = self._selection(
-            variable, self.samples["nue"], query=query)
+            variable, self.samples["nue"], query=query, track_cuts=track_cuts)
         nue_plotted_variable = self._select_showers(
             nue_plotted_variable, variable, self.samples["nue"], query=query)
         nue_weight = [self.weights["nue"]] * len(nue_plotted_variable)
 
         ext_plotted_variable = self._selection(
-            variable, self.samples["ext"], query=query)
+            variable, self.samples["ext"], query=query, track_cuts=track_cuts)
         ext_plotted_variable = self._select_showers(
             ext_plotted_variable, variable, self.samples["ext"], query=query)
         ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
@@ -496,7 +543,7 @@ class Plotter:
         dirt_plotted_variable = []
         if "dirt" in self.samples:
             dirt_plotted_variable = self._selection(
-                variable, self.samples["dirt"], query=query)
+                variable, self.samples["dirt"], query=query, track_cuts=track_cuts)
             dirt_plotted_variable = self._select_showers(
                 dirt_plotted_variable, variable, self.samples["dirt"], query=query)
             dirt_weight = [self.weights["dirt"]] * len(dirt_plotted_variable)
@@ -505,7 +552,7 @@ class Plotter:
         ncpi0_plotted_variable = []
         if "ncpi0" in self.samples:
             ncpi0_plotted_variable = self._selection(
-                variable, self.samples["ncpi0"], query=query)
+                variable, self.samples["ncpi0"], query=query, track_cuts=track_cuts)
             ncpi0_plotted_variable = self._select_showers(
                 ncpi0_plotted_variable, variable, self.samples["ncpi0"], query=query)
             ncpi0_weight = [self.weights["ncpi0"]] * len(ncpi0_plotted_variable)
@@ -514,7 +561,7 @@ class Plotter:
         ccpi0_plotted_variable = []
         if "ccpi0" in self.samples:
             ccpi0_plotted_variable = self._selection(
-                variable, self.samples["ccpi0"], query=query)
+                variable, self.samples["ccpi0"], query=query, track_cuts=track_cuts)
             ccpi0_plotted_variable = self._select_showers(
                 ccpi0_plotted_variable, variable, self.samples["ccpi0"], query=query)
             ccpi0_weight = [self.weights["ccpi0"]] * len(ccpi0_plotted_variable)
@@ -523,7 +570,7 @@ class Plotter:
         ccnopi_plotted_variable = []
         if "ccnopi" in self.samples:
             ccnopi_plotted_variable = self._selection(
-                variable, self.samples["ccnopi"], query=query)
+                variable, self.samples["ccnopi"], query=query, track_cuts=track_cuts)
             ccnopi_plotted_variable = self._select_showers(
                 ccnopi_plotted_variable, variable, self.samples["ccnopi"], query=query)
             ccnopi_weight = [self.weights["ccnopi"]] * len(ccnopi_plotted_variable)
@@ -532,7 +579,7 @@ class Plotter:
         cccpi_plotted_variable = []
         if "cccpi" in self.samples:
             cccpi_plotted_variable = self._selection(
-                variable, self.samples["cccpi"], query=query)
+                variable, self.samples["cccpi"], query=query, track_cuts=track_cuts)
             cccpi_plotted_variable = self._select_showers(
                 cccpi_plotted_variable, variable, self.samples["cccpi"], query=query)
             cccpi_weight = [self.weights["cccpi"]] * len(cccpi_plotted_variable)
@@ -541,7 +588,7 @@ class Plotter:
         nccpi_plotted_variable = []
         if "nccpi" in self.samples:
             nccpi_plotted_variable = self._selection(
-                variable, self.samples["nccpi"], query=query)
+                variable, self.samples["nccpi"], query=query, track_cuts=track_cuts)
             nccpi_plotted_variable = self._select_showers(
                 nccpi_plotted_variable, variable, self.samples["nccpi"], query=query)
             nccpi_weight = [self.weights["nccpi"]] * len(nccpi_plotted_variable)
@@ -550,7 +597,7 @@ class Plotter:
         ncnopi_plotted_variable = []
         if "ncnopi" in self.samples:
             ncnopi_plotted_variable = self._selection(
-                variable, self.samples["ncnopi"], query=query)
+                variable, self.samples["ncnopi"], query=query, track_cuts=track_cuts)
             ncnopi_plotted_variable = self._select_showers(
                 ncnopi_plotted_variable, variable, self.samples["ncnopi"], query=query)
             ncnopi_weight = [self.weights["ncnopi"]] * len(ncnopi_plotted_variable)
@@ -559,7 +606,7 @@ class Plotter:
         lee_plotted_variable = []
         if "lee" in self.samples:
             lee_plotted_variable = self._selection(
-                variable, self.samples["lee"], query=query)
+                variable, self.samples["lee"], query=query, track_cuts=track_cuts)
             lee_plotted_variable = self._select_showers(
                 lee_plotted_variable, variable, self.samples["lee"], query=query)
             lee_weight = self.samples["lee"].query(
@@ -570,9 +617,9 @@ class Plotter:
         return total_variable, total_weight
 
 
-    def plot_2d(self, variable1_name, variable2_name, query="selected==1", **plot_options):
-        variable1, weight1 = self._get_variable(variable1_name, query)
-        variable2, weight2 = self._get_variable(variable2_name, query)
+    def plot_2d(self, variable1_name, variable2_name, query="selected==1", track_cuts=None, **plot_options):
+        variable1, weight1 = self._get_variable(variable1_name, query, track_cuts=track_cuts)
+        variable2, weight2 = self._get_variable(variable2_name, query, track_cuts=track_cuts)
 
         heatmap, xedges, yedges = np.histogram2d(variable1, variable2,
                                                  range=[[plot_options["range_x"][0], plot_options["range_x"][1]], [plot_options["range_y"][0], plot_options["range_y"][1]]],
@@ -580,15 +627,15 @@ class Plotter:
                                                  weights=weight1)
 
         extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
-        fig, axes  = plt.subplots(1,3, figsize=(12,3))
+        fig, axes  = plt.subplots(1,3, figsize=(15,5))
 
         axes[0].imshow(heatmap.T, extent=extent, origin='lower', aspect="auto")
 
-        data_variable1 = self._selection(variable1_name, self.samples["data"], query=query)
+        data_variable1 = self._selection(variable1_name, self.samples["data"], query=query, track_cuts=track_cuts)
         data_variable1 = self._select_showers(data_variable1, variable1_name, self.samples["data"], query=query)
 
         data_variable2 = self._selection(
-            variable2_name, self.samples["data"], query=query)
+            variable2_name, self.samples["data"], query=query, track_cuts=track_cuts)
         data_variable2 = self._select_showers(
             data_variable2, variable2_name, self.samples["data"], query=query)
 
@@ -617,7 +664,62 @@ class Plotter:
             axes[1].set_xlabel(variable1_name)
             axes[2].set_xlabel(variable1_name)
 
-    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_sys=False, stacksort=0, track_cuts=None, select_longest=True, **plot_options):
+        return fig, axes
+
+    def plot_2d_oneplot(self, variable1_name, variable2_name, query="selected==1", track_cuts=None, **plot_options):
+        variable1, weight1 = self._get_variable(variable1_name, query, track_cuts=track_cuts)
+        variable2, weight2 = self._get_variable(variable2_name, query, track_cuts=track_cuts)
+
+        heatmap, xedges, yedges = np.histogram2d(variable1, variable2,
+                                                 range=[[plot_options["range_x"][0], plot_options["range_x"][1]], [plot_options["range_y"][0], plot_options["range_y"][1]]],
+                                                 bins=[plot_options["bins_x"], plot_options["bins_y"]],
+                                                 weights=weight1)
+
+        extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+
+        #if figure is passed, use that to build plot
+        if "figure" in plot_options:
+            fig = plot_options["figure"]
+        else:
+            fig = plt.figure(figsize=(6,6))
+        if "axis" in plot_options:
+            axis = plot_options["axis"]
+        else:
+            axis = plt.gca()
+
+        if 'range_z' in plot_options:
+            image = axis.imshow(heatmap.T, extent=extent, origin='lower', aspect="auto",
+                vmin=plot_options['range_z'][0], vmax=plot_options['range_z'][1])
+        else:
+            image = axis.imshow(heatmap.T, extent=extent, origin='lower', aspect="auto")
+
+        return fig, axis, image
+
+
+    def add_detsys_error(self,sample,mc_entries_v,weight):
+        #print ("sample is ",sample)
+        detsys_v  = np.zeros(len(mc_entries_v))
+        entries_v = np.zeros(len(mc_entries_v))
+        if (self.detsys == None): return detsys_v
+        if sample in self.detsys:
+            if (len(self.detsys[sample]) == len(mc_entries_v)):
+                #print ('len matches!')
+                for i,n in enumerate(mc_entries_v):
+                    detsys_v[i] = (self.detsys[sample][i] * n * weight)#**2
+                    entries_v[i] = n * weight
+            else:
+                print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))
+        #print ('sample : ',sample)
+        #print ('errors  are : ',detsys_v)
+        #print ('entries are : ',entries_v)
+        return detsys_v
+
+
+
+    def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
+                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=True,
+                      detsys=None,ratio=True,chisq=False,
+                      **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
         Args:
@@ -640,13 +742,21 @@ class Plotter:
             Figure, top subplot, and bottom subplot (ratio)
 
         """
+
+        #if (detsys != None):
+        self.detsys = detsys
+
         if not title:
             title = variable
+        if not query:
+            query = "nslice==1"
+
         # pandas bug https://github.com/pandas-dev/pandas/issues/16363
         if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
 
+        #eventually used to subdivide monte-carlo sample
         if kind == "event_category":
             categorization = self._categorize_entries
             cat_labels = category_labels
@@ -798,13 +908,18 @@ class Plotter:
                                                      self.samples["data"], query=query)
 
 
-        #fig = plt.figure(figsize=(7, 5))
-        #gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
-        fig = plt.figure(figsize=(8, 7))
-        gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
 
-        ax1 = plt.subplot(gs[0])
-        ax2 = plt.subplot(gs[1])
+        if (ratio==True):
+            fig = plt.figure(figsize=(8, 7))
+            gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
+            ax1 = plt.subplot(gs[0])
+            ax2 = plt.subplot(gs[1])
+        else:
+            fig = plt.figure(figsize=(7, 5))
+            gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
+            ax1 = plt.subplot(gs[0])
+
+
 
         # order stacked distributions
         order_dict = {}
@@ -923,11 +1038,13 @@ class Plotter:
             mc_plotted_variable, **plot_options)
         err_mc = np.array(
             [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
+        sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"])
 
         nue_uncertainties, bins = np.histogram(
             nue_plotted_variable, **plot_options)
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
+        sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"])
 
         err_dirt = np.array([0 for n in mc_uncertainties])
         if "dirt" in self.samples:
@@ -935,6 +1052,7 @@ class Plotter:
                 dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
+        sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"])
 
         err_lee = np.array([0 for n in mc_uncertainties])
         if "lee" in self.samples:
@@ -950,51 +1068,69 @@ class Plotter:
                     "sum").values * self.weights["lee"] * self.weights["lee"]
 
         err_ncpi0 = np.array([0 for n in mc_uncertainties])
+        sys_ncpi0 = np.array([0 for n in mc_uncertainties])
         if "ncpi0" in self.samples:
             ncpi0_uncertainties, bins = np.histogram(
                 ncpi0_plotted_variable, **plot_options)
             err_ncpi0 = np.array(
                 [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
+            sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"])
 
         err_ccpi0 = np.array([0 for n in mc_uncertainties])
+        sys_ccpi0 = np.array([0 for n in mc_uncertainties])
         if "ccpi0" in self.samples:
             ccpi0_uncertainties, bins = np.histogram(
                 ccpi0_plotted_variable, **plot_options)
             err_ccpi0 = np.array(
                 [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
+            sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"])
 
         err_ccnopi = np.array([0 for n in mc_uncertainties])
+        sys_ccnopi = np.array([0 for n in mc_uncertainties])
         if "ccnopi" in self.samples:
             ccnopi_uncertainties, bins = np.histogram(
                 ccnopi_plotted_variable, **plot_options)
             err_ccnopi = np.array(
                 [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
+            sys_ccnopi = self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"])
 
         err_cccpi = np.array([0 for n in mc_uncertainties])
+        sys_cccpi = np.array([0 for n in mc_uncertainties])
         if "cccpi" in self.samples:
             cccpi_uncertainties, bins = np.histogram(
                 cccpi_plotted_variable, **plot_options)
             err_cccpi = np.array(
                 [n * self.weights["cccpi"] * self.weights["cccpi"] for n in cccpi_uncertainties])
+            sys_cccpi = self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])
 
         err_nccpi = np.array([0 for n in mc_uncertainties])
+        sys_nccpi = np.array([0 for n in mc_uncertainties])
         if "nccpi" in self.samples:
             nccpi_uncertainties, bins = np.histogram(
                 nccpi_plotted_variable, **plot_options)
             err_nccpi = np.array(
                 [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
+            sys_nccpi = self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])
 
         err_ncnopi = np.array([0 for n in mc_uncertainties])
+        sys_ncnopi = np.array([0 for n in mc_uncertainties])
         if "ncnopi" in self.samples:
             ncnopi_uncertainties, bins = np.histogram(
                 ncnopi_plotted_variable, **plot_options)
             err_ncnopi = np.array(
                 [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
+            sys_ncnopi = self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
 
         err_ext = np.array(
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
-        exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        exp_err    = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        #print("counting_err: {}".format(exp_err))
+        detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
+        #print("detsys_err: {}".format(detsys_err))
+        exp_err = np.sqrt(exp_err**2 + detsys_err**2)
+
+        #print ('total exp_err : ', exp_err)
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
@@ -1008,7 +1144,7 @@ class Plotter:
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             exp_err = np.sqrt(np.diag(cov) )# + exp_err*exp_err)
 
-        cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+            cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
 
         if "lee" in self.samples:
             if kind == "event_category":
@@ -1059,8 +1195,11 @@ class Plotter:
             ax1.set_ylabel("N. Entries",fontsize=16)
         else:
             ax1.set_ylabel(
-                "N. Entries / %g %s" % (x_range / plot_options["bins"], unit),fontsize=16)
-        ax1.set_xticks([])
+                "N. Entries / %.2g %s" % (round(x_range / plot_options["bins"],2), unit),fontsize=16)
+
+        if (ratio==True):
+            ax1.set_xticks([])
+            
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
         '''
@@ -1076,31 +1215,37 @@ class Plotter:
 
         self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
 
-        self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-        '''
-        if sum(n_data) > 0:
-            ax2.text(
-                0.88,
-                0.845,
-                r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc, #+
-                #         '\n' +
-                #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-                va='center',
-                ha='center',
-                ma='right',
-                fontsize=12,
-                transform=ax2.transAxes)
-        '''
+        if (ratio==True):
+            self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
 
-        ax2.set_xlabel(title,fontsize=18)
-        ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
+        if ( (chisq==True) and (ratio==True)):
+            if sum(n_data) > 0:
+                ax2.text(
+                    0.88,
+                    0.845,
+                    r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc, #+
+                    #         '\n' +
+                    #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                    va='center',
+                    ha='center',
+                    ma='right',
+                    fontsize=12,
+                    transform=ax2.transAxes)
+
+        if (ratio==True):
+            ax2.set_xlabel(title,fontsize=18)
+            ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
+        else:
+            ax1.set_xlabel(title,fontsize=18)
+            
         fig.tight_layout()
         if title == variable:
             ax1.set_title(query)
         #     fig.suptitle(query)
         # fig.savefig("plots/%s_cat.pdf" % variable.replace("/", "_"))
-        return fig, ax1, ax2, stacked, labels, n_ext
-        #return fig, ax1, stacked, labels, n_ext
+        if (ratio==True):
+            return fig, ax1, ax2, stacked, labels, n_ext
+        return fig, ax1, stacked, labels, n_ext
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
 
@@ -1529,7 +1674,7 @@ class Plotter:
 
             tree = self.samples[t]
 
-            print ('sample : ',t)
+            #print ('sample : ',t)
 
             extra_query = ""
             if t == "mc":
