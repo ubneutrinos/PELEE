@@ -718,7 +718,7 @@ class Plotter:
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=True,
-                      detsys=None,
+                      detsys=None,ratio=True,chisq=False,
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
@@ -908,13 +908,18 @@ class Plotter:
                                                      self.samples["data"], query=query)
 
 
-        #fig = plt.figure(figsize=(7, 5))
-        #gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
-        fig = plt.figure(figsize=(8, 7))
-        gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
 
-        ax1 = plt.subplot(gs[0])
-        ax2 = plt.subplot(gs[1])
+        if (ratio==True):
+            fig = plt.figure(figsize=(8, 7))
+            gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
+            ax1 = plt.subplot(gs[0])
+            ax2 = plt.subplot(gs[1])
+        else:
+            fig = plt.figure(figsize=(7, 5))
+            gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
+            ax1 = plt.subplot(gs[0])
+
+
 
         # order stacked distributions
         order_dict = {}
@@ -1087,7 +1092,7 @@ class Plotter:
                 ccnopi_plotted_variable, **plot_options)
             err_ccnopi = np.array(
                 [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
-            sys_ccnopi += self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"])
+            sys_ccnopi = self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"])
 
         err_cccpi = np.array([0 for n in mc_uncertainties])
         sys_cccpi = np.array([0 for n in mc_uncertainties])
@@ -1096,7 +1101,7 @@ class Plotter:
                 cccpi_plotted_variable, **plot_options)
             err_cccpi = np.array(
                 [n * self.weights["cccpi"] * self.weights["cccpi"] for n in cccpi_uncertainties])
-            sys_cccpi += self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])
+            sys_cccpi = self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])
 
         err_nccpi = np.array([0 for n in mc_uncertainties])
         sys_nccpi = np.array([0 for n in mc_uncertainties])
@@ -1120,9 +1125,9 @@ class Plotter:
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
         exp_err    = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
-        print("counting_err: {}".format(exp_err))
+        #print("counting_err: {}".format(exp_err))
         detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
-        print("detsys_err: {}".format(detsys_err))
+        #print("detsys_err: {}".format(detsys_err))
         exp_err = np.sqrt(exp_err**2 + detsys_err**2)
 
         #print ('total exp_err : ', exp_err)
@@ -1190,8 +1195,11 @@ class Plotter:
             ax1.set_ylabel("N. Entries",fontsize=16)
         else:
             ax1.set_ylabel(
-                "N. Entries / %g %s" % (round(x_range / plot_options["bins"],2), unit),fontsize=16)
-        ax1.set_xticks([])
+                "N. Entries / %.2g %s" % (round(x_range / plot_options["bins"],2), unit),fontsize=16)
+
+        if (ratio==True):
+            ax1.set_xticks([])
+            
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
         '''
@@ -1207,31 +1215,35 @@ class Plotter:
 
         self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
 
-        self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-        #'''
-        if sum(n_data) > 0:
-            ax2.text(
-                0.88,
-                0.845,
-                r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc, #+
-                #         '\n' +
-                #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-                va='center',
-                ha='center',
-                ma='right',
-                fontsize=12,
-                transform=ax2.transAxes)
-        #'''
+        if (ratio==True):
+            self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
 
-        ax2.set_xlabel(title,fontsize=18)
-        ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
+        if ( (chisq==True) and (ratio==True)):
+            if sum(n_data) > 0:
+                ax2.text(
+                    0.88,
+                    0.845,
+                    r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc, #+
+                    #         '\n' +
+                    #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                    va='center',
+                    ha='center',
+                    ma='right',
+                    fontsize=12,
+                    transform=ax2.transAxes)
+
+        if (ratio==True):
+            ax2.set_xlabel(title,fontsize=18)
+            ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
+            
         fig.tight_layout()
         if title == variable:
             ax1.set_title(query)
         #     fig.suptitle(query)
         # fig.savefig("plots/%s_cat.pdf" % variable.replace("/", "_"))
-        return fig, ax1, ax2, stacked, labels, n_ext
-        #return fig, ax1, stacked, labels, n_ext
+        if (ratio==True):
+            return fig, ax1, ax2, stacked, labels, n_ext
+        return fig, ax1, stacked, labels, n_ext
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
 
