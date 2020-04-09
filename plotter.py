@@ -1235,6 +1235,8 @@ class Plotter:
         if (ratio==True):
             ax2.set_xlabel(title,fontsize=18)
             ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
+        else:
+            ax1.set_xlabel(title,fontsize=18)
             
         fig.tight_layout()
         if title == variable:
