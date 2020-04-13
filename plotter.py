@@ -314,16 +314,13 @@ class Plotter:
             boolean mask for longest tracks in df
         '''
 
-    def _select_longest(self,df, variable, mask):
-        '''
-        mask can be all true, i.e.:
-            mask = df[ver].apply(lambda x: x==x)
-        '''
-
         #print("selecting longest...")
+        #print("mask", mask)
         trk_lens = (df['trk_len_v']*mask).apply(lambda x: x[x != False])#apply mask to track lengths
-        trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up empty slices
+        trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up slices
+        variable = variable.apply(lambda x: x[~np.isnan(x)])#clean up nan vals
         variable = variable[variable.apply(lambda x: len(x) > 0)] #clean up empty slices
+        nan_mask = variable.apply(lambda x: np.nan in x or "nan" in x)
         longest_mask = trk_lens.apply(lambda x: x == x[list(x).index(max(x))])#identify longest
         variable = (variable*longest_mask).apply(lambda x: x[x!=False])#apply mask
         if len(variable.iloc[0]) == 1:
@@ -333,8 +330,14 @@ class Plotter:
                 raise ValueError(
                     "There is no longest track per slice")
             elif len(variable.iloc[0]) > 1:
-                raise ValueError(
-                    "There is more than one longest track per slice")
+                #this happens with the reco_nu_e_range_v with unreconstructed values
+                print("there are more than one longest slice")
+                print(variable.iloc[0])
+                try:
+                    variable = variable.apply(lambda x: x[0])
+                except:
+                    raise ValueError(
+                        "There is more than one longest track per slice in \n var {} lens {}".format(variable,trk_lens))
 
         return variable, longest_mask
 
@@ -354,7 +357,7 @@ class Plotter:
         if extra_cut is not None:
             sel_query += "& %s" % extra_cut
 
-        df = sample.copy().query(sel_query) #don't want to eliminate anything from memory
+        df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
         track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
         if track_cuts is not None:
