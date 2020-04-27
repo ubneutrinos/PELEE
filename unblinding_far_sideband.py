@@ -99,6 +99,9 @@ stages_titles_two_plus_showers = {
     5 : 'Stage 5\n1.05 GeV < Reco energy < 2.05 GeV and high PID',
 }
 
+
+bdt_scan = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7]
+
 plot_variables = {
     'insensitive_variables': [
         ('n_showers_contained',10,(-0.5, 9.5),"n showers contained"),
@@ -111,10 +114,10 @@ plot_variables = {
     ],
     'input_bdt': [
         ('tksh_angle',20,(-1,1),"cos(tksh angle)"),
-        ('trkfit',9,(0,0.5),"Fraction of Track-fitted points"),
+        ('trkfit',9,(0,1.0),"Fraction of Track-fitted points"),
         ('shrmoliereavg',20,(0,50),"average Moliere angle [degrees]"),
 #         ('shr_score',20,(0,0.5),"shr score"),
-#         ('hits_ratio',20,(0,1),"shower hits/all hits"),
+         ('hits_ratio',20,(0,1),"shower hits/all hits"),
 #         ('trkshrhitdist2',20,(0,10),"2D trk-shr distance (Y)"),
 #         ('subcluster',20,(0,20),"N sub-clusters in shower"),
 #         ('secondshower_Y_nhit',20,(0,200),"Nhit 2nd shower (Y)"),
