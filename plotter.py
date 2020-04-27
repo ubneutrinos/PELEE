@@ -245,7 +245,7 @@ class Plotter:
     @staticmethod
     def _chisquare(data, mc, err_data, err_mc):
         num = (data - mc)**2
-        den = err_mc**2
+        den = data+err_mc**2
         if np.count_nonzero(data):
             return sum(num / den) / np.count_nonzero(data)
         return np.inf
@@ -1091,6 +1091,7 @@ class Plotter:
                 fontsize=12,
                 transform=ax2.transAxes)
         '''
+        print(r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc)
 
         ax2.set_xlabel(title,fontsize=18)
         ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
@@ -1529,7 +1530,7 @@ class Plotter:
 
             tree = self.samples[t]
 
-            print ('sample : ',t)
+            #print ('sample : ',t)
 
             extra_query = ""
             if t == "mc":
