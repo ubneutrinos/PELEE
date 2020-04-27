@@ -340,7 +340,7 @@ void slimmerBDT(float xsecshift) {
   TString f5 = "prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
   TString f6 = "prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
   TString f7 = "prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2_nuepresel";
-  TString f8 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_all_reco2_nuepresel";
+  TString f8 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_C1_C2_D1_D2_E1_E2_all_reco2_nuepresel";
   TString f9 = "prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2_nuepresel";
   TString f10 = "data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19_nuepresel";
   TString f11 = "prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2_nuepresel";
@@ -356,10 +356,10 @@ void slimmerBDT(float xsecshift) {
   f6 = "prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_new_run3_reco2_reco2_nuepresel";
   f7 = "prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_New_run3_reco2_reco2_nuepresel";
   f8 = "prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2_nuepresel";
-  f9 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_all_reco2_nuepresel";
+  //f9 = "data_extbnb_mcc9.1_v08_00_00_25_reco2_all_reco2_nuepresel";
   f10 = "data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19_nuepresel";
   f11 = "prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2_nuepresel";
-  string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11};
+  string_v = {f1,f2,f3,f4,f5,f6,f7,f8,f10,f11};
   for (size_t i=0; i < string_v.size(); i++)
     slimmer(run3,string_v[i],xsecshift);
 
