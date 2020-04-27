@@ -314,16 +314,13 @@ class Plotter:
             boolean mask for longest tracks in df
         '''
 
-    def _select_longest(self,df, variable, mask):
-        '''
-        mask can be all true, i.e.:
-            mask = df[ver].apply(lambda x: x==x)
-        '''
-
         #print("selecting longest...")
+        #print("mask", mask)
         trk_lens = (df['trk_len_v']*mask).apply(lambda x: x[x != False])#apply mask to track lengths
-        trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up empty slices
+        trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up slices
+        variable = variable.apply(lambda x: x[~np.isnan(x)])#clean up nan vals
         variable = variable[variable.apply(lambda x: len(x) > 0)] #clean up empty slices
+        nan_mask = variable.apply(lambda x: np.nan in x or "nan" in x)
         longest_mask = trk_lens.apply(lambda x: x == x[list(x).index(max(x))])#identify longest
         variable = (variable*longest_mask).apply(lambda x: x[x!=False])#apply mask
         if len(variable.iloc[0]) == 1:
@@ -333,8 +330,14 @@ class Plotter:
                 raise ValueError(
                     "There is no longest track per slice")
             elif len(variable.iloc[0]) > 1:
-                raise ValueError(
-                    "There is more than one longest track per slice")
+                #this happens with the reco_nu_e_range_v with unreconstructed values
+                print("there are more than one longest slice")
+                print(variable.iloc[0])
+                try:
+                    variable = variable.apply(lambda x: x[0])
+                except:
+                    raise ValueError(
+                        "There is more than one longest track per slice in \n var {} lens {}".format(variable,trk_lens))
 
         return variable, longest_mask
 
@@ -354,7 +357,7 @@ class Plotter:
         if extra_cut is not None:
             sel_query += "& %s" % extra_cut
 
-        df = sample.copy().query(sel_query) #don't want to eliminate anything from memory
+        df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
         track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
         if track_cuts is not None:
@@ -482,12 +485,15 @@ class Plotter:
             return bin_width/(bins[idx]-bins[idx-1])
         return 0
 
-    def _get_genie_weight(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+    def _get_genie_weight(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True, weightvar="weightSplineTimesTune",weightsignal=None):
 
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         genie_weights = self._selection(
-            "weightSplineTimesTune", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+            weightvar, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        if (weightsignal != None):
+            genie_weights *= self._selection(
+            weightsignal, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
@@ -717,7 +723,7 @@ class Plotter:
 
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
-                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=True,
+                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
                       detsys=None,ratio=True,chisq=False,
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
@@ -885,7 +891,13 @@ class Plotter:
         if "lee" in self.samples:
             category, lee_plotted_variable = categorization(
                 self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
-            leeweight = self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)
+            #print ('weight 1 : ',len(self.samples["lee"].query(query)["leeweight"]))
+            #print ('weight 2 : ',len(self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)))
+            #print ('track cuts : ',track_cuts)
+            #print ('select_longest : ',select_longest)
+            leeweight = self._get_genie_weight(
+                self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest,weightsignal="leeweight")
+            #self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, lee_plotted_variable, leeweight):
                 var_dict[c].append(v)
