@@ -1137,12 +1137,12 @@ class Plotter:
             [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
 
         exp_err    = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
-        print("counting_err: {}".format(exp_err))
+#         print("counting_err: {}".format(exp_err))
         detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
-        print("detsys_err: {}".format(detsys_err))
+#         print("detsys_err: {}".format(detsys_err))
         exp_err = np.sqrt(exp_err**2 + detsys_err**2)
 
-        print ('total exp_err : ', exp_err)
+#         print ('total exp_err : ', exp_err)
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
