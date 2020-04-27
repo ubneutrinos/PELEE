@@ -9,7 +9,5 @@ Background rejection.ipynb
 Sandbox.ipynb
 __pycache__/
 pickles
-detsys
 localSettings.py
-*backup*
-*Copy*
+.vscode/
