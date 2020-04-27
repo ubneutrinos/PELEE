@@ -364,6 +364,9 @@ class Plotter:
         if extra_cut is not None:
             sel_query += "& %s" % extra_cut
 
+        if ( (track_cuts == None) or (select_longest == False) ):
+            return sample.query(sel_query).eval(variable).ravel()
+
         df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
         track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
@@ -492,12 +495,15 @@ class Plotter:
             return bin_width/(bins[idx]-bins[idx-1])
         return 0
 
-    def _get_genie_weight(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+    def _get_genie_weight(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True, weightvar="weightSplineTimesTune",weightsignal=None):
 
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         genie_weights = self._selection(
-            "weightSplineTimesTune", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+            weightvar, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        if (weightsignal != None):
+            genie_weights *= self._selection(
+            weightsignal, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
@@ -727,7 +733,7 @@ class Plotter:
 
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
-                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=True,
+                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
                       detsys=None,ratio=True,chisq=False,
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
@@ -895,7 +901,13 @@ class Plotter:
         if "lee" in self.samples:
             category, lee_plotted_variable = categorization(
                 self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
-            leeweight = self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)
+            #print ('weight 1 : ',len(self.samples["lee"].query(query)["leeweight"]))
+            #print ('weight 2 : ',len(self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)))
+            #print ('track cuts : ',track_cuts)
+            #print ('select_longest : ',select_longest)
+            leeweight = self._get_genie_weight(
+                self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest,weightsignal="leeweight")
+            #self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, lee_plotted_variable, leeweight):
                 var_dict[c].append(v)
