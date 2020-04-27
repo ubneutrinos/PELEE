@@ -45,6 +45,10 @@ category_labels = {
     111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
     21: r"$\nu_{\mu}$ CC $\pi^{0}$",
+    22: r"$\nu_{\mu}$ CC 0p$^+$",
+    23: r"$\nu_{\mu}$ CC 1p$^+$",
+    24: r"$\nu_{\mu}$ CC 2p$^+$",
+    25: r"$\nu_{\mu}$ CC Np$^+$",
     3: r"$\nu$ NC",
     31: r"$\nu$ NC $\pi^{0}$",
     4: r"Cosmic",
@@ -105,12 +109,15 @@ int_colors = {
     111: "black"
 }
 
-
 category_colors = {
     4: "xkcd:light red",
     5: "xkcd:brick",
     2: "xkcd:cyan",
     21: "xkcd:cerulean",
+    22: "yellow",
+    23: "gold",
+    24: "goldenrod",
+    25: "darkgoldenrod",
     3: "xkcd:cobalt",
     31: "xkcd:sky blue",
     1: "xkcd:green",
@@ -928,20 +935,21 @@ class Plotter:
         order_dict = {}
         order_var_dict    = {}
         order_weight_dict = {}
-        if (stacksort >= 1):
+        if (stacksort >= 1 and stacksort <= 3):
             # figure out ordering based on total yield.
             # Options are to have no exceptions (stacksort=1),
             # put eLEE on top (stacksort=2), or put nue+eLEE on top (stacksort=3)
+            # put numu on top (stacksort >= 4)
             has1 = False
             has10 = False
             has11 = False
             has111 = False
             for c in var_dict.keys():
-                if stacksort>=2:
+                if stacksort >= 2:
                     if int(c)==111:
                         has111 = True
                         continue
-                if stacksort>=3:
+                if stacksort == 3:
                     if int(c)==1:
                         has1 = True
                         continue
@@ -966,11 +974,27 @@ class Plotter:
                 order_var_dict[c] = var_dict[c]
             for c in order_dict.keys():
                 order_weight_dict[c] = weight_dict[c]
+        elif stacksort == 4:
+            #put the numu stuff on top
+            hasprotons = 23 in var_dict.keys()
+            keys = list(var_dict.keys())
+            if hasprotons:
+                keys.remove(23)#take them out
+                keys.remove(24)
+                keys.remove(25) 
+                keys.append(23)#and put at end
+                keys.append(24)
+                keys.append(25) 
+                
+            for c in keys:
+                order_var_dict[c] = var_dict[c]
+                order_weight_dict[c] = weight_dict[c]
         else:
             for c in var_dict.keys():
                 order_var_dict[c] = var_dict[c]
             for c in weight_dict.keys():
                 order_weight_dict[c] = weight_dict[c]
+
 
         total = sum(sum(order_weight_dict[c]) for c in order_var_dict)
         total += sum([self.weights["ext"]] * len(ext_plotted_variable))
