@@ -145,5 +145,17 @@ plot_variables = {
 #         ('pi0_score',5,(0.5,1.0),"BDT $\pi^0$ score"),
         ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
         ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
-    ]
+    ],
+    'pi0_variables': [
+        ('pi0_gammadot',20,(-1,1),"$\pi^0$ $\gamma_{\\theta\\theta}$"),
+        ('pi0energy',20,(135,735),"$\pi^0$ Energy [MeV]"),
+        ('asymm',20,(0,1),"$\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
+        ('pi0thetacm',20,(0,1),"$\cos\\theta_{\gamma}^{CM} = \\frac{1}{\\beta_{\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
+        ('pi0_mass_Y',20,(10,510),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
+        ('reco_e',19,(0.15,2.15),"reconstructed energy [GeV]"),
+        ('shr_energy_tot_cali',20,(0.05,1.50),"reconstructed shower energy [GeV]"),
+        ('trk_energy_tot',20,(0.05,1.50),"reconstructed track energy [GeV]"),
+        ('n_tracks_contained',5,(0,5),"number of contained tracks"),
+        ('n_showers_contained',5,(2,7),"number of contained showers"),
+        ]
 }
