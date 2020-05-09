@@ -34,7 +34,6 @@ NPLCUTQ += ' and trkfit < 0.65'
 # NPLCUTQ += ' and n_showers_contained == 1'
 NPLCUTQ += ' and tksh_distance < 6.0'
 NPLCUTQ += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5)'
-NPLCUTQ += ' and secondshower_Y_nhit < 50'
 NPLCUTQ += ' and tksh_angle > -0.9'
 
 # tight box cuts
@@ -52,7 +51,6 @@ NPTCUTQ += ' and tksh_distance < 4.0'
 NPTCUTQ += ' and trkshrhitdist2 < 1.5'
 NPTCUTQ += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 1.0 and shr_tkfit_dedx_max < 3.8)'
 NPTCUTQ += ' and (secondshower_Y_nhit<=8 or secondshower_Y_dot<=0.8 or anglediff_Y<=40 or secondshower_Y_vtxdist>=100)'
-NPTCUTQ += ' and secondshower_Y_nhit < 30'
 NPTCUTQ += ' and tksh_angle > -0.9 and tksh_angle < 0.70'
 
 # BDT cuts
@@ -65,6 +63,7 @@ LOW_PID = '(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_sco
 MEDIUM_PID = '(0.1 < pi0_score < 1.0) and (0.1 < nonpi0_score < 1.0) and ~((pi0_score > 0.67) and (nonpi0_score > 0.7))'
 LOW_ENERGY = '(0.05 < reco_e < 0.75)'
 MEDIUM_ENERGY = '(0.75 < reco_e < 1.05)'
+LOW_MEDIUM_ENERGY = '(0.05 < reco_e < 1.05)'
 HIGH_ENERGY = '(1.05 < reco_e < 2.05)'
 
 stages_queries = {
@@ -75,14 +74,6 @@ stages_queries = {
     5 : ' and '.join([HIGH_ENERGY, NPPRESEQ_one_shower, BDTCQ]),
 }
 
-stages_queries_two_plus_showers = {
-    1 : ' and '.join([HIGH_ENERGY, NPPRESQ_twoplus_showers]),
-    2 : ' and '.join([LOW_PID, NPPRESQ_twoplus_showers]),
-    3 : ' and '.join([HIGH_ENERGY, NPPRESQ_twoplus_showers, NPVLCUTQ]),
-    4 : ' and '.join([HIGH_ENERGY, NPPRESQ_twoplus_showers, NPLCUTQ]),
-    5 : ' and '.join([HIGH_ENERGY, NPPRESQ_twoplus_showers, BDTCQ]),
-}
-
 stages_titles = {
     1 : 'Stage 1\n1.05 GeV < Reco energy < 2.05 GeV and Np preselection cuts\nN showers contained == 1',
     2 : 'Stage 2\nLow PID and Np preselection cuts\nN showers contained == 1',
@@ -91,7 +82,17 @@ stages_titles = {
     5 : 'Stage 5\n1.05 GeV < Reco energy < 2.05 GeV and high PID',
 }
 
+stages_queries_two_plus_showers = {
+    0 : PRESQ_twoplus_showers,
+    1 : ' and '.join([HIGH_ENERGY, NPPRESQ_twoplus_showers]),
+    2 : ' and '.join([LOW_PID, NPPRESQ_twoplus_showers]),
+    3 : ' and '.join([HIGH_ENERGY, NPPRESQ_twoplus_showers, NPVLCUTQ]),
+    4 : ' and '.join([HIGH_ENERGY, NPPRESQ_twoplus_showers, NPLCUTQ]),
+    5 : ' and '.join([HIGH_ENERGY, NPPRESQ_twoplus_showers, BDTCQ]),
+}
+
 stages_titles_two_plus_showers = {
+    0 : 'Stage 0\n' + r'$\nu_e$ preselection cuts',
     1 : 'Stage 1\n1.05 GeV < Reco energy < 2.05 GeV and Np preselection cuts',
     2 : 'Stage 2\nLow PID and Np preselection cuts',
     3 : 'Stage 3\n1.05 GeV < Reco energy < 2.05 GeV and Np very loose box cuts',
@@ -99,11 +100,37 @@ stages_titles_two_plus_showers = {
     5 : 'Stage 5\n1.05 GeV < Reco energy < 2.05 GeV and high PID',
 }
 
+stages_queries_two_plus_showers_low_medium_energy = {
+    1 : ' and '.join([LOW_MEDIUM_ENERGY, NPPRESQ_twoplus_showers]),
+    3 : ' and '.join([LOW_MEDIUM_ENERGY, NPPRESQ_twoplus_showers, NPVLCUTQ]),
+    4 : ' and '.join([LOW_MEDIUM_ENERGY, NPPRESQ_twoplus_showers, NPLCUTQ]),
+    5 : ' and '.join([LOW_MEDIUM_ENERGY, NPPRESQ_twoplus_showers, BDTCQ]),
+}
+
+stages_titles_two_plus_showers_low_medium_energy = {
+    1 : 'Stage 1\n0.05 GeV < Reco energy < 1.05 GeV and Np preselection cuts',
+    3 : 'Stage 3\n0.05 GeV < Reco energy < 1.05 GeV and Np very loose box cuts',
+    4 : 'Stage 4\n0.05 GeV < Reco energy < 1.05 GeV and Np loose box cuts',
+    5 : 'Stage 5\n0.05 GeV < Reco energy < 1.05 GeV and high PID',
+}
+
+stages_queries_two_plus_showers_no_high_en_cut = {
+    1 : ' and '.join([NPPRESQ_twoplus_showers]),
+    3 : ' and '.join([NPPRESQ_twoplus_showers, NPVLCUTQ]),
+    4 : ' and '.join([NPPRESQ_twoplus_showers, NPLCUTQ]),
+    5 : ' and '.join([NPPRESQ_twoplus_showers, BDTCQ]),
+}
+
+stages_titles_two_plus_showers_no_high_en_cut = {
+    1 : 'Stage 1\nNp preselection cuts',
+    3 : 'Stage 3\nNp very loose box cuts',
+    4 : 'Stage 4\nNp loose box cuts',
+    5 : 'Stage 5\nhigh PID',
+}
 
 bdt_scan = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7]
 
-plot_variables = {
-    'insensitive_variables': [
+plot_variables = [
         ('n_showers_contained',10,(-0.5, 9.5),"n showers contained"),
         ('n_tracks_contained',6,(-0.5, 5.5),"n tracks contained"),
         ('trk_score',20,(0.5,1.0),"trk score"),
@@ -111,12 +138,18 @@ plot_variables = {
         ('reco_nu_vtx_x',20,(0,260),"x"),
         ('reco_nu_vtx_y',20,(-120,120),"y"),
         ('reco_nu_vtx_z',20,(0,1100),"z"),
-    ],
-    'input_bdt': [
+    
+        ('trk_theta',21,(0,3.14),r"Track $\theta$"),
+        ('trk_phi',21,(-3.14, 3.14),r"Track $\phi$"),
+        ('trk_len',20,(0,100),"Track length [cm]"),
+        ('trk_len',21,(0,20),"Track length [cm]", "zoom"),
+        ('shr_theta',21,(0,3.14),r"Shower $\theta$"),
+        ('shr_phi',21,(-3.14, 3.14),r"Shower $\phi$"),
+
         ('tksh_angle',20,(-1,1),"cos(tksh angle)"),
         ('trkfit',9,(0,1.0),"Fraction of Track-fitted points"),
         ('shrmoliereavg',20,(0,50),"average Moliere angle [degrees]"),
-#         ('shr_score',20,(0,0.5),"shr score"),
+        ('shr_score',20,(0,0.5),"shr score"),
          ('hits_ratio',20,(0,1),"shower hits/all hits"),
 #         ('trkshrhitdist2',20,(0,10),"2D trk-shr distance (Y)"),
 #         ('subcluster',20,(0,20),"N sub-clusters in shower"),
@@ -129,33 +162,39 @@ plot_variables = {
         ('tksh_distance',20,(0,30),"tksh distance [cm]"),
         ('shr_tkfit_dedx_max',15,(0,10),"shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
         ('trkpid',21,(-1,1),"track LLR PID"),
-        ('shr_energy_tot_cali',20,(0,1),"shr energy (calibrated) [GeV]"),
+        ('trkpid',2,(-1,1),"track LLR PID", 'twobins'),
+        ('shr_energy_tot_cali',20,(0,2),"shr energy (calibrated) [GeV]"),
 #         ('hits_y',20,(0.,1000),"N hits Y plane"),
 #         ('shr_tkfit_dedx_Y',20,(0,10),"shr tkfit dE/dx (Y, 0-4 cm) [MeV/cm]"),
 #         ('shr_tkfit_dedx_U',20,(0,10),"shr tkfit dE/dx (U, 0-4 cm) [MeV/cm]"),
 #         ('shr_tkfit_dedx_V',20,(0,10),"shr tkfit dE/dx (V, 0-4 cm) [MeV/cm]"),
         ('shr_tkfit_nhits_tot',20,(0,20),"shr tkfit nhits (tot, 0-4 cm) [MeV/cm]"),
         
-    ],
-    'bdt_scores': [
-#         ('nonpi0_score',5,(0.,0.5),"BDT non-$\pi^0$ score"),
-#         ('nonpi0_score',5,(0.5,1.0),"BDT non-$\pi^0$ score"),
+        ('nonpi0_score',10,(0.,0.5),"BDT non-$\pi^0$ score", "low_bdt"),
+        ('nonpi0_score',10,(0.5,1.0),"BDT non-$\pi^0$ score", "high_bdt"),
         ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score"),
-#         ('pi0_score',5,(0.,0.5),"BDT $\pi^0$ score"),
-#         ('pi0_score',5,(0.5,1.0),"BDT $\pi^0$ score"),
+        ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score", "log", True),
+        ('pi0_score',10,(0.,0.5),"BDT $\pi^0$ score", "low_bdt"),
+        ('pi0_score',10,(0.5,1.0),"BDT $\pi^0$ score", "high_bdt"),
         ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
+        ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
         ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
-    ],
-    'pi0_variables': [
-        ('pi0_gammadot',20,(-1,1),"$\pi^0$ $\gamma_{\\theta\\theta}$"),
-        ('pi0energy',20,(135,735),"$\pi^0$ Energy [MeV]"),
-        ('asymm',20,(0,1),"$\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
-        ('pi0thetacm',20,(0,1),"$\cos\\theta_{\gamma}^{CM} = \\frac{1}{\\beta_{\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
-        ('pi0_mass_Y',20,(10,510),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
-        ('reco_e',19,(0.15,2.15),"reconstructed energy [GeV]"),
-        ('shr_energy_tot_cali',20,(0.05,1.50),"reconstructed shower energy [GeV]"),
-        ('trk_energy_tot',20,(0.05,1.50),"reconstructed track energy [GeV]"),
-        ('n_tracks_contained',5,(0,5),"number of contained tracks"),
-        ('n_showers_contained',5,(2,7),"number of contained showers"),
+        
+        ('trk_energy_tot',20,(0,1),"trk energy (range, P) [GeV]"),
+        ('NeutrinoEnergy0', 20, (0,2000), r"Reconstructed Calorimetric Energy 0 [MeV]"),
+        ('NeutrinoEnergy1', 20, (0,2000), r"Reconstructed Calorimetric Energy 1 [MeV]"),
+        ('NeutrinoEnergy2', 20, (0,2000), r"Reconstructed Calorimetric Energy 2 [MeV]"),
+        ('hits_y',20,(0.,1000),"N hits Y plane"),
+### Pi0 variables
+#         ('pi0_gammadot',20,(-1,1),"$\pi^0$ $\gamma_{\\theta\\theta}$"),
+#         ('pi0energy',20,(135,735),"$\pi^0$ Energy [MeV]"),
+#         ('asymm',20,(0,1),"$\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
+#         ('pi0thetacm',20,(0,1),"$\cos\\theta_{\gamma}^{CM} = \\frac{1}{\\beta_{\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
+#         ('pi0_mass_Y',20,(10,510),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
+#         ('reco_e',19,(0.15,2.15),"reconstructed energy [GeV]"),
+#         ('shr_energy_tot_cali',20,(0.05,1.50),"reconstructed shower energy [GeV]"),
+#         ('trk_energy_tot',20,(0.05,1.50),"reconstructed track energy [GeV]"),
+#         ('n_tracks_contained',5,(0,5),"number of contained tracks"),
+#         ('n_showers_contained',5,(2,7),"number of contained showers"),
         ]
-}
+
