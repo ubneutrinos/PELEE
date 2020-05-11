@@ -348,8 +348,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
     for r_dataset in [r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi]:
         r_dataset['run2'] = np.ones(len(r_dataset), dtype=bool)
     
-    uproot_v = [ur2lee,ur2mc,ur2nue, ur2data_two_showers_sidebands, ur2data_np_far_sidebands]
-    df_v = [r2lee,r2mc,r2nue, r2data_two_showers_sidebands, r2data_np_far_sidebands]
+    uproot_v = [ur2lee,ur2mc,ur2nue, ur2ext, ur2data_two_showers_sidebands, ur2data_np_far_sidebands]
+    df_v = [r2lee,r2mc,r2nue, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands]
     for i,df in enumerate(df_v):
         up = uproot_v[i]
         trk_llr_pid_v = up.array('trk_llr_pid_score_v')
@@ -520,7 +520,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
         df.loc[(df['category']!=1)&(df['category']!=10)&(df['category']!=11)&(df['category']!=111)&(df['slnunhits']/df['slnhits']<0.2), 'category'] = 4
         
         
-    # variables to be trained on
+    # Np BDT
+
     TRAINVAR = ["shr_score","tksh_distance","tksh_angle",
                 "shr_tkfit_dedx_max",
                 "trkfit","trkpid",
@@ -530,7 +531,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
                 "CosmicIPAll3D","CosmicDirAll3D"]
     
     LABELS =  ['pi0','nonpi0']
-    #LABELS =  ["bkg"]
     
     if (USEBDT == True):
         for label, bkg_query in zip(LABELS, nue_booster.bkg_queries):
@@ -573,6 +573,59 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
                     xgb.DMatrix(nccpi[TRAINVAR]),
                     ntree_limit=booster.best_iteration)
                 
+    # 0p BDT
+
+    TRAINVARZP = ['shrmoliereavg','shr_score', "trkfit","subcluster",
+                  "CosmicIPAll3D","CosmicDirAll3D",
+                  'secondshower_Y_nhit','secondshower_Y_vtxdist','secondshower_Y_dot','anglediff_Y',
+                  'secondshower_V_nhit','secondshower_V_vtxdist','secondshower_V_dot','anglediff_V',
+                  'secondshower_U_nhit','secondshower_U_vtxdist','secondshower_U_dot','anglediff_U',
+                  "shr_tkfit_2cm_dedx_U", "shr_tkfit_2cm_dedx_V", "shr_tkfit_2cm_dedx_Y",
+                  "shr_tkfit_gap10_dedx_U", "shr_tkfit_gap10_dedx_V", "shr_tkfit_gap10_dedx_Y",
+                  "shrMCSMom","DeltaRMS2h","shrPCA1CMed_5cm","CylFrac2h_1cm"]
+
+    LABELSZP = ['bkg']
+
+    if (USEBDT == True):
+        for label, bkg_query in zip(LABELSZP, nue_booster.bkg_queries):
+            with open(ls.pickle_path+'booster_%s_0304_extnumi_vx.pickle' % label, 'rb') as booster_file:
+                booster = pickle.load(booster_file)
+                mc[label+"_score"] = booster.predict(
+                    xgb.DMatrix(mc[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                nue[label+"_score"] = booster.predict(
+                    xgb.DMatrix(nue[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                ext[label+"_score"] = booster.predict(
+                    xgb.DMatrix(ext[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                data[label+"_score"] = booster.predict(
+                    xgb.DMatrix(data[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                dirt[label+"_score"] = booster.predict(
+                    xgb.DMatrix(dirt[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                lee[label+"_score"] = booster.predict(
+                    xgb.DMatrix(lee[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                ncpi0[label+"_score"] = booster.predict(
+                    xgb.DMatrix(ncpi0[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                ccpi0[label+"_score"] = booster.predict(
+                    xgb.DMatrix(ccpi0[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                ccnopi[label+"_score"] = booster.predict(
+                    xgb.DMatrix(ccnopi[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                cccpi[label+"_score"] = booster.predict(
+                    xgb.DMatrix(cccpi[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                ncnopi[label+"_score"] = booster.predict(
+                    xgb.DMatrix(ncnopi[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
+                nccpi[label+"_score"] = booster.predict(
+                    xgb.DMatrix(nccpi[TRAINVARZP]),
+                    ntree_limit=booster.best_iteration)
                 
     samples = {
     "mc": mc,

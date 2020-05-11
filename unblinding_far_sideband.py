@@ -269,6 +269,8 @@ plot_variables = [
         ('pi0_score',10,(0.5,1.0),"BDT $\pi^0$ score", "high_bdt"),
         ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
         ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
+        ('bkg_score',10,(0,1.0),"1e0p BDT score"),
+        ('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
         ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
 ### Pi0 variables
 #         ('pi0_gammadot',20,(-1,1),"$\pi^0$ $\gamma_{\\theta\\theta}$"),
