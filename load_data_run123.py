@@ -109,9 +109,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
         "trk_energy_tot", "shr_hits_tot", "ccnc", "trk_chipr",
         "trk_bkt_pdg", "hits_ratio", "n_tracks_contained", 
         "crtveto","crthitpe","_closestNuCosmicDist",
-        "NeutrinoEnergy0",
-        "NeutrinoEnergy1",
-        "NeutrinoEnergy2",
+        "NeutrinoEnergy0","NeutrinoEnergy1","NeutrinoEnergy2",
         #"run","sub","evt",
         "CosmicIP","CosmicDirAll3D","CosmicIPAll3D",
         "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
@@ -119,24 +117,31 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
         "shrmoliereavg","shrmoliererms",
         "shr_tkfit_npointsvalid","shr_tkfit_npoints", # fitted vs. all hits for shower
         "shrclusfrac0","shrclusfrac1","shrclusfrac2", # track-fitted hits / all hits
-        "trkshrhitdist2", # "trkshrhitdist0","trkshrhitdist1", distance between track and shower in 2D
+        "trkshrhitdist2", "trkshrhitdist0","trkshrhitdist1", #distance between track and shower in 2D
         "shrsubclusters0","shrsubclusters1","shrsubclusters2", # number of sub-clusters in shower
         "trk_llr_pid_score_v", # trk-PID score
         #"pi0_energy2_Y", # pi0 tagger variables
         "_opfilter_pe_beam", "_opfilter_pe_veto", # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x","reco_nu_vtx_sce_y","reco_nu_vtx_sce_z",
         "nproton", "nu_e", "n_showers_contained", "shr_distance", "trk_distance",
-        "hits_y", "shr_pz", "shr_energy", "shr_dedx_U", "shr_dedx_V", "shr_phi", "trk_phi", "trk_theta",
+        "hits_u", "hits_v", "hits_y", "shr_pz", "shr_energy", "shr_dedx_U", "shr_dedx_V", "shr_phi", "trk_phi", "trk_theta",
         "shr_tkfit_dedx_U", "shr_tkfit_dedx_V", "run", "sub", "evt", "nproton", "trk_pid_chipr_v",
         "trk_len", "mc_pdg", "slnunhits", "slnhits", "shr_score", "trk_score", "trk_hits_tot",
         "true_e_visible", "matched_E", "shr_bkt_E", "trk_bkt_E", "trk_energy", "tksh_distance", "tksh_angle",
         "npi0","npion","pion_e","muon_e","pi0truth_elec_etot",
         "pi0_e", "shr_energy_tot_cali", "shr_dedx_Y_cali", "evnunhits", "nslice", "interaction",
         "slclustfrac", "reco_nu_vtx_x", "reco_nu_vtx_y", "reco_nu_vtx_z","contained_fraction",
+        "secondshower_U_nhit","secondshower_U_vtxdist","secondshower_U_dot","secondshower_U_dir","shrclusdir0",
+        "secondshower_V_nhit","secondshower_V_vtxdist","secondshower_V_dot","secondshower_V_dir","shrclusdir1",
         "secondshower_Y_nhit","secondshower_Y_vtxdist","secondshower_Y_dot","secondshower_Y_dir","shrclusdir2",
         "shr_tkfit_nhits_Y","shr_tkfit_nhits_U","shr_tkfit_nhits_V",
         "shr_tkfit_2cm_nhits_Y","shr_tkfit_2cm_nhits_U","shr_tkfit_2cm_nhits_V",
-        "shr_tkfit_gap10_nhits_Y","shr_tkfit_gap10_nhits_U","shr_tkfit_gap10_nhits_V"
+        "shr_tkfit_gap10_nhits_Y","shr_tkfit_gap10_nhits_U","shr_tkfit_gap10_nhits_V",
+        "trk_sce_start_x_v","trk_sce_start_y_v","trk_sce_start_z_v",
+        "trk_sce_end_x_v","trk_sce_end_y_v","trk_sce_end_z_v","shr_id",
+        "shrMCSMom","DeltaRMS2h","shrPCA1CMed_5cm","CylFrac2h_1cm",
+        "trk_hits_tot", "trk_hits_u_tot", "trk_hits_v_tot", "trk_hits_y_tot",
+        "shr_hits_tot", "shr_hits_u_tot", "shr_hits_v_tot", "shr_hits_y_tot",
     ]
     #make the list unique
     variables = list(set(variables))
@@ -199,11 +204,36 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
         up = uproot_v[i]
         trk_llr_pid_v = up.array('trk_llr_pid_score_v')
         trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
+        trk_energy_proton_v = up.array('trk_energy_proton_v')
+        #shr_moliere_avg_v = up.array('shr_moliere_avg_v')
         trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
+        shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
         trk_llr_pid_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_llr_pid_v,trk_id)])
         trk_calo_energy_y_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_calo_energy_y_v,trk_id)])
+        trk_energy_proton_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_energy_proton_v,trk_id)])
+        #shr_moliere_avg_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(shr_moliere_avg_v,shr_id)])
         df['trkpid'] = trk_llr_pid_v_sel
         df['trackcaloenergy'] = trk_calo_energy_y_sel
+        df['protonenergy'] = trk_energy_proton_sel
+        #df['shrmoliereavg'] = shr_moliere_avg_sel
+        trk_sce_start_x_v = up.array('trk_sce_start_x_v')
+        trk_sce_start_y_v = up.array('trk_sce_start_y_v')
+        trk_sce_start_z_v = up.array('trk_sce_start_z_v')
+        trk_sce_end_x_v = up.array('trk_sce_end_x_v')
+        trk_sce_end_y_v = up.array('trk_sce_end_y_v')
+        trk_sce_end_z_v = up.array('trk_sce_end_z_v')
+        trk_sce_start_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_x_v,shr_id)])
+        trk_sce_start_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_y_v,shr_id)])
+        trk_sce_start_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_z_v,shr_id)])
+        trk_sce_end_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_x_v,shr_id)])
+        trk_sce_end_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_y_v,shr_id)])
+        trk_sce_end_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_z_v,shr_id)])
+        df['shr_trk_sce_start_x'] = trk_sce_start_x_v_sel
+        df['shr_trk_sce_start_y'] = trk_sce_start_y_v_sel
+        df['shr_trk_sce_start_z'] = trk_sce_start_z_v_sel
+        df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
+        df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
+        df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
 
     if (USEBDT == True):
         train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
@@ -258,11 +288,36 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
         up = uproot_v[i]
         trk_llr_pid_v = up.array('trk_llr_pid_score_v')
         trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
+        trk_energy_proton_v = up.array('trk_energy_proton_v')
+        #shr_moliere_avg_v = up.array('shr_moliere_avg_v')
         trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
+        shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
         trk_llr_pid_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_llr_pid_v,trk_id)])
         trk_calo_energy_y_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_calo_energy_y_v,trk_id)])
+        trk_energy_proton_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_energy_proton_v,trk_id)])
+        #shr_moliere_avg_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(shr_moliere_avg_v,shr_id)])
         df['trkpid'] = trk_llr_pid_v_sel
         df['trackcaloenergy'] = trk_calo_energy_y_sel
+        df['protonenergy'] = trk_energy_proton_sel
+        #df['shrmoliereavg'] = shr_moliere_avg_sel
+        trk_sce_start_x_v = up.array('trk_sce_start_x_v')
+        trk_sce_start_y_v = up.array('trk_sce_start_y_v')
+        trk_sce_start_z_v = up.array('trk_sce_start_z_v')
+        trk_sce_end_x_v = up.array('trk_sce_end_x_v')
+        trk_sce_end_y_v = up.array('trk_sce_end_y_v')
+        trk_sce_end_z_v = up.array('trk_sce_end_z_v')
+        trk_sce_start_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_x_v,shr_id)])
+        trk_sce_start_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_y_v,shr_id)])
+        trk_sce_start_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_z_v,shr_id)])
+        trk_sce_end_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_x_v,shr_id)])
+        trk_sce_end_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_y_v,shr_id)])
+        trk_sce_end_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_z_v,shr_id)])
+        df['shr_trk_sce_start_x'] = trk_sce_start_x_v_sel
+        df['shr_trk_sce_start_y'] = trk_sce_start_y_v_sel
+        df['shr_trk_sce_start_z'] = trk_sce_start_z_v_sel
+        df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
+        df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
+        df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
 
 
     r2nue = ur2nue.pandas.df(variables + WEIGHTS, flatten=False)
@@ -299,11 +354,36 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
         up = uproot_v[i]
         trk_llr_pid_v = up.array('trk_llr_pid_score_v')
         trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
+        trk_energy_proton_v = up.array('trk_energy_proton_v')
+        #shr_moliere_avg_v = up.array('shr_moliere_avg_v')
         trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
+        shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
         trk_llr_pid_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_llr_pid_v,trk_id)])
         trk_calo_energy_y_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_calo_energy_y_v,trk_id)])
+        trk_energy_proton_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_energy_proton_v,trk_id)])
+        #shr_moliere_avg_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(shr_moliere_avg_v,shr_id)])
         df['trkpid'] = trk_llr_pid_v_sel
         df['trackcaloenergy'] = trk_calo_energy_y_sel
+        df['protonenergy'] = trk_energy_proton_sel
+        #df['shrmoliereavg'] = shr_moliere_avg_sel
+        trk_sce_start_x_v = up.array('trk_sce_start_x_v')
+        trk_sce_start_y_v = up.array('trk_sce_start_y_v')
+        trk_sce_start_z_v = up.array('trk_sce_start_z_v')
+        trk_sce_end_x_v = up.array('trk_sce_end_x_v')
+        trk_sce_end_y_v = up.array('trk_sce_end_y_v')
+        trk_sce_end_z_v = up.array('trk_sce_end_z_v')
+        trk_sce_start_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_x_v,shr_id)])
+        trk_sce_start_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_y_v,shr_id)])
+        trk_sce_start_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_z_v,shr_id)])
+        trk_sce_end_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_x_v,shr_id)])
+        trk_sce_end_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_y_v,shr_id)])
+        trk_sce_end_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_z_v,shr_id)])
+        df['shr_trk_sce_start_x'] = trk_sce_start_x_v_sel
+        df['shr_trk_sce_start_y'] = trk_sce_start_y_v_sel
+        df['shr_trk_sce_start_z'] = trk_sce_start_z_v_sel
+        df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
+        df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
+        df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
 
     
     #set weights
@@ -382,9 +462,14 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=True)
         df['trkfit'] = df['shr_tkfit_npointsvalid'] / df['shr_tkfit_npoints']
         # and the 2d angle difference
         df['anglediff_Y'] = np.abs(df['secondshower_Y_dir']-df['shrclusdir2'])
-        #df['anglediff_V'] = np.abs(df['secondshower_V_dir']-df['shrclusdir1'])
-        #df['anglediff_U'] = np.abs(df['secondshower_U_dir']-df['shrclusdir0'])
-        
+        df['anglediff_V'] = np.abs(df['secondshower_V_dir']-df['shrclusdir1'])
+        df['anglediff_U'] = np.abs(df['secondshower_U_dir']-df['shrclusdir0'])
+
+    for i,df in enumerate(df_v):
+        df["ptOverP"] = df["pt"]/df["p"]
+        df["phi1MinusPhi2"] = df["shr_phi"]-df["trk_phi"]
+        df["theta1PlusTheta2"] = df["shr_theta"]+df["trk_theta"]
+
     df_v = [lee,mc,ncpi0,ccpi0,ccnopi,cccpi,ncnopi,nccpi,nue,ext,data,dirt]
     for i,df in enumerate(df_v):
         df['shr_tkfit_nhits_tot'] = (df['shr_tkfit_nhits_Y']+df['shr_tkfit_nhits_U']+df['shr_tkfit_nhits_V'])
