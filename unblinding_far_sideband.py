@@ -66,6 +66,23 @@ MEDIUM_ENERGY = '(0.75 < reco_e < 1.05)'
 LOW_MEDIUM_ENERGY = '(0.05 < reco_e < 1.05)'
 HIGH_ENERGY = '(1.05 < reco_e < 2.05)'
 
+# pi0 selection
+SCORECUT = 0.5 # 0.75 #75 # max track score
+DVTX = 3.0 # 3. # distance from vertex of each shower
+VTXDOT = 0.8 # dot product between each shower's direction and the vtx -> shr start vector
+EMIN1 =  60 #60 # leading photon min energy
+EMIN2 =  40 #40 #20. # 20. # subleading photon min energy
+GAMMADOT = 0.94 # max dot product between showres
+DEDXCUT = 1.0 # MeV/cm cut on leading shower only
+PI0SEL = 'nslice == 1'
+PI0SEL += ' & pi0_shrscore1 < %f & pi0_shrscore2 < %f'%(SCORECUT,SCORECUT)
+PI0SEL += '& pi0_dot1  > %f & pi0_dot2 > %f '%(VTXDOT,VTXDOT)
+PI0SEL += ' & pi0_radlen1 > %f & pi0_radlen2 > %f & pi0_gammadot < %f '%(DVTX,DVTX,GAMMADOT)
+PI0SEL += ' & pi0_energy1_Y > %f & pi0_energy2_Y > %f'%(EMIN1,EMIN2)
+#PI0SEL += ' and (filter_pi0 == 1 or bnbdata==1 or extdata==1)'
+#PI0SEL += ' and (filter_pi0 == 1)'
+PI0SEL += ' and pi0_dedx1_fit_Y >= %f'%DEDXCUT
+
 stages_queries = {
     1 : ' and '.join([HIGH_ENERGY, NPPRESEQ_one_shower]),
     2 : ' and '.join([LOW_PID, NPPRESEQ_one_shower]),
@@ -198,3 +215,8 @@ plot_variables = [
 #         ('n_showers_contained',5,(2,7),"number of contained showers"),
         ]
 
+pi0_variables = [
+    ('pi0_mass_U',20,(10,510),"$M_{\gamma\gamma}$ mass U plane [MeV]"),
+    ('pi0_mass_V',20,(10,510),"$M_{\gamma\gamma}$ mass V plane [MeV]"),
+    ('pi0_mass_Y',20,(10,510),"$M_{\gamma\gamma}$ mass Y plane [MeV]"),
+    ]
