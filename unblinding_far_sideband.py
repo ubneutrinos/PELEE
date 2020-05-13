@@ -270,7 +270,7 @@ plot_variables = [
         ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
 ### Pi0 variables
 #         ('pi0_gammadot',20,(-1,1),"$\pi^0$ $\gamma_{\\theta\\theta}$"),
-#         ('pi0energy',20,(135,735),"$\pi^0$ Energy [MeV]"),
+#         ('pi0energy',20,(135,1135),"$\pi^0$ Energy [MeV]"),
 #         ('asymm',20,(0,1),"$\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
 #         ('pi0thetacm',20,(0,1),"$\cos\\theta_{\gamma}^{CM} = \\frac{1}{\\beta_{\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
 #         ('pi0_mass_Y',20,(10,510),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
