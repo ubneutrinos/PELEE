@@ -33,7 +33,83 @@ class TimePlotter:
         #print (self._potON.columns.values, " with %i entries"%(self._potON.shape[0]))
         #print (self._potOF.columns.values)
 
-    def QueryByRun(self,NRUN,QUERY,RMIN=None,RMAX=None,ONBEAMONLY=False):
+    def GetPOT(self,rMIN,rMAX):
+
+        POT = np.sum( ((self._potON).query('run >= %i and run < %i'%(rMIN,rMAX)))['POT'].values ) / (1e18)
+        E1D = np.sum( ((self._potON).query('run >= %i and run < %i'%(rMIN,rMAX)))['E1D'].values )
+        EXT = np.sum( ((self._potOF).query('run >= %i and run < %i'%(rMIN,rMAX)))['EXT'].values )
+
+        return POT,E1D,EXT
+        
+        
+    def GetEvents(self, rMIN, rMAX, dfON, dfOF):
+
+        #print ('run range [%i, %i]'%(rMIN,rMAX))
+        POT,E1D,EXT = self.GetPOT(rMIN,rMAX)
+        
+        #print ('Run range : [%i, %i]'%(rMIN,rMAX))
+        #print ('POT is ',POT)
+        #print ('E1D is ',E1D)
+        #print ('EXT is ',EXT)
+        
+        scaling = 0.
+        if (EXT != 0):
+            scaling = float(E1D)/float(EXT)
+            
+            
+        nON = float((dfON.query('run >= %i and run < %i'%(rMIN,rMAX))).shape[0])
+        nOF = float((dfOF.query('run >= %i and run < %i'%(rMIN,rMAX))).shape[0])
+        
+        #print ('selectd %.0f on-beam and %.0f off-beam events'%(nON,nOF))
+        #print ('with POT of %g and scaling of %.03f'%(POT,scaling))
+        
+        errON = math.sqrt(nON)
+        errOF = math.sqrt(nOF)
+        
+        # number of (on-off) after scaling
+        NU = (nON - nOF * scaling)
+        if ( (nON == 0) and (nOF == 0) ):
+            err = NU
+        elif (nON == 0):
+            err = np.sqrt( (1./nOF)**2 ) * NU
+        elif (nOF == 0):
+            err = np.sqrt( (1./nON)**2 ) * NU
+        else:
+            a = 1./errON
+            b = 1./errOF
+            #print ('a : %.03f b : %.03f'%(a,b))
+            err = np.sqrt( a**2 + b**2 )# * NU
+            #print ('-> err frac : %.02f'%err)
+            err *= NU
+
+        if (nON == 0):
+            return None
+        
+        if not (np.isfinite(nON)):
+            return None
+        if ( (np.isfinite(POT) == False) or (POT == 0) ):
+            return None
+
+        infodict = {
+            'run': int(float((rMIN+rMAX)/2.)),
+            'pot': POT,
+            'e1d': E1D,
+            'ext': EXT,
+            'nON': nON,
+            'nOF': nOF,
+            'eON': errON,
+            'eOF': errOF,
+            'nu' : NU,
+            'err': err
+        }
+
+        print ('aaaa')
+        
+        return infodict
+        
+
+        
+    def QueryByRun(self,NRUN_V,QUERY,RMIN=None,RMAX=None,ONBEAMONLY=False,POTmin=0.0):
 
         # get subset of data passing the query
         dfON = (self._dfON).query(QUERY)
@@ -45,8 +121,13 @@ class TimePlotter:
             rMIN = RMIN
         if (RMAX != None):
             rMAX = RMAX
-        
-        RUNbins = np.arange(rMIN,rMAX,NRUN)
+
+        #print (NRUN_V)
+            
+        if (len(NRUN_V) == 1):
+            RUNbins = np.arange(rMIN,rMAX,NRUN_V[0])
+        else:
+            RUNbins = NRUN_V
 
         # events (ON) / 1e18 POT
         selON_v = []
@@ -67,74 +148,43 @@ class TimePlotter:
         EXT_v = []
         # run number
         RUN_v = []
-        
+
         # for each run-interval, compute passing events, POT, and return binned results
         for n in range(len(RUNbins)-1):
 
             rMIN = RUNbins[n]
             rMAX = RUNbins[n+1]
 
-            #print ('run range [%i, %i]'%(rMIN,rMAX))
-
-            POT = np.sum( ((self._potON).query('run >= %i and run < %i'%(rMIN,rMAX)))['POT'].values ) / (1e18)
-            E1D = np.sum( ((self._potON).query('run >= %i and run < %i'%(rMIN,rMAX)))['E1D'].values )
-            EXT = np.sum( ((self._potOF).query('run >= %i and run < %i'%(rMIN,rMAX)))['EXT'].values )
-
-            #print ('POT is ',POT)
-            #print ('E1D is ',E1D)
-            #print ('EXT is ',EXT)
+            POT = self.GetPOT(rMIN,rMAX)[0]
+            ctr = 0
             
-            scaling = 0.
-            if (EXT != 0):
-                scaling = float(E1D)/float(EXT)
-
-
-            nON = float((dfON.query('run >= %i and run < %i'%(rMIN,rMAX))).shape[0])
-            nOF = float((dfOF.query('run >= %i and run < %i'%(rMIN,rMAX))).shape[0])
-
-            #print ('selectd %.0f on-beam and %.0f off-beam events'%(nON,nOF))
-            #print ('with POT of %g and scaling of %.03f'%(POT,scaling))
-
-            errON = math.sqrt(nON)
-            errOF = math.sqrt(nOF)
-
-            # number of (on-off) after scaling
-            NU = (nON - nOF * scaling)
-            if ( (nON == 0) and (nOF == 0) ):
-                err = NU
-            elif (nON == 0):
-                err = np.sqrt( (1./nOF)**2 ) * NU
-            elif (nOF == 0):
-                err = np.sqrt( (1./nON)**2 ) * NU
-            else:
-                a = 1./errON
-                b = 1./errOF
-                #print ('a : %.03f b : %.03f'%(a,b))
-                err = np.sqrt( a**2 + b**2 )# * NU
-                #print ('-> err frac : %.02f'%err)
-                err *= NU
-
-            if (nON == 0):
-                continue
+            while ( (POTmin > 0) and (POT < POTmin) and (ctr < 5) and ( (n+2) < len(RUNbins))):
+                print ('POT is %g with ctr at %i'%(POT,ctr))
+                ctr += 1
+                n += 1
+                #print ('n is now : ',n)
+                rMAX = RUNbins[n+1]
+                POT = self.GetPOT(rMIN,rMAX)[0]
                 
-            if not (np.isfinite(nON)):
-                continue
-            if ( (np.isfinite(POT) == False) or (POT == 0) ):
-                continue
-                
-            RUN_v.append(int(float((rMIN+rMAX)/2.)))
-            POT_v.append(POT)
-            E1D_v.append(E1D)
-            EXT_v.append(EXT)
-
-            selON_v.append(nON)
-            selOF_v.append(nOF)
-
-            selON_e.append(errON)
-            selOF_e.append(errOF)
             
-            selNU_v.append(NU)
-            selNU_e.append(err)
+            eventinfo = self.GetEvents(rMIN,rMAX,dfON,dfOF)
+
+            if (eventinfo == None):
+                continue
+
+            RUN_v.append(eventinfo['run'])
+            POT_v.append(eventinfo['pot'])
+            E1D_v.append(eventinfo['e1d'])
+            EXT_v.append(eventinfo['ext'])
+
+            selON_v.append(eventinfo['nON'])
+            selOF_v.append(eventinfo['nOF'])
+
+            selON_e.append(eventinfo['eON'])
+            selOF_e.append(eventinfo['eOF'])
+            
+            selNU_v.append(eventinfo['nu'])
+            selNU_e.append(eventinfo['err'])
 
             #print ('nON : %i OF : %i NU : %.02f err : %.02f'%(nON,nOF,NU,err))
 
