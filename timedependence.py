@@ -59,15 +59,33 @@ class TimePlotter:
             
         nON = float((dfON.query('run >= %i and run < %i'%(rMIN,rMAX))).shape[0])
         nOF = float((dfOF.query('run >= %i and run < %i'%(rMIN,rMAX))).shape[0])
+
+        #if (nON == 0):
+        #    return None
         
         #print ('selectd %.0f on-beam and %.0f off-beam events'%(nON,nOF))
         #print ('with POT of %g and scaling of %.03f'%(POT,scaling))
         
-        errON = math.sqrt(nON)
-        errOF = math.sqrt(nOF)
+        errON = 1.
+        if (nON > 0):
+            errON = math.sqrt(nON)
+        errOF = 1.
+        if (nOF > 0):
+            errOF = math.sqrt(nOF)
+
+        errONfrac = 0.
+        if (errON > 0):
+            errONfrac = 1./errON
+        errOFrelfrac = 0.
+        if (errOF > 0):
+            errOFrelfrac = scaling * 1./(errOF)
+
+        print ('run %i has a total of %i nON and %i nOF events. Scaling is %.02f and POT %g'%(rMIN,nON,nOF,scaling,POT))
         
         # number of (on-off) after scaling
         NU = (nON - nOF * scaling)
+        err = 0.
+        print ('nON-nOF : %.02f'%(NU))
         if ( (nON == 0) and (nOF == 0) ):
             err = NU
         elif (nON == 0):
@@ -78,17 +96,19 @@ class TimePlotter:
             a = 1./errON
             b = 1./errOF
             #print ('a : %.03f b : %.03f'%(a,b))
-            err = np.sqrt( a**2 + b**2 )# * NU
+            err = np.sqrt( (errONfrac)**2 + (errOFrelfrac)**2 )
             #print ('-> err frac : %.02f'%err)
             err *= NU
+        #print ('with error : %.02f. [frac : %.02f]'%(err,err/NU))
+        #print ("\n")
 
-        if (nON == 0):
-            return None
+        #if (nON == 0):
+        #    return None
         
-        if not (np.isfinite(nON)):
-            return None
-        if ( (np.isfinite(POT) == False) or (POT == 0) ):
-            return None
+        #if not (np.isfinite(nON)):
+        #    return None
+        #if ( (np.isfinite(POT) == False) or (POT == 0) ):
+        #    return None
 
         infodict = {
             'run': int(float((rMIN+rMAX)/2.)),
@@ -103,7 +123,7 @@ class TimePlotter:
             'err': err
         }
 
-        print ('aaaa')
+        #print ('aaaa')
         
         return infodict
         
@@ -149,33 +169,49 @@ class TimePlotter:
         # run number
         RUN_v = []
 
+        n = -1
+        
         # for each run-interval, compute passing events, POT, and return binned results
-        for n in range(len(RUNbins)-1):
+        while ( (n+2) < len(RUNbins) ):
+
+        #for n in range(len(RUNbins)-1):
+
+            n += 1
 
             rMIN = RUNbins[n]
             rMAX = RUNbins[n+1]
 
             POT = self.GetPOT(rMIN,rMAX)[0]
             ctr = 0
+
+            #nabs = n
             
             while ( (POTmin > 0) and (POT < POTmin) and (ctr < 5) and ( (n+2) < len(RUNbins))):
-                print ('POT is %g with ctr at %i'%(POT,ctr))
                 ctr += 1
                 n += 1
-                #print ('n is now : ',n)
+                #nabs += 1
                 rMAX = RUNbins[n+1]
                 POT = self.GetPOT(rMIN,rMAX)[0]
-                
+
+            #n = nabs
+
+            if (POT < POTmin):
+                continue
             
             eventinfo = self.GetEvents(rMIN,rMAX,dfON,dfOF)
 
             if (eventinfo == None):
                 continue
 
+            #print('filling info for run range [%i, %i] at %i try. n is now %i'%(rMIN,rMAX,ctr,n))
+
             RUN_v.append(eventinfo['run'])
             POT_v.append(eventinfo['pot'])
             E1D_v.append(eventinfo['e1d'])
-            EXT_v.append(eventinfo['ext'])
+            if (eventinfo['ext'] == 0):
+                EXT_v.append(1e10)
+            else:
+                EXT_v.append(eventinfo['ext'])
 
             selON_v.append(eventinfo['nON'])
             selOF_v.append(eventinfo['nOF'])
@@ -212,7 +248,7 @@ class TimePlotter:
         selNU_e = selNU_e[np.isfinite(selNU_e)]
         '''
 
-        if (ONBEAMONLY == True):
-            return RUN_v,selON_v/POT_v, selON_e/POT_v
+        #if (ONBEAMONLY == True):
+        #    return RUN_v,selON_v/POT_v, selON_e/POT_v
         
-        return RUN_v, selNU_v/POT_v, selNU_e/POT_v
+        return RUN_v, selNU_v/POT_v, selNU_e/POT_v, selON_v/POT_v, selON_e/POT_v, selOF_v/(EXT_v/1e5), selOF_e/(EXT_v/1e5), selON_v
