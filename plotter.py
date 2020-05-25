@@ -169,6 +169,22 @@ class Plotter:
         self.cov_mc_stat = None
         self.cov_data_stat = None
 
+        self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
+
+        if ("ccpi0" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccpi0==1)"
+        if ("ncpi0" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_np0==1 & mcf_nmp==0 & mcf_nmm==0 & mcf_nem==0 & mcf_nep==0)" #note: mcf_pass_ccpi0 is wrong (includes 'mcf_actvol' while sample is in all cryostat)
+        if ("ccnopi" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        if ("cccpi" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_cccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        if ("nccpi" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        if ("ncnopi" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+
+        
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
 
@@ -565,6 +581,8 @@ class Plotter:
         return genie_weights
 
     def _get_variable(self, variable, query, track_cuts=None):
+
+        '''
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
         if ("ccpi0" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ccpi0==1)"
@@ -578,15 +596,16 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        '''
 
         # if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
         #     query += "& %s <= %g & %s >= %g" % (
         #         variable, plot_options["range"][1], variable, plot_options["range"][0])
 
         mc_plotted_variable = self._selection(
-            variable, self.samples["mc"], query=query, extra_cut=nu_pdg, track_cuts=track_cuts)
+            variable, self.samples["mc"], query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts)
         mc_plotted_variable = self._select_showers(
-            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=self.nu_pdg)
         mc_weight = [self.weights["mc"]] * len(mc_plotted_variable)
 
         nue_plotted_variable = self._selection(
@@ -838,6 +857,7 @@ class Plotter:
             raise ValueError(
                 "Unrecognized categorization, valid options are 'sample', 'event_category', and 'particle_pdg'")
 
+        '''
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
         if ("ccpi0" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ccpi0==1)"
@@ -851,14 +871,15 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        '''
 
         category, mc_plotted_variable = categorization(
-            self.samples["mc"], variable, query=query, extra_cut=nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
+            self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
 
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
         mc_genie_weights = self._get_genie_weight(
-            self.samples["mc"], variable, query=query, extra_cut=nu_pdg, track_cuts=track_cuts,select_longest=select_longest)
+            self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts,select_longest=select_longest)
 
         for c, v, w in zip(category, mc_plotted_variable, mc_genie_weights):
             var_dict[c].append(v)
@@ -1362,6 +1383,7 @@ class Plotter:
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
 
+        '''
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
         if ("ccpi0" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ccpi0==1)"
@@ -1375,15 +1397,16 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        '''
 
         if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
 
         mc_plotted_variable = self._selection(
-            variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+            variable, self.samples["mc"], query=query, extra_cut=self.nu_pdg)
         mc_plotted_variable = self._select_showers(
-            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=self.nu_pdg)
         mc_weight = [self.weights["mc"]] * len(mc_plotted_variable)
 
         nue_plotted_variable = self._selection(
@@ -1792,7 +1815,7 @@ class Plotter:
 
             extra_query = ""
             if t == "mc":
-                extra_query = "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
+                extra_query = "& " + self.nu_pdg # "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
 
             queried_tree = tree.query(query+extra_query)
             variable = queried_tree[var_name]
