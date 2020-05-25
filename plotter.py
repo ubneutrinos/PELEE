@@ -164,6 +164,10 @@ class Plotter:
         self.significance_likelihood = 0
         self.chisqdatamc = 0
         self.detsys = None
+        self.stats = {}
+        self.cov = None # covariance matrix from systematics
+        self.cov_mc_stat = None
+        self.cov_data_stat = None
 
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
@@ -177,6 +181,25 @@ class Plotter:
             raise ValueError(
                 "Missing necessary columns in the DataFrame: %s" % missing)
 
+    @staticmethod
+    def _chisquare(data, mc, err_data, err_mc):
+        num = (data - mc)**2
+        den = data+err_mc**2
+        if np.count_nonzero(data):
+            return sum(num / den) / len(data)
+        return np.inf
+
+    @staticmethod
+    def _chisq_pearson(data, mc):
+        return (data-mc)**2 / mc
+
+    @staticmethod
+    def _chisq_neyman(data, mc):
+        return (data-mc)**2 / data
+
+    def _chisq_CNP(self,data, mc):
+        return np.sum((1/3.) * (self._chisq_neyman(data,mc) + 2 * self._chisq_pearson(data,mc)))/len(data)
+    
     @staticmethod
     def _sigma_calc_likelihood(sig, bkg, err_bkg, scale_factor=1):
         """It calculates the significance with the profile likelihood ratio
@@ -226,6 +249,31 @@ class Plotter:
 
         return np.sqrt(chisq)
 
+
+    def _chisq_full_covariance(self,data, mc,CNP=True):
+
+        COV = self.cov
+        COV_STAT = 3 * np.linalg.inv( np.linalg.inv(self.cov_data_stat) + 2 * np.linalg.inv(self.cov_mc_stat) )
+        if (CNP == False):
+            COV_STAT = self.cov_data_stat + self.cov_mc_stat
+
+        COV += COV_STAT
+        
+        diff = (data-mc)
+        #coverr = cov
+        #coverr[np.diag_indices_from(coverr)] += data
+        emtxinv = np.linalg.inv(COV)
+        chisq = float(diff.dot(emtxinv).dot(diff.T))
+
+        covdiag = np.diag(COV)
+        chisqsum = 0.
+        for i,d in enumerate(diff):
+            chisqsum += ( (d**2) /covdiag[i])
+        
+        return np.sqrt(chisq), chisqsum 
+
+
+    
     @staticmethod
     def _ratio_err(num, den, num_err, den_err):
         n, d, n_e, d_e = num, den, num_err, den_err
@@ -250,13 +298,11 @@ class Plotter:
         except IndexError:
             return True
 
-    @staticmethod
-    def _chisquare(data, mc, err_data, err_mc):
-        num = (data - mc)**2
-        den = data+err_mc**2
-        if np.count_nonzero(data):
-            return sum(num / den) / np.count_nonzero(data)
-        return np.inf
+    def print_stats(self):
+        print ('print stats...')
+        for key,val in self.stats.items():
+            print ('%s : %.02f'%(key,val))
+
 
     def _select_showers(self, variable, variable_name, sample, query="selected==1", score=0.5, extra_cut=None):
         variable = variable.ravel()
@@ -1174,31 +1220,43 @@ class Plotter:
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
 
-        cov = np.zeros([len(exp_err), len(exp_err)])
+        self.cov           = np.zeros([len(exp_err), len(exp_err)])
+        self.cov_mc_stat   = np.zeros([len(exp_err), len(exp_err)])
+        self.cov_data_stat = np.zeros([len(exp_err), len(exp_err)])
 
+        self.cov_mc_stat[np.diag_indices_from(self.cov_mc_stat)]     = (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)        
+        
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
-            cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") + \
+            self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") + \
                   self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") #+ \
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
-            exp_err = np.sqrt(np.diag(cov) )# + exp_err*exp_err)
+            exp_err = np.sqrt(np.diag( (self.cov + self.cov_mc_stat) ) )# + exp_err*exp_err)
 
-            cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+
+
+            #print ('covariance matrix : ')
+            #print (cov)
+
+
+            
 
         if "lee" in self.samples:
             if kind == "event_category":
                 try:
                     self.significance = self._sigma_calc_matrix(
-                        lee_hist, n_tot-lee_hist, scale_factor=1.01e21/self.pot, cov=cov)
+                        lee_hist, n_tot-lee_hist, scale_factor=1.01e21/self.pot, cov=(self.cov+self.cov_mc_stat))
                     self.significance_likelihood = self._sigma_calc_likelihood(
                         lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi), scale_factor=1.01e21/self.pot)
                 except (np.linalg.LinAlgError, ValueError) as err:
                     print("Error calculating the significance", err)
                     self.significance = -1
                     self.significance_likelihood = -1
-
-        ax1.bar(bincenters, n_tot, facecolor='none',
-                edgecolor='none', width=0, yerr=exp_err)
+        # old error-bar plotting
+        #ax1.bar(bincenters, n_tot, facecolor='none',
+        #       edgecolor='none', width=0, yerr=exp_err)
+        ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.2,bottom=(n_tot-exp_err))
         #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
         '''
         ax1.fill_between(
@@ -1221,6 +1279,23 @@ class Plotter:
                 yerr=data_err,
                 fmt='ko',
                 label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
+
+        if (draw_sys):
+
+            chisq = self._chisquare(n_data, n_tot, data_err, exp_err)
+            self.stats['chisq'] = chisq
+            chisqCNP = self._chisq_CNP(n_data,n_tot)
+            self.stats['chisqCNP'] = chisqCNP
+            #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
+            #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
+            chicov, chinocov = self._chisq_full_covariance(n_data,n_tot,CNP=True)
+            self.stats['chisq full covariance'] = chicov
+            self.stats['chisq full covariance (diagonal only)'] = chinocov
+            self.stats['d.o.f.'] = len(n_data)
+            self.stats['p-value'] = (1 - scipy.stats.chi2.cdf(chicov,len(n_data)) )
+            #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
+
+            self.print_stats()
 
         leg = ax1.legend(
             frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
@@ -1675,7 +1750,8 @@ class Plotter:
     def _draw_ratio(self, ax, bins, n_tot, n_data, tot_err, data_err):
         bincenters = 0.5 * (bins[1:] + bins[:-1])
         bin_size = [(bins[i + 1] - bins[i]) / 2 for i in range(len(bins) - 1)]
-        ratio_error = self._ratio_err(n_data, n_tot, data_err, tot_err)
+        #ratio_error = self._ratio_err(n_data, n_tot, data_err, tot_err)
+        ratio_error = self._ratio_err(n_data, n_tot, data_err, np.zeros(len(data_err)))
         ax.errorbar(bincenters, n_data / n_tot,
                     xerr=bin_size, yerr=ratio_error, fmt="ko")
 
