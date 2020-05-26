@@ -266,7 +266,7 @@ class Plotter:
         return np.sqrt(chisq)
 
 
-    def _chisq_full_covariance(self,data, mc,CNP=True):
+    def _chisq_full_covariance(self,data, mc,CNP=True,STATONLY=False):
 
         #np.set_printoptions(precision=3)
         
@@ -294,11 +294,14 @@ class Plotter:
 
         COV_STAT = np.zeros([len(data), len(data)])
 
+        
         ERR_STAT = 3. / ( 1./data + 2./mc )
 
         for i,d in enumerate(data):
             if (d == 0):
                 ERR_STAT[i] = mc[i]/2.
+            if (mc[i] == 0):
+                ERR_STAT[i] = d
         
         if (CNP == False):
             ERR_STAT = data + mc
@@ -324,6 +327,9 @@ class Plotter:
         COV_STAT[np.diag_indices_from(COV_STAT)] = ERR_STAT
             
         COV += COV_STAT
+
+        if (STATONLY == True):
+            COV = COV_STAT
 
         
         
@@ -1368,11 +1374,13 @@ class Plotter:
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
             chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
+            chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
             self.stats['chisq full covariance'] = chicov
             self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['d.o.f.'] = dof
-            self.stats['pvalue (diag)'] = (1 - scipy.stats.chi2.cdf(chinocov,dof))
-            self.stats['pvalue'] = (1 - scipy.stats.chi2.cdf(chicov,dof))
+            self.stats['pvaluestatonly'] = (1 - scipy.stats.chi2.cdf(chistatonly,dof))
+            self.stats['pvaluediag']     = (1 - scipy.stats.chi2.cdf(chinocov,dof))
+            self.stats['pvalue']         = (1 - scipy.stats.chi2.cdf(chicov,dof))
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
