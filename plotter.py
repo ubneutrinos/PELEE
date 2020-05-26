@@ -272,6 +272,21 @@ class Plotter:
         
         COV = self.cov + self.cov_mc_stat
 
+        # remove rows/columns with zero data and MC
+        remove_indices_v = []
+        for i,d in enumerate(data):
+            idx = len(data)-i-1
+            if ((data[idx]==0) and (mc[idx] == 0)):
+                remove_indices_v.append(idx)
+
+        #COVcopy = COV
+        for idx in remove_indices_v:
+            COV = np.delete(COV,idx,0)
+            COV = np.delete(COV,idx,1)
+            data = np.delete(data,idx,0)
+            mc   = np.delete(mc,idx,0)
+            
+        
         #print ('COV matrix (syst only) : ',COV)
 
         #self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
@@ -287,7 +302,17 @@ class Plotter:
         
         if (CNP == False):
             ERR_STAT = data + mc
+
+        #print ('ERR_STAT : ',ERR_STAT)
+        #print ('data : ',data)
+        #print ('mc   : ',mc)
+        #print ('COV  : ',COV)
+
+        dof = len(data)
+            
         #for i,d in enumerate(data):
+        #    if (ERR_STAT[i] == 0):
+        #        ERR_STAT[i] = 1e-5
         #    COV_STAT[i][i] = 3. / ( (1./d) + (2./mc[i]) )
         
         #COV_STAT = 3 * np.linalg.inv( np.linalg.inv(self.cov_data_stat) + 2 * np.linalg.inv(self.cov_mc_stat) )
@@ -300,6 +325,8 @@ class Plotter:
             
         COV += COV_STAT
 
+        
+        
         #print ('COV matrix : ',COV)
         
         diff = (data-mc)
@@ -315,7 +342,7 @@ class Plotter:
             #print ('bin %i has COV value %.02f'%(i,covdiag[i]))
             chisqsum += ( (d**2) /covdiag[i])
         
-        return chisq, chisqsum 
+        return chisq, chisqsum, dof
 
 
     
@@ -1340,12 +1367,12 @@ class Plotter:
             self.stats['chisqCNP'] = chisqCNP
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
-            chicov, chinocov = self._chisq_full_covariance(n_data,n_tot,CNP=True)
+            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
             self.stats['chisq full covariance'] = chicov
             self.stats['chisq full covariance (diagonal only)'] = chinocov
-            self.stats['d.o.f.'] = len(n_data)
-            self.stats['p-value (diag)'] = (1 - scipy.stats.chi2.cdf(chinocov,len(n_data)))
-            self.stats['p-value (cov)'] = (1 - scipy.stats.chi2.cdf(chicov,len(n_data)))
+            self.stats['d.o.f.'] = dof
+            self.stats['pvalue (diag)'] = (1 - scipy.stats.chi2.cdf(chinocov,dof))
+            self.stats['pvalue'] = (1 - scipy.stats.chi2.cdf(chicov,dof))
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
