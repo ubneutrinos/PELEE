@@ -164,7 +164,27 @@ class Plotter:
         self.significance_likelihood = 0
         self.chisqdatamc = 0
         self.detsys = None
+        self.stats = {}
+        self.cov = None # covariance matrix from systematics
+        self.cov_mc_stat = None
+        self.cov_data_stat = None
 
+        self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
+
+        if ("ccpi0" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccpi0==1)"
+        if ("ncpi0" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_np0==1 & mcf_nmp==0 & mcf_nmm==0 & mcf_nem==0 & mcf_nep==0)" #note: mcf_pass_ccpi0 is wrong (includes 'mcf_actvol' while sample is in all cryostat)
+        if ("ccnopi" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        if ("cccpi" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_cccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        if ("nccpi" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        if ("ncnopi" in self.samples):
+            self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+
+        
         if "dirt" not in samples:
             warnings.warn("Missing dirt sample")
 
@@ -177,6 +197,25 @@ class Plotter:
             raise ValueError(
                 "Missing necessary columns in the DataFrame: %s" % missing)
 
+    @staticmethod
+    def _chisquare(data, mc, err_data, err_mc):
+        num = (data - mc)**2
+        den = data+err_mc**2
+        if np.count_nonzero(data):
+            return sum(num / den) / len(data)
+        return np.inf
+
+    @staticmethod
+    def _chisq_pearson(data, mc):
+        return (data-mc)**2 / mc
+
+    @staticmethod
+    def _chisq_neyman(data, mc):
+        return (data-mc)**2 / data
+
+    def _chisq_CNP(self,data, mc):
+        return np.sum((1/3.) * (self._chisq_neyman(data,mc) + 2 * self._chisq_pearson(data,mc)))/len(data)
+    
     @staticmethod
     def _sigma_calc_likelihood(sig, bkg, err_bkg, scale_factor=1):
         """It calculates the significance with the profile likelihood ratio
@@ -226,6 +265,87 @@ class Plotter:
 
         return np.sqrt(chisq)
 
+
+    def _chisq_full_covariance(self,data, mc,CNP=True):
+
+        #np.set_printoptions(precision=3)
+        
+        COV = self.cov + self.cov_mc_stat
+
+        # remove rows/columns with zero data and MC
+        remove_indices_v = []
+        for i,d in enumerate(data):
+            idx = len(data)-i-1
+            if ((data[idx]==0) and (mc[idx] == 0)):
+                remove_indices_v.append(idx)
+
+        #COVcopy = COV
+        for idx in remove_indices_v:
+            COV = np.delete(COV,idx,0)
+            COV = np.delete(COV,idx,1)
+            data = np.delete(data,idx,0)
+            mc   = np.delete(mc,idx,0)
+            
+        
+        #print ('COV matrix (syst only) : ',COV)
+
+        #self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
+        #self.cov           = np.zeros([len(exp_err), len(exp_err)])
+
+        COV_STAT = np.zeros([len(data), len(data)])
+
+        ERR_STAT = 3. / ( 1./data + 2./mc )
+
+        for i,d in enumerate(data):
+            if (d == 0):
+                ERR_STAT[i] = mc[i]/2.
+        
+        if (CNP == False):
+            ERR_STAT = data + mc
+
+        #print ('ERR_STAT : ',ERR_STAT)
+        #print ('data : ',data)
+        #print ('mc   : ',mc)
+        #print ('COV  : ',COV)
+
+        dof = len(data)
+            
+        #for i,d in enumerate(data):
+        #    if (ERR_STAT[i] == 0):
+        #        ERR_STAT[i] = 1e-5
+        #    COV_STAT[i][i] = 3. / ( (1./d) + (2./mc[i]) )
+        
+        #COV_STAT = 3 * np.linalg.inv( np.linalg.inv(self.cov_data_stat) + 2 * np.linalg.inv(self.cov_mc_stat) )
+        #if (CNP == False):
+        #    for i,d in enumerate(data):
+        #    COV_STAT[i][i] += (d+mc[i])
+        #    #COV_STAT = self.cov_data_stat + self.cov_mc_stat
+
+        COV_STAT[np.diag_indices_from(COV_STAT)] = ERR_STAT
+            
+        COV += COV_STAT
+
+        
+        
+        #print ('COV matrix : ',COV)
+        
+        diff = (data-mc)
+        #coverr = cov
+        #coverr[np.diag_indices_from(coverr)] += data
+        emtxinv = np.linalg.inv(COV)
+        #print ('ERR matrix : ',emtxinv)
+        chisq = float(diff.dot(emtxinv).dot(diff.T))
+
+        covdiag = np.diag(COV)
+        chisqsum = 0.
+        for i,d in enumerate(diff):
+            #print ('bin %i has COV value %.02f'%(i,covdiag[i]))
+            chisqsum += ( (d**2) /covdiag[i])
+        
+        return chisq, chisqsum, dof
+
+
+    
     @staticmethod
     def _ratio_err(num, den, num_err, den_err):
         n, d, n_e, d_e = num, den, num_err, den_err
@@ -250,6 +370,7 @@ class Plotter:
         except IndexError:
             return True
 
+<<<<<<< HEAD
     @staticmethod
     def _chisquare(data, mc, err_data, err_mc):
         num = (data - mc)**2
@@ -257,6 +378,13 @@ class Plotter:
         if np.count_nonzero(data):
             return sum(num / den) / np.count_nonzero(data)
         return np.inf
+=======
+    def print_stats(self):
+        print ('print stats...')
+        for key,val in self.stats.items():
+            print ('%s : %.02f'%(key,val))
+
+>>>>>>> 44979561c8d8df960ad242af0797c6c32df1fb09
 
     def _select_showers(self, variable, variable_name, sample, query="selected==1", score=0.5, extra_cut=None):
         variable = variable.ravel()
@@ -560,6 +688,8 @@ class Plotter:
         return genie_weights
 
     def _get_variable(self, variable, query, track_cuts=None):
+
+        '''
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
         if ("ccpi0" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ccpi0==1)"
@@ -573,15 +703,16 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        '''
 
         # if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
         #     query += "& %s <= %g & %s >= %g" % (
         #         variable, plot_options["range"][1], variable, plot_options["range"][0])
 
         mc_plotted_variable = self._selection(
-            variable, self.samples["mc"], query=query, extra_cut=nu_pdg, track_cuts=track_cuts)
+            variable, self.samples["mc"], query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts)
         mc_plotted_variable = self._select_showers(
-            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=self.nu_pdg)
         mc_weight = [self.weights["mc"]] * len(mc_plotted_variable)
 
         nue_plotted_variable = self._selection(
@@ -969,6 +1100,7 @@ class Plotter:
             raise ValueError(
                 "Unrecognized categorization, you are using {} \n Valid options are 'sample', 'event_category', 'backtracked_pdg', and 'particle_pdg'".format(kind))
 
+        '''
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
         if ("ccpi0" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ccpi0==1)"
@@ -982,16 +1114,22 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        '''
 
         #apply the categorization function and cuts
         category, mc_plotted_variable = categorization(
+<<<<<<< HEAD
             self.samples["mc"], variable, query=query, extra_cut=nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
         #the keys will be the numerical category labels
+=======
+            self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
+
+>>>>>>> 44979561c8d8df960ad242af0797c6c32df1fb09
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
         #get genie weights after cuts
         mc_genie_weights = self._get_genie_weight(
-            self.samples["mc"], variable, query=query, extra_cut=nu_pdg, track_cuts=track_cuts,select_longest=select_longest)
+            self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts,select_longest=select_longest)
 
         for c, v, w in zip(category, mc_plotted_variable, mc_genie_weights):
             var_dict[c].append(v)
@@ -1301,32 +1439,50 @@ class Plotter:
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
                     for i in range(len(bin_edges) - 1)]
 
-        cov = np.zeros([len(exp_err), len(exp_err)])
+        self.cov           = np.zeros([len(exp_err), len(exp_err)])
+        self.cov_mc_stat   = np.zeros([len(exp_err), len(exp_err)])
+        self.cov_data_stat = np.zeros([len(exp_err), len(exp_err)])
 
+        self.cov_mc_stat[np.diag_indices_from(self.cov_mc_stat)]     = (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
-            cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") + \
+            self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") + \
                   self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune") #+ \
                   #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
-            exp_err = np.sqrt(np.diag(cov) )# + exp_err*exp_err)
+            exp_err = np.sqrt(np.diag( (self.cov + self.cov_mc_stat) ) )# + exp_err*exp_err)
 
-            cov[np.diag_indices_from(cov)] += (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+
+
+            #print ('covariance matrix : ')
+            #print (cov)
+
+
+            
 
         if "lee" in self.samples:
             if kind == "event_category":
                 try:
                     self.significance = self._sigma_calc_matrix(
-                        lee_hist, n_tot-lee_hist, scale_factor=1.01e21/self.pot, cov=cov)
+                        lee_hist, n_tot-lee_hist, scale_factor=1.01e21/self.pot, cov=(self.cov+self.cov_mc_stat))
                     self.significance_likelihood = self._sigma_calc_likelihood(
                         lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi), scale_factor=1.01e21/self.pot)
                 except (np.linalg.LinAlgError, ValueError) as err:
                     print("Error calculating the significance", err)
                     self.significance = -1
                     self.significance_likelihood = -1
+<<<<<<< HEAD
 
         '''
         ax1.bar(bincenters, n_tot, facecolor='none',
                 edgecolor='none', width=0, yerr=exp_err)
+=======
+        # old error-bar plotting
+        #ax1.bar(bincenters, n_tot, facecolor='none',
+        #       edgecolor='none', width=0, yerr=exp_err)
+        ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.2,bottom=(n_tot-exp_err))
+        #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
+>>>>>>> 44979561c8d8df960ad242af0797c6c32df1fb09
         '''
         #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
         err_neg = list(n_tot-exp_err)
@@ -1340,6 +1496,7 @@ class Plotter:
             color="grey",
             alpha=0.5)
 
+<<<<<<< HEAD
         if draw_data:
             n_data, bins = np.histogram(data_plotted_variable, **plot_options)
             data_err = np.sqrt(n_data)
@@ -1362,6 +1519,43 @@ class Plotter:
         else:
             leg = ax1.legend(
                 frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
+=======
+
+        n_data, bins = np.histogram(data_plotted_variable, **plot_options)
+        data_err = np.sqrt(n_data)
+
+        self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
+        
+        if sum(n_data) > 0:
+            ax1.errorbar(
+                bincenters,
+                n_data,
+                xerr=bin_size,
+                yerr=data_err,
+                fmt='ko',
+                label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
+
+        if (draw_sys):
+
+            chisq = self._chisquare(n_data, n_tot, data_err, exp_err)
+            self.stats['chisq'] = chisq
+            chisqCNP = self._chisq_CNP(n_data,n_tot)
+            self.stats['chisqCNP'] = chisqCNP
+            #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
+            #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
+            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
+            self.stats['chisq full covariance'] = chicov
+            self.stats['chisq full covariance (diagonal only)'] = chinocov
+            self.stats['d.o.f.'] = dof
+            self.stats['pvalue (diag)'] = (1 - scipy.stats.chi2.cdf(chinocov,dof))
+            self.stats['pvalue'] = (1 - scipy.stats.chi2.cdf(chicov,dof))
+            #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
+
+            #self.print_stats()
+
+        leg = ax1.legend(
+            frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
+>>>>>>> 44979561c8d8df960ad242af0797c6c32df1fb09
         leg._legend_box.align = "left"
         plt.setp(leg.get_title(), fontweight='bold')
 
@@ -1426,6 +1620,7 @@ class Plotter:
 
     def _plot_variable_samples(self, variable, query, title, **plot_options):
 
+        '''
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
         if ("ccpi0" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ccpi0==1)"
@@ -1439,15 +1634,16 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
+        '''
 
         if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
 
         mc_plotted_variable = self._selection(
-            variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+            variable, self.samples["mc"], query=query, extra_cut=self.nu_pdg)
         mc_plotted_variable = self._select_showers(
-            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=nu_pdg)
+            mc_plotted_variable, variable, self.samples["mc"], query=query, extra_cut=self.nu_pdg)
         mc_weight = [self.weights["mc"]] * len(mc_plotted_variable)
 
         nue_plotted_variable = self._selection(
@@ -1815,7 +2011,8 @@ class Plotter:
     def _draw_ratio(self, ax, bins, n_tot, n_data, tot_err, data_err):
         bincenters = 0.5 * (bins[1:] + bins[:-1])
         bin_size = [(bins[i + 1] - bins[i]) / 2 for i in range(len(bins) - 1)]
-        ratio_error = self._ratio_err(n_data, n_tot, data_err, tot_err)
+        #ratio_error = self._ratio_err(n_data, n_tot, data_err, tot_err)
+        ratio_error = self._ratio_err(n_data, n_tot, data_err, np.zeros(len(data_err)))
         ax.errorbar(bincenters, n_data / n_tot,
                     xerr=bin_size, yerr=ratio_error, fmt="ko")
 
@@ -1856,7 +2053,7 @@ class Plotter:
 
             extra_query = ""
             if t == "mc":
-                extra_query = "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
+                extra_query = "& " + self.nu_pdg # "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
 
             queried_tree = tree.query(query+extra_query)
             variable = queried_tree[var_name]
