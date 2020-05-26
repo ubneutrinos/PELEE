@@ -35,7 +35,6 @@ import scipy.stats
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 from matplotlib import gridspec
 
 
@@ -91,6 +90,7 @@ int_labels = {
     13: "Weak Mix"
 }
 
+
 int_colors = {
     0: "bisque",
     1: "darkorange",
@@ -114,10 +114,10 @@ category_colors = {
     5: "xkcd:brick",
     2: "xkcd:cyan",
     21: "xkcd:cerulean",
-    22: "xkcd:lightblue",
-    23: "xkcd:cyan",
-    24: "steelblue",
-    25: "blue",
+    22: "yellow",
+    23: "gold",
+    24: "goldenrod",
+    25: "darkgoldenrod",
     3: "xkcd:cobalt",
     31: "xkcd:sky blue",
     1: "xkcd:green",
@@ -266,7 +266,7 @@ class Plotter:
         return np.sqrt(chisq)
 
 
-    def _chisq_full_covariance(self,data, mc,CNP=True):
+    def _chisq_full_covariance(self,data, mc,CNP=True,STATONLY=False):
 
         #np.set_printoptions(precision=3)
         
@@ -294,11 +294,14 @@ class Plotter:
 
         COV_STAT = np.zeros([len(data), len(data)])
 
+        
         ERR_STAT = 3. / ( 1./data + 2./mc )
 
         for i,d in enumerate(data):
             if (d == 0):
                 ERR_STAT[i] = mc[i]/2.
+            if (mc[i] == 0):
+                ERR_STAT[i] = d
         
         if (CNP == False):
             ERR_STAT = data + mc
@@ -324,6 +327,9 @@ class Plotter:
         COV_STAT[np.diag_indices_from(COV_STAT)] = ERR_STAT
             
         COV += COV_STAT
+
+        if (STATONLY == True):
+            COV = COV_STAT
 
         
         
@@ -370,21 +376,11 @@ class Plotter:
         except IndexError:
             return True
 
-<<<<<<< HEAD
-    @staticmethod
-    def _chisquare(data, mc, err_data, err_mc):
-        num = (data - mc)**2
-        den = err_mc**2
-        if np.count_nonzero(data):
-            return sum(num / den) / np.count_nonzero(data)
-        return np.inf
-=======
     def print_stats(self):
         print ('print stats...')
         for key,val in self.stats.items():
             print ('%s : %.02f'%(key,val))
 
->>>>>>> 44979561c8d8df960ad242af0797c6c32df1fb09
 
     def _select_showers(self, variable, variable_name, sample, query="selected==1", score=0.5, extra_cut=None):
         variable = variable.ravel()
@@ -426,11 +422,7 @@ class Plotter:
                 or_mask2 = df[var].apply(lambda x: eval("x{}{}".format(op[1],val[1])))#or condition 2
                 mask *= (or_mask1 + or_mask2) #just add the booleans for "or"
             else:
-                try:
-                    mask *= df[var].apply(lambda x: eval("x{}{}".format(op,val))) #layer on each cut mask
-                except:
-                    mask *= df[var].apply(lambda x: eval("x{}{}".format(op,val))) #layer on each cut mask
-                    print("not applying {} {} {} to this sample".format(var, op, val))
+                mask *= df[var].apply(lambda x: eval("x{}{}".format(op,val))) #layer on each cut mask
         vars = (df[variable]*mask).apply(lambda x: x[x != False]) #apply mask
         vars = vars[vars.apply(lambda x: len(x) > 0)] #clean up empty slices
         #fix list comprehension issue for non '_v' variables
@@ -456,38 +448,31 @@ class Plotter:
         #print("selecting longest...")
         #print("mask", mask)
         trk_lens = (df['trk_len_v']*mask).apply(lambda x: x[x != False])#apply mask to track lengths
-        trk_lens = trk_lens.apply(lambda x: x[~np.isnan(x)])#clean up nan vals
         trk_lens = trk_lens[trk_lens.apply(lambda x: len(x) > 0)]#clean up slices
         variable = variable.apply(lambda x: x[~np.isnan(x)])#clean up nan vals
         variable = variable[variable.apply(lambda x: len(x) > 0)] #clean up empty slices
         nan_mask = variable.apply(lambda x: np.nan in x or "nan" in x)
         longest_mask = trk_lens.apply(lambda x: x == x[list(x).index(max(x))])#identify longest
-        #print(variable, longest_mask)
         variable = (variable*longest_mask).apply(lambda x: x[x!=False])#apply mask
-        variable = variable[variable.apply(lambda x: len(x) > 0)] #clean up empty slices
-        try:
-            if len(variable.iloc[0]) == 1:
-                variable = variable.apply(lambda x: x[0] if len(x)>0 else -999)#expect values, not lists, for each event
-            else:
-                if len(variable.iloc[0]) == 0:
-                    print(variable)
+        if len(variable.iloc[0]) == 1:
+            variable = variable.apply(lambda x: x[0] if len(x)>0 else -999)#expect values, not lists, for each event
+        else:
+            if len(variable.iloc[0]) == 0:
+                raise ValueError(
+                    "There is no longest track per slice")
+            elif len(variable.iloc[0]) > 1:
+                #this happens with the reco_nu_e_range_v with unreconstructed values
+                print("there are more than one longest slice")
+                print(variable.iloc[0])
+                try:
+                    variable = variable.apply(lambda x: x[0])
+                except:
                     raise ValueError(
-                        "There is no longest track per slice")
-                elif len(variable.iloc[0]) > 1:
-                    #this happens with the reco_nu_e_range_v with unreconstructed values
-                    print("there are more than one longest slice")
-                    print(variable.iloc[0])
-                    try:
-                        variable = variable.apply(lambda x: x[0])
-                    except:
-                        raise ValueError(
-                            "There is more than one longest track per slice in \n var {} lens {}".format(variable,trk_lens))
-        except:
-            print(variable)
+                        "There is more than one longest track per slice in \n var {} lens {}".format(variable,trk_lens))
 
         return variable, longest_mask
 
-    def _selection(self, variable, sample, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True, vectorvar=False):
+    def _selection(self, variable, sample, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         '''
         variable,  must be specified
         select_longest, True by default, keeps from multiple tracks of same event making it through
@@ -503,10 +488,11 @@ class Plotter:
         if extra_cut is not None:
             sel_query += "& %s" % extra_cut
 
-        if ( (track_cuts == None) and (select_longest == False) and vectorvar == False):
-            return np.hstack(sample.query(sel_query)[variable].ravel())
+        if ( (track_cuts == None) or (select_longest == False) ):
+            return sample.query(sel_query).eval(variable).ravel()
 
-        df = sample.query(sel_query).copy() #don't want to eliminate anything from memory
+        df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
+
         track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
         if track_cuts is not None:
             vars, track_cuts_mask = self._apply_track_cuts(df,variable,track_cuts,track_cuts_mask)
@@ -518,27 +504,10 @@ class Plotter:
         #assuming all track-level variables end in _v
         if variable[-2:] == "_v" and select_longest:
             vars, longest_mask = self._select_longest(df, vars, track_cuts_mask)
-        elif variable[-2:] != "_v" and vectorvar and select_longest == False:
-            #will this be compared to a vector quantity
-            vars = (df[variable]*track_cuts_mask).apply(lambda x: x[x != False]) #apply mask
-
-        try:
-            return np.hstack(vars.ravel()) #convert to np array then flatten out entirely
-        except:
-            if vars.size == 0:
-                return np.array([])
-            else:
-                print(vars)
-
-    def _categorize_entries_backtracked_pdg(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
-        if 'backtracked_pdg_v' not in list(sample.keys()):
-            sample['backtracked_pdg_v'] = sample['backtracked_pdg']
-        backtracked_pdg = np.abs(self._selection(
-            "backtracked_pdg_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest))
-        plotted_variable = self._selection(
-            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
-
-        return backtracked_pdg, plotted_variable
+        elif "_v_" in variable:
+            print("Variable is being interpretted as event-level, not track_level, despite having _v in name")
+            print("the longest track is NOT being selected")
+        return vars.ravel()
 
     def _categorize_entries_pdg(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
 
@@ -587,17 +556,11 @@ class Plotter:
         return backtracked_pdg, plotted_variable
 
     def _categorize_entries(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
-        if variable[-2:] == "_v":
-            vectorvar = True
-        else:
-            vectorvar = False
         category = self._selection(
-            "category", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest, vectorvar=vectorvar)
+            "category", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
-        if type(plotted_variable) == type(None):
-            plotted_variable = np.array([])
-            category = np.array([])
+
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
@@ -625,9 +588,7 @@ class Plotter:
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
 
-        if type(plotted_variable) == type(None):
-            plotted_variable = np.array([])
-            category = np.array([])
+
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
@@ -659,20 +620,14 @@ class Plotter:
         return 0
 
     def _get_genie_weight(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True, weightvar="weightSplineTimesTune",weightsignal=None):
-        if variable[-2:] == "_v":
-            vectorvar = True
-        else:
-            vectorvar = False
+
         plotted_variable = self._selection(
-            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest, vectorvar=vectorvar)
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         genie_weights = self._selection(
-            weightvar, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest, vectorvar=vectorvar)
+            weightvar, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         if (weightsignal != None):
             genie_weights *= self._selection(
-            weightsignal, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest, vectorvar=vectorvar)
-        if type(plotted_variable) == type(None):
-            genie_weights = np.array([])
-            plotted_variable = np.array([])
+            weightsignal, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable:
@@ -854,17 +809,10 @@ class Plotter:
 
         return fig, axes
 
-
-    def _get_mc_variable(self, variable, query, track_cuts=None):
-        mc_plotted_variable = self._selection(
-            variable, self.samples["mc"], query=query, track_cuts=track_cuts)
-        mc_weight = [self.weights["mc"]] * len(mc_plotted_variable)
-
-        return mc_plotted_variable, mc_weight
-
     def plot_2d_oneplot(self, variable1_name, variable2_name, query="selected==1", track_cuts=None, **plot_options):
-        variable1, weight1 = self._get_mc_variable(variable1_name, query, track_cuts=track_cuts)
-        variable2, weight2 = self._get_mc_variable(variable2_name, query, track_cuts=track_cuts)
+        variable1, weight1 = self._get_variable(variable1_name, query, track_cuts=track_cuts)
+        variable2, weight2 = self._get_variable(variable2_name, query, track_cuts=track_cuts)
+
         heatmap, xedges, yedges = np.histogram2d(variable1, variable2,
                                                  range=[[plot_options["range_x"][0], plot_options["range_x"][1]], [plot_options["range_y"][0], plot_options["range_y"][1]]],
                                                  bins=[plot_options["bins_x"], plot_options["bins_y"]],
@@ -885,45 +833,11 @@ class Plotter:
         if 'range_z' in plot_options:
             image = axis.imshow(heatmap.T, extent=extent, origin='lower', aspect="auto",
                 vmin=plot_options['range_z'][0], vmax=plot_options['range_z'][1])
-        if 'log' in plot_options:
-            if plot_options['log']:
-                image = axis.imshow(heatmap.T, extent=extent, origin='lower', aspect="auto", norm=LogNorm())
-            else:
-                image = axis.imshow(heatmap.T, extent=extent, origin='lower', aspect="auto")
         else:
             image = axis.imshow(heatmap.T, extent=extent, origin='lower', aspect="auto")
 
         return fig, axis, image
 
-    def plot_1d_oneplot(self, variable1_name, variable2_name, query="nslice==1", track_cuts=None,
-                        fig=None, axis=None, kind1d='diffratio', **plot_options):
-        variable1, weight1 = self._get_mc_variable(variable1_name, query, track_cuts=track_cuts)
-        variable2, weight2 = self._get_mc_variable(variable2_name, query, track_cuts=track_cuts)
-
-        variable1 = np.array(variable1)
-        variable2 = np.array(variable2)
-        if kind1d == 'diffratio':
-            num = variable2 - variable1
-            den = variable1
-        elif kind1d == 'ratio':
-            num = variable2
-            den = variable1
-        elif kind1d == 'diff':
-            num = variable2 - variable1
-            den = 1.0
-
-        res = num / den
-
-        res = res[res > -99]
-
-        #if figure is passed, use that to build plot
-        if not fig:
-            fig = plt.figure(figsize=(6,6))
-            axis = plt.gca()
-
-
-        bin_vals,_,_ = axis.hist(res, **plot_options)
-        axis.plot([0,0],[0,max(bin_vals)], 'r--')
 
     def add_detsys_error(self,sample,mc_entries_v,weight):
         #print ("sample is ",sample)
@@ -943,97 +857,11 @@ class Plotter:
         #print ('entries are : ',entries_v)
         return detsys_v
 
-    def order_categorized_dicts(self, stacksort, var_dict, weight_dict, kind):
-        # order stacked distributions
-        order_dict = {}
-        order_var_dict    = {}
-        order_weight_dict = {}
-        if kind == "event_category":
-            if (stacksort >= 1 and stacksort <= 3):
-                # figure out ordering based on total yield.
-                # Options are to have no exceptions (stacksort=1),
-                # put eLEE on top (stacksort=2), or put nue+eLEE on top (stacksort=3)
-                # put numu on top (stacksort >= 4)
-                has1 = False
-                has10 = False
-                has11 = False
-                has111 = False
-                for c in var_dict.keys():
-                    if stacksort >= 2:
-                        if int(c)==111:
-                            has111 = True
-                            continue
-                    if stacksort == 3:
-                        if int(c)==1:
-                            has1 = True
-                            continue
-                        if int(c)==10:
-                            has10 = True
-                            continue
-                        if int(c)==11:
-                            has11 = True
-                            continue
-                    order_dict[c] = sum(weight_dict[c])
-                    order_dict = {k: v for k, v in sorted(order_dict.items(), key=lambda item: item[1])}
-                if has1:
-                    order_dict[1] = sum(weight_dict[1])
-                if has10:
-                    order_dict[10] = sum(weight_dict[10])
-                if has11:
-                    order_dict[11] = sum(weight_dict[11])
-                if has111:
-                    order_dict[111] = sum(weight_dict[111])
-                # now that the order has been sorted out, fill the actual dicts
-                for c in order_dict.keys():
-                    order_var_dict[c] = var_dict[c]
-                for c in order_dict.keys():
-                    order_weight_dict[c] = weight_dict[c]
-            elif stacksort == 4:
-                #put the numu stuff on top
-                keys = list(var_dict.keys())
-                hasprotons = 23 in keys
-                haspi0 = 21 in keys
-                hasNC = 3 in keys
-                """
-                if hasNC:
-                    keys.remove(3) #take them out
-                    keys.append(3) #and put at end
-                if haspi0:
-                    keys.remove(21)
-                    keys.append(21)
-                """
-                if hasprotons:
-                    keys.remove(22)
-                    keys.remove(23)
-                    keys.remove(24)
-                    keys.remove(25)
-                    keys.append(22)
-                    keys.append(23)
-                    keys.append(24)
-                    keys.append(25)
-                else:
-                    keys.remove(2)
-                    keys.append(2)
 
-                for c in keys:
-                    order_var_dict[c] = var_dict[c]
-                    order_weight_dict[c] = weight_dict[c]
-            else:
-                for c in var_dict.keys():
-                    order_var_dict[c] = var_dict[c]
-                for c in weight_dict.keys():
-                    order_weight_dict[c] = weight_dict[c]
-        else:
-            for c in var_dict.keys():
-                order_var_dict[c] = var_dict[c]
-                order_weight_dict[c] = weight_dict[c]
-
-        return order_var_dict, order_weight_dict
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
-                      detsys=None,ratio=True,chisq=False,purity=False,draw_data=True,
-                      fig = None, axis = None,
+                      detsys=None,ratio=True,chisq=False,
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
@@ -1076,20 +904,11 @@ class Plotter:
             categorization = self._categorize_entries
             cat_labels = category_labels
         elif kind == "particle_pdg":
-            '''
-            I couldn't get this bit to work, so I made my own ('backtracked_pdg') - Ryan
-            '''
-            try:
-                var = self.samples["mc"].query(query).eval(variable)
-            except:
-                var = self.samples["mc"].query(query)[variable]
+            var = self.samples["mc"].query(query).eval(variable)
             if var.dtype == np.float32:
                 categorization = self._categorize_entries_single_pdg
             else:
                 categorization = self._categorize_entries_pdg
-            cat_labels = pdg_labels
-        elif kind == "backtracked_pdg":
-            categorization = self._categorize_entries_backtracked_pdg
             cat_labels = pdg_labels
         elif kind == "interaction":
             categorization = self._categorize_entries_int
@@ -1098,7 +917,7 @@ class Plotter:
             return self._plot_variable_samples(variable, query, title, **plot_options)
         else:
             raise ValueError(
-                "Unrecognized categorization, you are using {} \n Valid options are 'sample', 'event_category', 'backtracked_pdg', and 'particle_pdg'".format(kind))
+                "Unrecognized categorization, valid options are 'sample', 'event_category', and 'particle_pdg'")
 
         '''
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
@@ -1116,18 +935,11 @@ class Plotter:
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         '''
 
-        #apply the categorization function and cuts
         category, mc_plotted_variable = categorization(
-<<<<<<< HEAD
-            self.samples["mc"], variable, query=query, extra_cut=nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
-        #the keys will be the numerical category labels
-=======
             self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
 
->>>>>>> 44979561c8d8df960ad242af0797c6c32df1fb09
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
-        #get genie weights after cuts
         mc_genie_weights = self._get_genie_weight(
             self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts,select_longest=select_longest)
 
@@ -1241,28 +1053,90 @@ class Plotter:
         ext_plotted_variable = self._select_showers(
             ext_plotted_variable, variable, self.samples["ext"], query=query)
 
-        if draw_data:
-            data_plotted_variable = self._selection(
-                variable, self.samples["data"], query=query, track_cuts=track_cuts, select_longest=select_longest)
-            data_plotted_variable = self._select_showers(data_plotted_variable, variable,
+        data_plotted_variable = self._selection(
+            variable, self.samples["data"], query=query, track_cuts=track_cuts, select_longest=select_longest)
+        data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
-        else: ratio=False
+
+
 
         if (ratio==True):
-            if len(list(var_dict.keys())) > 10:
-                fig = plt.figure(figsize = (15,8))
-            else:
-                fig = plt.figure(figsize=(9, 7))
+            fig = plt.figure(figsize=(8, 7))
             gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
-            ax1 = plt.subplot(gs[0, :])
-            ax2 = plt.subplot(gs[1, :])
+            ax1 = plt.subplot(gs[0])
+            ax2 = plt.subplot(gs[1])
         else:
-            fig = plt.figure(figsize=(9, 6))
-            ax1 = plt.gca()
+            fig = plt.figure(figsize=(7, 5))
+            gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
+            ax1 = plt.subplot(gs[0])
 
-        order_var_dict, order_weight_dict = self.order_categorized_dicts(stacksort,var_dict,weight_dict,kind)
 
-        #print(order_weight_dict[21])
+
+        # order stacked distributions
+        order_dict = {}
+        order_var_dict    = {}
+        order_weight_dict = {}
+        if (stacksort >= 1 and stacksort <= 3):
+            # figure out ordering based on total yield.
+            # Options are to have no exceptions (stacksort=1),
+            # put eLEE on top (stacksort=2), or put nue+eLEE on top (stacksort=3)
+            # put numu on top (stacksort >= 4)
+            has1 = False
+            has10 = False
+            has11 = False
+            has111 = False
+            for c in var_dict.keys():
+                if stacksort >= 2:
+                    if int(c)==111:
+                        has111 = True
+                        continue
+                if stacksort == 3:
+                    if int(c)==1:
+                        has1 = True
+                        continue
+                    if int(c)==10:
+                        has10 = True
+                        continue
+                    if int(c)==11:
+                        has11 = True
+                        continue
+                order_dict[c] = sum(weight_dict[c])
+                order_dict = {k: v for k, v in sorted(order_dict.items(), key=lambda item: item[1])}
+            if has1:
+                order_dict[1] = sum(weight_dict[1])
+            if has10:
+                order_dict[10] = sum(weight_dict[10])
+            if has11:
+                order_dict[11] = sum(weight_dict[11])
+            if has111:
+                order_dict[111] = sum(weight_dict[111])
+            # now that the order has been sorted out, fill the actual dicts
+            for c in order_dict.keys():
+                order_var_dict[c] = var_dict[c]
+            for c in order_dict.keys():
+                order_weight_dict[c] = weight_dict[c]
+        elif stacksort == 4:
+            #put the numu stuff on top
+            hasprotons = 23 in var_dict.keys()
+            keys = list(var_dict.keys())
+            if hasprotons:
+                keys.remove(23)#take them out
+                keys.remove(24)
+                keys.remove(25) 
+                keys.append(23)#and put at end
+                keys.append(24)
+                keys.append(25) 
+                
+            for c in keys:
+                order_var_dict[c] = var_dict[c]
+                order_weight_dict[c] = weight_dict[c]
+        else:
+            for c in var_dict.keys():
+                order_var_dict[c] = var_dict[c]
+            for c in weight_dict.keys():
+                order_weight_dict[c] = weight_dict[c]
+
+
         total = sum(sum(order_weight_dict[c]) for c in order_var_dict)
         total += sum([self.weights["ext"]] * len(ext_plotted_variable))
         labels = [
@@ -1270,20 +1144,12 @@ class Plotter:
             if sum(order_weight_dict[c]) else ""
             for c in order_var_dict.keys()
         ]
-        if purity:
-            labels = [
-                "{}: {} ({}%)".format(cat_labels[c], round(sum(order_weight_dict[c]),1), round(sum(order_weight_dict[c])*100/total,1)) \
-                if sum(order_weight_dict[c]) else ""
-                for c in order_var_dict.keys()
-            ]
+
 
         if kind == "event_category":
             plot_options["color"] = [category_colors[c]
                                      for c in order_var_dict.keys()]
         elif kind == "particle_pdg":
-            plot_options["color"] = [pdg_colors[c]
-                                     for c in order_var_dict.keys()]
-        elif kind == "backtracked_pdg":
             plot_options["color"] = [pdg_colors[c]
                                      for c in order_var_dict.keys()]
         else:
@@ -1316,13 +1182,11 @@ class Plotter:
             total_array, weights=total_weight,  **plot_options)
 
         ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
-        ext_label = "EXT: %.1f" % sum(ext_weight) if sum(ext_weight) else ""
-        if purity: ext_label = "EXT: {} ({}%)".format(round(sum(ext_weight),1),int(round(sum(order_weight_dict[c])*100/total)))
         n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
             weights=ext_weight,
             bottom=total_hist,
-            label= ext_label,
+            label="EXT: %.1f" % sum(ext_weight) if sum(ext_weight) else "",
             hatch="//",
             color="white",
             **plot_options)
@@ -1471,55 +1335,21 @@ class Plotter:
                     print("Error calculating the significance", err)
                     self.significance = -1
                     self.significance_likelihood = -1
-<<<<<<< HEAD
-
-        '''
-        ax1.bar(bincenters, n_tot, facecolor='none',
-                edgecolor='none', width=0, yerr=exp_err)
-=======
         # old error-bar plotting
         #ax1.bar(bincenters, n_tot, facecolor='none',
         #       edgecolor='none', width=0, yerr=exp_err)
         ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.2,bottom=(n_tot-exp_err))
         #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
->>>>>>> 44979561c8d8df960ad242af0797c6c32df1fb09
         '''
-        #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
-        err_neg = list(n_tot-exp_err)
-        err_pos = list(n_tot+exp_err)
         ax1.fill_between(
-            #bincenters-(bincenters[1]-bincenters[0])/2.,
-            bin_edges,
-            [err_neg[0]] + err_neg,
-            [err_pos[0]] + err_pos,
+            bincenters+(bincenters[1]-bincenters[0])/2.,
+            n_tot-exp_err,
+            n_tot+exp_err,
             step="pre",
             color="grey",
             alpha=0.5)
+        '''
 
-<<<<<<< HEAD
-        if draw_data:
-            n_data, bins = np.histogram(data_plotted_variable, **plot_options)
-            data_err = np.sqrt(n_data)
-            if sum(n_data) > 0:
-                ax1.errorbar(
-                    bincenters,
-                    n_data,
-                    xerr=bin_size,
-                    yerr=data_err,
-                    fmt='ko',
-                    label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
-
-        if len(list(order_var_dict.keys())) > 10:
-            handles, labels = ax1.get_legend_handles_labels()
-            leg = ax1.legend(
-                handles[::-1], labels[::-1],
-                bbox_to_anchor=(1.04,1),loc='upper left',
-                frameon=False, title=r'MicroBooNE Preliminary %g POT' % self.pot,
-                )
-        else:
-            leg = ax1.legend(
-                frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
-=======
 
         n_data, bins = np.histogram(data_plotted_variable, **plot_options)
         data_err = np.sqrt(n_data)
@@ -1544,18 +1374,19 @@ class Plotter:
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
             chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
+            chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
             self.stats['chisq full covariance'] = chicov
             self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['d.o.f.'] = dof
-            self.stats['pvalue (diag)'] = (1 - scipy.stats.chi2.cdf(chinocov,dof))
-            self.stats['pvalue'] = (1 - scipy.stats.chi2.cdf(chicov,dof))
+            self.stats['pvaluestatonly'] = (1 - scipy.stats.chi2.cdf(chistatonly,dof))
+            self.stats['pvaluediag']     = (1 - scipy.stats.chi2.cdf(chinocov,dof))
+            self.stats['pvalue']         = (1 - scipy.stats.chi2.cdf(chicov,dof))
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
 
         leg = ax1.legend(
             frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
->>>>>>> 44979561c8d8df960ad242af0797c6c32df1fb09
         leg._legend_box.align = "left"
         plt.setp(leg.get_title(), fontweight='bold')
 
@@ -1570,7 +1401,7 @@ class Plotter:
 
         if (ratio==True):
             ax1.set_xticks([])
-
+            
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
         '''
@@ -1583,32 +1414,31 @@ class Plotter:
             alpha=0.5)
         '''
 
-        if draw_data:
-            self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
-            if (ratio==True):
-                self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-                ax2.set_xlabel(title,fontsize=18)
-                ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
-            else:
-                ax1.set_xlabel(title,fontsize=18)
+        self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
 
-            if ( (chisq==True) and (ratio==True)):
-                if sum(n_data) > 0:
-                    ax2.text(
-                        0.88,
-                        0.845,
-                        r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc, #+
-                        #         '\n' +
-                        #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-                        va='center',
-                        ha='center',
-                        ma='right',
-                        fontsize=12,
-                        transform=ax2.transAxes)
+        if (ratio==True):
+            self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
+
+        if ( (chisq==True) and (ratio==True)):
+            if sum(n_data) > 0:
+                ax2.text(
+                    0.88,
+                    0.845,
+                    r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc, #+
+                    #         '\n' +
+                    #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                    va='center',
+                    ha='center',
+                    ma='right',
+                    fontsize=12,
+                    transform=ax2.transAxes)
+
+        if (ratio==True):
+            ax2.set_xlabel(title,fontsize=18)
+            ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
         else:
             ax1.set_xlabel(title,fontsize=18)
-
-        plt.gcf().subplots_adjust(bottom=0.15)
+            
         fig.tight_layout()
         if title == variable:
             ax1.set_title(query)
@@ -1714,10 +1544,10 @@ class Plotter:
                 lee_plotted_variable, variable, self.samples["lee"], query=query)
             lee_weight = self.samples["lee"].query(query)["leeweight"] * self.weights["lee"]
 
-        if draw_data:
-            data_plotted_variable = self._selection(
-                variable, self.samples["data"], query=query)
-            data_plotted_variable = self._select_showers(
+
+        data_plotted_variable = self._selection(
+            variable, self.samples["data"], query=query)
+        data_plotted_variable = self._select_showers(
             data_plotted_variable,
             variable,
             self.samples["data"],
@@ -1972,16 +1802,15 @@ class Plotter:
                     for i in range(len(tot_bins) - 1)]
         ax1.bar(bincenters, n_tot, width=0, yerr=exp_err)
 
-        if draw_data:
-            n_data, bins = np.histogram(data_plotted_variable, **plot_options)
-            data_err = np.sqrt(n_data)
-            ax1.errorbar(
-                bincenters,
-                n_data,
-                xerr=bin_size,
-                yerr=data_err,
-                fmt='ko',
-                label="BNB: %i events" % len(data_plotted_variable))
+        n_data, bins = np.histogram(data_plotted_variable, **plot_options)
+        data_err = np.sqrt(n_data)
+        ax1.errorbar(
+            bincenters,
+            n_data,
+            xerr=bin_size,
+            yerr=data_err,
+            fmt='ko',
+            label="BNB: %i events" % len(data_plotted_variable))
 
         leg = ax1.legend(
             frameon=False, title=r'MicroBooNE Preliminary %g POT' % self.pot)
@@ -2044,7 +1873,7 @@ class Plotter:
         n_cv_tot.fill(0)
 
         for t in self.samples:
-            if t in ["ext", "data", "dirt","data_1e20","data_7e18"]: #,"dirt","ccnopi","cccpi","nccpi","ncnopi","ncpi0","mc","ccpi0"]:
+            if t in ["ext", "data", "lee"]: #,"dirt","ccnopi","cccpi","nccpi","ncnopi","ncpi0","mc","ccpi0"]:
                 continue
 
             tree = self.samples[t]
