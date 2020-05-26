@@ -268,25 +268,54 @@ class Plotter:
 
     def _chisq_full_covariance(self,data, mc,CNP=True):
 
-        COV = self.cov
-        COV_STAT = 3 * np.linalg.inv( np.linalg.inv(self.cov_data_stat) + 2 * np.linalg.inv(self.cov_mc_stat) )
-        if (CNP == False):
-            COV_STAT = self.cov_data_stat + self.cov_mc_stat
+        #np.set_printoptions(precision=3)
+        
+        COV = self.cov + self.cov_mc_stat
 
+        #print ('COV matrix (syst only) : ',COV)
+
+        #self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
+        #self.cov           = np.zeros([len(exp_err), len(exp_err)])
+
+        COV_STAT = np.zeros([len(data), len(data)])
+
+        ERR_STAT = 3. / ( 1./data + 2./mc )
+
+        for i,d in enumerate(data):
+            if (d == 0):
+                ERR_STAT[i] = mc[i]/2.
+        
+        if (CNP == False):
+            ERR_STAT = data + mc
+        #for i,d in enumerate(data):
+        #    COV_STAT[i][i] = 3. / ( (1./d) + (2./mc[i]) )
+        
+        #COV_STAT = 3 * np.linalg.inv( np.linalg.inv(self.cov_data_stat) + 2 * np.linalg.inv(self.cov_mc_stat) )
+        #if (CNP == False):
+        #    for i,d in enumerate(data):
+        #    COV_STAT[i][i] += (d+mc[i])
+        #    #COV_STAT = self.cov_data_stat + self.cov_mc_stat
+
+        COV_STAT[np.diag_indices_from(COV_STAT)] = ERR_STAT
+            
         COV += COV_STAT
+
+        #print ('COV matrix : ',COV)
         
         diff = (data-mc)
         #coverr = cov
         #coverr[np.diag_indices_from(coverr)] += data
         emtxinv = np.linalg.inv(COV)
+        #print ('ERR matrix : ',emtxinv)
         chisq = float(diff.dot(emtxinv).dot(diff.T))
 
         covdiag = np.diag(COV)
         chisqsum = 0.
         for i,d in enumerate(diff):
+            #print ('bin %i has COV value %.02f'%(i,covdiag[i]))
             chisqsum += ( (d**2) /covdiag[i])
         
-        return np.sqrt(chisq), chisqsum 
+        return chisq, chisqsum 
 
 
     
@@ -1246,7 +1275,6 @@ class Plotter:
         self.cov_data_stat = np.zeros([len(exp_err), len(exp_err)])
 
         self.cov_mc_stat[np.diag_indices_from(self.cov_mc_stat)]     = (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
-        self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)        
         
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
@@ -1292,6 +1320,9 @@ class Plotter:
 
         n_data, bins = np.histogram(data_plotted_variable, **plot_options)
         data_err = np.sqrt(n_data)
+
+        self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
+        
         if sum(n_data) > 0:
             ax1.errorbar(
                 bincenters,
@@ -1313,10 +1344,11 @@ class Plotter:
             self.stats['chisq full covariance'] = chicov
             self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['d.o.f.'] = len(n_data)
-            self.stats['p-value'] = (1 - scipy.stats.chi2.cdf(chicov,len(n_data)) )
+            self.stats['p-value (diag)'] = (1 - scipy.stats.chi2.cdf(chinocov,len(n_data)))
+            self.stats['p-value (cov)'] = (1 - scipy.stats.chi2.cdf(chicov,len(n_data)))
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
-            self.print_stats()
+            #self.print_stats()
 
         leg = ax1.legend(
             frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
