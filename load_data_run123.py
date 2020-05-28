@@ -145,6 +145,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         "shr_theta_v","shr_phi_v","shr_energy_y_v",
         "shr_start_x_v","shr_start_z_v","shr_start_z_v",
         "trk_start_x_v","trk_start_z_v","trk_start_z_v",
+        "topological_score"
     ]
     #make the list unique
     variables = list(set(variables))

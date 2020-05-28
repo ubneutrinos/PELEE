@@ -132,12 +132,28 @@ stages_queries = {
 }
 
 stages_titles = {
-    1 : 'Stage 1\n1.05 GeV < Reco energy < 2.05 GeV and Np preselection cuts\nN showers contained == 1',
-    2 : 'Stage 2\nLow PID and Np preselection cuts\nN showers contained == 1',
-    3 : 'Stage 3\n1.05 GeV < Reco energy < 2.05 GeV and Np very loose box cuts',
-    4 : 'Stage 4\n1.05 GeV < Reco energy < 2.05 GeV and Np loose box cuts',
-    5 : 'Stage 5\n1.05 GeV < Reco energy < 2.05 GeV and high PID',
-    6 : 'Stage 6\n1.05 GeV < Reco energy < 2.05 GeV and 0p BDT>0.5',
+    1 : '1.05 GeV < Reco energy < 2.05 GeV and 1eNp preselection\nN-showers contained == 1',
+    2 : 'Low PID and Np preselection cuts',
+    3 : '1.05 GeV < Reco energy < 2.05 GeV and 1eNp very loose box cuts',
+    4 : '1.05 GeV < Reco energy < 2.05 GeV and 1eNp loose box cuts',
+    5 : '1.05 GeV < Reco energy < 2.05 GeV and high 1eNp BDT',
+    6 : '1.05 GeV < Reco energy < 2.05 GeV and 0p BDT>0.5',
+}
+
+stages_queries_noupbound = {
+    1 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower]),
+    3 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower, NPVLCUTQ]),
+    4 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower, NPLCUTQ]),
+    5 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower, BDTCQ]),
+    6 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower, ZPBDTVLOOSE]),
+}
+
+stages_titles_noupbound = {
+    1 : 'Reco energy > 1.05 GeV and 1eNp preselection\nN-showers contained == 1',
+    3 : 'Reco energy > 1.05 GeV and 1eNp very loose box cuts',
+    4 : 'Reco energy > 1.05 GeV and 1eNp loose box cuts',
+    5 : 'Reco energy > 1.05 GeV and high 1eNp BDT',
+    6 : 'Reco energy > 1.05 GeV and 0p BDT>0.5',
 }
 
 stages_queries_two_plus_showers = {
@@ -155,17 +171,17 @@ stages_queries_two_plus_showers = {
 }
 
 stages_titles_two_plus_showers = {
-    0 : 'Stage 0\n' + r'$\nu_e$ preselection cuts',
-    1 : 'Stage 1\n1.05 GeV < Reco energy < 2.05 GeV and Np preselection cuts',
-    2 : 'Stage 2\nLow PID and Np preselection cuts',
-    3 : 'Stage 3\n1.05 GeV < Reco energy < 2.05 GeV and Np very loose box cuts',
-    4 : 'Stage 4\n1.05 GeV < Reco energy < 2.05 GeV and Np loose box cuts',
-    5 : 'Stage 5\n1.05 GeV < Reco energy < 2.05 GeV and high PID',
-    6 : 'Stage 6\nNp preselection cuts',
-    7 : 'Stage 7\nNp very loose box cuts',
-    8 : 'Stage 8\nNp loose box cuts',
-    9 : 'Stage 9\nhigh PID',
-    10: 'Stage10\nNp tight box cuts',
+    0 :  r'$\nu_e$ preselection cuts',
+    1 : '1.05 GeV < Reco energy < 2.05 GeV and 1eNp preselection cuts',
+    2 : 'Low PID and Np preselection cuts',
+    3 : '1.05 GeV < Reco energy < 2.05 GeV and 1eNp very loose box cuts',
+    4 : '1.05 GeV < Reco energy < 2.05 GeV and 1eNp loose box cuts',
+    5 : '1.05 GeV < Reco energy < 2.05 GeV and high 1eNp BDT',
+    6 : '1eNp preselection cuts',
+    7 : '1eNp very loose box cuts',
+    8 : '1eNp loose box cuts',
+    9 : 'high 1eNp BDT',
+    10: '1eNp tight box cuts',
 }
 
 stages_queries_two_plus_showers_low_medium_energy = {
@@ -254,6 +270,7 @@ plot_variables = [
         #('shrsubclusters0',20,(0,20),"N sub-clusters in shower (U)"),
         #('shrsubclusters1',20,(0,20),"N sub-clusters in shower (V)"),
         #('shrsubclusters2',20,(0,20),"N sub-clusters in shower (Y)"),
+        ('topological_score',20,(0,1),"topological score"),
         ('trk_theta',21,(0,3.14),r"Track $\theta$"),
         ('trk_phi',21,(-3.14, 3.14),r"Track $\phi$"),
         ('trk_len',20,(0,100),"Track length [cm]"),
