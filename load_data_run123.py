@@ -24,7 +24,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
     # sample list
     R1BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
     R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C_all_reco2'
-#     R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C1_C2_D1_D2_E1_E2_all_reco2' #Run1 + Run2
+    #R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C1_C2_D1_D2_E1_E2_all_reco2' #Run1 + Run2
     R1NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2'
     R1NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     R1DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
@@ -86,17 +86,17 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
     ur1ncnopi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCNOPI+ls.APPEND+".root")[fold][tree]
     ur1nccpi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCCPI+ls.APPEND+".root")[fold][tree]
     
-    R123_TWO_SHOWERS_SIDEBAND_BNB = '1e_2showers_sidebands'
-    R123_NP_FAR_SIDEBAND_BNB = '1enp_far_sidebands'
-    ur123data_two_showers_sidebands = uproot.open(ls.ntuple_path+'data_sidebands/'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
+    R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_ALL'
+    R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_ALL'
+    ur123data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
     
-    ur1data_two_showers_sidebands = uproot.open(ls.ntuple_path+'data_sidebands/run1_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
-    ur2data_two_showers_sidebands = uproot.open(ls.ntuple_path+'data_sidebands/run2_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
-    ur3data_two_showers_sidebands = uproot.open(ls.ntuple_path+'data_sidebands/run3_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
+    ur1data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
+    ur2data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
+    ur3data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
 
-    ur1data_np_far_sidebands = uproot.open(ls.ntuple_path+'data_sidebands/run1_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-    ur2data_np_far_sidebands = uproot.open(ls.ntuple_path+'data_sidebands/run2_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-    ur3data_np_far_sidebands = uproot.open(ls.ntuple_path+'data_sidebands/run3_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+    ur1data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+    ur2data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+    ur3data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
     
     variables = [
         "shr_dedx_Y", "shr_bkt_pdg", "p", "pt", "selected", "nu_pdg", "shr_theta",
@@ -532,6 +532,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         data = pd.concat([r1data_two_showers_sidebands, r2data_two_showers_sidebands, r3data_two_showers_sidebands],ignore_index=True)
     elif which_sideband == 'np_far':
         data = pd.concat([r1data_np_far_sidebands, r2data_np_far_sidebands, r3data_np_far_sidebands],ignore_index=True)
+    elif which_sideband == "opendata":
+        data = pd.concat([r1data, r3data],ignore_index=True) # 5e19 and 1e19
     ext = pd.concat([r3ext, r2ext, r1ext],ignore_index=True)
     dirt = pd.concat([r3dirt,r1dirt],ignore_index=True)
     lee = pd.concat([r1lee,r2lee,r3lee],ignore_index=True)
@@ -782,9 +784,14 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         return samples
     
 pot_data_unblinded = {
-    1: (1.45E+20, 32139256),
-    2: (2.58E+20, 60909877),
-    3: (1.86E+20, 44266555),
+    "farsideband" : {
+        1: (1.45E+20, 32139256),
+        2: (2.58E+20, 60909877),
+        3: (1.86E+20, 44266555), },
+    "opendata" : {
+        1: (4.08E+19, 9028010),
+        2: (1.00E+01, 1),
+        3: (7.63E+18, 1838700), }
 }
 
 pot_mc_samples = {}
@@ -824,11 +831,11 @@ pot_mc_samples[3] = {
     'ext': 86991453,
 }
 
-def get_weights(run):
+def get_weights(run,dataset="farsideband"):
     assert run in [1, 2, 3, 123, 12]
     weights_out = {}
     if run in [1, 2, 3]:
-        pot_on, n_trig_on = pot_data_unblinded[run]
+        pot_on, n_trig_on = pot_data_unblinded[dataset][run]
         for sample, pot in pot_mc_samples[run].items():
             if sample == 'ext':
                 weights_out[sample] = n_trig_on/pot
@@ -842,7 +849,7 @@ def get_weights(run):
         total_pot_on = 0
         total_n_trig_on = 0
         for run in [1, 2, 3]:
-            pot_on, n_trig_on = pot_data_unblinded[run]
+            pot_on, n_trig_on = pot_data_unblinded[dataset][run]
             total_pot_on += pot_on
             total_n_trig_on += n_trig_on
         for sample in pot_mc_samples[1].keys():
@@ -859,7 +866,7 @@ def get_weights(run):
         total_pot_on = 0
         total_n_trig_on = 0
         for run in [1, 2]:
-            pot_on, n_trig_on = pot_data_unblinded[run]
+            pot_on, n_trig_on = pot_data_unblinded[dataset][run]
             total_pot_on += pot_on
             total_n_trig_on += n_trig_on
 

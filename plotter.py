@@ -330,7 +330,9 @@ class Plotter:
 
         if (STATONLY == True):
             COV = COV_STAT
-
+            #print ('COV : ',COV)
+            #print ('data : ',data)
+            #print ('mc : ',mc)
 
 
         #print ('COV matrix : ',COV)
@@ -1378,6 +1380,7 @@ class Plotter:
             self.stats['chisq full covariance'] = chicov
             self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['d.o.f.'] = dof
+            self.stats['chisqstatonly']  = chistatonly
             self.stats['pvaluestatonly'] = (1 - scipy.stats.chi2.cdf(chistatonly,dof))
             self.stats['pvaluediag']     = (1 - scipy.stats.chi2.cdf(chinocov,dof))
             self.stats['pvalue']         = (1 - scipy.stats.chi2.cdf(chicov,dof))
