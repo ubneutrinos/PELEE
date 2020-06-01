@@ -239,6 +239,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
         df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
         df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
+        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
+        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
         #
         trk_score_v = up.array("trk_score_v")
         pfnhits_v = up.array("pfnhits")
@@ -354,6 +356,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
         df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
         df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
+        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
+        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
         #
         trk_score_v = up.array("trk_score_v")
         pfnhits_v = up.array("pfnhits")
@@ -451,6 +455,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
         df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
         df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
+        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
+        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
         #
         trk_score_v = up.array("trk_score_v")
         pfnhits_v = up.array("pfnhits")
@@ -831,7 +837,7 @@ pot_mc_samples[3] = {
     'ext': 86991453,
 }
 
-def get_weights(run,dataset="farsideband"):
+def get_weights(run,dataset="farsideband",scaling=1.0):
     assert run in [1, 2, 3, 123, 12]
     weights_out = {}
     if run in [1, 2, 3]:
@@ -880,6 +886,9 @@ def get_weights(run,dataset="farsideband"):
             else:
                 weights_out[sample] = total_pot_on/this_sample_pot
         pot_out = total_pot_on
+
+    for key, val in weights_out.items():
+        weights_out[key] *= scaling
         
     return weights_out, pot_out
                     
