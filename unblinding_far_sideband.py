@@ -21,7 +21,7 @@ NPVLCUTQ += ' and CosmicIPAll3D > 10.'
 NPVLCUTQ += ' and trkpid < 0.25'
 NPVLCUTQ += ' and hits_ratio > 0.5'
 NPVLCUTQ += ' and trkfit < 0.90'
-#NPVLCUTQ += ' and n_showers_contained == 1'
+NPVLCUTQ += ' and n_showers_contained == 1'
 NPVLCUTQ += ' and tksh_distance < 10.0'
 NPVLCUTQ += ' and tksh_angle > -0.9'
 
@@ -33,11 +33,12 @@ NPLCUTQ += ' and hits_ratio > 0.50'
 NPLCUTQ += ' and shrmoliereavg < 9'
 NPLCUTQ += ' and subcluster > 4'
 NPLCUTQ += ' and trkfit < 0.65'
-# NPLCUTQ += ' and n_showers_contained == 1'
+NPLCUTQ += ' and n_showers_contained == 1'
 NPLCUTQ += ' and tksh_distance < 6.0'
 NPLCUTQ += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5)'
 #NPLCUTQ += ' and secondshower_Y_nhit < 50'
 NPLCUTQ += ' and tksh_angle > -0.9'
+NPLCUTQ += ' and shr_trk_len < 300.'
 
 # tight box cuts
 NPTCUTQ = NPLCUTQ
@@ -49,7 +50,7 @@ NPTCUTQ += ' and shr_score < 0.25'
 NPTCUTQ += ' and shrmoliereavg > 2 and shrmoliereavg < 10'
 NPTCUTQ += ' and subcluster > 7'
 NPTCUTQ += ' and trkfit < 0.70'
-#NPTCUTQ += ' and n_showers_contained == 1'
+NPTCUTQ += ' and n_showers_contained == 1'
 NPTCUTQ += ' and tksh_distance < 4.0'
 NPTCUTQ += ' and trkshrhitdist2 < 1.5'
 NPTCUTQ += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 1.0 and shr_tkfit_dedx_max < 3.8)'
@@ -64,8 +65,9 @@ BDTCQ += ' and pi0_score > 0.67 and nonpi0_score > 0.70'
 
 #1e0p selection
 ZPPRESEL = PRESQ
-#ZPPRESEL += ' and n_tracks_contained == 0'
+ZPPRESEL += ' and n_tracks_contained == 0'
 ZPPRESEL += ' and n_showers_contained > 0'
+
 ZPBOXCUTS = ZPPRESEL
 ZPBOXCUTS += ' and n_showers_contained == 1'
 ZPBOXCUTS += ' and shrmoliereavg > 1 and shrmoliereavg < 8'
@@ -78,6 +80,8 @@ ZPBOXCUTS += " and (shr_tkfit_gap10_dedx_Y>1.5 & shr_tkfit_gap10_dedx_Y<2.5)"
 ZPBOXCUTS += " and (shr_tkfit_gap10_dedx_U>1.5 & shr_tkfit_gap10_dedx_U<3.75)"
 ZPBOXCUTS += " and (shr_tkfit_gap10_dedx_V>1.5 & shr_tkfit_gap10_dedx_V<3.75)"
 ZPBOXCUTS += " and shr_tkfit_2cm_dedx_max>1. and shr_tkfit_2cm_dedx_max<4."
+ZPBOXCUTS += ' and shr_trk_len < 300.'
+
 ZPLOOSESEL = ZPPRESEL
 ZPLOOSESEL += ' and n_showers_contained == 1'
 ZPLOOSESEL += ' and CosmicIPAll3D > 10.'
@@ -88,6 +92,8 @@ ZPLOOSESEL += ' and trkfit < 0.65'
 ZPLOOSESEL += ' and secondshower_Y_nhit < 50'
 ZPLOOSESEL += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 100'
 ZPLOOSESEL += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
+ZPLOOSESEL += ' and shr_trk_len < 300.'
+
 ZPBDTVLOOSE = ZPLOOSESEL
 ZPBDTVLOOSE += ' and bkg_score >0.5'
 ZPBDTLOOSE = ZPLOOSESEL
