@@ -23,7 +23,6 @@ NPVLCUTQ_all_showers += ' and hits_ratio > 0.5'
 NPVLCUTQ_all_showers += ' and trkfit < 0.90'
 NPVLCUTQ_all_showers += ' and tksh_distance < 10.0'
 NPVLCUTQ_all_showers += ' and tksh_angle > -0.9'
-
 NPVLCUTQ = NPVLCUTQ_all_showers + ' and n_showers_contained == 1'
 
 # loose box cuts
@@ -37,7 +36,7 @@ NPLCUTQ_all_showers += ' and trkfit < 0.65'
 NPLCUTQ_all_showers += ' and tksh_distance < 6.0'
 NPLCUTQ_all_showers += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5)'
 NPLCUTQ_all_showers += ' and tksh_angle > -0.9'
-
+NPLCUTQ_all_showers += ' and shr_trk_len < 300.'
 NPLCUTQ = NPLCUTQ_all_showers + ' and n_showers_contained == 1'
 
 # tight box cuts
@@ -55,14 +54,13 @@ NPTCUTQ_all_showers += ' and trkshrhitdist2 < 1.5'
 NPTCUTQ_all_showers += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 1.0 and shr_tkfit_dedx_max < 3.8)'
 NPTCUTQ_all_showers += ' and (secondshower_Y_nhit<=8 or secondshower_Y_dot<=0.8 or anglediff_Y<=40 or secondshower_Y_vtxdist>=100)'
 NPTCUTQ_all_showers += ' and tksh_angle > -0.9 and tksh_angle < 0.70'
-
+NPTCUTQ_all_showers += ' and shr_trk_len < 300.'
 NPTCUTQ = NPTCUTQ_all_showers + ' and n_showers_contained == 1'
 
 # BDT cuts
 # 0304 extnumi, pi0 and nonpi0
 BDTCQ_all_showers = NPLCUTQ_all_showers
 BDTCQ_all_showers += ' and pi0_score > 0.67 and nonpi0_score > 0.70'
-
 BDTCQ = BDTCQ_all_showers + ' and n_showers_contained == 1'
 
 #1e0p selection
@@ -82,6 +80,7 @@ ZPBOXCUTS_all_tracks += " and (shr_tkfit_gap10_dedx_Y>1.5 & shr_tkfit_gap10_dedx
 ZPBOXCUTS_all_tracks += " and (shr_tkfit_gap10_dedx_U>1.5 & shr_tkfit_gap10_dedx_U<3.75)"
 ZPBOXCUTS_all_tracks += " and (shr_tkfit_gap10_dedx_V>1.5 & shr_tkfit_gap10_dedx_V<3.75)"
 ZPBOXCUTS_all_tracks += " and shr_tkfit_2cm_dedx_max>1. and shr_tkfit_2cm_dedx_max<4."
+ZPBOXCUTS_all_tracks += ' and shr_trk_len < 300.'
 ZPBOXCUTS_onep_track = ZPBOXCUTS_all_tracks + ' and n_tracks_contained > 0'
 ZPBOXCUTS = ZPBOXCUTS_all_tracks + ' and n_tracks_contained == 0'
 
@@ -95,6 +94,7 @@ ZPLOOSESEL_all_tracks += ' and trkfit < 0.65'
 ZPLOOSESEL_all_tracks += ' and secondshower_Y_nhit < 50'
 ZPLOOSESEL_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 100'
 ZPLOOSESEL_all_tracks += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
+ZPLOOSESEL_all_tracks += ' and shr_trk_len < 300.'
 ZPLOOSESEL_onep_track = ZPLOOSESEL_all_tracks + ' and n_tracks_contained > 0'
 ZPLOOSESEL = ZPLOOSESEL_all_tracks + ' and n_tracks_contained == 0'
 

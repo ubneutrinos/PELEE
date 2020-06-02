@@ -17,7 +17,7 @@ import plotter
 
 USEBDT = True
 
-def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
+def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loadpi0variables=False):
     fold = ls.fold
     tree = "NeutrinoSelectionFilter"
 
@@ -160,7 +160,15 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
     MCFVARS = ["mcf_nu_e","mcf_lep_e","mcf_actvol","mcf_nmm","mcf_nmp","mcf_nem","mcf_nep","mcf_np0","mcf_npp",
                "mcf_npm","mcf_mcshr_elec_etot","mcf_pass_ccpi0","mcf_pass_ncpi0",
                "mcf_pass_ccnopi","mcf_pass_ncnopi","mcf_pass_cccpi","mcf_pass_nccpi"]
+    PI0VARS = ["pi0_radlen1","pi0_radlen2","pi0_dot1","pi0_dot2","pi0_energy1_Y","pi0_energy2_Y",
+               "pi0_dedx1_fit_Y","pi0_dedx2_fit_Y","pi0_shrscore1","pi0_shrscore2","pi0_gammadot",
+               "pi0_dedx1_fit_V","pi0_dedx2_fit_V","pi0_dedx1_fit_U","pi0_dedx2_fit_U",
+               "pi0_mass_Y","pi0_mass_V","pi0_mass_U",
+               "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z"]
 
+    if (loadpi0variables == True):
+        variables += PI0VARS
+    
     r3nue = ur3nue.pandas.df(variables + WEIGHTS, flatten=False)
     r3mc = ur3mc.pandas.df(variables + WEIGHTS + MCFVARS, flatten=False)
     r3ncpi0 = ur3ncpi0.pandas.df(variables + WEIGHTS, flatten=False)
@@ -239,6 +247,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
         df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
         df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
+        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
+        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
         #
         trk_score_v = up.array("trk_score_v")
         pfnhits_v = up.array("pfnhits")
@@ -354,6 +364,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
         df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
         df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
+        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
+        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
         #
         trk_score_v = up.array("trk_score_v")
         pfnhits_v = up.array("pfnhits")
@@ -451,6 +463,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
         df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
         df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
+        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
+        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
         #
         trk_score_v = up.array("trk_score_v")
         pfnhits_v = up.array("pfnhits")
@@ -581,6 +595,23 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0):
         df["phi1MinusPhi2"] = df["shr_phi"]-df["trk_phi"]
         df["theta1PlusTheta2"] = df["shr_theta"]+df["trk_theta"]
 
+
+    if (loadpi0variables == True):
+        for i,df in enumerate(df_v):
+            df['asymm'] = np.abs(df['pi0_energy1_Y']-df['pi0_energy2_Y'])/(df['pi0_energy1_Y']+df['pi0_energy2_Y'])
+            df['pi0energy'] = 134.98 * np.sqrt( 2. / ( (1-(df['asymm'])**2) * (1-df['pi0_gammadot']) ) )
+            df['pi0momentum'] = np.sqrt(df['pi0energy']**2 - 134.98**2)
+            df['pi0beta'] = df['pi0momentum']/df['pi0energy']
+            df['pi0thetacm'] = df['asymm']/df['pi0beta']
+            df['pi0momx'] = df['pi0_energy2_Y']*df['pi0_dir2_x'] + df['pi0_energy1_Y']*df['pi0_dir1_x']
+            df['pi0momy'] = df['pi0_energy2_Y']*df['pi0_dir2_y'] + df['pi0_energy1_Y']*df['pi0_dir1_y']
+            df['pi0momz'] = df['pi0_energy2_Y']*df['pi0_dir2_z'] + df['pi0_energy1_Y']*df['pi0_dir1_z']
+            df['pi0energyraw'] = df['pi0_energy2_Y'] + df['pi0_energy1_Y']
+            df['pi0momanglecos'] = df['pi0momz'] / df['pi0energyraw']
+            df['epicospi'] = df['pi0energy'] * (1-df['pi0momanglecos'])
+            df['boost'] = (np.abs(df['pi0_energy1_Y']-df['pi0_energy2_Y'])/0.8)/(np.sqrt((df['pi0energy'])**2-135**2))
+            df['pi0_mass_Y_corr'] = df['pi0_mass_Y']/0.83            
+            
     df_v = [lee,mc,ncpi0,ccpi0,ccnopi,cccpi,ncnopi,nccpi,nue,ext,data,dirt]
     for i,df in enumerate(df_v):
         df['shr_tkfit_nhits_tot'] = (df['shr_tkfit_nhits_Y']+df['shr_tkfit_nhits_U']+df['shr_tkfit_nhits_V'])
@@ -831,7 +862,7 @@ pot_mc_samples[3] = {
     'ext': 86991453,
 }
 
-def get_weights(run,dataset="farsideband"):
+def get_weights(run,dataset="farsideband",scaling=1.0):
     assert run in [1, 2, 3, 123, 12]
     weights_out = {}
     if run in [1, 2, 3]:
@@ -880,6 +911,9 @@ def get_weights(run,dataset="farsideband"):
             else:
                 weights_out[sample] = total_pot_on/this_sample_pot
         pot_out = total_pot_on
+
+    for key, val in weights_out.items():
+        weights_out[key] *= scaling
         
     return weights_out, pot_out
                     
