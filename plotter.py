@@ -330,7 +330,9 @@ class Plotter:
 
         if (STATONLY == True):
             COV = COV_STAT
-
+            #print ('COV : ',COV)
+            #print ('data : ',data)
+            #print ('mc : ',mc)
 
 
         #print ('COV matrix : ',COV)
@@ -1363,32 +1365,35 @@ class Plotter:
 
             self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
 
-            if sum(n_data) > 0:
-                ax1.errorbar(
-                    bincenters,
-                    n_data,
-                    xerr=bin_size,
-                    yerr=data_err,
-                    fmt='ko',
-                    label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
+        self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
 
-            if (draw_sys):
-                #print(n_data,n_tot,data_err, exp_err)
-                chisq = self._chisquare(n_data, n_tot, data_err, exp_err)
-                self.stats['chisq'] = chisq
-                chisqCNP = self._chisq_CNP(n_data,n_tot)
-                self.stats['chisqCNP'] = chisqCNP
-                #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
-                #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
-                chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
-                chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
-                self.stats['chisq full covariance'] = chicov
-                self.stats['chisq full covariance (diagonal only)'] = chinocov
-                self.stats['d.o.f.'] = dof
-                self.stats['pvaluestatonly'] = (1 - scipy.stats.chi2.cdf(chistatonly,dof))
-                self.stats['pvaluediag']     = (1 - scipy.stats.chi2.cdf(chinocov,dof))
-                self.stats['pvalue']         = (1 - scipy.stats.chi2.cdf(chicov,dof))
-                #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
+        if sum(n_data) > 0:
+            ax1.errorbar(
+                bincenters,
+                n_data,
+                xerr=bin_size,
+                yerr=data_err,
+                fmt='ko',
+                label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
+
+        if (draw_sys):
+
+            chisq = self._chisquare(n_data, n_tot, data_err, exp_err)
+            self.stats['chisq'] = chisq
+            chisqCNP = self._chisq_CNP(n_data,n_tot)
+            self.stats['chisqCNP'] = chisqCNP
+            #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
+            #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
+            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
+            chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
+            self.stats['chisq full covariance'] = chicov
+            self.stats['chisq full covariance (diagonal only)'] = chinocov
+            self.stats['d.o.f.'] = dof
+            self.stats['chisqstatonly']  = chistatonly
+            self.stats['pvaluestatonly'] = (1 - scipy.stats.chi2.cdf(chistatonly,dof))
+            self.stats['pvaluediag']     = (1 - scipy.stats.chi2.cdf(chinocov,dof))
+            self.stats['pvalue']         = (1 - scipy.stats.chi2.cdf(chicov,dof))
+            #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
 
@@ -1419,7 +1424,7 @@ class Plotter:
             step="pre",
             color="grey",
             alpha=0.5)
-        
+
 
         if (ratio==True):
             if draw_data == False:

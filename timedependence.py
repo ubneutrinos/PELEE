@@ -47,10 +47,10 @@ class TimePlotter:
         #print ('run range [%i, %i]'%(rMIN,rMAX))
         POT,E1D,EXT = self.GetPOT(rMIN,rMAX)
         
-        #print ('Run range : [%i, %i]'%(rMIN,rMAX))
-        #print ('POT is ',POT)
-        #print ('E1D is ',E1D)
-        #print ('EXT is ',EXT)
+        print ('Run range : [%i, %i]'%(rMIN,rMAX))
+        print ('POT is ',POT)
+        print ('E1D is ',E1D)
+        print ('EXT is ',EXT)
         
         scaling = 0.
         if (EXT != 0):
@@ -126,14 +126,8 @@ class TimePlotter:
         #print ('aaaa')
         
         return infodict
-        
 
-        
-    def QueryByRun(self,NRUN_V,QUERY,RMIN=None,RMAX=None,ONBEAMONLY=False,POTmin=0.0):
-
-        # get subset of data passing the query
-        dfON = (self._dfON).query(QUERY)
-        dfOF = (self._dfOF).query(QUERY)
+    def GetRunBins(self,NRUN_V,RMIN=None,RMAX=None):
 
         rMIN = self._runMIN
         rMAX = self._runMAX
@@ -142,12 +136,97 @@ class TimePlotter:
         if (RMAX != None):
             rMAX = RMAX
 
-        #print (NRUN_V)
-            
         if (len(NRUN_V) == 1):
             RUNbins = np.arange(rMIN,rMAX,NRUN_V[0])
         else:
             RUNbins = NRUN_V
+
+        return RUNbins
+        
+    # QUERYREL -> the query relative to QUERY for which the fractional passing rate is to be measured (i.e. # of events passing QUERYREL / # of events passing QUERY)
+    def QueryRelByRun(self,NRUN_V,QUERY,QUERYREL,RMIN=None,RMAX=None,ONBEAMONLY=False,POTmin=0.0):
+
+        # get subset of data passing the query
+        dfON = (self._dfON).query(QUERY)
+        dfOF = (self._dfOF).query(QUERY)
+
+        RUNbins = self.GetRunBins(NRUN_V,RMIN,RMAX)
+
+        fON_v = []
+        fON_e = []
+        fOF_v = []
+        fOF_e = []
+        fNU_v = []
+        fNU_e = []
+        RUN_v = []
+
+        n = 0
+        
+        for n in range(len(RUNbins)-1):
+
+            rMIN = RUNbins[n]
+            rMAX = RUNbins[n+1]
+
+            POT,E1D,EXT = self.GetPOT(rMIN,rMAX)
+
+            scaling = 0.
+            if (EXT != 0):
+                scaling = float(E1D)/float(EXT)
+
+            nON_d = float((dfON.query('run >= %i and run < %i'%(rMIN,rMAX))).shape[0])
+            nOF_d = float((dfOF.query('run >= %i and run < %i'%(rMIN,rMAX))).shape[0])
+
+            nON_n = float((dfON.query('run >= %i and run < %i and %s'%(rMIN,rMAX,QUERYREL))).shape[0])
+            nOF_n = float((dfOF.query('run >= %i and run < %i and %s'%(rMIN,rMAX,QUERYREL))).shape[0])            
+
+            nNU_d = (nON_d - nOF_d * scaling)
+            nNU_n = (nON_n - nOF_n * scaling)
+
+            fON  = -1
+            fONe = 0.
+            fOF  = -1
+            fOFe = 0.
+            fNU  = -1
+            fNUe = 0.
+
+            if (nON_d > 0):
+                fON = nON_n / nON_d
+                fONe = np.sqrt( fON * (1-fON) / nON_d )
+            if (nOF_d > 0):
+                fOF = nOF_n / nOF_d
+                fOFe = np.sqrt( fOF * (1-fOF) / nOF_d )
+
+            if (nNU_d > 0):
+                fNU = nNU_n / nNU_d
+                #eNU_d = np.sqrt( (1./nON_d)**2 + (1./ (nOF_d * scaling))**2 ) # fractional error on denominator of neutrino events
+                fNUe = np.sqrt( fON * (1-fON) / nON_d )
+            
+            RUN_v.append( (rMIN+rMAX)/2. )
+            fON_v.append(fON)
+            fOF_v.append(fOF)
+            fNU_v.append(fNU)
+            fON_e.append(fONe)
+            fOF_e.append(fOFe)
+            fNU_e.append(fNUe)
+
+        RUN_v = np.array(RUN_v)
+        fON_v = np.array(fON_v)
+        fOF_v = np.array(fOF_v)
+        fNU_v = np.array(fNU_v)
+        fON_e = np.array(fON_e)
+        fOF_e = np.array(fOF_e)
+        fNU_e = np.array(fNU_e)
+            
+        return RUN_v, fON_v, fOF_v, fNU_v, fON_e, fOF_e, fNU_e
+
+        
+    def QueryByRun(self,NRUN_V,QUERY,RMIN=None,RMAX=None,ONBEAMONLY=False,POTmin=0.0):
+
+        # get subset of data passing the query
+        dfON = (self._dfON).query(QUERY)
+        dfOF = (self._dfOF).query(QUERY)
+
+        RUNbins = self.GetRunBins(NRUN_V,RMIN,RMAX)
 
         # events (ON) / 1e18 POT
         selON_v = []
@@ -198,7 +277,7 @@ class TimePlotter:
             if (POT < POTmin):
                 continue
             
-            eventinfo = self.GetEvents(rMIN,rMAX,dfON,dfOF)
+            eventinfo = self.GetEvents(rMIN,rMAX,dfON,dfOF)#,QUERYREL=None)
 
             if (eventinfo == None):
                 continue
