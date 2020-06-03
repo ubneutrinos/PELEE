@@ -1848,7 +1848,8 @@ class Plotter:
         ax.errorbar(bincenters, n_data / n_tot,
                     xerr=bin_size, yerr=ratio_error, fmt="ko")
 
-        ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, tot_err)
+        #ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, tot_err)
+        ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, np.zeros(len(data_err)))
         ratio_error_mc = np.insert(ratio_error_mc, 0, ratio_error_mc[0])
         ax.fill_between(
             bins,
