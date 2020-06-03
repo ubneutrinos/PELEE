@@ -154,6 +154,7 @@ sideband_categories = {
 preselection_categories = {
     'NUE': {'query': PRESQ, 'title': 'Nue Presel.', 'dir': 'NUE'},
     'NP': {'query': NPPRESQ, 'title': '1eNp Presel.', 'dir': 'NP'},
+    'NPOneShr': {'query': NPPRESEQ_one_shower, 'title': '1eNp Presel., 1 shower', 'dir': 'NPOneShr'},
     'ZP': {'query': ZPPRESEL, 'title': '1e0p Presel.', 'dir': 'ZP'},
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
@@ -170,7 +171,7 @@ selection_categories = {
     'NPLAllShr': {'query': NPLCUTQ_all_showers, 'title': '1eNp Loose cuts, 0+ showers', 'dir': 'NPLAllShr'},
     'NPTAllShr': {'query': NPTCUTQ_all_showers, 'title': '1eNp Tight cuts, 0+ showers', 'dir': 'NPTAllShr'},
     'NPBDTAllShr': {'query': BDTCQ_all_showers, 'title': '1eNp BDT sel., 0+ showers', 'dir': 'NPBDTAllShr'},
-    'None': {'query': None, 'title': None, 'dir': 'None'},
+    'None': {'query': None, 'title': 'NoCuts', 'dir': 'None'},
 }
 
 
