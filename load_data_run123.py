@@ -568,7 +568,18 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         if pi0scaling == 1:
             df.loc[ df['npi0'] > 0, 'weightSplineTimesTune' ] = df['weightSpline'] * df['weightTune'] * 0.759
         elif pi0scaling == 2:
-            df.loc[ df['pi0_e'] > 0.1, 'weightSplineTimesTune' ] = df['weightSplineTimesTune']*(1.-0.35*df['pi0_e'])
+            pi0emax = 0.6
+            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] < pi0emax) , 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*df['pi0_e'])
+            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] >= pi0emax), 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*pi0emax)
+            #df.loc[ df['pi0_e'] > 0.1, 'weightSplineTimesTune' ] = df['weightSplineTimesTune']*(1.-0.35*df['pi0_e'])
+        '''
+        pi0emax = 0.6
+        for weight in range(11):
+            df['weightSplineTimesTune%02i'%weight] = df['weightSplineTimesTune']
+            w = weight/10.
+            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] < pi0emax) , 'weightSplineTimesTune%02i'%weight ] = df['weightSplineTimesTune']*(1.-w*df['pi0_e'])
+            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] >= pi0emax), 'weightSplineTimesTune%02i'%weight ] = df['weightSplineTimesTune']*(1.-w*pi0emax)
+        '''
         
     df_v = [lee,mc,ncpi0,ccpi0,ccnopi,cccpi,ncnopi,nccpi,nue,ext,data,dirt]
 
