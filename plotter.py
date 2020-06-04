@@ -493,7 +493,22 @@ class Plotter:
         if ( (track_cuts == None) or (select_longest == False) ):
             return sample.query(sel_query).eval(variable).ravel()
         '''
-        df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
+
+
+        '''
+        df = sample.query(sel_query)
+        #print (df.isna().sum())
+        dfna = df.isna()
+        for (colname,colvals) in dfna.iteritems():
+            if (colvals.sum() != 0):
+                print ('name : ',colname)
+                print ('nan entries : ',colvals.sum())
+        '''
+        df = sample.query(sel_query)
+        #if (track_cuts != None):
+        #    df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
+        
+        #df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
         track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
         if track_cuts is not None:
@@ -843,21 +858,17 @@ class Plotter:
 
 
     def add_detsys_error(self,sample,mc_entries_v,weight):
-        #print ("sample is ",sample)
         detsys_v  = np.zeros(len(mc_entries_v))
         entries_v = np.zeros(len(mc_entries_v))
         if (self.detsys == None): return detsys_v
         if sample in self.detsys:
             if (len(self.detsys[sample]) == len(mc_entries_v)):
-                #print ('len matches!')
                 for i,n in enumerate(mc_entries_v):
                     detsys_v[i] = (self.detsys[sample][i] * n * weight)#**2
                     entries_v[i] = n * weight
             else:
                 print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))
-        #print ('sample : ',sample)
-        #print ('errors  are : ',detsys_v)
-        #print ('entries are : ',entries_v)
+
         return detsys_v
 
 
@@ -940,6 +951,7 @@ class Plotter:
 
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
+
 
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
@@ -1056,7 +1068,6 @@ class Plotter:
                 variable, self.samples["ext"], query=query, track_cuts=track_cuts, select_longest=select_longest)
             ext_plotted_variable = self._select_showers(
             ext_plotted_variable, variable, self.samples["ext"], query=query)
-
             data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query, track_cuts=track_cuts, select_longest=select_longest)
             data_plotted_variable = self._select_showers(data_plotted_variable, variable,
@@ -1328,10 +1339,6 @@ class Plotter:
 
 
 
-            #print ('covariance matrix : ')
-            #print (cov)
-
-
 
 
         if "lee" in self.samples:
@@ -1569,7 +1576,6 @@ class Plotter:
             lee_weight = self.samples["lee"].query(query)["leeweight"] * self.weights["lee"]
 
 
-        print(self.samples["data"].size)
         data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query)
         data_plotted_variable = self._select_showers(
@@ -1910,7 +1916,6 @@ class Plotter:
 
             tree = self.samples[t]
 
-            #print ('sample : ',t)
 
             extra_query = ""
             if t == "mc":
