@@ -7,9 +7,11 @@ PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata =
 # 1eNp preselection
 NPPRESQ = PRESQ
 NPPRESQ += ' and n_tracks_contained > 0'
-NPPRESEQ_one_shower = NPPRESQ + ' and n_showers_contained == 1'
-NPPRESEQ_one_shower_one_track = NPPRESEQ_one_shower + ' and n_tracks_contained == 1'
-NPPRESEQ_one_shower_twoplus_tracks = NPPRESEQ_one_shower + ' and n_tracks_contained > 1'
+NPPRESQ_one_shower = NPPRESQ + ' and n_showers_contained == 1'
+NPPRESQ_one_shower_one_track = NPPRESQ_one_shower + ' and n_tracks_contained == 1'
+NPPRESQ_one_shower_twoplus_tracks = NPPRESQ_one_shower + ' and n_tracks_contained > 1'
+NPPRESQ_one_track = NPPRESQ + ' and n_tracks_contained == 1'
+NPPRESQ_twoplus_tracks = NPPRESQ + ' and n_tracks_contained > 1'
 
 # 2+ showers preselection
 PRESQ_twoplus_showers = PRESQ + ' and n_showers_contained >= 2'
@@ -154,7 +156,9 @@ sideband_categories = {
 preselection_categories = {
     'NUE': {'query': PRESQ, 'title': 'Nue Presel.', 'dir': 'NUE'},
     'NP': {'query': NPPRESQ, 'title': '1eNp Presel.', 'dir': 'NP'},
-    'NPOneShr': {'query': NPPRESEQ_one_shower, 'title': '1eNp Presel., 1 shower', 'dir': 'NPOneShr'},
+    'NPOneShr': {'query': NPPRESQ_one_shower, 'title': '1eNp Presel., 1 shower', 'dir': 'NPOneShr'},
+    'NPOneTrk': {'query': NPPRESQ_one_track, 'title': '1eNp Presel., 1 track', 'dir': 'NPOneTrk'},
+    'NPTwoPTrk': {'query': NPPRESQ_twoplus_tracks, 'title': '1eNp Presel., 2+ tracks', 'dir': 'NPTwoPTrk'},
     'ZP': {'query': ZPPRESEL, 'title': '1e0p Presel.', 'dir': 'ZP'},
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
@@ -176,12 +180,12 @@ selection_categories = {
 
 
 stages_queries = {
-    1 : ' and '.join([HIGH_ENERGY, NPPRESEQ_one_shower]),
-    2 : ' and '.join([LOW_PID, NPPRESEQ_one_shower]),
-    3 : ' and '.join([HIGH_ENERGY, NPPRESEQ_one_shower, NPVLCUTQ]),
-    4 : ' and '.join([HIGH_ENERGY, NPPRESEQ_one_shower, NPLCUTQ]),
-    5 : ' and '.join([HIGH_ENERGY, NPPRESEQ_one_shower, BDTCQ]),
-    6 : ' and '.join([HIGH_ENERGY, NPPRESEQ_one_shower, ZPBDTVLOOSE]),
+    1 : ' and '.join([HIGH_ENERGY, NPPRESQ_one_shower]),
+    2 : ' and '.join([LOW_PID, NPPRESQ_one_shower]),
+    3 : ' and '.join([HIGH_ENERGY, NPPRESQ_one_shower, NPVLCUTQ]),
+    4 : ' and '.join([HIGH_ENERGY, NPPRESQ_one_shower, NPLCUTQ]),
+    5 : ' and '.join([HIGH_ENERGY, NPPRESQ_one_shower, BDTCQ]),
+    6 : ' and '.join([HIGH_ENERGY, NPPRESQ_one_shower, ZPBDTVLOOSE]),
 }
 
 stages_titles = {
@@ -194,11 +198,11 @@ stages_titles = {
 }
 
 stages_queries_noupbound = {
-    1 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower]),
-    3 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower, NPVLCUTQ]),
-    4 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower, NPLCUTQ]),
-    5 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower, BDTCQ]),
-    6 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESEQ_one_shower, ZPBDTVLOOSE]),
+    1 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESQ_one_shower]),
+    3 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESQ_one_shower, NPVLCUTQ]),
+    4 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESQ_one_shower, NPLCUTQ]),
+    5 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESQ_one_shower, BDTCQ]),
+    6 : ' and '.join([HIGH_ENERGY_NOUPBOUND, NPPRESQ_one_shower, ZPBDTVLOOSE]),
 }
 
 stages_titles_noupbound = {
