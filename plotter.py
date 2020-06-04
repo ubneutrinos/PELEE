@@ -1419,7 +1419,7 @@ class Plotter:
 
         ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
 
-
+        '''
         ax1.fill_between(
             bincenters+(bincenters[1]-bincenters[0])/2.,
             n_tot - exp_err,
@@ -1427,7 +1427,7 @@ class Plotter:
             step="pre",
             color="grey",
             alpha=0.5)
-
+        '''
 
         if (ratio==True):
             if draw_data == False:
@@ -1871,7 +1871,8 @@ class Plotter:
             ax.errorbar(bincenters, n_data / n_tot,
                     xerr=bin_size, yerr=ratio_error, fmt="ko")
 
-            ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, tot_err)
+            #ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, tot_err)
+            ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, np.zeros(len(data_err)))
             ratio_error_mc = np.insert(ratio_error_mc, 0, ratio_error_mc[0])
             bins = np.array(bins)
             ratio_error_mc = np.array(ratio_error_mc)
