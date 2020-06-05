@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cstdlib>
 
-void slimmer_1enp_far_sideband(TString finname)
+void slimmer_1enp_far_sideband_extended(TString finname)
 {
   // Get old file, old tree and set top branch address
   //TString finname = "/home/nic/Desktop/MicroBooNE/bnb_nue_analysis/PELEE/0304/run1/nuepresel/data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19_nuepresel.root";

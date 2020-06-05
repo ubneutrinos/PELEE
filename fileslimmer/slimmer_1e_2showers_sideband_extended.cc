@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cstdlib>
 
-void slimmer_1e_2showers_sideband(TString finname)
+void slimmer_1e_2showers_sideband_extended(TString finname)
 {
   // Get old file, old tree and set top branch address
   TString foutname = "neutrinoselection_filt_1e_2showers_sideband_skimmed.root";
@@ -58,7 +58,7 @@ void slimmer_1e_2showers_sideband(TString finname)
     bool preseq = (nslice == 1) &&
       //(selected == 1) &&
       ( ( (contained_fraction > 0.4) && (n_showers_contained > 0) ) &&
-      (shr_energy_tot_cali > 0.07);
+      (shr_energy_tot_cali > 0.07));
 
     bool preseq_two_plus_shower = preseq && (n_showers_contained >=2);
 

@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cstdlib>
 
-void slimmer_1e0p_far_sideband(TString finname)
+void slimmer_1e0p_far_sideband_extended(TString finname)
 {
   // Get old file, old tree and set top branch address
   //TString finname = "/uboone/data/users/cerati/searchingfornues/v08_00_00_42/cc0pinp/0414/run1/data_bnb_peleeTuple_unblinded_uboone_v08_00_00_42_run1_C1_nuepresel.root";
@@ -35,7 +35,7 @@ void slimmer_1e0p_far_sideband(TString finname)
   float reco_e;
   float contained_fraction;
   int n_showers;
-  
+
   oldtree->SetBranchAddress("nslice", &nslice);
   oldtree->SetBranchAddress("selected", &selected);
   oldtree->SetBranchAddress("contained_fraction", &contained_fraction);
