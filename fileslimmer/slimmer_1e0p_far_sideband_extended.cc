@@ -65,7 +65,7 @@ void slimmer_1e0p_far_sideband(TString finname)
     oldtree->GetEntry(i);
 
     //bool preseq = (nslice == 1) && (selected == 1) && (shr_energy_tot_cali > 0.07) && (contained_fraction > 0.9) && (n_showers_contained > 0) && (n_tracks_contained == 0);
-    bool preseq = (nslice == 1) && (shr_energy_tot_cali > 0.07) && (contained_fraction > 0.4) && (n_showers > 0) && (n_tracks_contained == 0);
+    bool preseq = (nslice == 1) && (shr_energy_tot_cali > 0.07) && ( ((contained_fraction > 0.4) && (n_showers > 0)) || (n_showers_contained > 0) ) && (n_tracks_contained == 0);
     bool presel1e0p = preseq && (n_showers_contained == 1);
 
     bool low_bkg_score = bdt_bkg_0p < 0.4;

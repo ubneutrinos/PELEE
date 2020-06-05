@@ -57,7 +57,7 @@ void slimmer_1e_2showers_sideband(TString finname)
 
     bool preseq = (nslice == 1) &&
       //(selected == 1) &&
-      (contained_fraction > 0.4) && (n_showers > 0) &&
+      ( ( (contained_fraction > 0.4) && (n_showers > 0) ) || (selected==1)) &&
       (shr_energy_tot_cali > 0.07);
 
     bool preseq_two_plus_shower = preseq && (n_showers_contained >=2);
