@@ -168,6 +168,7 @@ class Plotter:
         self.cov = None # covariance matrix from systematics
         self.cov_mc_stat = None
         self.cov_data_stat = None
+        self.cov_full = None
 
         self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
 
@@ -334,7 +335,8 @@ class Plotter:
             #print ('data : ',data)
             #print ('mc : ',mc)
 
-
+        self.cov_full = COV
+            
         #print ('COV matrix : ',COV)
 
         diff = (data-mc)
