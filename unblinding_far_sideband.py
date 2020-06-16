@@ -36,9 +36,10 @@ NPLCUTQ_all_showers += ' and shrmoliereavg < 9'
 NPLCUTQ_all_showers += ' and subcluster > 4'
 NPLCUTQ_all_showers += ' and trkfit < 0.65'
 NPLCUTQ_all_showers += ' and tksh_distance < 6.0'
-NPLCUTQ_all_showers += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5)'
+NPLCUTQ_all_showers += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5)' 
+#NPLCUTQ_all_showers += ' and secondshower_Y_nhit < 50' # old cut, no longer in selection
 NPLCUTQ_all_showers += ' and tksh_angle > -0.9'
-NPLCUTQ_all_showers += ' and shr_trk_len < 300.'
+NPLCUTQ_all_showers += ' and shr_trk_len < 300.' # new cut
 NPLCUTQ = NPLCUTQ_all_showers + ' and n_showers_contained == 1'
 
 # tight box cuts
@@ -122,6 +123,7 @@ LOW_ENERGY = '(0.05 < reco_e < 0.75)'
 MEDIUM_ENERGY = '(0.75 < reco_e < 1.05)'
 LOW_MEDIUM_ENERGY = '(0.05 < reco_e < 1.05)'
 HIGH_ENERGY = '(1.05 < reco_e < 2.05)'
+HIGH_ENERGY_ZP = '(reco_e > 0.9)'
 HIGH_ENERGY_NOUPBOUND = '(reco_e > 1.05)'
 ALL_ENERGY = '(reco_e > 0.)'
 TWOP_SHOWERS = 'n_showers_contained >= 2'
@@ -145,8 +147,10 @@ PI0SEL += ' and pi0_dedx1_fit_Y >= %f'%DEDXCUT
 
 # sideband categories
 sideband_categories = {
+    'HiEext': {'query': HIGH_ENERGY, 'title': '0.85 GeV < Reco energy < 2.05 GeV', 'dir': 'HiEext'},
     'HiEmax2': {'query': HIGH_ENERGY, 'title': '1.05 GeV < Reco energy < 2.05 GeV', 'dir': 'HiEmax2'},
     'HiE': {'query': HIGH_ENERGY_NOUPBOUND, 'title': 'Reco energy > 1.05 GeV', 'dir': 'HiE'},
+    'HiEZP': {'query': HIGH_ENERGY_ZP, 'title': 'Reco energy > 0.9 GeV', 'dir': 'HiEZP'},
     'LPID': {'query': LOW_PID, 'title': 'Low BDT', 'dir': 'LPID'},
     'TwoPShr': {'query': TWOP_SHOWERS, 'title': '2+ showers', 'dir': 'TwoPShr'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
