@@ -169,6 +169,7 @@ class Plotter:
         self.cov_mc_stat = None
         self.cov_data_stat = None
         self.cov_full = None
+        self.data # data binned events
 
         self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
 
@@ -1370,6 +1371,7 @@ class Plotter:
         '''
 
         if draw_data:
+            self.data = n_data
             n_data, bins = np.histogram(data_plotted_variable, **plot_options)
             data_err = np.sqrt(n_data)
 
