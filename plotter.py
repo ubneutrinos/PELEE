@@ -1394,8 +1394,8 @@ class Plotter:
             #self.stats['chisqCNP'] = chisqCNP
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
-            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
             chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
+            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
             #self.stats['chisq full covariance'] = chicov
             #self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['dof']            = dof
