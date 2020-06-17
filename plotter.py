@@ -1371,8 +1371,8 @@ class Plotter:
         '''
 
         if draw_data:
-            self.data = n_data
             n_data, bins = np.histogram(data_plotted_variable, **plot_options)
+            self.data = n_data
             data_err = np.sqrt(n_data)
 
             self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
