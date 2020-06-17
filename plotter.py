@@ -169,7 +169,7 @@ class Plotter:
         self.cov_mc_stat = None
         self.cov_data_stat = None
         self.cov_full = None
-        self.data # data binned events
+        self.data = None # data binned events
 
         self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
 
