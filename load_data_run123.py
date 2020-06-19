@@ -87,9 +87,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ur1nccpi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCCPI+ls.APPEND+".root")[fold][tree]
     
     R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_ALL'
-    #R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_ALL'
     R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_ALL'
-    R123_0P_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1e0p_far_sideband_skimmed_ALL'
     ur123data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
     
     ur1data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
@@ -99,10 +97,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ur1data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
     ur2data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
     ur3data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-
-    ur1data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-    ur2data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-    ur3data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
     
     variables = [
         "shr_dedx_Y", "shr_bkt_pdg", "p", "pt", "selected", "nu_pdg", "shr_theta",
@@ -111,7 +105,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         "shr_tkfit_dedx_U","shr_tkfit_dedx_V","shr_tkfit_dedx_Y",
         "shr_tkfit_gap10_dedx_U","shr_tkfit_gap10_dedx_V","shr_tkfit_gap10_dedx_Y",
         "shr_tkfit_2cm_dedx_U","shr_tkfit_2cm_dedx_V","shr_tkfit_2cm_dedx_Y",
-        #"shr_energy_tot", 
+        "shr_energy_tot", "shr_energy_cali", 
         "trk_energy_tot", "shr_hits_tot", "ccnc", "trk_chipr",
         "trk_bkt_pdg", "hits_ratio", "n_tracks_contained", 
         "crtveto","crthitpe","_closestNuCosmicDist",
@@ -190,7 +184,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
     r3data_two_showers_sidebands = ur3data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r3data_np_far_sidebands = ur3data_np_far_sidebands.pandas.df(variables, flatten=False)
-    r3data_0p_far_sidebands = ur3data_0p_far_sidebands.pandas.df(variables, flatten=False)
     
     r3lee["is_signal"] = r3lee["category"] == 11
     r3data["is_signal"] = r3data["category"] == 11
@@ -210,17 +203,16 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
     r3data_two_showers_sidebands["is_signal"] = r3data_two_showers_sidebands["category"] == 11
     r3data_np_far_sidebands["is_signal"] = r3data_np_far_sidebands["category"] == 11
-    r3data_0p_far_sidebands["is_signal"] = r3data_0p_far_sidebands["category"] == 11
     
-    r3_datasets = [r3lee, r3data, r3nue, r3mc, r3dirt, r3ext, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi, r3lee, r3lee, r3lee, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_0p_far_sidebands]
+    r3_datasets = [r3lee, r3data, r3nue, r3mc, r3dirt, r3ext, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi, r3lee, r3lee, r3lee, r3data_two_showers_sidebands, r3data_np_far_sidebands]
     for r3_dataset in r3_datasets:
         r3_dataset['run1'] = np.zeros(len(r3_dataset), dtype=bool)
         r3_dataset['run2'] = np.zeros(len(r3_dataset), dtype=bool)
         r3_dataset['run3'] = np.ones(len(r3_dataset), dtype=bool)
         r3_dataset['run12'] = np.zeros(len(r3_dataset), dtype=bool)
         
-    uproot_v = [ur3lee,ur3mc,ur3ncpi0,ur3ccpi0,ur3ccnopi,ur3cccpi,ur3ncnopi,ur3nccpi,ur3nue,ur3ext,ur3data,ur3dirt, ur3data_two_showers_sidebands, ur3data_np_far_sidebands, ur3data_0p_far_sidebands]
-    df_v = [r3lee,r3mc,r3ncpi0,r3ccpi0,r3ccnopi,r3cccpi,r3ncnopi,r3nccpi,r3nue,r3ext,r3data,r3dirt, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_0p_far_sidebands]
+    uproot_v = [ur3lee,ur3mc,ur3ncpi0,ur3ccpi0,ur3ccnopi,ur3cccpi,ur3ncnopi,ur3nccpi,ur3nue,ur3ext,ur3data,ur3dirt, ur3data_two_showers_sidebands, ur3data_np_far_sidebands]
+    df_v = [r3lee,r3mc,r3ncpi0,r3ccpi0,r3ccnopi,r3cccpi,r3ncnopi,r3nccpi,r3nue,r3ext,r3data,r3dirt, r3data_two_showers_sidebands, r3data_np_far_sidebands]
     for i,df in enumerate(df_v):
         up = uproot_v[i]
         trk_llr_pid_v = up.array('trk_llr_pid_score_v')
@@ -269,21 +261,21 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         trk_start_x_v   = up.array("trk_start_x_v")
         trk_start_y_v   = up.array("trk_start_y_v")
         trk_start_z_v   = up.array("trk_start_z_v")
-        #shr_mask = (trk_score_v<0.5)
-        #df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
+        shr_mask = (trk_score_v<0.5)
+        df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
+        df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
+        df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
         df["trk_start_x"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_x_v,trk_id)])
         df["trk_start_y"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_y_v,trk_id)])
         df["trk_start_z"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_z_v,trk_id)])
@@ -307,7 +299,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
 
     r1data_two_showers_sidebands = ur1data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r1data_np_far_sidebands = ur1data_np_far_sidebands.pandas.df(variables, flatten=False)
-    r1data_0p_far_sidebands = ur1data_0p_far_sidebands.pandas.df(variables, flatten=False)
     r123data_two_showers_sidebands = ur123data_two_showers_sidebands.pandas.df(variables, flatten=False)
 
     r1lee["is_signal"] = r1lee["category"] == 11
@@ -329,17 +320,16 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     r123data_two_showers_sidebands["is_signal"] = r123data_two_showers_sidebands["category"] == 11
     r1data_two_showers_sidebands["is_signal"] = r1data_two_showers_sidebands["category"] == 11
     r1data_np_far_sidebands["is_signal"] = r1data_np_far_sidebands["category"] == 11
-    r1data_0p_far_sidebands["is_signal"] = r1data_0p_far_sidebands["category"] == 11
     
-    r1_datasets = [r1lee, r1data, r1nue, r1mc, r1dirt, r1ext, r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r1lee, r123data_two_showers_sidebands, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_0p_far_sidebands]
+    r1_datasets = [r1lee, r1data, r1nue, r1mc, r1dirt, r1ext, r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r1lee, r123data_two_showers_sidebands, r1data_two_showers_sidebands, r1data_np_far_sidebands]
     for r1_dataset in r1_datasets:
         r1_dataset['run1'] = np.ones(len(r1_dataset), dtype=bool)
         r1_dataset['run2'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run3'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run12'] = np.ones(len(r1_dataset), dtype=bool)
     
-    uproot_v = [ur1lee,ur1mc,ur1ncpi0,ur1ccpi0,ur1ccnopi,ur1cccpi,ur1ncnopi,ur1nccpi,ur1nue,ur1ext,ur1data,ur1dirt, ur123data_two_showers_sidebands, ur1data_two_showers_sidebands, ur1data_np_far_sidebands,  ur1data_0p_far_sidebands]
-    df_v = [r1lee,r1mc,r1ncpi0,r1ccpi0,r1ccnopi,r1cccpi,r1ncnopi,r1nccpi,r1nue,r1ext,r1data,r1dirt, r123data_two_showers_sidebands, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_0p_far_sidebands]
+    uproot_v = [ur1lee,ur1mc,ur1ncpi0,ur1ccpi0,ur1ccnopi,ur1cccpi,ur1ncnopi,ur1nccpi,ur1nue,ur1ext,ur1data,ur1dirt, ur123data_two_showers_sidebands, ur1data_two_showers_sidebands, ur1data_np_far_sidebands]
+    df_v = [r1lee,r1mc,r1ncpi0,r1ccpi0,r1ccnopi,r1cccpi,r1ncnopi,r1nccpi,r1nue,r1ext,r1data,r1dirt, r123data_two_showers_sidebands, r1data_two_showers_sidebands, r1data_np_far_sidebands]
     for i,df in enumerate(df_v):
         up = uproot_v[i]
         trk_llr_pid_v = up.array('trk_llr_pid_score_v')
@@ -388,21 +378,21 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         trk_start_x_v   = up.array("trk_start_x_v")
         trk_start_y_v   = up.array("trk_start_y_v")
         trk_start_z_v   = up.array("trk_start_z_v")
-        #shr_mask = (trk_score_v<0.5)
-        #df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
+        shr_mask = (trk_score_v<0.5)
+        df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
+        df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
+        df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
         df["trk_start_x"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_x_v,trk_id)])
         df["trk_start_y"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_y_v,trk_id)])
         df["trk_start_z"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_z_v,trk_id)])
@@ -415,7 +405,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
     r2data_two_showers_sidebands = ur2data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r2data_np_far_sidebands = ur2data_np_far_sidebands.pandas.df(variables, flatten=False)
-    r2data_0p_far_sidebands = ur2data_0p_far_sidebands.pandas.df(variables, flatten=False)
     
     r2lee["is_signal"] = r2lee["category"] == 11
     r2nue["is_signal"] = r2nue["category"] == 11
@@ -427,9 +416,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
     r2data_two_showers_sidebands["is_signal"] = r2data_two_showers_sidebands["category"] == 11
     r2data_np_far_sidebands["is_signal"] = r2data_np_far_sidebands["category"] == 11
-    r2data_0p_far_sidebands["is_signal"] = r2data_0p_far_sidebands["category"] == 11
     
-    r2_datasets = [r2lee, r2nue, r2mc, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_0p_far_sidebands]
+    r2_datasets = [r2lee, r2nue, r2mc, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands]
     for r2_dataset in r2_datasets:
         r2_dataset['run1'] = np.zeros(len(r2_dataset), dtype=bool)
         r2_dataset['run2'] = np.ones(len(r2_dataset), dtype=bool)
@@ -439,8 +427,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     for r_dataset in [r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi]:
         r_dataset['run2'] = np.ones(len(r_dataset), dtype=bool)
     
-    uproot_v = [ur2lee,ur2mc,ur2nue, ur2ext, ur2data_two_showers_sidebands, ur2data_np_far_sidebands, ur2data_0p_far_sidebands]
-    df_v = [r2lee,r2mc,r2nue, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_0p_far_sidebands]
+    uproot_v = [ur2lee,ur2mc,ur2nue, ur2ext, ur2data_two_showers_sidebands, ur2data_np_far_sidebands]
+    df_v = [r2lee,r2mc,r2nue, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands]
     for i,df in enumerate(df_v):
         up = uproot_v[i]
         trk_llr_pid_v = up.array('trk_llr_pid_score_v')
@@ -489,21 +477,21 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         trk_start_x_v   = up.array("trk_start_x_v")
         trk_start_y_v   = up.array("trk_start_y_v")
         trk_start_z_v   = up.array("trk_start_z_v")
-        #shr_mask = (trk_score_v<0.5)
-        #df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
+        shr_mask = (trk_score_v<0.5)
+        df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
+        df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
+        df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
+        df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
         df["trk_start_x"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_x_v,trk_id)])
         df["trk_start_y"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_y_v,trk_id)])
         df["trk_start_z"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_z_v,trk_id)])
@@ -558,8 +546,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         data = pd.concat([r1data_two_showers_sidebands, r2data_two_showers_sidebands, r3data_two_showers_sidebands],ignore_index=True)
     elif which_sideband == 'np_far':
         data = pd.concat([r1data_np_far_sidebands, r2data_np_far_sidebands, r3data_np_far_sidebands],ignore_index=True)
-    elif which_sideband == '0p_far':
-        data = pd.concat([r1data_0p_far_sidebands, r2data_0p_far_sidebands, r3data_0p_far_sidebands],ignore_index=True)
     elif which_sideband == "opendata":
         data = pd.concat([r1data, r3data],ignore_index=True) # 5e19 and 1e19
     ext = pd.concat([r3ext, r2ext, r1ext],ignore_index=True)
@@ -582,18 +568,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         if pi0scaling == 1:
             df.loc[ df['npi0'] > 0, 'weightSplineTimesTune' ] = df['weightSpline'] * df['weightTune'] * 0.759
         elif pi0scaling == 2:
-            pi0emax = 0.6
-            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] < pi0emax) , 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*df['pi0_e'])
-            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] >= pi0emax), 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*pi0emax)
-            #df.loc[ df['pi0_e'] > 0.1, 'weightSplineTimesTune' ] = df['weightSplineTimesTune']*(1.-0.35*df['pi0_e'])
-        '''
-        pi0emax = 0.6
-        for weight in range(11):
-            df['weightSplineTimesTune%02i'%weight] = df['weightSplineTimesTune']
-            w = weight/10.
-            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] < pi0emax) , 'weightSplineTimesTune%02i'%weight ] = df['weightSplineTimesTune']*(1.-w*df['pi0_e'])
-            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] >= pi0emax), 'weightSplineTimesTune%02i'%weight ] = df['weightSplineTimesTune']*(1.-w*pi0emax)
-        '''
+            df.loc[ df['pi0_e'] > 0.1, 'weightSplineTimesTune' ] = df['weightSplineTimesTune']*(1.-0.35*df['pi0_e'])
         
     df_v = [lee,mc,ncpi0,ccpi0,ccnopi,cccpi,ncnopi,nccpi,nue,ext,data,dirt]
 
@@ -605,15 +580,15 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         df['anglediff_V'] = np.abs(df['secondshower_V_dir']-df['shrclusdir1'])
         df['anglediff_U'] = np.abs(df['secondshower_U_dir']-df['shrclusdir0'])
         #
-        #df["hitratio_shr12"] = (df["shr2_nhits"]/df["shr1_nhits"])
-        #df["hitratio_mod_shr12"] = (df["shr2_nhits"]/(df["shr1_nhits"]*np.sqrt(df["shr1_nhits"])))
-        #df["cos_shr12"] = np.sin(df["shr1_theta"])*np.cos(df["shr1_phi"])*np.sin(df["shr2_theta"])*np.cos(df["shr2_phi"])\
-        #                + np.sin(df["shr1_theta"])*np.sin(df["shr1_phi"])*np.sin(df["shr2_theta"])*np.sin(df["shr2_phi"])\
-        #                + np.cos(df["shr1_theta"])*np.cos(df["shr2_theta"])
-        #df["tksh1_dist"] = np.sqrt( (df["shr1_start_x"]-df["trk_start_x"])**2 + (df["shr1_start_y"]-df["trk_start_y"])**2 + (df["shr1_start_z"]-df["trk_start_z"])**2)
-        #df["tksh2_dist"] = np.sqrt( (df["shr2_start_x"]-df["trk_start_x"])**2 + (df["shr2_start_y"]-df["trk_start_y"])**2 + (df["shr2_start_z"]-df["trk_start_z"])**2)
-        #df["min_tksh_dist"] = np.minimum(df["tksh1_dist"],df["tksh2_dist"])
-        #df["max_tksh_dist"] = np.maximum(df["tksh1_dist"],df["tksh2_dist"])
+        df["hitratio_shr12"] = (df["shr2_nhits"]/df["shr1_nhits"])
+        df["hitratio_mod_shr12"] = (df["shr2_nhits"]/(df["shr1_nhits"]*np.sqrt(df["shr1_nhits"])))
+        df["cos_shr12"] = np.sin(df["shr1_theta"])*np.cos(df["shr1_phi"])*np.sin(df["shr2_theta"])*np.cos(df["shr2_phi"])\
+                        + np.sin(df["shr1_theta"])*np.sin(df["shr1_phi"])*np.sin(df["shr2_theta"])*np.sin(df["shr2_phi"])\
+                        + np.cos(df["shr1_theta"])*np.cos(df["shr2_theta"])
+        df["tksh1_dist"] = np.sqrt( (df["shr1_start_x"]-df["trk_start_x"])**2 + (df["shr1_start_y"]-df["trk_start_y"])**2 + (df["shr1_start_z"]-df["trk_start_z"])**2)
+        df["tksh2_dist"] = np.sqrt( (df["shr2_start_x"]-df["trk_start_x"])**2 + (df["shr2_start_y"]-df["trk_start_y"])**2 + (df["shr2_start_z"]-df["trk_start_z"])**2)
+        df["min_tksh_dist"] = np.minimum(df["tksh1_dist"],df["tksh2_dist"])
+        df["max_tksh_dist"] = np.maximum(df["tksh1_dist"],df["tksh2_dist"])
 
     for i,df in enumerate(df_v):
         df["ptOverP"] = df["pt"]/df["p"]
@@ -840,10 +815,15 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         return samples
     
 pot_data_unblinded = {
+#     "farsideband" : {
+#         1: (1.45E+20, 32139256),
+#         2: (2.58E+20, 60909877),
+#         3: (1.86E+20, 44266555), },
     "farsideband" : {
-        1: (1.45E+20, 32139256),
-        2: (2.58E+20, 60909877),
-        3: (1.86E+20, 44266555), },
+        1: (1.71E+20, 38010325),
+        2: (2.64E+20, 62765179),
+        3: (2.60E+20, 62057835),
+        123: (6.95E+20, 162833339), },
     "opendata" : {
         1: (4.08E+19, 9028010),
         2: (1.00E+01, 1),
