@@ -7,9 +7,11 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
 
   
    // Get old file, old tree and set top branch address
-   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0218/run3/";
-   TString fullpath = dir + fname + ".root";
-   TString textpath = dir + "txt/" + fname + "_numuconstraint.txt";
+   TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0304/run3/";
+   TString fullpath = dir + "numupresel/" + fname + ".root";// "_numupresel.root";
+   TString textpath = dir + "txt/" + fname + ".txt";//  "_numupresel.txt";
+   //TString fullpath = dir + "numupresel/" + fname + ".root";
+   //TString textpath = dir + "txt/" + fname + ".txt";
    TString foutname = dir + "SBNFit/" +  fname + "_numuconstraint" + ".root";
    gSystem->ExpandPathName(dir);
    //const auto filename = gSystem->AccessPathName(dir) ? "./Event.root" : "$ROOTSYS/test/Event.root";
@@ -73,7 +75,10 @@ void slimmer_numu(TString fname,float splinexsecshift=0.)
   int numevts = 0;
   
   while (1) {
-    if (!infile.good()) break;
+    if (!infile.good()) {
+      printf("reached line %i and breaking \n",numevts);
+      break;
+    }
     nlines += 1;
     infile >> runf >> subf >> evtf >> muonanglef >> muonenergyf >> neutrinoenergyf;
     if (run_event_map.find(runf) == run_event_map.end()) {
