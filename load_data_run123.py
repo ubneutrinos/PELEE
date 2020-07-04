@@ -46,7 +46,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R2EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_D_E_all_reco2'
     
     R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
-    R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
+    R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2'
     R3NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2'
     R3NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
     R3DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
@@ -99,8 +99,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     ur1nccpi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCCPI+ls.APPEND+".root")[fold][tree]
     
     R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_ALL'
-    #R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_v42_ALL'
-    R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_ALL'
+    R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_v42_ALL'
+    #R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_ALL'
     R123_0P_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1e0p_far_sideband_skimmed_ALL'
     
     ur123data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
@@ -337,7 +337,14 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             df["trk_start_z"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_z_v,trk_id)])
 
     if (USEBDT == True):
-        train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
+        dfcsv = pd.read_csv(ls.ntuple_path+ls.RUN3+"ccpi0nontrainevents.csv")
+        dfcsv['identifier']   = dfcsv['run'] * 100000 + dfcsv['evt']
+        r3ccpi0['identifier'] = r3ccpi0['run'] * 100000 + r3ccpi0['evt']
+        Npre = float(r3ccpi0.shape[0])
+        r3ccpi0 = pd.merge(r3ccpi0, dfcsv, how='inner', on=['identifier'],suffixes=('', '_VAR'))
+        Npost = float(r3ccpi0.shape[0])
+        print ('fraction of R3 CCpi0 sample after split : %.02f'%(Npost/Npre))
+        #train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
 
     r1nue = ur1nue.pandas.df(variables + WEIGHTS, flatten=False)
     r1mc = ur1mc.pandas.df(variables + WEIGHTS + MCFVARS, flatten=False)
@@ -926,10 +933,16 @@ pot_data_unblinded = {
         2: (2.64E+20, 62765179),
         3: (2.60E+20, 62057835),
         123: (6.95E+20, 162833339), },
+# 0304 samples
+#    "opendata" : {
+#        1: (4.08E+19, 9028010),
+#        2: (1.00E+01, 1),
+#        3: (7.63E+18, 1838700), },
+# 0628 samples
     "opendata" : {
-        1: (4.08E+19, 9028010),
+        1: (4.54E+19, 10080350),
         2: (1.00E+01, 1),
-        3: (7.63E+18, 1838700), },
+        3: (9.43E+18, 2271036), },    
     "numu" : {
         1: (1.62E+20, 36139233),
         2: (2.62E+20, 62045760),
@@ -942,39 +955,39 @@ pot_data_unblinded = {
 
 pot_mc_samples = {}
 
-pot_mc_samples[1] = {
-    'mc': 1.31E+21,
-    'nue': 5.27E+22,
-    'lee': 5.27E+22,
-    'ncpi0': 2.67E+21,
-    'ccpi0': 3.4873E+21,
-    'dirt': 3.22E+20,
-    'ncnopi': 3.64E+21,
-    'nccpi': 8.95E+21,
-    'ccnopi': 4.63E+21,
-    'cccpi': 6.05E+21,
-    'ext': 64672423,
+pot_mc_samples[3] = {
+    'mc': 1.33E+21,
+    'nue': 7.73E+22,
+    'lee': 7.73E+22,
+    'ncpi0': 2.29E+21,
+    'ccpi0': (6.40E+21)/2.,
+    'dirt': 3.20E+20,
+    'ncnopi': 7.23E+21,
+    'nccpi': 1.80E+22,
+    'ccnopi': 5.51E+21,
+    'cccpi': 5.19E+21,
+    'ext': 214555174,
 }
 
 pot_mc_samples[2] = {
-    'mc': 1.02E+21,
-    'nue': 6.14E+22,
-    'lee': 6.14E+22,
-    'ext': 122320769,
+    'mc': 1.01E+21,
+    'nue': 6.41E+22,
+    'lee': 6.41E+22,
+    'ext': 152404980,
 }
 
-pot_mc_samples[3] = {
-    'mc': 1.34E+21,
-    'nue': 6.32E+22,
-    'lee': 6.32E+22,
-    'ncpi0': 2.29E+21,
-    'ccpi0': 3.2293E+21,
-    'dirt': 3.25E+20,
-    'ncnopi': 6.87E+21,
-    'nccpi': 1.39E+22,
-    'ccnopi': 4.45E+21,
-    'cccpi': 5.30E+21,
-    'ext': 86991453,
+pot_mc_samples[1] = {
+    'mc': 1.30E+21,
+    'nue': 5.25E+22,
+    'lee': 5.25E+22,
+    'ncpi0': 2.63E+21,
+    'ccpi0': 3.45E+21,
+    'dirt': 3.21E+20,
+    'ncnopi': 4.24E+21,
+    'nccpi': 8.93E+21,
+    'ccnopi': 5.81E+21,
+    'cccpi': 6.04E+21,
+    'ext': 65498807,
 }
 
 def get_weights(run,dataset="farsideband",scaling=1.0):
