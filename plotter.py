@@ -53,6 +53,10 @@ category_labels = {
     31: r"$\nu$ NC $\pi^{0}$",
     4: r"Cosmic",
     5: r"Out. fid. vol.",
+    71: r"$\nu_{\mu} \eta \rightarrow 3\pi^0$",
+    72: r"$\nu_{\mu} \eta \rightarrow \gamma\gamma$",
+    73: r"$\nu_{\mu} \eta \rightarrow \pi^+ \pi^0 \pi^-$",
+    8: r'$\pi^0 \rightarrow \gamma\gamma$',
     6: r"other",
     0: r"No slice"
 }
@@ -112,6 +116,10 @@ int_colors = {
 category_colors = {
     4: "xkcd:light red",
     5: "xkcd:brick",
+    8: "xkcd:cerulean",
+    71: "xkcd:purple",
+    72: "xkcd:lavender",
+    73: "xkcd:fuchsia",
     2: "xkcd:cyan",
     21: "xkcd:cerulean",
     22: "xkcd:lightblue",
@@ -168,6 +176,8 @@ class Plotter:
         self.cov = None # covariance matrix from systematics
         self.cov_mc_stat = None
         self.cov_data_stat = None
+        self.cov_full = None
+        self.data = None # data binned events
 
         self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
 
@@ -334,7 +344,8 @@ class Plotter:
             #print ('data : ',data)
             #print ('mc : ',mc)
 
-
+        self.cov_full = COV
+            
         #print ('COV matrix : ',COV)
 
         diff = (data-mc)
@@ -1333,8 +1344,8 @@ class Plotter:
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                  self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) #+ \
-                  #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
+                       self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                       self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight)
             exp_err = np.sqrt(np.diag( (self.cov + self.cov_mc_stat) ) )# + exp_err*exp_err)
 
 
@@ -1369,6 +1380,7 @@ class Plotter:
 
         if draw_data:
             n_data, bins = np.histogram(data_plotted_variable, **plot_options)
+            self.data = n_data
             data_err = np.sqrt(n_data)
 
             self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
@@ -1392,8 +1404,8 @@ class Plotter:
             #self.stats['chisqCNP'] = chisqCNP
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
-            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
             chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
+            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
             #self.stats['chisq full covariance'] = chicov
             #self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['dof']            = dof
@@ -1897,8 +1909,8 @@ class Plotter:
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
         # how many universes?
         Nuniverse = 100 #len(df)
-        if (name == "weightsGenie"):
-            Nuniverse = 100
+        #if (name == "weightsGenie"):
+        #    Nuniverse = 100
 
 
         n_tot = np.empty([Nuniverse, n_bins])
@@ -1924,10 +1936,16 @@ class Plotter:
             queried_tree = tree.query(query+extra_query)
             variable = queried_tree[var_name]
             syst_weights = queried_tree[name]
-            spline_fix = queried_tree[weightVar] * self.weights[t]
+            #print ('N universes is :',len(syst_weights))
+            spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
+            spline_fix_var = queried_tree[weightVar] * self.weights[t]
+            if (name == "weightsGenie"):
+                spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
 
             s = syst_weights
             df = pd.DataFrame(s.values.tolist())
+            #print (df)
+            #continue
 
             if var_name[-2:] == "_v":
                 #this will break for vector, "_v", entries
@@ -1937,19 +1955,19 @@ class Plotter:
                 variable,
                 range=x_range,
                 bins=n_bins,
-                weights=spline_fix)
+                weights=spline_fix_cv)
             n_cv_tot += n_cv
 
             if not df.empty:
                 for i in range(Nuniverse):
-                    weight = df[i].values
+                    weight = df[i].values / 1000.
                     weight[np.isnan(weight)] = 1
                     weight[weight > 100] = 1
                     weight[weight < 0] = 1
                     weight[weight == np.inf] = 1
 
                     n, bins = np.histogram(
-                        variable, weights=weight*spline_fix, range=x_range, bins=n_bins)
+                        variable, weights=weight*spline_fix_var, range=x_range, bins=n_bins)
                     n_tot[i] += n
 
         cov = np.empty([len(n_cv), len(n_cv)])

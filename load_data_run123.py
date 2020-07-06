@@ -282,7 +282,13 @@ def process_uproot(up,df):
     df["trk2_energy_cali"] = 0.001 * df["trk2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
     df.loc[trk2srtshr, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]+df["trk2_energy_cali"]
     
-def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loadpi0variables=False):
+def load_data_run123(which_sideband='pi0', return_plotter=True, 
+                     pi0scaling=0,
+                     USEBDT=True,
+                     loadpi0variables=False,
+                     loadfakedata=0,
+                     loadshowervariables=True):
+
     fold = ls.fold
     tree = "NeutrinoSelectionFilter"
 
@@ -305,7 +311,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     R2EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_D_E_all_reco2'
     
     R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
-    R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
+    R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2'
     R3NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2'
     R3NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
     R3DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
@@ -321,7 +327,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ur3ncpi0 = uproot.open(ls.ntuple_path+ls.RUN3+R3NCPI0+ls.APPEND+".root")[fold][tree]
     ur3ccpi0 = uproot.open(ls.ntuple_path+ls.RUN3+R3CCPI0+ls.APPEND+".root")[fold][tree]
     ur3nue = uproot.open(ls.ntuple_path+ls.RUN3+R3NUE+ls.APPEND+".root")[fold][tree]
-    ur3data = uproot.open(ls.ntuple_path+ls.RUN3+R3BNB+ls.APPEND+".root")[fold][tree]
+    if (loadfakedata == 0):
+        ur3data = uproot.open(ls.ntuple_path+ls.RUN3+R3BNB+ls.APPEND+".root")[fold][tree]
+    elif (loadfakedata == 1):
+        ur3data = uproot.open(ls.ntuple_path+'fakedata/prod_uboone_nu2020_fakedata_set1_run3b_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
     ur3ext = uproot.open(ls.ntuple_path+ls.RUN3+R3EXT+ls.APPEND+".root")[fold][tree]
     ur3dirt = uproot.open(ls.ntuple_path+ls.RUN3+R3DRT+ls.APPEND+".root")[fold][tree]
     ur3lee = uproot.open(ls.ntuple_path+ls.RUN3+R3NUE+ls.APPEND+".root")[fold][tree]
@@ -342,7 +351,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ur1ncpi0 = uproot.open(ls.ntuple_path+ls.RUN1+R1NCPI0+ls.APPEND+".root")[fold][tree]
     ur1ccpi0 = uproot.open(ls.ntuple_path+ls.RUN1+R1CCPI0+ls.APPEND+".root")[fold][tree]
     ur1nue = uproot.open(ls.ntuple_path+ls.RUN1+R1NUE+ls.APPEND+".root")[fold][tree]
-    ur1data = uproot.open(ls.ntuple_path+ls.RUN1+R1BNB+ls.APPEND+".root")[fold][tree]
+    if (loadfakedata == 0):
+        ur1data = uproot.open(ls.ntuple_path+ls.RUN1+R1BNB+ls.APPEND+".root")[fold][tree]
+    elif (loadfakedata == 1):
+        ur1data = uproot.open(ls.ntuple_path+'fakedata/prod_uboone_nu2020_fakedata_set1_run1_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
     ur1ext = uproot.open(ls.ntuple_path+ls.RUN1+R1EXT+ls.APPEND+".root")[fold][tree]
     ur1dirt = uproot.open(ls.ntuple_path+ls.RUN1+R1DRT+ls.APPEND+".root")[fold][tree]
     ur1lee = uproot.open(ls.ntuple_path+ls.RUN1+R1NUE+ls.APPEND+".root")[fold][tree]
@@ -351,10 +363,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ur1ncnopi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCNOPI+ls.APPEND+".root")[fold][tree]
     ur1nccpi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCCPI+ls.APPEND+".root")[fold][tree]
     
-    R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_extended_v42'
-    R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_v42'
+    R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_ALL'
+    R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_v42_ALL'
+    #R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_ALL'
+    R123_0P_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1e0p_far_sideband_skimmed_ALL'
     R123_NP_RECOVERY_BNB = 'bnb_recovery'
-    #ur123data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
     
     ur1data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
     ur2data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
@@ -367,9 +380,19 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ur1data_np_recovery_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_RECOVERY_BNB+".root")['nuselection'][tree]
     ur2data_np_recovery_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NP_RECOVERY_BNB+".root")['nuselection'][tree]
     ur3data_np_recovery_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NP_RECOVERY_BNB+".root")['nuselection'][tree]
-    
+
+    ur1data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+    ur2data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+    ur3data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+
+    if (loadshowervariables == False):
+        R123_NUMU_SIDEBAND_BNB = 'neutrinoselection_filt_numu_ALL'
+        ur1data_numu_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NUMU_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur2data_numu_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NUMU_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur3data_numu_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NUMU_SIDEBAND_BNB+".root")['nuselection'][tree]
+
     variables = [
-        "shr_dedx_Y", "shr_bkt_pdg", "p", "pt", "selected", "nu_pdg", "shr_theta",
+         "nu_pdg", 
         "slpdg", "trk_score_v", "backtracked_pdg", # modified from shr_score_v
         "shr_pfp_id_v", "category",
         "shr_tkfit_dedx_U","shr_tkfit_dedx_V","shr_tkfit_dedx_Y",
@@ -384,29 +407,18 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         "CosmicIP","CosmicDirAll3D","CosmicIPAll3D",
         "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
         #"trk_pfp_id",
-        "shrmoliereavg","shrmoliererms",
-        "shr_tkfit_npointsvalid","shr_tkfit_npoints", # fitted vs. all hits for shower
-        "shrclusfrac0","shrclusfrac1","shrclusfrac2", # track-fitted hits / all hits
-        "trkshrhitdist2", "trkshrhitdist0","trkshrhitdist1", #distance between track and shower in 2D
-        "shrsubclusters0","shrsubclusters1","shrsubclusters2", # number of sub-clusters in shower
         "trk_llr_pid_score_v", # trk-PID score
         #"pi0_energy2_Y", # pi0 tagger variables
         "_opfilter_pe_beam", "_opfilter_pe_veto", # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x","reco_nu_vtx_sce_y","reco_nu_vtx_sce_z",
-        "nproton", "nu_e", "n_showers_contained", "shr_distance", "trk_distance",
-        "hits_u", "hits_v", "hits_y", "shr_pz", "shr_energy", "shr_dedx_U", "shr_dedx_V", "shr_phi", "trk_phi", "trk_theta",
-        "shr_tkfit_dedx_U", "shr_tkfit_dedx_V", "run", "sub", "evt", "nproton", "trk_pid_chipr_v",
-        "trk_len", "mc_pdg", "slnunhits", "slnhits", "shr_score", "trk_score", "trk_hits_tot",
-        "true_e_visible", "matched_E", "shr_bkt_E", "trk_bkt_E", "trk_energy", "tksh_distance", "tksh_angle",
+        "nproton", "nu_e", 
+        "hits_u", "hits_v", "hits_y", 
+        "run", "sub", "evt", "nproton",
+        "mc_pdg", "slnunhits", "slnhits",
+        "true_e_visible", 
         "npi0","npion","pion_e","muon_e","pi0truth_elec_etot",
-        "pi0_e", "shr_energy_tot_cali", "shr_dedx_Y_cali", "evnunhits", "nslice", "interaction",
-        "slclustfrac", "reco_nu_vtx_x", "reco_nu_vtx_y", "reco_nu_vtx_z","contained_fraction",
-        "secondshower_U_nhit","secondshower_U_vtxdist","secondshower_U_dot","secondshower_U_dir","shrclusdir0",
-        "secondshower_V_nhit","secondshower_V_vtxdist","secondshower_V_dot","secondshower_V_dir","shrclusdir1",
-        "secondshower_Y_nhit","secondshower_Y_vtxdist","secondshower_Y_dot","secondshower_Y_dir","shrclusdir2",
-        "shr_tkfit_nhits_Y","shr_tkfit_nhits_U","shr_tkfit_nhits_V",
-        "shr_tkfit_2cm_nhits_Y","shr_tkfit_2cm_nhits_U","shr_tkfit_2cm_nhits_V",
-        "shr_tkfit_gap10_nhits_Y","shr_tkfit_gap10_nhits_U","shr_tkfit_gap10_nhits_V",
+        "pi0_e", "evnunhits", "nslice", "interaction",
+        "slclustfrac", "reco_nu_vtx_x", "reco_nu_vtx_y", "reco_nu_vtx_z",
         "trk_sce_start_x_v","trk_sce_start_y_v","trk_sce_start_z_v",
         "trk_sce_end_x_v","trk_sce_end_y_v","trk_sce_end_z_v","shr_id",
         "shrMCSMom","DeltaRMS2h","shrPCA1CMed_5cm","CylFrac2h_1cm",
@@ -424,9 +436,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         "trk2shrhitdist2","trk1trk2hitdist2","shr1shr2moliereavg","shr1trk1moliereavg","shr1trk2moliereavg",
         "trk2_id","shr2_id","trk_hits_2nd","shr_hits_2nd"
     ]
-    #make the list unique
-    variables = list(set(variables))
-    print(variables)
 
     variables.remove("_closestNuCosmicDist")
     variables.remove("crtveto")
@@ -437,15 +446,54 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     MCFVARS = ["mcf_nu_e","mcf_lep_e","mcf_actvol","mcf_nmm","mcf_nmp","mcf_nem","mcf_nep","mcf_np0","mcf_npp",
                "mcf_npm","mcf_mcshr_elec_etot","mcf_pass_ccpi0","mcf_pass_ncpi0",
                "mcf_pass_ccnopi","mcf_pass_ncnopi","mcf_pass_cccpi","mcf_pass_nccpi"]
+    NUEVARS = ["shr_dedx_Y", "shr_bkt_pdg", "shr_theta","shr_pfp_id_v",
+               "shr_tkfit_dedx_U","shr_tkfit_dedx_V","shr_tkfit_dedx_Y",
+               "shr_tkfit_gap10_dedx_U","shr_tkfit_gap10_dedx_V","shr_tkfit_gap10_dedx_Y",
+               "shr_tkfit_2cm_dedx_U","shr_tkfit_2cm_dedx_V","shr_tkfit_2cm_dedx_Y",
+               "shrmoliereavg","shrmoliererms",
+               "shr_tkfit_npointsvalid","shr_tkfit_npoints", # fitted vs. all hits for shower
+               "shrclusfrac0","shrclusfrac1","shrclusfrac2", # track-fitted hits / all hits
+               "trkshrhitdist2", "trkshrhitdist0","trkshrhitdist1", #distance between track and shower in 2D
+               "shrsubclusters0","shrsubclusters1","shrsubclusters2", # number of sub-clusters in shower
+               "secondshower_U_nhit","secondshower_U_vtxdist","secondshower_U_dot","secondshower_U_dir","shrclusdir0",
+               "secondshower_V_nhit","secondshower_V_vtxdist","secondshower_V_dot","secondshower_V_dir","shrclusdir1",
+               "secondshower_Y_nhit","secondshower_Y_vtxdist","secondshower_Y_dot","secondshower_Y_dir","shrclusdir2",
+               "shrMCSMom","DeltaRMS2h","shrPCA1CMed_5cm","CylFrac2h_1cm",
+               "shr_hits_tot", "shr_hits_u_tot", "shr_hits_v_tot", "shr_hits_y_tot",
+               "shr_theta_v","shr_phi_v","shr_energy_y_v",
+               "shr_start_x_v","shr_start_z_v","shr_start_z_v",
+               "shr_tkfit_dedx_U", "shr_tkfit_dedx_V", "trk_bkt_pdg",  
+               "shr_pz", "shr_energy", "shr_dedx_U", "shr_dedx_V", "shr_phi", "trk_phi", "trk_theta",
+               "n_showers_contained", "shr_distance", "trk_distance",
+               "shr_hits_tot","matched_E", "shr_bkt_E", "trk_bkt_E",
+               "shr_tkfit_nhits_Y","shr_tkfit_nhits_U","shr_tkfit_nhits_V",
+               "shr_tkfit_2cm_nhits_Y","shr_tkfit_2cm_nhits_U","shr_tkfit_2cm_nhits_V",
+               "shr_tkfit_gap10_nhits_Y","shr_tkfit_gap10_nhits_U","shr_tkfit_gap10_nhits_V",
+               "trk_energy", "tksh_distance", "tksh_angle","contained_fraction",
+               "shr_score", "trk_score", "trk_hits_tot","trk_len",
+               "trk_hits_tot", "trk_hits_u_tot", "trk_hits_v_tot", "trk_hits_y_tot",
+               "shr_energy_tot_cali", "shr_dedx_Y_cali", "trk_energy_tot","shr_id",
+               "hits_ratio", "n_tracks_contained",
+               "p", "pt", "selected"
+    ]
     PI0VARS = ["pi0_radlen1","pi0_radlen2","pi0_dot1","pi0_dot2","pi0_energy1_Y","pi0_energy2_Y",
                "pi0_dedx1_fit_Y","pi0_dedx2_fit_Y","pi0_shrscore1","pi0_shrscore2","pi0_gammadot",
                "pi0_dedx1_fit_V","pi0_dedx2_fit_V","pi0_dedx1_fit_U","pi0_dedx2_fit_U",
                "pi0_mass_Y","pi0_mass_V","pi0_mass_U",
-               "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z"]
+               "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z",
+               "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent"
+    ]
 
+
+    
     if (loadpi0variables == True):
         variables += PI0VARS
-    
+    if (loadshowervariables == True):
+        variables += NUEVARS
+
+    #make the list unique
+    variables = list(set(variables))
+
     r3nue = ur3nue.pandas.df(variables + WEIGHTS, flatten=False)
     r3mc = ur3mc.pandas.df(variables + WEIGHTS + MCFVARS, flatten=False)
     r3ncpi0 = ur3ncpi0.pandas.df(variables + WEIGHTS, flatten=False)
@@ -462,7 +510,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     r3data_two_showers_sidebands = ur3data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r3data_np_far_sidebands = ur3data_np_far_sidebands.pandas.df(variables, flatten=False)
     r3data_np_recovery_sidebands = ur3data_np_recovery_sidebands.pandas.df(variables, flatten=False)
-    
+    r3data_0p_far_sidebands = ur3data_0p_far_sidebands.pandas.df(variables, flatten=False)
+    if (loadshowervariables == False):
+        r3data_numu_sidebands   = ur3data_numu_sidebands.pandas.df(variables, flatten=False)
+        
     r3lee["is_signal"] = r3lee["category"] == 11
     r3data["is_signal"] = r3data["category"] == 11
     r3nue["is_signal"] = r3nue["category"] == 11
@@ -482,23 +533,41 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     r3data_two_showers_sidebands["is_signal"] = r3data_two_showers_sidebands["category"] == 11
     r3data_np_far_sidebands["is_signal"] = r3data_np_far_sidebands["category"] == 11
     r3data_np_recovery_sidebands["is_signal"] = r3data_np_recovery_sidebands["category"] == 11
+    r3data_0p_far_sidebands["is_signal"] = r3data_0p_far_sidebands["category"] == 11
+    if (loadshowervariables == False):
+        r3data_numu_sidebands["is_signal"]   = r3data_numu_sidebands["category"] == 11
     
-    r3_datasets = [r3lee, r3data, r3nue, r3mc, r3dirt, r3ext, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi, r3lee, r3lee, r3lee, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_np_recovery_sidebands]
+    r3_datasets = [r3lee, r3data, r3nue, r3mc, r3dirt, r3ext, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi, r3lee, r3lee, r3lee, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_np_recovery_sidebands, r3data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        r3_datasets += [r3data_numu_sidebands]
+        
     for r3_dataset in r3_datasets:
         r3_dataset['run1'] = np.zeros(len(r3_dataset), dtype=bool)
         r3_dataset['run2'] = np.zeros(len(r3_dataset), dtype=bool)
         r3_dataset['run3'] = np.ones(len(r3_dataset), dtype=bool)
         r3_dataset['run12'] = np.zeros(len(r3_dataset), dtype=bool)
         
-    uproot_v = [ur3lee,ur3mc,ur3ncpi0,ur3ccpi0,ur3ccnopi,ur3cccpi,ur3ncnopi,ur3nccpi,ur3nue,ur3ext,ur3data,ur3dirt, ur3data_two_showers_sidebands, ur3data_np_far_sidebands,ur3data_np_recovery_sidebands]
-    df_v = [r3lee,r3mc,r3ncpi0,r3ccpi0,r3ccnopi,r3cccpi,r3ncnopi,r3nccpi,r3nue,r3ext,r3data,r3dirt, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_np_recovery_sidebands]
-    for i,df in enumerate(df_v):
-        print(i)
-        up = uproot_v[i]
-        process_uproot(up,df)
+    uproot_v = [ur3lee,ur3mc,ur3ncpi0,ur3ccpi0,ur3ccnopi,ur3cccpi,ur3ncnopi,ur3nccpi,ur3nue,ur3ext,ur3data,ur3dirt, ur3data_two_showers_sidebands, ur3data_np_far_sidebands, ur3data_np_recovery_sidebands, ur3data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        uproot_v += [ur3data_numu_sidebands]
+    df_v = [r3lee,r3mc,r3ncpi0,r3ccpi0,r3ccnopi,r3cccpi,r3ncnopi,r3nccpi,r3nue,r3ext,r3data,r3dirt, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_np_recovery_sidebands, r3data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        df_v += [r3data_numu_sidebands]
+
+    if (loadshowervariables == True):        
+        for i,df in enumerate(df_v):
+            up = uproot_v[i]
+            process_uproot(up,df)
 
     if (USEBDT == True):
-        train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
+        dfcsv = pd.read_csv(ls.ntuple_path+ls.RUN3+"ccpi0nontrainevents.csv")
+        dfcsv['identifier']   = dfcsv['run'] * 100000 + dfcsv['evt']
+        r3ccpi0['identifier'] = r3ccpi0['run'] * 100000 + r3ccpi0['evt']
+        Npre = float(r3ccpi0.shape[0])
+        r3ccpi0 = pd.merge(r3ccpi0, dfcsv, how='inner', on=['identifier'],suffixes=('', '_VAR'))
+        Npost = float(r3ccpi0.shape[0])
+        print ('fraction of R3 CCpi0 sample after split : %.02f'%(Npost/Npre))
+        #train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
 
     r1nue = ur1nue.pandas.df(variables + WEIGHTS, flatten=False)
     r1mc = ur1mc.pandas.df(variables + WEIGHTS + MCFVARS, flatten=False)
@@ -517,7 +586,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     r1data_two_showers_sidebands = ur1data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r1data_np_far_sidebands = ur1data_np_far_sidebands.pandas.df(variables, flatten=False)
     r1data_np_recovery_sidebands = ur1data_np_recovery_sidebands.pandas.df(variables, flatten=False)
-    #r123data_two_showers_sidebands = ur123data_two_showers_sidebands.pandas.df(variables, flatten=False)
+    r1data_0p_far_sidebands = ur1data_0p_far_sidebands.pandas.df(variables, flatten=False)
+    if (loadshowervariables == False):
+        r1data_numu_sidebands = ur1data_numu_sidebands.pandas.df(variables, flatten=False)
 
     r1lee["is_signal"] = r1lee["category"] == 11
     r1data["is_signal"] = r1data["category"] == 11
@@ -535,23 +606,34 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     r1lee.loc[r1lee['category'] == 10, 'category'] = 111
     r1lee.loc[r1lee['category'] == 11, 'category'] = 111
 
-    #r123data_two_showers_sidebands["is_signal"] = r123data_two_showers_sidebands["category"] == 11
     r1data_two_showers_sidebands["is_signal"] = r1data_two_showers_sidebands["category"] == 11
     r1data_np_far_sidebands["is_signal"] = r1data_np_far_sidebands["category"] == 11
     r1data_np_recovery_sidebands["is_signal"] = r1data_np_recovery_sidebands["category"] == 11
+    r1data_0p_far_sidebands["is_signal"] = r1data_0p_far_sidebands["category"] == 11
+    if (loadshowervariables == False):
+        r1data_numu_sidebands["is_signal"]   = r1data_numu_sidebands["category"] == 11
     
-    r1_datasets = [r1lee, r1data, r1nue, r1mc, r1dirt, r1ext, r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r1lee, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_np_recovery_sidebands]#r123data_two_showers_sidebands,
+    r1_datasets = [r1lee, r1data, r1nue, r1mc, r1dirt, r1ext, r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r1lee, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_np_recovery_sidebands, r1data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        r1_datasets += [r1data_numu_sidebands]
     for r1_dataset in r1_datasets:
         r1_dataset['run1'] = np.ones(len(r1_dataset), dtype=bool)
         r1_dataset['run2'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run3'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run12'] = np.ones(len(r1_dataset), dtype=bool)
     
-    uproot_v = [ur1lee,ur1mc,ur1ncpi0,ur1ccpi0,ur1ccnopi,ur1cccpi,ur1ncnopi,ur1nccpi,ur1nue,ur1ext,ur1data,ur1dirt, ur1data_two_showers_sidebands, ur1data_np_far_sidebands, ur1data_np_recovery_sidebands]#ur123data_two_showers_sidebands,
-    df_v = [r1lee,r1mc,r1ncpi0,r1ccpi0,r1ccnopi,r1cccpi,r1ncnopi,r1nccpi,r1nue,r1ext,r1data,r1dirt, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_np_recovery_sidebands]#r123data_two_showers_sidebands,
-    for i,df in enumerate(df_v):
-        up = uproot_v[i]
-        process_uproot(up,df)
+    uproot_v = [ur1lee,ur1mc,ur1ncpi0,ur1ccpi0,ur1ccnopi,ur1cccpi,ur1ncnopi,ur1nccpi,ur1nue,ur1ext,ur1data,ur1dirt, ur1data_two_showers_sidebands, ur1data_np_far_sidebands, ur1data_np_recovery_sidebands, ur1data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        uproot_v += [ur1data_numu_sidebands]
+        
+    df_v = [r1lee,r1mc,r1ncpi0,r1ccpi0,r1ccnopi,r1cccpi,r1ncnopi,r1nccpi,r1nue,r1ext,r1data,r1dirt, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_np_recovery_sidebands, r1data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        df_v += [r1data_numu_sidebands]
+
+    if (loadshowervariables == True):
+        for i,df in enumerate(df_v):
+            up = uproot_v[i]
+            process_uproot(up,df)
 
 
     r2nue = ur2nue.pandas.df(variables + WEIGHTS, flatten=False)
@@ -562,7 +644,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     r2data_two_showers_sidebands = ur2data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r2data_np_far_sidebands = ur2data_np_far_sidebands.pandas.df(variables, flatten=False)
     r2data_np_recovery_sidebands = ur2data_np_recovery_sidebands.pandas.df(variables, flatten=False)
-    
+    r2data_0p_far_sidebands = ur2data_0p_far_sidebands.pandas.df(variables, flatten=False)
+    if (loadshowervariables == False):
+        r2data_numu_sidebands = ur2data_numu_sidebands.pandas.df(variables, flatten=False)
+        
     r2lee["is_signal"] = r2lee["category"] == 11
     r2nue["is_signal"] = r2nue["category"] == 11
     r2mc["is_signal"] = r2mc["category"] == 11
@@ -574,8 +659,14 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     r2data_two_showers_sidebands["is_signal"] = r2data_two_showers_sidebands["category"] == 11
     r2data_np_far_sidebands["is_signal"] = r2data_np_far_sidebands["category"] == 11
     r2data_np_recovery_sidebands["is_signal"] = r2data_np_recovery_sidebands["category"] == 11
+    r2data_0p_far_sidebands["is_signal"] = r2data_0p_far_sidebands["category"] == 11
+    if (loadshowervariables == False):
+        r2data_numu_sidebands["is_signal"] = r2data_numu_sidebands["category"] == 11
     
-    r2_datasets = [r2lee, r2nue, r2mc, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_np_recovery_sidebands]
+    r2_datasets = [r2lee, r2nue, r2mc, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_np_recovery_sidebands, r2data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        r2_datasets += [r2data_numu_sidebands]
+        
     for r2_dataset in r2_datasets:
         r2_dataset['run1'] = np.zeros(len(r2_dataset), dtype=bool)
         r2_dataset['run2'] = np.ones(len(r2_dataset), dtype=bool)
@@ -585,11 +676,17 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     for r_dataset in [r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi]:
         r_dataset['run2'] = np.ones(len(r_dataset), dtype=bool)
     
-    uproot_v = [ur2lee,ur2mc,ur2nue, ur2ext, ur2data_two_showers_sidebands, ur2data_np_far_sidebands, ur2data_np_recovery_sidebands]
-    df_v = [r2lee,r2mc,r2nue, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_np_recovery_sidebands]
-    for i,df in enumerate(df_v):
-        up = uproot_v[i]
-        process_uproot(up,df)
+    uproot_v = [ur2lee,ur2mc,ur2nue, ur2ext, ur2data_two_showers_sidebands, ur2data_np_far_sidebands, ur2data_np_recovery_sidebands, ur2data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        uproot_v += [ur2data_numu_sidebands]
+    df_v = [r2lee,r2mc,r2nue, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_np_recovery_sidebands, r2data_0p_far_sidebands]
+    if (loadshowervariables == False):
+        df_v += [r2data_numu_sidebands]
+        
+    if (loadshowervariables == True):
+        for i,df in enumerate(df_v):
+            up = uproot_v[i]
+            process_uproot(up,df)
 
     
     #set weights
@@ -636,13 +733,16 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ncnopi = pd.concat([r3ncnopi,r1ncnopi],ignore_index=True)
     nccpi = pd.concat([r3nccpi,r1nccpi],ignore_index=True)
     # data = pd.concat([r3data,r1data],ignore_index=True)
-#     data = pd.concat([r123data_two_showers_sidebands],ignore_index=True)
     if which_sideband == '2plus_showers':
         data = pd.concat([r1data_two_showers_sidebands, r2data_two_showers_sidebands, r3data_two_showers_sidebands],ignore_index=True)
     elif which_sideband == 'np_far':
         data = pd.concat([r1data_np_far_sidebands, r2data_np_far_sidebands, r3data_np_far_sidebands],ignore_index=True)
     elif which_sideband == 'np_sb_comb':
         data = pd.concat([r1data_np_far_sidebands, r1data_two_showers_sidebands, r1data_np_recovery_sidebands, r2data_np_far_sidebands, r2data_two_showers_sidebands, r2data_np_recovery_sidebands, r3data_np_far_sidebands, r3data_two_showers_sidebands, r3data_np_recovery_sidebands],ignore_index=True)
+    elif which_sideband == '0p_far':
+        data = pd.concat([r1data_0p_far_sidebands, r2data_0p_far_sidebands, r3data_0p_far_sidebands],ignore_index=True)
+    elif which_sideband == 'numu':
+        data = pd.concat([r1data_numu_sidebands, r2data_numu_sidebands, r3data_numu_sidebands],ignore_index=True)
     elif which_sideband == "opendata":
         data = pd.concat([r1data, r3data],ignore_index=True) # 5e19 and 1e19
     ext = pd.concat([r3ext, r2ext, r1ext],ignore_index=True)
@@ -668,30 +768,34 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
             pi0emax = 0.6
             df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] < pi0emax) , 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*df['pi0_e'])
             df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] >= pi0emax), 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*pi0emax)
-        '''
-        pi0emax = 0.6
-        for weight in range(11):
-            df['weightSplineTimesTune%02i'%weight] = df['weightSplineTimesTune']
-            w = weight/10.
-            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] < pi0emax) , 'weightSplineTimesTune%02i'%weight ] = df['weightSplineTimesTune']*(1.-w*df['pi0_e'])
-            df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] >= pi0emax), 'weightSplineTimesTune%02i'%weight ] = df['weightSplineTimesTune']*(1.-w*pi0emax)
-        '''
         
     df_v = [lee,mc,ncpi0,ccpi0,ccnopi,cccpi,ncnopi,nccpi,nue,ext,data,dirt]
 
-    for i,df in enumerate(df_v):
-        df['subcluster'] = df['shrsubclusters0'] + df['shrsubclusters1'] + df['shrsubclusters2']
-        df['trkfit'] = df['shr_tkfit_npointsvalid'] / df['shr_tkfit_npoints']
-        # and the 2d angle difference
-        df['anglediff_Y'] = np.abs(df['secondshower_Y_dir']-df['shrclusdir2'])
-        df['anglediff_V'] = np.abs(df['secondshower_V_dir']-df['shrclusdir1'])
-        df['anglediff_U'] = np.abs(df['secondshower_U_dir']-df['shrclusdir0'])
+    if (loadshowervariables):    
+        for i,df in enumerate(df_v):
+            df['subcluster'] = df['shrsubclusters0'] + df['shrsubclusters1'] + df['shrsubclusters2']
+            df['trkfit'] = df['shr_tkfit_npointsvalid'] / df['shr_tkfit_npoints']
+            # and the 2d angle difference
+            df['anglediff_Y'] = np.abs(df['secondshower_Y_dir']-df['shrclusdir2'])
+            df['anglediff_V'] = np.abs(df['secondshower_V_dir']-df['shrclusdir1'])
+            df['anglediff_U'] = np.abs(df['secondshower_U_dir']-df['shrclusdir0'])
+            #
+            #df["hitratio_shr12"] = (df["shr2_nhits"]/df["shr1_nhits"])
+            #df["hitratio_mod_shr12"] = (df["shr2_nhits"]/(df["shr1_nhits"]*np.sqrt(df["shr1_nhits"])))
+            #df["cos_shr12"] = np.sin(df["shr1_theta"])*np.cos(df["shr1_phi"])*np.sin(df["shr2_theta"])*np.cos(df["shr2_phi"])\
+            #                  + np.sin(df["shr1_theta"])*np.sin(df["shr1_phi"])*np.sin(df["shr2_theta"])*np.sin(df["shr2_phi"])\
+            #                  + np.cos(df["shr1_theta"])*np.cos(df["shr2_theta"])
+            #df["tksh1_dist"] = np.sqrt( (df["shr1_start_x"]-df["trk_start_x"])**2 + (df["shr1_start_y"]-df["trk_start_y"])**2 + (df["shr1_start_z"]-df["trk_start_z"])**2)
+            #df["tksh2_dist"] = np.sqrt( (df["shr2_start_x"]-df["trk_start_x"])**2 + (df["shr2_start_y"]-df["trk_start_y"])**2 + (df["shr2_start_z"]-df["trk_start_z"])**2)
+            #df["min_tksh_dist"] = np.minimum(df["tksh1_dist"],df["tksh2_dist"])
+            #df["max_tksh_dist"] = np.maximum(df["tksh1_dist"],df["tksh2_dist"])
 
-    for i,df in enumerate(df_v):
-        df["ptOverP"] = df["pt"]/df["p"]
-        df["phi1MinusPhi2"] = df["shr_phi"]-df["trk_phi"]
-        df["theta1PlusTheta2"] = df["shr_theta"]+df["trk_theta"]
-
+    if (loadshowervariables):                    
+        for i,df in enumerate(df_v):
+            df["ptOverP"] = df["pt"]/df["p"]
+            df["phi1MinusPhi2"] = df["shr_phi"]-df["trk_phi"]
+            df["theta1PlusTheta2"] = df["shr_theta"]+df["trk_theta"]
+            
 
     if (loadpi0variables == True):
         for i,df in enumerate(df_v):
@@ -710,33 +814,40 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
             df['pi0_mass_Y_corr'] = df['pi0_mass_Y']/0.83            
             
     df_v = [lee,mc,ncpi0,ccpi0,ccnopi,cccpi,ncnopi,nccpi,nue,ext,data,dirt]
-    for i,df in enumerate(df_v):
-        df['shr_tkfit_nhits_tot'] = (df['shr_tkfit_nhits_Y']+df['shr_tkfit_nhits_U']+df['shr_tkfit_nhits_V'])
-        df['shr_tkfit_dedx_avg'] = (df['shr_tkfit_nhits_Y']*df['shr_tkfit_dedx_Y'] + df['shr_tkfit_nhits_U']*df['shr_tkfit_dedx_U'] + df['shr_tkfit_nhits_V']*df['shr_tkfit_dedx_V'])/df['shr_tkfit_nhits_tot']
-        df['shr_tkfit_2cm_nhits_tot'] = (df['shr_tkfit_2cm_nhits_Y']+df['shr_tkfit_2cm_nhits_U']+df['shr_tkfit_2cm_nhits_V'])
-        df['shr_tkfit_2cm_dedx_avg'] = (df['shr_tkfit_2cm_nhits_Y']*df['shr_tkfit_2cm_dedx_Y'] + df['shr_tkfit_2cm_nhits_U']*df['shr_tkfit_2cm_dedx_U'] + df['shr_tkfit_2cm_nhits_V']*df['shr_tkfit_2cm_dedx_V'])/df['shr_tkfit_2cm_nhits_tot']
-        df['shr_tkfit_gap10_nhits_tot'] = (df['shr_tkfit_gap10_nhits_Y']+df['shr_tkfit_gap10_nhits_U']+df['shr_tkfit_gap10_nhits_V'])
-        df['shr_tkfit_gap10_dedx_avg'] = (df['shr_tkfit_gap10_nhits_Y']*df['shr_tkfit_gap10_dedx_Y'] + df['shr_tkfit_gap10_nhits_U']*df['shr_tkfit_gap10_dedx_U'] + df['shr_tkfit_gap10_nhits_V']*df['shr_tkfit_gap10_dedx_V'])/df['shr_tkfit_gap10_nhits_tot']
-        df.loc[:,'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_Y']
-        df.loc[(df['shr_tkfit_nhits_U']>df['shr_tkfit_nhits_Y']),'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_U']
-        df.loc[(df['shr_tkfit_nhits_V']>df['shr_tkfit_nhits_Y']) & (df['shr_tkfit_nhits_V']>df['shr_tkfit_nhits_U']),'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_V']
-        
-    
-    INTERCEPT = 0.0
-    SLOPE = 0.83
 
-    # define some energy-related variables
-    for i,df in enumerate(df_v):
-        df["reco_e"] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE + df["trk_energy_tot"]
-        df["reco_e_qe"] = 0.938*((df["shr_energy"]+INTERCEPT)/SLOPE)/(0.938 - ((df["shr_energy"]+INTERCEPT)/SLOPE)*(1-np.cos(df["shr_theta"])))
-        df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
+    if (loadshowervariables):
+        for i,df in enumerate(df_v):
+            df['shr_tkfit_nhits_tot'] = (df['shr_tkfit_nhits_Y']+df['shr_tkfit_nhits_U']+df['shr_tkfit_nhits_V'])
+            df['shr_tkfit_dedx_avg'] = (df['shr_tkfit_nhits_Y']*df['shr_tkfit_dedx_Y'] + df['shr_tkfit_nhits_U']*df['shr_tkfit_dedx_U'] + df['shr_tkfit_nhits_V']*df['shr_tkfit_dedx_V'])/df['shr_tkfit_nhits_tot']
+            df['shr_tkfit_2cm_nhits_tot'] = (df['shr_tkfit_2cm_nhits_Y']+df['shr_tkfit_2cm_nhits_U']+df['shr_tkfit_2cm_nhits_V'])
+            df['shr_tkfit_2cm_dedx_avg'] = (df['shr_tkfit_2cm_nhits_Y']*df['shr_tkfit_2cm_dedx_Y'] + df['shr_tkfit_2cm_nhits_U']*df['shr_tkfit_2cm_dedx_U'] + df['shr_tkfit_2cm_nhits_V']*df['shr_tkfit_2cm_dedx_V'])/df['shr_tkfit_2cm_nhits_tot']
+            df['shr_tkfit_gap10_nhits_tot'] = (df['shr_tkfit_gap10_nhits_Y']+df['shr_tkfit_gap10_nhits_U']+df['shr_tkfit_gap10_nhits_V'])
+            df['shr_tkfit_gap10_dedx_avg'] = (df['shr_tkfit_gap10_nhits_Y']*df['shr_tkfit_gap10_dedx_Y'] + df['shr_tkfit_gap10_nhits_U']*df['shr_tkfit_gap10_dedx_U'] + df['shr_tkfit_gap10_nhits_V']*df['shr_tkfit_gap10_dedx_V'])/df['shr_tkfit_gap10_nhits_tot']
+            df.loc[:,'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_Y']
+            df.loc[(df['shr_tkfit_nhits_U']>df['shr_tkfit_nhits_Y']),'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_U']
+            df.loc[(df['shr_tkfit_nhits_V']>df['shr_tkfit_nhits_Y']) & (df['shr_tkfit_nhits_V']>df['shr_tkfit_nhits_U']),'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_V']
+            
+    
+        INTERCEPT = 0.0
+        SLOPE = 0.83
+
+        # define some energy-related variables
+        for i,df in enumerate(df_v):
+            df["reco_e"] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE + df["trk_energy_tot"]
+            df["reco_e_qe"] = 0.938*((df["shr_energy"]+INTERCEPT)/SLOPE)/(0.938 - ((df["shr_energy"]+INTERCEPT)/SLOPE)*(1-np.cos(df["shr_theta"])))
+            df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
 
     # and a way to filter out data
     for i,df in enumerate(df_v):
-        df["bnbdata"] = np.zeros_like(df["shr_energy"])
-        df["extdata"] = np.zeros_like(df["shr_energy"])
-    data["bnbdata"] = np.ones_like(data["shr_energy"])
-    ext["extdata"] = np.ones_like(ext["shr_energy"])
+        df["bnbdata"] = np.zeros_like(df["nslice"])
+        df["extdata"] = np.zeros_like(df["nslice"])
+    data["bnbdata"] = np.ones_like(data["nslice"])
+    ext["extdata"] = np.ones_like(ext["nslice"])
+
+    # set EXT and DIRT contributions to 0 for fake-data studies
+    if (loadfakedata > 0):
+        dirt['nslice'] = np.zeros_like(dirt['nslice'])
+        ext['nslice']  = np.zeros_like(ext['nslice'])
     
     
     # avoid double-counting of events out of FV in the NC/CC pi0 samples
@@ -912,51 +1023,70 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         return samples
     
 pot_data_unblinded = {
+#     "farsideband" : {
+#         1: (1.45E+20, 32139256),
+#         2: (2.58E+20, 60909877),
+#         3: (1.86E+20, 44266555), },
     "farsideband" : {
         1: (1.71E+20, 38010325),
         2: (2.64E+20, 62765179),
-        3: (2.60E+20, 62057835), },
+        3: (2.60E+20, 62057835),
+        123: (6.95E+20, 162833339), },
+# 0304 samples
+#    "opendata" : {
+#        1: (4.08E+19, 9028010),
+#        2: (1.00E+01, 1),
+#        3: (7.63E+18, 1838700), },
+# 0628 samples
     "opendata" : {
-        1: (4.08E+19, 9028010),
+        1: (4.54E+19, 10080350),
         2: (1.00E+01, 1),
-        3: (7.63E+18, 1838700), }
+        3: (9.43E+18, 2271036), },    
+    "numu" : {
+        1: (1.62E+20, 36139233),
+        2: (2.62E+20, 62045760),
+        3: (2.55E+20, 61012955), },
+    "fakeset1" : {
+        1: (2.07E+20, 32139256),
+        2: (1.00E+01, 1),
+        3: (2.94E+20, 44266555), },
 }
 
 pot_mc_samples = {}
 
-pot_mc_samples[1] = {
-    'mc': 1.31E+21,
-    'nue': 5.27E+22,
-    'lee': 5.27E+22,
-    'ncpi0': 2.67E+21,
-    'ccpi0': 3.4873E+21,
-    'dirt': 3.22E+20,
-    'ncnopi': 3.64E+21,
-    'nccpi': 8.95E+21,
-    'ccnopi': 4.63E+21,
-    'cccpi': 6.05E+21,
-    'ext': 64672423,
+pot_mc_samples[3] = {
+    'mc': 1.33E+21,
+    'nue': 7.73E+22,
+    'lee': 7.73E+22,
+    'ncpi0': 2.29E+21,
+    'ccpi0': (6.40E+21)/2.,
+    'dirt': 3.20E+20,
+    'ncnopi': 7.23E+21,
+    'nccpi': 1.80E+22,
+    'ccnopi': 5.51E+21,
+    'cccpi': 5.19E+21,
+    'ext': 214555174,
 }
 
 pot_mc_samples[2] = {
-    'mc': 1.02E+21,
-    'nue': 6.14E+22,
-    'lee': 6.14E+22,
-    'ext': 122320769,
+    'mc': 1.01E+21,
+    'nue': 6.41E+22,
+    'lee': 6.41E+22,
+    'ext': 152404980,
 }
 
-pot_mc_samples[3] = {
-    'mc': 1.34E+21,
-    'nue': 6.32E+22,
-    'lee': 6.32E+22,
-    'ncpi0': 2.29E+21,
-    'ccpi0': 3.2293E+21,
-    'dirt': 3.25E+20,
-    'ncnopi': 6.87E+21,
-    'nccpi': 1.39E+22,
-    'ccnopi': 4.45E+21,
-    'cccpi': 5.30E+21,
-    'ext': 86991453,
+pot_mc_samples[1] = {
+    'mc': 1.30E+21,
+    'nue': 5.25E+22,
+    'lee': 5.25E+22,
+    'ncpi0': 2.63E+21,
+    'ccpi0': 3.45E+21,
+    'dirt': 3.21E+20,
+    'ncnopi': 4.24E+21,
+    'nccpi': 8.93E+21,
+    'ccnopi': 5.81E+21,
+    'cccpi': 6.04E+21,
+    'ext': 65498807,
 }
 
 def get_weights(run,dataset="farsideband",scaling=1.0):
