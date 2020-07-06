@@ -17,6 +17,271 @@ import plotter
 
 USEBDT = True
 
+def get_elm_from_vec_idx(myvec,idx,defval=9999.):
+    #print('get elm')
+    #print(myvec)
+    #print(idx)
+    return awkward.fromiter([pidv[tid] if tid<len(pidv) else defval for pidv,tid in zip(myvec,idx)])
+
+def get_idx_from_vec_sort(argidx,vecsort,mask):
+    #print('get idx')
+    vid = vecsort[mask]
+    #print(vid)
+    # find the position in the array after masking
+    shr_pos = [v.argsort()[argidx] if len(v)>1 else -1 for v in vecsort[mask]]
+    #print(shr_pos)
+    # go back to the corresponding position in the origin array before masking
+    result = [[i for i, n in enumerate(m) if n == 1][p] if (p)>=0 else -1 for m,p in zip(mask,shr_pos)]
+    #print(result)
+    return result
+
+def get_elm_from_vec_sort(myvec,argidx,vecsort,mask,defval=-9999.):
+    idx = get_idx_from_vec_sort(argidx,vecsort,mask)
+    return get_elm_from_vec_idx(myvec,idx,defval)
+
+#note that the function below works for cases where there are 2 or more elements (see len(vid)>1)
+#def get_elm_from_vec_sort(myvec,argidx,vecsort,mask,defval=-9999.):
+#    return awkward.fromiter([vec[vid.argsort()[argidx]] if len(vid)>1 else defval for vec,vid in zip(myvec[mask],vecsort[mask])])
+
+def process_uproot(up,df):
+    trk_llr_pid_v = up.array('trk_llr_pid_score_v')
+    trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
+    trk_energy_proton_v = up.array('trk_energy_proton_v')
+    #shr_moliere_avg_v = up.array('shr_moliere_avg_v')
+    trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
+    shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
+    #
+    # MOVE TO THIS WITH NEW NTUPLES!!!
+    #
+    trk2_id_test = up.array('trk2_id')-1 # I think we need this -1 to get the right result
+    shr2_id_test = up.array('shr2_id')-1 # I think we need this -1 to get the right result
+    df["trk2_id_test"] = trk2_id_test
+    df["shr2_id_test"] = shr2_id_test
+    #
+    #
+    #
+    trk_llr_pid_v_sel = get_elm_from_vec_idx(trk_llr_pid_v,trk_id)
+    trk_calo_energy_y_sel = get_elm_from_vec_idx(trk_calo_energy_y_v,trk_id)
+    trk_energy_proton_sel = get_elm_from_vec_idx(trk_energy_proton_v,trk_id)
+    #shr_moliere_avg_sel = get_elm_from_vec_idx(shr_moliere_avg_v,shr_id)
+    df['trkpid'] = trk_llr_pid_v_sel
+    df['trackcaloenergy'] = trk_calo_energy_y_sel
+    df['protonenergy'] = trk_energy_proton_sel
+    #df['shrmoliereavg'] = shr_moliere_avg_sel
+    trk_sce_start_x_v = up.array('trk_sce_start_x_v')
+    trk_sce_start_y_v = up.array('trk_sce_start_y_v')
+    trk_sce_start_z_v = up.array('trk_sce_start_z_v')
+    trk_sce_end_x_v = up.array('trk_sce_end_x_v')
+    trk_sce_end_y_v = up.array('trk_sce_end_y_v')
+    trk_sce_end_z_v = up.array('trk_sce_end_z_v')
+    df['shr_trk_sce_start_x'] = get_elm_from_vec_idx(trk_sce_start_x_v,shr_id)
+    df['shr_trk_sce_start_y'] = get_elm_from_vec_idx(trk_sce_start_y_v,shr_id)
+    df['shr_trk_sce_start_z'] = get_elm_from_vec_idx(trk_sce_start_z_v,shr_id)
+    df['shr_trk_sce_end_x'] = get_elm_from_vec_idx(trk_sce_end_x_v,shr_id)
+    df['shr_trk_sce_end_y'] = get_elm_from_vec_idx(trk_sce_end_y_v,shr_id)
+    df['shr_trk_sce_end_z'] = get_elm_from_vec_idx(trk_sce_end_z_v,shr_id)
+    df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
+    df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
+    #
+    trk_score_v = up.array("trk_score_v")
+    pfnhits_v = up.array("pfnhits")
+    shr_energy_y_v = up.array("shr_energy_y_v")
+    shr_theta_v = up.array("shr_theta_v")
+    shr_phi_v   = up.array("shr_phi_v")
+    shr_start_x_v   = up.array("shr_start_x_v")
+    shr_start_y_v   = up.array("shr_start_y_v")
+    shr_start_z_v   = up.array("shr_start_z_v")
+    trk_start_x_v   = up.array("trk_start_x_v")
+    trk_start_y_v   = up.array("trk_start_y_v")
+    trk_start_z_v   = up.array("trk_start_z_v")
+    #
+    shr_mask = (trk_score_v<0.5)
+    trk_mask = (trk_score_v>0.5)
+    shr2_id = get_idx_from_vec_sort(-2,pfnhits_v,shr_mask)
+    trk2_id = get_idx_from_vec_sort(-2,pfnhits_v,trk_mask)
+    df["shr2_id"] = shr2_id
+    df["trk2_id"] = trk2_id
+    df["shr2_id"] = df["shr2_id"]
+    df["trk2_id"] = df["trk2_id"]
+    df['n_tracks_tot'] = trk_mask.sum()
+    df['n_showers_tot'] = shr_mask.sum()
+    #
+    df["shr1_nhits"] = get_elm_from_vec_idx(pfnhits_v,shr_id) ##### FIXME, set default value to save as sort method
+    df["shr2_nhits"] = get_elm_from_vec_idx(pfnhits_v,shr2_id)
+    df["shr12_hitratio"] = df["shr2_nhits"]/df["shr1_nhits"]
+    #df["shr1_energy"] = get_elm_from_vec_sort(shr_energy_y_v,-1,pfnhits_v,shr_mask)
+    #df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
+    #df["shr1_theta"] = get_elm_from_vec_sort(shr_theta_v,-1,pfnhits_v,shr_mask)
+    #df["shr2_theta"] = get_elm_from_vec_sort(shr_theta_v,-2,pfnhits_v,shr_mask)
+    #df["shr1_phi"] = get_elm_from_vec_sort(shr_phi_v,-1,pfnhits_v,shr_mask)
+    #df["shr2_phi"] = get_elm_from_vec_sort(shr_phi_v,-2,pfnhits_v,shr_mask)
+    df["shr1_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr_id,-9999.)
+    df["shr2_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr2_id,-9999.)
+    df["shr1_start_y"] = get_elm_from_vec_idx(shr_start_y_v,shr_id,-9999.)
+    df["shr2_start_y"] = get_elm_from_vec_idx(shr_start_y_v,shr2_id,-9999.)
+    df["shr1_start_z"] = get_elm_from_vec_idx(shr_start_z_v,shr_id,-9999.)
+    df["shr2_start_z"] = get_elm_from_vec_idx(shr_start_z_v,shr2_id,-9999.)
+    #
+    df["shr12_start_dx"] = df["shr2_start_x"]-df["shr1_start_x"]
+    df["shr12_start_dy"] = df["shr2_start_y"]-df["shr1_start_y"]
+    df["shr12_start_dz"] = df["shr2_start_z"]-df["shr1_start_z"]
+    df["shr12_cos_p1_dstart"] = (df["shr12_start_dx"]*df["shr_px"] + df["shr12_start_dy"]*df["shr_py"] + df["shr12_start_dz"]*df["shr_pz"])/(np.sqrt(df["shr12_start_dx"]**2+df["shr12_start_dy"]**2+df["shr12_start_dz"]**2)*np.sqrt(df["shr_px"]**2+df["shr_py"]**2+df["shr_pz"]**2))
+    #
+    df["trk_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk_id,-9999.)
+    df["trk_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk_id,-9999.)
+    df["trk_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk_id,-9999.)
+    #
+    trk_len_v = up.array("trk_len_v")
+    trk_distance_v = up.array("trk_distance_v")
+    trk_theta_v = up.array("trk_theta_v")
+    trk_phi_v = up.array("trk_phi_v")
+    df["n_trks_gt10cm"] = (trk_len_v[trk_mask>=0.5]>10).sum()
+    df["n_trks_gt25cm"] = (trk_len_v[trk_mask>=0.5]>25).sum()
+    df["trk1_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk_id,-9999.)
+    df["trk2_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk2_id,-9999.)
+    df["trk1_len"] = get_elm_from_vec_idx(trk_len_v,trk_id,-9999.)
+    df["trk2_len"] = get_elm_from_vec_idx(trk_len_v,trk2_id,-9999.)
+    df["trk1_distance"] = get_elm_from_vec_idx(trk_distance_v,trk_id,-9999.)
+    df["trk2_distance"] = get_elm_from_vec_idx(trk_distance_v,trk2_id,-9999.)
+    df["trk1_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk_id,-9999.)
+    df["trk2_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk2_id,-9999.)
+    df["trk1_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk_id,-9999.)
+    df["trk2_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk2_id,-9999.)
+    df["trk1_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk_id,-9999.)
+    df["trk2_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk2_id,-9999.)
+    df["trk1_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk_id,-9999.)
+    df["trk2_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk2_id,-9999.)
+    df['tk1sh1_distance'] = np.sqrt( (df['shr_start_x']-df['trk1_start_x'])**2 + (df['shr_start_y']-df['trk1_start_y'])**2 + (df['shr_start_z']-df['trk1_start_z'])**2 )
+    df['tk2sh1_distance'] = np.sqrt( (df['shr_start_x']-df['trk2_start_x'])**2 + (df['shr_start_y']-df['trk2_start_y'])**2 + (df['shr_start_z']-df['trk2_start_z'])**2 )
+    df['tk1tk2_distance'] = np.sqrt( (df['trk1_start_x']-df['trk2_start_x'])**2 + (df['trk1_start_y']-df['trk2_start_y'])**2 + (df['trk1_start_z']-df['trk2_start_z'])**2 )
+    trk_dir_x_v = up.array("trk_dir_x_v")
+    trk_dir_y_v = up.array("trk_dir_y_v")
+    trk_dir_z_v = up.array("trk_dir_z_v")
+    df["trk1_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v,trk_id,-9999.)
+    df["trk2_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v,trk2_id,-9999.)
+    df["trk1_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v,trk_id,-9999.)
+    df["trk2_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v,trk2_id,-9999.)
+    df["trk1_dir_z"] = get_elm_from_vec_idx(trk_dir_z_v,trk_id,-9999.)
+    df["trk2_dir_z"] = get_elm_from_vec_idx(trk_dir_z_v,trk2_id,-9999.)
+    df["tk1sh1_angle"] = (df["trk1_dir_x"]*df["shr_px"] + df["trk1_dir_y"]*df["shr_py"] + df["trk1_dir_z"]*df["shr_pz"])/(np.sqrt(df["trk1_dir_x"]**2+df["trk1_dir_y"]**2+df["trk1_dir_z"]**2)*np.sqrt(df["shr_px"]**2+df["shr_py"]**2+df["shr_pz"]**2))
+    df["tk2sh1_angle"] = (df["trk2_dir_x"]*df["shr_px"] + df["trk2_dir_y"]*df["shr_py"] + df["trk2_dir_z"]*df["shr_pz"])/(np.sqrt(df["trk2_dir_x"]**2+df["trk2_dir_y"]**2+df["trk2_dir_z"]**2)*np.sqrt(df["shr_px"]**2+df["shr_py"]**2+df["shr_pz"]**2))
+    df["tk1tk2_angle"] = (df["trk1_dir_x"]*df["trk2_dir_x"] + df["trk1_dir_y"]*df["trk2_dir_y"] + df["trk1_dir_z"]*df["trk2_dir_z"])/(np.sqrt(df["trk1_dir_x"]**2+df["trk1_dir_y"]**2+df["trk1_dir_z"]**2)*np.sqrt(df["trk2_dir_x"]**2+df["trk2_dir_y"]**2+df["trk2_dir_z"]**2))
+    #
+    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
+    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
+    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
+    df["shrsubclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr_id,0)
+    df["shrsubclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr_id,0)
+    df["shrsubclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr_id,0)
+    #
+    # todo: make variables for uncontained tracks used in 0p selection
+    # todo: update also other variables, not used in the selection
+    #
+    # try to recover cases where the 2nd shower is split from the main one
+    # note: we do not remake the shower pfp, so we ignore differences on
+    # shr_score, shr_tkfit_dedx_max, trkfit since they are negligible
+    #
+    ### FIXME add cuts on subcluster or shr_score?
+    df["is_shr2splt"] = np.zeros_like(df["n_tracks_contained"])
+    shr2splt = ((df["n_showers_contained"]>1) & (df['shr12_cos_p1_dstart'] > 0.99)) 
+    # & ((df["shrsubclusters0"]+df["shrsubclusters1"]+df["shrsubclusters2"])>3))
+    df.loc[shr2splt, 'is_shr2splt' ] = 1
+    df.loc[shr2splt, 'n_showers_contained' ] = df["n_showers_contained"]-1
+    df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr2_id,0)
+    df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr2_id,0)
+    df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr2_id,0)
+    df.loc[shr2splt, 'shrsubclusters0' ] = df["shrsubclusters0"] + df["shr2subclusters0"]
+    df.loc[shr2splt, 'shrsubclusters1' ] = df["shrsubclusters1"] + df["shr2subclusters1"]
+    df.loc[shr2splt, 'shrsubclusters2' ] = df["shrsubclusters2"] + df["shr2subclusters2"]
+    df.loc[shr2splt & (df["shr1shr2moliereavg"]>0), 'shrmoliereavg' ] = df["shr1shr2moliereavg"]
+    #
+    # try to recover cases where the leading track is spurious (more than 30 cm away from nu vtx)
+    # note: we redefine all track-related variables from trk2, and remove the contribution of trk1
+    # from hit counting and energy calculation
+    #
+    df["is_trk1bad"] = np.zeros_like(df["n_tracks_contained"])
+    trk1bad = ((df["n_tracks_contained"]>1) & (df['trk_distance'] > 30.))
+    df.loc[trk1bad, 'is_trk1bad' ] = 1
+    df.loc[trk1bad, 'trkpid' ] = df["trk2_llr_pid"]
+    df.loc[trk1bad, 'tksh_distance' ] = df["tk2sh1_distance"]
+    df.loc[trk1bad, 'tksh_angle' ] = df["tk2sh1_angle"]
+    df.loc[trk1bad, 'hits_ratio' ] = df["shr_hits_tot"]/(df["shr_hits_tot"]+df["trk_hits_tot"]-df["trk_hits_max"])
+    df.loc[trk1bad, 'trk_len' ] = df["trk2_len"]
+    df.loc[trk1bad, 'trk_distance' ] = df["trk2_distance"]
+    df["trk2_score"] = get_elm_from_vec_idx(trk_score_v,trk2_id,-9999.)
+    df["trk2_protonenergy"] = get_elm_from_vec_idx(trk_energy_proton_v,trk2_id,-9999.)
+    df["trk2_theta"] = get_elm_from_vec_idx(trk_theta_v,trk2_id,-9999.)
+    df["trk2_phi"] = get_elm_from_vec_idx(trk_phi_v,trk2_id,-9999.)
+    df.loc[trk1bad, 'trk_score' ] = df["trk2_score"]
+    df.loc[trk1bad, 'protonenergy' ] = df["trk2_protonenergy"]
+    df.loc[trk1bad, 'trk_theta' ] = df["trk2_theta"]
+    df.loc[trk1bad, 'trk_phi' ] = df["trk2_phi"]
+    df.loc[trk1bad, 'trkshrhitdist2' ] = df["trk2shrhitdist2"]
+    df.loc[trk1bad, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
+    df.loc[trk1bad, 'trk_energy_tot'] = df["trk_energy_tot"]-df["trk_energy"]
+    # note: we should redefine also pt, p
+    #
+    # try to recover cases where the leading track is embedded in the shower
+    # todo: check that the two overlap, i.e. the shower is not downstream the track
+    # todo: use distance/angle/dedx from the object closest to trk2
+    # todo: in principle we should update also moliere angle and subcluster
+    #
+    df["is_trk1embd"] = np.zeros_like(df["n_tracks_contained"])
+    trk1embd = ((df["n_tracks_contained"]>1) & (df['tksh_angle'] > 0.99))# & (df["is_trk1bad"]==0)
+    df.loc[trk1embd, 'is_trk1embd' ] = 1
+    df.loc[trk1embd, 'trkpid' ] = df["trk2_llr_pid"]
+    df.loc[trk1embd, 'tksh_distance' ] = df["tk2sh1_distance"]
+    df.loc[trk1embd, 'tksh_angle' ] = df["tk2sh1_angle"]
+    df.loc[trk1embd, 'hits_ratio' ] = (df["shr_hits_tot"]+df["trk_hits_max"])/(df["shr_hits_tot"]+df["trk_hits_tot"])
+    df.loc[trk1embd, 'trkshrhitdist2' ] = df["tk2sh1_distance"] #patched!
+    df.loc[trk1embd, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
+    #
+    # try to recover cases where the 2nd track is actually the start of the shower (need to redefine dedx...)
+    #
+    df["is_trk2srtshr"] = np.zeros_like(df["n_tracks_contained"])
+    trk2srtshr = ((df["n_tracks_contained"]>1) & (df['tk2sh1_angle'] > 0.98) & (df['tk1tk2_distance'] < df['tksh_distance']))# & (df["is_trk1embd"]==0) & (df["is_trk1bad"]==0)
+    df.loc[trk2srtshr, 'is_trk2srtshr' ] = 1
+    #
+    shr_tkfit_dedx_u_v = up.array("shr_tkfit_dedx_u_v")
+    shr_tkfit_dedx_v_v = up.array("shr_tkfit_dedx_v_v")
+    shr_tkfit_dedx_y_v = up.array("shr_tkfit_dedx_y_v")
+    shr_tkfit_nhits_u_v = up.array("shr_tkfit_dedx_nhits_u_v")
+    shr_tkfit_nhits_v_v = up.array("shr_tkfit_dedx_nhits_v_v")
+    shr_tkfit_nhits_y_v = up.array("shr_tkfit_dedx_nhits_y_v")
+    df["trk2_tkfit_dedx_u"] = get_elm_from_vec_idx(shr_tkfit_dedx_u_v,trk2_id,-9999.)
+    df["trk2_tkfit_dedx_v"] = get_elm_from_vec_idx(shr_tkfit_dedx_v_v,trk2_id,-9999.)
+    df["trk2_tkfit_dedx_y"] = get_elm_from_vec_idx(shr_tkfit_dedx_y_v,trk2_id,-9999.)
+    df["trk2_tkfit_nhits_u"] = get_elm_from_vec_idx(shr_tkfit_nhits_u_v,trk2_id,0)
+    df["trk2_tkfit_nhits_v"] = get_elm_from_vec_idx(shr_tkfit_nhits_v_v,trk2_id,0)
+    df["trk2_tkfit_nhits_y"] = get_elm_from_vec_idx(shr_tkfit_nhits_y_v,trk2_id,0)
+    df["trk2_tkfit_nhits_tot"] = df["trk2_tkfit_nhits_u"]+df["trk2_tkfit_nhits_v"]+df["trk2_tkfit_nhits_y"]    
+    df["trk2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,trk2_id,0)
+    df["trk2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,trk2_id,0)
+    df["trk2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,trk2_id,0)
+    #
+    df.loc[trk2srtshr, 'tksh_distance' ] = df["tk1tk2_distance"]
+    df.loc[trk2srtshr, 'tksh_angle' ] = df["tk1tk2_angle"]
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_dedx_U' ] = df["trk2_tkfit_dedx_u"]
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_dedx_V' ] = df["trk2_tkfit_dedx_v"]
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_dedx_Y' ] = df["trk2_tkfit_dedx_y"]
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_nhits_U' ] = df['trk2_tkfit_nhits_u']
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_nhits_V' ] = df['trk2_tkfit_nhits_v']
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_nhits_Y' ] = df['trk2_tkfit_nhits_y']
+    df.loc[trk2srtshr, 'hits_ratio' ] = (df["shr_hits_tot"]+df["trk2_nhits"])/(df["shr_hits_tot"]+df["trk_hits_tot"])
+    df.loc[trk2srtshr, 'shr_tkfit_npointsvalid' ] = df["shr_tkfit_npointsvalid"] + df["trk2_nhits"] #patched!
+    df.loc[trk2srtshr & (df["trk1trk2hitdist2"]>0) & (df["trkshrhitdist2"]>0) & (df["trk1trk2hitdist2"]<df["trkshrhitdist2"]), 'trkshrhitdist2' ] = df["trk1trk2hitdist2"]
+    df.loc[trk2srtshr & (df["trk1trk2hitdist2"]>0) & (df["trkshrhitdist2"]<0), 'trkshrhitdist2' ] = df["trk1trk2hitdist2"]
+    df.loc[trk2srtshr, 'shrsubclusters0' ] = df["shrsubclusters0"] + df["trk2subclusters0"]
+    df.loc[trk2srtshr, 'shrsubclusters1' ] = df["shrsubclusters1"] + df["trk2subclusters1"]
+    df.loc[trk2srtshr, 'shrsubclusters2' ] = df["shrsubclusters2"] + df["trk2subclusters2"]
+    df.loc[trk2srtshr & (df["shr1trk2moliereavg"]>0), 'shrmoliereavg' ] = df["shr1trk2moliereavg"]
+    df.loc[trk2srtshr, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
+    df.loc[trk2srtshr, 'trk_energy_tot'] = df["trk_energy_tot"]-df["trk2_protonenergy"]
+    df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
+    df.loc[trk2srtshr & (df["trk2_energy"]<0.), "trk2_energy"] = 0.
+    df["trk2_energy_cali"] = 0.001 * df["trk2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
+    df.loc[trk2srtshr, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]+df["trk2_energy_cali"]
+    
 def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loadpi0variables=False):
     fold = ls.fold
     tree = "NeutrinoSelectionFilter"
@@ -51,7 +316,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     R3NCNOPI = 'prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_new_run3_reco2_reco2'
     R3NCCPI  = 'prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_New_run3_reco2_reco2'
 
-
+    print(ls.ntuple_path+ls.RUN3+R3NUE+ls.APPEND+".root")
     ur3mc = uproot.open(ls.ntuple_path+ls.RUN3+R3NU+ls.APPEND+".root")[fold][tree]
     ur3ncpi0 = uproot.open(ls.ntuple_path+ls.RUN3+R3NCPI0+ls.APPEND+".root")[fold][tree]
     ur3ccpi0 = uproot.open(ls.ntuple_path+ls.RUN3+R3CCPI0+ls.APPEND+".root")[fold][tree]
@@ -86,9 +351,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ur1ncnopi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCNOPI+ls.APPEND+".root")[fold][tree]
     ur1nccpi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCCPI+ls.APPEND+".root")[fold][tree]
     
-    R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_ALL'
-    R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_ALL'
-    ur123data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
+    R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_extended_v42'
+    R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_v42'
+    R123_NP_RECOVERY_BNB = 'bnb_recovery'
+    #ur123data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
     
     ur1data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
     ur2data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
@@ -98,6 +364,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     ur2data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
     ur3data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
     
+    ur1data_np_recovery_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_RECOVERY_BNB+".root")['nuselection'][tree]
+    ur2data_np_recovery_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NP_RECOVERY_BNB+".root")['nuselection'][tree]
+    ur3data_np_recovery_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NP_RECOVERY_BNB+".root")['nuselection'][tree]
+    
     variables = [
         "shr_dedx_Y", "shr_bkt_pdg", "p", "pt", "selected", "nu_pdg", "shr_theta",
         "slpdg", "trk_score_v", "backtracked_pdg", # modified from shr_score_v
@@ -105,7 +375,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         "shr_tkfit_dedx_U","shr_tkfit_dedx_V","shr_tkfit_dedx_Y",
         "shr_tkfit_gap10_dedx_U","shr_tkfit_gap10_dedx_V","shr_tkfit_gap10_dedx_Y",
         "shr_tkfit_2cm_dedx_U","shr_tkfit_2cm_dedx_V","shr_tkfit_2cm_dedx_Y",
-        #"shr_energy_tot", 
+        "shr_energy_tot", 
         "trk_energy_tot", "shr_hits_tot", "ccnc", "trk_chipr",
         "trk_bkt_pdg", "hits_ratio", "n_tracks_contained", 
         "crtveto","crthitpe","_closestNuCosmicDist",
@@ -143,9 +413,16 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         "trk_hits_tot", "trk_hits_u_tot", "trk_hits_v_tot", "trk_hits_y_tot",
         "shr_hits_tot", "shr_hits_u_tot", "shr_hits_v_tot", "shr_hits_y_tot",
         "shr_theta_v","shr_phi_v","shr_energy_y_v",
-        "shr_start_x_v","shr_start_z_v","shr_start_z_v",
-        "trk_start_x_v","trk_start_z_v","trk_start_z_v",
-        "topological_score"
+        "shr_start_x_v","shr_start_y_v","shr_start_z_v",
+        "trk_start_x_v","trk_start_y_v","trk_start_z_v",
+        "trk_end_x_v","trk_end_y_v","trk_end_z_v",
+        "trk_phi_v","trk_theta_v","trk_llr_pid_score_v","trk_len_v","trk_id",
+        "topological_score","ismerged","merge_bestdot","merge_bestdist",
+        "shr_px","shr_py","shr_pz","shr_start_x","shr_start_y","shr_start_z","trk_hits_max",
+        "shr_tkfit_dedx_u_v","shr_tkfit_dedx_v_v","shr_tkfit_dedx_y_v",
+        "shr_tkfit_dedx_nhits_u_v","shr_tkfit_dedx_nhits_v_v","shr_tkfit_dedx_nhits_y_v",
+        "trk2shrhitdist2","trk1trk2hitdist2","shr1shr2moliereavg","shr1trk1moliereavg","shr1trk2moliereavg",
+        "trk2_id","shr2_id","trk_hits_2nd","shr_hits_2nd"
     ]
     #make the list unique
     variables = list(set(variables))
@@ -184,6 +461,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
     r3data_two_showers_sidebands = ur3data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r3data_np_far_sidebands = ur3data_np_far_sidebands.pandas.df(variables, flatten=False)
+    r3data_np_recovery_sidebands = ur3data_np_recovery_sidebands.pandas.df(variables, flatten=False)
     
     r3lee["is_signal"] = r3lee["category"] == 11
     r3data["is_signal"] = r3data["category"] == 11
@@ -203,82 +481,21 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
     r3data_two_showers_sidebands["is_signal"] = r3data_two_showers_sidebands["category"] == 11
     r3data_np_far_sidebands["is_signal"] = r3data_np_far_sidebands["category"] == 11
+    r3data_np_recovery_sidebands["is_signal"] = r3data_np_recovery_sidebands["category"] == 11
     
-    r3_datasets = [r3lee, r3data, r3nue, r3mc, r3dirt, r3ext, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi, r3lee, r3lee, r3lee, r3data_two_showers_sidebands, r3data_np_far_sidebands]
+    r3_datasets = [r3lee, r3data, r3nue, r3mc, r3dirt, r3ext, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi, r3lee, r3lee, r3lee, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_np_recovery_sidebands]
     for r3_dataset in r3_datasets:
         r3_dataset['run1'] = np.zeros(len(r3_dataset), dtype=bool)
         r3_dataset['run2'] = np.zeros(len(r3_dataset), dtype=bool)
         r3_dataset['run3'] = np.ones(len(r3_dataset), dtype=bool)
         r3_dataset['run12'] = np.zeros(len(r3_dataset), dtype=bool)
         
-    uproot_v = [ur3lee,ur3mc,ur3ncpi0,ur3ccpi0,ur3ccnopi,ur3cccpi,ur3ncnopi,ur3nccpi,ur3nue,ur3ext,ur3data,ur3dirt, ur3data_two_showers_sidebands, ur3data_np_far_sidebands]
-    df_v = [r3lee,r3mc,r3ncpi0,r3ccpi0,r3ccnopi,r3cccpi,r3ncnopi,r3nccpi,r3nue,r3ext,r3data,r3dirt, r3data_two_showers_sidebands, r3data_np_far_sidebands]
+    uproot_v = [ur3lee,ur3mc,ur3ncpi0,ur3ccpi0,ur3ccnopi,ur3cccpi,ur3ncnopi,ur3nccpi,ur3nue,ur3ext,ur3data,ur3dirt, ur3data_two_showers_sidebands, ur3data_np_far_sidebands,ur3data_np_recovery_sidebands]
+    df_v = [r3lee,r3mc,r3ncpi0,r3ccpi0,r3ccnopi,r3cccpi,r3ncnopi,r3nccpi,r3nue,r3ext,r3data,r3dirt, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_np_recovery_sidebands]
     for i,df in enumerate(df_v):
+        print(i)
         up = uproot_v[i]
-        trk_llr_pid_v = up.array('trk_llr_pid_score_v')
-        trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
-        trk_energy_proton_v = up.array('trk_energy_proton_v')
-        #shr_moliere_avg_v = up.array('shr_moliere_avg_v')
-        trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
-        shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
-        trk_llr_pid_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_llr_pid_v,trk_id)])
-        trk_calo_energy_y_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_calo_energy_y_v,trk_id)])
-        trk_energy_proton_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_energy_proton_v,trk_id)])
-        #shr_moliere_avg_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(shr_moliere_avg_v,shr_id)])
-        df['trkpid'] = trk_llr_pid_v_sel
-        df['trackcaloenergy'] = trk_calo_energy_y_sel
-        df['protonenergy'] = trk_energy_proton_sel
-        #df['shrmoliereavg'] = shr_moliere_avg_sel
-        trk_sce_start_x_v = up.array('trk_sce_start_x_v')
-        trk_sce_start_y_v = up.array('trk_sce_start_y_v')
-        trk_sce_start_z_v = up.array('trk_sce_start_z_v')
-        trk_sce_end_x_v = up.array('trk_sce_end_x_v')
-        trk_sce_end_y_v = up.array('trk_sce_end_y_v')
-        trk_sce_end_z_v = up.array('trk_sce_end_z_v')
-        trk_sce_start_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_x_v,shr_id)])
-        trk_sce_start_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_y_v,shr_id)])
-        trk_sce_start_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_z_v,shr_id)])
-        trk_sce_end_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_x_v,shr_id)])
-        trk_sce_end_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_y_v,shr_id)])
-        trk_sce_end_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_z_v,shr_id)])
-        df['shr_trk_sce_start_x'] = trk_sce_start_x_v_sel
-        df['shr_trk_sce_start_y'] = trk_sce_start_y_v_sel
-        df['shr_trk_sce_start_z'] = trk_sce_start_z_v_sel
-        df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
-        df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
-        df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
-        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
-        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
-        #
-        trk_score_v = up.array("trk_score_v")
-        pfnhits_v = up.array("pfnhits")
-        shr_energy_y_v = up.array("shr_energy_y_v")
-        shr_theta_v = up.array("shr_theta_v")
-        shr_phi_v   = up.array("shr_phi_v")
-        shr_start_x_v   = up.array("shr_start_x_v")
-        shr_start_y_v   = up.array("shr_start_y_v")
-        shr_start_z_v   = up.array("shr_start_z_v")
-        trk_start_x_v   = up.array("trk_start_x_v")
-        trk_start_y_v   = up.array("trk_start_y_v")
-        trk_start_z_v   = up.array("trk_start_z_v")
-        #shr_mask = (trk_score_v<0.5)
-        #df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        df["trk_start_x"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_x_v,trk_id)])
-        df["trk_start_y"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_y_v,trk_id)])
-        df["trk_start_z"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_z_v,trk_id)])
+        process_uproot(up,df)
 
     if (USEBDT == True):
         train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
@@ -299,7 +516,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
 
     r1data_two_showers_sidebands = ur1data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r1data_np_far_sidebands = ur1data_np_far_sidebands.pandas.df(variables, flatten=False)
-    r123data_two_showers_sidebands = ur123data_two_showers_sidebands.pandas.df(variables, flatten=False)
+    r1data_np_recovery_sidebands = ur1data_np_recovery_sidebands.pandas.df(variables, flatten=False)
+    #r123data_two_showers_sidebands = ur123data_two_showers_sidebands.pandas.df(variables, flatten=False)
 
     r1lee["is_signal"] = r1lee["category"] == 11
     r1data["is_signal"] = r1data["category"] == 11
@@ -317,85 +535,23 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     r1lee.loc[r1lee['category'] == 10, 'category'] = 111
     r1lee.loc[r1lee['category'] == 11, 'category'] = 111
 
-    r123data_two_showers_sidebands["is_signal"] = r123data_two_showers_sidebands["category"] == 11
+    #r123data_two_showers_sidebands["is_signal"] = r123data_two_showers_sidebands["category"] == 11
     r1data_two_showers_sidebands["is_signal"] = r1data_two_showers_sidebands["category"] == 11
     r1data_np_far_sidebands["is_signal"] = r1data_np_far_sidebands["category"] == 11
+    r1data_np_recovery_sidebands["is_signal"] = r1data_np_recovery_sidebands["category"] == 11
     
-    r1_datasets = [r1lee, r1data, r1nue, r1mc, r1dirt, r1ext, r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r1lee, r123data_two_showers_sidebands, r1data_two_showers_sidebands, r1data_np_far_sidebands]
+    r1_datasets = [r1lee, r1data, r1nue, r1mc, r1dirt, r1ext, r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r1lee, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_np_recovery_sidebands]#r123data_two_showers_sidebands,
     for r1_dataset in r1_datasets:
         r1_dataset['run1'] = np.ones(len(r1_dataset), dtype=bool)
         r1_dataset['run2'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run3'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run12'] = np.ones(len(r1_dataset), dtype=bool)
     
-    uproot_v = [ur1lee,ur1mc,ur1ncpi0,ur1ccpi0,ur1ccnopi,ur1cccpi,ur1ncnopi,ur1nccpi,ur1nue,ur1ext,ur1data,ur1dirt, ur123data_two_showers_sidebands, ur1data_two_showers_sidebands, ur1data_np_far_sidebands]
-    df_v = [r1lee,r1mc,r1ncpi0,r1ccpi0,r1ccnopi,r1cccpi,r1ncnopi,r1nccpi,r1nue,r1ext,r1data,r1dirt, r123data_two_showers_sidebands, r1data_two_showers_sidebands, r1data_np_far_sidebands]
+    uproot_v = [ur1lee,ur1mc,ur1ncpi0,ur1ccpi0,ur1ccnopi,ur1cccpi,ur1ncnopi,ur1nccpi,ur1nue,ur1ext,ur1data,ur1dirt, ur1data_two_showers_sidebands, ur1data_np_far_sidebands, ur1data_np_recovery_sidebands]#ur123data_two_showers_sidebands,
+    df_v = [r1lee,r1mc,r1ncpi0,r1ccpi0,r1ccnopi,r1cccpi,r1ncnopi,r1nccpi,r1nue,r1ext,r1data,r1dirt, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_np_recovery_sidebands]#r123data_two_showers_sidebands,
     for i,df in enumerate(df_v):
         up = uproot_v[i]
-        trk_llr_pid_v = up.array('trk_llr_pid_score_v')
-        trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
-        trk_energy_proton_v = up.array('trk_energy_proton_v')
-        #shr_moliere_avg_v = up.array('shr_moliere_avg_v')
-        trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
-        shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
-        trk_llr_pid_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_llr_pid_v,trk_id)])
-        trk_calo_energy_y_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_calo_energy_y_v,trk_id)])
-        trk_energy_proton_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_energy_proton_v,trk_id)])
-        #shr_moliere_avg_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(shr_moliere_avg_v,shr_id)])
-        df['trkpid'] = trk_llr_pid_v_sel
-        df['trackcaloenergy'] = trk_calo_energy_y_sel
-        df['protonenergy'] = trk_energy_proton_sel
-        #df['shrmoliereavg'] = shr_moliere_avg_sel
-        trk_sce_start_x_v = up.array('trk_sce_start_x_v')
-        trk_sce_start_y_v = up.array('trk_sce_start_y_v')
-        trk_sce_start_z_v = up.array('trk_sce_start_z_v')
-        trk_sce_end_x_v = up.array('trk_sce_end_x_v')
-        trk_sce_end_y_v = up.array('trk_sce_end_y_v')
-        trk_sce_end_z_v = up.array('trk_sce_end_z_v')
-        trk_sce_start_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_x_v,shr_id)])
-        trk_sce_start_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_y_v,shr_id)])
-        trk_sce_start_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_z_v,shr_id)])
-        trk_sce_end_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_x_v,shr_id)])
-        trk_sce_end_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_y_v,shr_id)])
-        trk_sce_end_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_z_v,shr_id)])
-        df['shr_trk_sce_start_x'] = trk_sce_start_x_v_sel
-        df['shr_trk_sce_start_y'] = trk_sce_start_y_v_sel
-        df['shr_trk_sce_start_z'] = trk_sce_start_z_v_sel
-        df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
-        df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
-        df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
-        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
-        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
-        #
-        trk_score_v = up.array("trk_score_v")
-        pfnhits_v = up.array("pfnhits")
-        shr_energy_y_v = up.array("shr_energy_y_v")
-        shr_theta_v = up.array("shr_theta_v")
-        shr_phi_v   = up.array("shr_phi_v")
-        shr_start_x_v   = up.array("shr_start_x_v")
-        shr_start_y_v   = up.array("shr_start_y_v")
-        shr_start_z_v   = up.array("shr_start_z_v")
-        trk_start_x_v   = up.array("trk_start_x_v")
-        trk_start_y_v   = up.array("trk_start_y_v")
-        trk_start_z_v   = up.array("trk_start_z_v")
-        #shr_mask = (trk_score_v<0.5)
-        #df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        df["trk_start_x"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_x_v,trk_id)])
-        df["trk_start_y"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_y_v,trk_id)])
-        df["trk_start_z"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_z_v,trk_id)])
+        process_uproot(up,df)
 
 
     r2nue = ur2nue.pandas.df(variables + WEIGHTS, flatten=False)
@@ -405,6 +561,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
     r2data_two_showers_sidebands = ur2data_two_showers_sidebands.pandas.df(variables, flatten=False)
     r2data_np_far_sidebands = ur2data_np_far_sidebands.pandas.df(variables, flatten=False)
+    r2data_np_recovery_sidebands = ur2data_np_recovery_sidebands.pandas.df(variables, flatten=False)
     
     r2lee["is_signal"] = r2lee["category"] == 11
     r2nue["is_signal"] = r2nue["category"] == 11
@@ -416,8 +573,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
     r2data_two_showers_sidebands["is_signal"] = r2data_two_showers_sidebands["category"] == 11
     r2data_np_far_sidebands["is_signal"] = r2data_np_far_sidebands["category"] == 11
+    r2data_np_recovery_sidebands["is_signal"] = r2data_np_recovery_sidebands["category"] == 11
     
-    r2_datasets = [r2lee, r2nue, r2mc, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands]
+    r2_datasets = [r2lee, r2nue, r2mc, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_np_recovery_sidebands]
     for r2_dataset in r2_datasets:
         r2_dataset['run1'] = np.zeros(len(r2_dataset), dtype=bool)
         r2_dataset['run2'] = np.ones(len(r2_dataset), dtype=bool)
@@ -427,74 +585,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     for r_dataset in [r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi]:
         r_dataset['run2'] = np.ones(len(r_dataset), dtype=bool)
     
-    uproot_v = [ur2lee,ur2mc,ur2nue, ur2ext, ur2data_two_showers_sidebands, ur2data_np_far_sidebands]
-    df_v = [r2lee,r2mc,r2nue, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands]
+    uproot_v = [ur2lee,ur2mc,ur2nue, ur2ext, ur2data_two_showers_sidebands, ur2data_np_far_sidebands, ur2data_np_recovery_sidebands]
+    df_v = [r2lee,r2mc,r2nue, r2ext, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_np_recovery_sidebands]
     for i,df in enumerate(df_v):
         up = uproot_v[i]
-        trk_llr_pid_v = up.array('trk_llr_pid_score_v')
-        trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
-        trk_energy_proton_v = up.array('trk_energy_proton_v')
-        #shr_moliere_avg_v = up.array('shr_moliere_avg_v')
-        trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
-        shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
-        trk_llr_pid_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_llr_pid_v,trk_id)])
-        trk_calo_energy_y_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_calo_energy_y_v,trk_id)])
-        trk_energy_proton_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_energy_proton_v,trk_id)])
-        #shr_moliere_avg_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(shr_moliere_avg_v,shr_id)])
-        df['trkpid'] = trk_llr_pid_v_sel
-        df['trackcaloenergy'] = trk_calo_energy_y_sel
-        df['protonenergy'] = trk_energy_proton_sel
-        #df['shrmoliereavg'] = shr_moliere_avg_sel
-        trk_sce_start_x_v = up.array('trk_sce_start_x_v')
-        trk_sce_start_y_v = up.array('trk_sce_start_y_v')
-        trk_sce_start_z_v = up.array('trk_sce_start_z_v')
-        trk_sce_end_x_v = up.array('trk_sce_end_x_v')
-        trk_sce_end_y_v = up.array('trk_sce_end_y_v')
-        trk_sce_end_z_v = up.array('trk_sce_end_z_v')
-        trk_sce_start_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_x_v,shr_id)])
-        trk_sce_start_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_y_v,shr_id)])
-        trk_sce_start_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_start_z_v,shr_id)])
-        trk_sce_end_x_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_x_v,shr_id)])
-        trk_sce_end_y_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_y_v,shr_id)])
-        trk_sce_end_z_v_sel = awkward.fromiter([pidv[tid] if tid<len(pidv) else -9999. for pidv,tid in zip(trk_sce_end_z_v,shr_id)])
-        df['shr_trk_sce_start_x'] = trk_sce_start_x_v_sel
-        df['shr_trk_sce_start_y'] = trk_sce_start_y_v_sel
-        df['shr_trk_sce_start_z'] = trk_sce_start_z_v_sel
-        df['shr_trk_sce_end_x'] = trk_sce_end_x_v_sel
-        df['shr_trk_sce_end_y'] = trk_sce_end_y_v_sel
-        df['shr_trk_sce_end_z'] = trk_sce_end_z_v_sel
-        df['shr_trk_len'] = np.sqrt( (df['shr_trk_sce_start_x']-df['shr_trk_sce_end_x'])**2 + (df['shr_trk_sce_start_y']-df['shr_trk_sce_end_y'])**2 + (df['shr_trk_sce_start_z']-df['shr_trk_sce_end_z'])**2 )
-        df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
-        #
-        trk_score_v = up.array("trk_score_v")
-        pfnhits_v = up.array("pfnhits")
-        shr_energy_y_v = up.array("shr_energy_y_v")
-        shr_theta_v = up.array("shr_theta_v")
-        shr_phi_v   = up.array("shr_phi_v")
-        shr_start_x_v   = up.array("shr_start_x_v")
-        shr_start_y_v   = up.array("shr_start_y_v")
-        shr_start_z_v   = up.array("shr_start_z_v")
-        trk_start_x_v   = up.array("trk_start_x_v")
-        trk_start_y_v   = up.array("trk_start_y_v")
-        trk_start_z_v   = up.array("trk_start_z_v")
-        #shr_mask = (trk_score_v<0.5)
-        #df["shr1_nhits"] = awkward.fromiter([vec[vec.argsort()[-1]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr2_nhits"] = awkward.fromiter([vec[vec.argsort()[-2]] if len(vec)>1 else -9999. for vec in pfnhits_v[shr_mask]])
-        #df["shr1_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_energy"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_energy_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_theta"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_theta"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_theta_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_phi"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_phi"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_phi_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_x"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_x_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_y"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_y_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr1_start_z"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        #df["shr2_start_z"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(shr_start_z_v[shr_mask],pfnhits_v[shr_mask])])
-        df["trk_start_x"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_x_v,trk_id)])
-        df["trk_start_y"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_y_v,trk_id)])
-        df["trk_start_z"] = awkward.fromiter([pidv[tid] if tid<len(pidv) else 9999. for pidv,tid in zip(trk_start_z_v,trk_id)])
+        process_uproot(up,df)
 
     
     #set weights
@@ -546,6 +641,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         data = pd.concat([r1data_two_showers_sidebands, r2data_two_showers_sidebands, r3data_two_showers_sidebands],ignore_index=True)
     elif which_sideband == 'np_far':
         data = pd.concat([r1data_np_far_sidebands, r2data_np_far_sidebands, r3data_np_far_sidebands],ignore_index=True)
+    elif which_sideband == 'np_sb_comb':
+        data = pd.concat([r1data_np_far_sidebands, r1data_two_showers_sidebands, r1data_np_recovery_sidebands, r2data_np_far_sidebands, r2data_two_showers_sidebands, r2data_np_recovery_sidebands, r3data_np_far_sidebands, r3data_two_showers_sidebands, r3data_np_recovery_sidebands],ignore_index=True)
     elif which_sideband == "opendata":
         data = pd.concat([r1data, r3data],ignore_index=True) # 5e19 and 1e19
     ext = pd.concat([r3ext, r2ext, r1ext],ignore_index=True)
@@ -571,7 +668,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
             pi0emax = 0.6
             df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] < pi0emax) , 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*df['pi0_e'])
             df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] >= pi0emax), 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*pi0emax)
-            #df.loc[ df['pi0_e'] > 0.1, 'weightSplineTimesTune' ] = df['weightSplineTimesTune']*(1.-0.35*df['pi0_e'])
         '''
         pi0emax = 0.6
         for weight in range(11):
@@ -590,16 +686,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
         df['anglediff_Y'] = np.abs(df['secondshower_Y_dir']-df['shrclusdir2'])
         df['anglediff_V'] = np.abs(df['secondshower_V_dir']-df['shrclusdir1'])
         df['anglediff_U'] = np.abs(df['secondshower_U_dir']-df['shrclusdir0'])
-        #
-        #df["hitratio_shr12"] = (df["shr2_nhits"]/df["shr1_nhits"])
-        #df["hitratio_mod_shr12"] = (df["shr2_nhits"]/(df["shr1_nhits"]*np.sqrt(df["shr1_nhits"])))
-        #df["cos_shr12"] = np.sin(df["shr1_theta"])*np.cos(df["shr1_phi"])*np.sin(df["shr2_theta"])*np.cos(df["shr2_phi"])\
-        #                + np.sin(df["shr1_theta"])*np.sin(df["shr1_phi"])*np.sin(df["shr2_theta"])*np.sin(df["shr2_phi"])\
-        #                + np.cos(df["shr1_theta"])*np.cos(df["shr2_theta"])
-        #df["tksh1_dist"] = np.sqrt( (df["shr1_start_x"]-df["trk_start_x"])**2 + (df["shr1_start_y"]-df["trk_start_y"])**2 + (df["shr1_start_z"]-df["trk_start_z"])**2)
-        #df["tksh2_dist"] = np.sqrt( (df["shr2_start_x"]-df["trk_start_x"])**2 + (df["shr2_start_y"]-df["trk_start_y"])**2 + (df["shr2_start_z"]-df["trk_start_z"])**2)
-        #df["min_tksh_dist"] = np.minimum(df["tksh1_dist"],df["tksh2_dist"])
-        #df["max_tksh_dist"] = np.maximum(df["tksh1_dist"],df["tksh2_dist"])
 
     for i,df in enumerate(df_v):
         df["ptOverP"] = df["pt"]/df["p"]
@@ -780,7 +866,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
                     xgb.DMatrix(nccpi[TRAINVARZP]),
                     ntree_limit=booster.best_iteration)
                 
-    data = data.drop_duplicates(subset=['reco_e'],keep='first')
+    data = data.drop_duplicates(subset=['run','evt'],keep='last')
 
     samples = {
     "mc": mc,
@@ -827,9 +913,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True, pi0scaling=0,loa
     
 pot_data_unblinded = {
     "farsideband" : {
-        1: (1.45E+20, 32139256),
-        2: (2.58E+20, 60909877),
-        3: (1.86E+20, 44266555), },
+        1: (1.71E+20, 38010325),
+        2: (2.64E+20, 62765179),
+        3: (2.60E+20, 62057835), },
     "opendata" : {
         1: (4.08E+19, 9028010),
         2: (1.00E+01, 1),
