@@ -68,6 +68,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         ur3data = uproot.open(ls.ntuple_path+'fakedata/prod_uboone_nu2020_fakedata_set1_run3b_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
     elif (loadfakedata == 2):
         ur3data = uproot.open(ls.ntuple_path+'fakedata/prod_uboone_nu2020_fakedata_set2_run3b_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
+    elif (loadfakedata == 3):
+        ur3data = uproot.open(ls.ntuple_path+'fakedata/prod_uboone_nu2020_fakedata_set3_run3b_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
     ur3ext = uproot.open(ls.ntuple_path+ls.RUN3+R3EXT+ls.APPEND+".root")[fold][tree]
     ur3dirt = uproot.open(ls.ntuple_path+ls.RUN3+R3DRT+ls.APPEND+".root")[fold][tree]
     ur3lee = uproot.open(ls.ntuple_path+ls.RUN3+R3NUE+ls.APPEND+".root")[fold][tree]
@@ -94,6 +96,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         ur1data = uproot.open(ls.ntuple_path+'fakedata/prod_uboone_nu2020_fakedata_set1_run1_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
     elif (loadfakedata == 2):
         ur1data = uproot.open(ls.ntuple_path+'fakedata/prod_uboone_nu2020_fakedata_set2_run1_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
+    elif (loadfakedata == 3):
+        ur1data = uproot.open(ls.ntuple_path+'fakedata/prod_uboone_nu2020_fakedata_set3_run1_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
     ur1ext = uproot.open(ls.ntuple_path+ls.RUN1+R1EXT+ls.APPEND+".root")[fold][tree]
     ur1dirt = uproot.open(ls.ntuple_path+ls.RUN1+R1DRT+ls.APPEND+".root")[fold][tree]
     ur1lee = uproot.open(ls.ntuple_path+ls.RUN1+R1NUE+ls.APPEND+".root")[fold][tree]
@@ -962,6 +966,10 @@ pot_data_unblinded = {
         1: (4.06E+20, 32139256),
         2: (1.00E+01, 1),
         3: (3.91E+20, 44266555), },
+    "fakeset3" : {
+        1: (4.02E+20, 32139256),
+        2: (1.00E+01, 1),
+        3: (3.72E+20, 44266555), },
 }
 
 pot_mc_samples = {}
