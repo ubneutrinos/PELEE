@@ -69,6 +69,9 @@ def process_uproot(up,df):
                                  df['shr_trk_sce_end_x'],  df['shr_trk_sce_end_y'],  df['shr_trk_sce_end_z'])
     df['mevcm'] = 1000 * df['shr_energy_tot_cali'] / df['shr_trk_len']
     #
+    df["slclnhits"] = up.array("pfnhits").sum()
+    df["slclnunhits"] = up.array("pfnunhits").sum()
+    #
     trk_score_v = up.array("trk_score_v")
     shr_mask = (trk_score_v<0.5)
     trk_mask = (trk_score_v>0.5)
