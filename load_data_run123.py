@@ -237,8 +237,6 @@ def process_uproot_recoveryvars(up,df):
     df.loc[shr2splt, 'shrsubclusters1' ] = df["shrsubclusters1"] + df["shr2subclusters1"]
     df.loc[shr2splt, 'shrsubclusters2' ] = df["shrsubclusters2"] + df["shr2subclusters2"]
     df.loc[shr2splt & (df["shr1shr2moliereavg"]>0), 'shrmoliereavg' ] = df["shr1shr2moliereavg"]
-    df["shr2_energy_cali"] = 0.001 * df["shr2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
-    df.loc[shr2splt, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]+df["shr2_energy_cali"]
     #
     # try to recover cases where the leading track is spurious (more than 30 cm away from nu vtx)
     # note: we redefine all track-related variables from trk2 (except pt and p for now),
@@ -338,7 +336,7 @@ def process_uproot_recoveryvars(up,df):
     df.drop(columns=['shr1_start_x', 'shr1_start_y', 'shr1_start_z'])
     df.drop(columns=['shr2_start_x', 'shr2_start_y', 'shr2_start_z'])
     df.drop(columns=['shr12_start_dx', 'shr12_start_dy', 'shr12_start_dz'])
-    df.drop(columns=['shr2_energy','shr2_energy_cali'])
+    df.drop(columns=['shr2_energy'])
     df.drop(columns=['trk1_len', 'trk2_len'])
     df.drop(columns=['trk1_distance', 'trk2_distance'])
     df.drop(columns=['trk1_llr_pid', 'trk2_llr_pid'])
@@ -448,7 +446,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     ur1ncnopi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCNOPI+ls.APPEND+".root")[fold][tree]
     ur1nccpi = uproot.open(ls.ntuple_path+ls.RUN1+R1NCCPI+ls.APPEND+".root")[fold][tree]
     
-    R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_ALL'
+    R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_extended_v42'
     R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_v42_ALL'
     R123_0P_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1e0p_far_sideband_skimmed_ALL'
     R123_NP_RECOVERY_BNB = 'bnb_recovery'
@@ -540,12 +538,12 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                "trk_hits_tot", "trk_hits_u_tot", "trk_hits_v_tot", "trk_hits_y_tot",
                "shr_energy_tot_cali", "shr_dedx_Y_cali", "trk_energy_tot","shr_id",
                "hits_ratio", "n_tracks_contained",
-               "p", "pt", "selected"
+               "shr_px","shr_py","shr_pz","p", "pt", "selected"
     ]
     RCVRYVARS = ["shr_energy_tot", "trk_energy_tot",
                  "trk_end_x_v","trk_end_y_v","trk_end_z_v",
                  "trk_phi_v","trk_theta_v","trk_len_v","trk_id",
-                 "shr_px","shr_py","shr_pz","shr_start_x","shr_start_y","shr_start_z","trk_hits_max",
+                 "shr_start_x","shr_start_y","shr_start_z","trk_hits_max",
                  "shr_tkfit_dedx_u_v","shr_tkfit_dedx_v_v","shr_tkfit_dedx_y_v",
                  "shr_tkfit_dedx_nhits_u_v","shr_tkfit_dedx_nhits_v_v","shr_tkfit_dedx_nhits_y_v",
                  "trk2shrhitdist2","trk1trk2hitdist2","shr1shr2moliereavg","shr1trk1moliereavg","shr1trk2moliereavg",
