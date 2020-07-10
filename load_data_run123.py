@@ -112,6 +112,16 @@ def process_uproot(up,df):
                                   cosAngleTwoVecs(df["trk1_dir_x_alltk"],df["trk1_dir_y_alltk"],df["trk1_dir_z_alltk"],\
                                                   df["shr_px"],          df["shr_py"],          df["shr_pz"]))
     #
+    # fix the 'subcluster' bug (in case of more than one shower, it comes from the one with least hits, not the one with most)
+    # so we overwrite the dataframe column taking the correct value from the corrsponding vector branches
+    #
+    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
+    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
+    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
+    df["shrsubclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr_id,0)
+    df["shrsubclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr_id,0)
+    df["shrsubclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr_id,0)
+    #
     df.drop(columns=['shr_start_x', 'shr_start_y', 'shr_start_z'])
     df.drop(columns=['trk1_start_x_alltk', 'trk1_start_y_alltk', 'trk1_start_z_alltk'])
     df.drop(columns=['trk1_dir_x_alltk', 'trk1_dir_y_alltk', 'trk1_dir_z_alltk'])
@@ -211,13 +221,6 @@ def process_uproot_recoveryvars(up,df):
                             cosAngleTwoVecs(df["trk1_dir_x"],df["trk1_dir_y"],df["trk1_dir_z"],\
                                             df["trk2_dir_x"],df["trk2_dir_y"],df["trk2_dir_z"]))
     #
-    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
-    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
-    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
-    df["shrsubclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr_id,0)
-    df["shrsubclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr_id,0)
-    df["shrsubclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr_id,0)
-    #
     # todo: update also other variables, not used in the selection
     #
     # try to recover cases where the 2nd shower is split from the main one
@@ -230,6 +233,9 @@ def process_uproot_recoveryvars(up,df):
                 (df['shr_score']<0.1) & ((df["shrsubclusters0"]+df["shrsubclusters1"]+df["shrsubclusters2"])>3))
     df.loc[shr2splt, 'is_shr2splt' ] = 1
     df.loc[shr2splt, 'n_showers_contained' ] = df["n_showers_contained"]-1
+    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
+    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
+    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
     df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr2_id,0)
     df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr2_id,0)
     df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr2_id,0)
@@ -886,6 +892,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if (loadshowervariables):    
         for i,df in enumerate(df_v):
             df['subcluster'] = df['shrsubclusters0'] + df['shrsubclusters1'] + df['shrsubclusters2']
+            #
             df['trkfit'] = df['shr_tkfit_npointsvalid'] / df['shr_tkfit_npoints']
             # and the 2d angle difference
             df['anglediff_Y'] = np.abs(df['secondshower_Y_dir']-df['shrclusdir2'])
