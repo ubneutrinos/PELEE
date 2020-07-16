@@ -325,6 +325,7 @@ basic_variables = [
         ('n_tracks_contained',6,(-0.5, 5.5),"n tracks contained"),
         ('reco_e',21,(0.05,2.15),r"Reconstructed Energy [GeV]"),
         ('reco_e',20,(0.05,3.05),r"Reconstructed Energy [GeV]","extended"),
+        ('reco_e',7,(0.05,2.85),r"Reconstructed Energy [GeV]","coarse"),
         #('reco_e',14,(0.15,1.55),r"Reconstructed Energy [GeV]","note"),
 ]
 
@@ -337,8 +338,10 @@ evtsel_variabls = [
 shrsel_variables = [
         ('trkfit',10,(0,1.0),"Fraction of Track-fitted points"),
         ('shrmoliereavg',20,(0,50),"average Moliere angle [degrees]"),
+        #('shrmoliereavg',10,(0,10),"average Moliere angle [degrees]","zoomed")
         ('shr_score',20,(0,0.5),"shr score"),
         ('subcluster',20,(0,40),"N sub-clusters in shower"),
+        #('subcluster',20,(0,80),"N sub-clusters in shower","extended"),
         ('secondshower_Y_nhit',20,(0,200),"Nhit 2nd shower (Y)"),
         ('secondshower_Y_dot',20,(-1,1),"cos(2nd shower direction wrt vtx) (Y)"),
         ('anglediff_Y',20,(0,350),"angle diff 1st-2nd shower (Y) [degrees]"),
@@ -352,21 +355,23 @@ trksel_variables = [
         ('tksh_angle',20,(-1,1),"cos(trk-shr angle)"),
         ('trkshrhitdist2',20,(0,10),"2D trk-shr distance (Y)"),
         ('tksh_distance',20,(0,40),"trk-shr distance [cm]"),
+        #('tksh_distance',12,(0,6),"trk-shr distance [cm]","zoomed")
         ('trkpid',21,(-1,1),"track LLR PID"),
-        ('trkpid',2,(-1,1),"track LLR PID", 'twobins'),
+        #('trkpid',2,(-1,1),"track LLR PID", 'twobins'),
+        #('trkpid',15,(-1,1),"track LLR PID","coarse")
 ]
 
 bdtscore_variables = [
-        ('nonpi0_score',10,(0.,0.5),"BDT non-$\pi^0$ score", "low_bdt"),
+        #('nonpi0_score',10,(0.,0.5),"BDT non-$\pi^0$ score", "low_bdt"),
         ('nonpi0_score',10,(0.5,1.0),"BDT non-$\pi^0$ score", "high_bdt"),
-        ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score"),
+        #('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score"),
         ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score", "log", True),
-        ('pi0_score',10,(0.,0.5),"BDT $\pi^0$ score", "low_bdt"),
+        #('pi0_score',10,(0.,0.5),"BDT $\pi^0$ score", "low_bdt"),
         ('pi0_score',10,(0.5,1.0),"BDT $\pi^0$ score", "high_bdt"),
-        ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
+        #('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
         ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
-        ('bkg_score',10,(0,1.0),"1e0p BDT score"),
-        ('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
+        #('bkg_score',10,(0,1.0),"1e0p BDT score"),
+        #('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
 ]
 
 energy_variables = [
@@ -389,7 +394,7 @@ kinematic_variables = [
         ('trk_len',21,(0,20),"Track length [cm]", "zoom"),
         ('shr_theta',21,(0,3.14),r"Shower $\theta$"),
         ('shr_phi',21,(-3.14, 3.14),r"Shower $\phi$"),
-        #('n_trks_gt10cm',6,(-0.5, 5.5),"n tracks longer than 10 cm"),
+        ('n_trks_gt10cm',6,(-0.5, 5.5),"n tracks longer than 10 cm"),
         #('n_trks_gt25cm',6,(-0.5, 5.5),"n tracks longer than 25 cm"),
 ]
 
@@ -447,4 +452,4 @@ run_variables = [
 ]
 
 plot_variables = basic_variables + evtsel_variabls + trksel_variables + shrsel_variables + bdtscore_variables
-plot_variables += kinematic_variables
+#plot_variables += kinematic_variables

@@ -122,30 +122,51 @@ def process_uproot(up,df):
     df["shrsubclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr_id,0)
     df["shrsubclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr_id,0)
     #
+    # do the best we can to get the right shr2_id
+    #
+    shr2_id_corr = up.array('shr2_id')-1 # I think we need this -1 to get the right result
+    shr2_id_appr = get_idx_from_vec_sort(-2,pfnhits_v,shr_mask)
+    shr2_id = np.where((shr2_id_corr>=0)&(shr2_id_corr<df['n_showers_tot']),shr2_id_corr,shr2_id_appr)
+    #
+    df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr2_id,0)
+    df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr2_id,0)
+    df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr2_id,0)
+    df['subcluster2tmp'] = df['shr2subclusters0'] + df['shr2subclusters1'] + df['shr2subclusters2']
+    #
+    df["shr2_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr2_id,-9999.)
+    df["shr2_start_y"] = get_elm_from_vec_idx(shr_start_y_v,shr2_id,-9999.)
+    df["shr2_start_z"] = get_elm_from_vec_idx(shr_start_z_v,shr2_id,-9999.)
+    df["trk1_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk_id,-9999.)
+    df["trk1_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk_id,-9999.)
+    df["trk1_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk_id,-9999.)
+    df['tk1sh2_distance'] = np.where((df['n_showers_contained']>1)&(df['n_tracks_contained']>0),\
+                                     distance(df['shr2_start_x'], df['shr2_start_y'], df['shr2_start_z'],\
+                                     df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z']),\
+                                     9999.)
+    #
+    df['sh1sh2_distance'] = np.where(df['n_showers_contained']>1,\
+                                     distance(df['shr2_start_x'], df['shr2_start_y'], df['shr2_start_z'],\
+                                     df['shr_start_x'],df['shr_start_y'],df['shr_start_z']),\
+                                     9999.)
+    #
+    df['shr2pid'] = get_elm_from_vec_idx(trk_llr_pid_v,shr2_id,9999.)
+    df['shr2_score'] = get_elm_from_vec_idx(trk_score_v,shr2_id,9999.)
+    #
     df.drop(columns=['shr_start_x', 'shr_start_y', 'shr_start_z'])
     df.drop(columns=['trk1_start_x_alltk', 'trk1_start_y_alltk', 'trk1_start_z_alltk'])
     df.drop(columns=['trk1_dir_x_alltk', 'trk1_dir_y_alltk', 'trk1_dir_z_alltk'])
+    df.drop(columns=['shr2subclusters0', 'shr2subclusters1', 'shr2subclusters2'])
     #
     return
 
 def process_uproot_recoveryvars(up,df):
     #
+    # data events where recovery matters should have shr2_id and trk2_id properly set
+    #
     trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
     shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
     trk2_id = up.array('trk2_id')-1 # I think we need this -1 to get the right result
     shr2_id = up.array('shr2_id')-1 # I think we need this -1 to get the right result
-    #
-    # code below (commented out) is for testing only
-    #
-    #pfnhits_v = up.array("pfnhits")
-    #trk_score_v = up.array("trk_score_v")
-    #shr_mask = (trk_score_v<0.5)
-    #trk_mask = (trk_score_v>0.5)
-    #shr2_id = get_idx_from_vec_sort(-2,pfnhits_v,shr_mask)
-    #trk2_id = get_idx_from_vec_sort(-2,pfnhits_v,trk_mask)
-    #df["shr2_id_test"] = shr2_id
-    #df["trk2_id_test"] = trk2_id
-    #
     #
     shr_energy_y_v = up.array("shr_energy_y_v")
     df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
@@ -194,12 +215,18 @@ def process_uproot_recoveryvars(up,df):
     df["trk2_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk2_id,-9999.)
     df["trk1_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk_id,-9999.)
     df["trk2_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk2_id,-9999.)
-    df['tk1sh1_distance'] = distance(df['shr_start_x'], df['shr_start_y'], df['shr_start_z'],\
-                                     df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z'])
-    df['tk2sh1_distance'] = distance(df['shr_start_x'], df['shr_start_y'], df['shr_start_z'],\
-                                     df['trk2_start_x'],df['trk2_start_y'],df['trk2_start_z'])
-    df['tk1tk2_distance'] = distance(df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z'],\
-                                     df['trk2_start_x'],df['trk2_start_y'],df['trk2_start_z'])
+    df['tk1sh1_distance'] = np.where((df['n_showers_contained']>0)&(df['n_tracks_contained']>0),\
+                                     distance(df['shr_start_x'], df['shr_start_y'], df['shr_start_z'],\
+                                              df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z']),\
+                                     9999.)
+    df['tk2sh1_distance'] = np.where((df['n_showers_contained']>0)&(df['n_tracks_contained']>1),\
+                                     distance(df['shr_start_x'], df['shr_start_y'], df['shr_start_z'],\
+                                     df['trk2_start_x'],df['trk2_start_y'],df['trk2_start_z']),\
+                                     9999.)
+    df['tk1tk2_distance'] = np.where(df['n_tracks_contained']>1,\
+                                     distance(df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z'],\
+                                     df['trk2_start_x'],df['trk2_start_y'],df['trk2_start_z']),\
+                                     9999.)
     #
     trk_dir_x_v = up.array("trk_dir_x_v")
     trk_dir_y_v = up.array("trk_dir_y_v")
@@ -229,10 +256,11 @@ def process_uproot_recoveryvars(up,df):
     # note2: in principle this can be done for 0p as well, but we focus only on Np for now
     #
     df["is_shr2splt"] = np.zeros_like(df["n_tracks_contained"])
-    shr2splt = ((df["n_tracks_contained"]>0) & (df["n_showers_contained"]>1) & (df['shr12_cos_p1_dstart'] > 0.99) &\
+    shr2splt = ((df["n_tracks_contained"]>0) & (df["n_showers_contained"]>1) &\
+                (df['shr12_cos_p1_dstart'] > 0.95) & (df['tk1sh2_distance'] > 60) &\
                 (df['shr_score']<0.1) & ((df["shrsubclusters0"]+df["shrsubclusters1"]+df["shrsubclusters2"])>3))
     df.loc[shr2splt, 'is_shr2splt' ] = 1
-    df.loc[shr2splt, 'n_showers_contained' ] = df["n_showers_contained"]-1
+    df.loc[shr2splt, 'n_showers_contained' ] = 1 #assume this happens to nues only! previously: = df["n_showers_contained"]-1
     pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
     pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
     pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
@@ -320,6 +348,19 @@ def process_uproot_recoveryvars(up,df):
     df.loc[trk2srtshr & (df["trk2_energy"]<0.), "trk2_energy"] = 0.
     df["trk2_energy_cali"] = 0.001 * df["trk2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
     df.loc[trk2srtshr, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]+df["trk2_energy_cali"]
+    #
+    # try to recover cases where the 2nd shower is actually an attached proton
+    #
+    df["is_shr2prtn"] = np.zeros_like(df["n_tracks_contained"])
+    shr2prtn = ((df["n_showers_contained"]>1) & (df['tk1sh2_distance'] < 6.0) & (df["subcluster2tmp"]<=4) & (df["shr2pid"]<0.02))
+    df.loc[shr2prtn, 'is_shr2prtn' ] = 1
+    df.loc[shr2prtn, 'n_showers_contained' ] = df["n_showers_contained"]-1
+    df.loc[shr2prtn, 'n_tracks_contained' ] = df["n_tracks_contained"]+1
+    df["shr2_protonenergy"] = get_elm_from_vec_idx(trk_energy_proton_v,shr2_id,-9999.)
+    df.loc[shr2prtn, 'trk_energy_tot'] = df["trk_energy_tot"]+df["shr2_protonenergy"]
+    df.loc[shr2prtn & (df["shr2_energy"]<0.), "shr2_energy"] = 0.
+    df["shr2_energy_cali"] = 0.001 * df["shr2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
+    df.loc[shr2prtn, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]-df["trk2_energy_cali"]
     #
     # try to recover cases where the leading track is embedded in the shower
     # todo: check that the two overlap, i.e. the shower is not downstream the track
@@ -892,6 +933,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if (loadshowervariables):    
         for i,df in enumerate(df_v):
             df['subcluster'] = df['shrsubclusters0'] + df['shrsubclusters1'] + df['shrsubclusters2']
+            df['subcluster2'] = df['shr2subclusters0'] + df['shr2subclusters1'] + df['shr2subclusters2']
             #
             df['trkfit'] = df['shr_tkfit_npointsvalid'] / df['shr_tkfit_npoints']
             # and the 2d angle difference
