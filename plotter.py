@@ -53,6 +53,10 @@ category_labels = {
     31: r"$\nu$ NC $\pi^{0}$",
     4: r"Cosmic",
     5: r"Out. fid. vol.",
+    71: r"$\nu_{\mu} \eta \rightarrow 3\pi^0$",
+    72: r"$\nu_{\mu} \eta \rightarrow \gamma\gamma$",
+    73: r"$\nu_{\mu} \eta \rightarrow \pi^+ \pi^0 \pi^-$",
+    8: r'$\pi^0 \rightarrow \gamma\gamma$',
     6: r"other",
     0: r"No slice"
 }
@@ -112,6 +116,10 @@ int_colors = {
 category_colors = {
     4: "xkcd:light red",
     5: "xkcd:brick",
+    8: "xkcd:cerulean",
+    71: "xkcd:purple",
+    72: "xkcd:lavender",
+    73: "xkcd:fuchsia",
     2: "xkcd:cyan",
     21: "xkcd:cerulean",
     22: "xkcd:lightblue",
@@ -168,6 +176,8 @@ class Plotter:
         self.cov = None # covariance matrix from systematics
         self.cov_mc_stat = None
         self.cov_data_stat = None
+        self.cov_full = None
+        self.data = None # data binned events
 
         self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
 
@@ -334,7 +344,8 @@ class Plotter:
             #print ('data : ',data)
             #print ('mc : ',mc)
 
-
+        self.cov_full = COV
+            
         #print ('COV matrix : ',COV)
 
         diff = (data-mc)
@@ -493,7 +504,22 @@ class Plotter:
         if ( (track_cuts == None) or (select_longest == False) ):
             return sample.query(sel_query).eval(variable).ravel()
         '''
-        df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
+
+
+        '''
+        df = sample.query(sel_query)
+        #print (df.isna().sum())
+        dfna = df.isna()
+        for (colname,colvals) in dfna.iteritems():
+            if (colvals.sum() != 0):
+                print ('name : ',colname)
+                print ('nan entries : ',colvals.sum())
+        '''
+        df = sample.query(sel_query)
+        #if (track_cuts != None):
+        #    df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
+        
+        #df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
         track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
         if track_cuts is not None:
@@ -509,10 +535,7 @@ class Plotter:
         elif "_v_" in variable:
             print("Variable is being interpretted as event-level, not track_level, despite having _v in name")
             print("the longest track is NOT being selected")
-        if vars.size == 0:
-            return np.array([])
-        else:
-            return np.hstack(vars.ravel())
+        return vars.ravel()
 
     def _categorize_entries_pdg(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
 
@@ -582,8 +605,8 @@ class Plotter:
                     ])
                 category = np.hstack(category)
 
-            #plotted_variable = self._select_showers(
-            #    plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
+            plotted_variable = self._select_showers(
+                plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
 
         return category, plotted_variable
 
@@ -846,27 +869,23 @@ class Plotter:
 
 
     def add_detsys_error(self,sample,mc_entries_v,weight):
-        #print ("sample is ",sample)
         detsys_v  = np.zeros(len(mc_entries_v))
         entries_v = np.zeros(len(mc_entries_v))
         if (self.detsys == None): return detsys_v
         if sample in self.detsys:
             if (len(self.detsys[sample]) == len(mc_entries_v)):
-                #print ('len matches!')
                 for i,n in enumerate(mc_entries_v):
                     detsys_v[i] = (self.detsys[sample][i] * n * weight)#**2
                     entries_v[i] = n * weight
             else:
                 print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))
-        #print ('sample : ',sample)
-        #print ('errors  are : ',detsys_v)
-        #print ('entries are : ',entries_v)
+
         return detsys_v
 
 
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
-                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=False, select_showers=True,
+                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
                       detsys=None,ratio=True,chisq=False,draw_data=True,genieweight="weightSplineTimesTune",
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
@@ -943,6 +962,7 @@ class Plotter:
 
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
+
 
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
@@ -1057,14 +1077,11 @@ class Plotter:
         if draw_data:
             ext_plotted_variable = self._selection(
                 variable, self.samples["ext"], query=query, track_cuts=track_cuts, select_longest=select_longest)
-            if select_showers:
-                ext_plotted_variable = self._select_showers(
-                ext_plotted_variable, variable, self.samples["ext"], query=query)
-
+            ext_plotted_variable = self._select_showers(
+            ext_plotted_variable, variable, self.samples["ext"], query=query)
             data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query, track_cuts=track_cuts, select_longest=select_longest)
-            if select_showers:
-                data_plotted_variable = self._select_showers(data_plotted_variable, variable,
+            data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
 
 
@@ -1327,13 +1344,13 @@ class Plotter:
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                  self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) #+ \
-                  #self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
+                       self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                       self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight)
             exp_err = np.sqrt(np.diag( (self.cov + self.cov_mc_stat) ) )# + exp_err*exp_err)
 
 
-            #print ('covariance matrix : ')
-            #print (cov)
+
+
 
         if "lee" in self.samples:
             if kind == "event_category":
@@ -1363,6 +1380,7 @@ class Plotter:
 
         if draw_data:
             n_data, bins = np.histogram(data_plotted_variable, **plot_options)
+            self.data = n_data
             data_err = np.sqrt(n_data)
 
             self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
@@ -1379,14 +1397,15 @@ class Plotter:
                 label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         if (draw_sys):
+
             chisq = self._chisquare(n_data, n_tot, data_err, exp_err)
             #self.stats['chisq'] = chisq
             chisqCNP = self._chisq_CNP(n_data,n_tot)
             #self.stats['chisqCNP'] = chisqCNP
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
-            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
             chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
+            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
             #self.stats['chisq full covariance'] = chicov
             #self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['dof']            = dof
@@ -1399,13 +1418,9 @@ class Plotter:
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
-        if len(order_var_dict.keys()) > 10:
-            leg = ax1.legend(
-                frameon=False, ncol=4, title=r'MicroBooNE Preliminary %g POT' % self.pot,
-                prop={'size': fig.get_figwidth()})
-        else:
-            leg = ax1.legend(
-                frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
+
+        leg = ax1.legend(
+            frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
         leg._legend_box.align = "left"
         plt.setp(leg.get_title(), fontweight='bold')
 
@@ -1573,7 +1588,6 @@ class Plotter:
             lee_weight = self.samples["lee"].query(query)["leeweight"] * self.weights["lee"]
 
 
-        print(self.samples["data"].size)
         data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query)
         data_plotted_variable = self._select_showers(
@@ -1895,8 +1909,8 @@ class Plotter:
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
         # how many universes?
         Nuniverse = 100 #len(df)
-        if (name == "weightsGenie"):
-            Nuniverse = 100
+        #if (name == "weightsGenie"):
+        #    Nuniverse = 100
 
 
         n_tot = np.empty([Nuniverse, n_bins])
@@ -1914,7 +1928,6 @@ class Plotter:
 
             tree = self.samples[t]
 
-            #print ('sample : ',t)
 
             extra_query = ""
             if t == "mc":
@@ -1923,10 +1936,16 @@ class Plotter:
             queried_tree = tree.query(query+extra_query)
             variable = queried_tree[var_name]
             syst_weights = queried_tree[name]
-            spline_fix = queried_tree[weightVar] * self.weights[t]
+            #print ('N universes is :',len(syst_weights))
+            spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
+            spline_fix_var = queried_tree[weightVar] * self.weights[t]
+            if (name == "weightsGenie"):
+                spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
 
             s = syst_weights
             df = pd.DataFrame(s.values.tolist())
+            #print (df)
+            #continue
 
             if var_name[-2:] == "_v":
                 #this will break for vector, "_v", entries
@@ -1936,19 +1955,19 @@ class Plotter:
                 variable,
                 range=x_range,
                 bins=n_bins,
-                weights=spline_fix)
+                weights=spline_fix_cv)
             n_cv_tot += n_cv
 
             if not df.empty:
                 for i in range(Nuniverse):
-                    weight = df[i].values
+                    weight = df[i].values / 1000.
                     weight[np.isnan(weight)] = 1
                     weight[weight > 100] = 1
                     weight[weight < 0] = 1
                     weight[weight == np.inf] = 1
 
                     n, bins = np.histogram(
-                        variable, weights=weight*spline_fix, range=x_range, bins=n_bins)
+                        variable, weights=weight*spline_fix_var, range=x_range, bins=n_bins)
                     n_tot[i] += n
 
         cov = np.empty([len(n_cv), len(n_cv)])
