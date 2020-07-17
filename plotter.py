@@ -509,7 +509,10 @@ class Plotter:
         elif "_v_" in variable:
             print("Variable is being interpretted as event-level, not track_level, despite having _v in name")
             print("the longest track is NOT being selected")
-        return vars.ravel()
+        if vars.size == 0:
+            return np.array([])
+        else:
+            return np.hstack(vars.ravel())
 
     def _categorize_entries_pdg(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
 
@@ -579,8 +582,8 @@ class Plotter:
                     ])
                 category = np.hstack(category)
 
-            plotted_variable = self._select_showers(
-                plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
+            #plotted_variable = self._select_showers(
+            #    plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
 
         return category, plotted_variable
 
@@ -863,7 +866,7 @@ class Plotter:
 
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
-                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
+                      draw_sys=False, stacksort=0, track_cuts=None, select_longest=False, select_showers=True,
                       detsys=None,ratio=True,chisq=False,draw_data=True,genieweight="weightSplineTimesTune",
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
@@ -1054,12 +1057,14 @@ class Plotter:
         if draw_data:
             ext_plotted_variable = self._selection(
                 variable, self.samples["ext"], query=query, track_cuts=track_cuts, select_longest=select_longest)
-            ext_plotted_variable = self._select_showers(
-            ext_plotted_variable, variable, self.samples["ext"], query=query)
+            if select_showers:
+                ext_plotted_variable = self._select_showers(
+                ext_plotted_variable, variable, self.samples["ext"], query=query)
 
             data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query, track_cuts=track_cuts, select_longest=select_longest)
-            data_plotted_variable = self._select_showers(data_plotted_variable, variable,
+            if select_showers:
+                data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
 
 
@@ -1327,12 +1332,8 @@ class Plotter:
             exp_err = np.sqrt(np.diag( (self.cov + self.cov_mc_stat) ) )# + exp_err*exp_err)
 
 
-
             #print ('covariance matrix : ')
             #print (cov)
-
-
-
 
         if "lee" in self.samples:
             if kind == "event_category":
@@ -1378,7 +1379,6 @@ class Plotter:
                 label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         if (draw_sys):
-
             chisq = self._chisquare(n_data, n_tot, data_err, exp_err)
             #self.stats['chisq'] = chisq
             chisqCNP = self._chisq_CNP(n_data,n_tot)
@@ -1399,9 +1399,13 @@ class Plotter:
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
-
-        leg = ax1.legend(
-            frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
+        if len(order_var_dict.keys()) > 10:
+            leg = ax1.legend(
+                frameon=False, ncol=4, title=r'MicroBooNE Preliminary %g POT' % self.pot,
+                prop={'size': fig.get_figwidth()})
+        else:
+            leg = ax1.legend(
+                frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
         leg._legend_box.align = "left"
         plt.setp(leg.get_title(), fontweight='bold')
 
