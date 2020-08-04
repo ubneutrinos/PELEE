@@ -345,7 +345,7 @@ class Plotter:
             #print ('mc : ',mc)
 
         self.cov_full = COV
-            
+
         #print ('COV matrix : ',COV)
 
         diff = (data-mc)
@@ -530,7 +530,7 @@ class Plotter:
         df = sample.query(sel_query)
         #if (track_cuts != None):
         #    df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
-        
+
         #df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
         track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
@@ -1341,7 +1341,6 @@ class Plotter:
         detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
         #print("detsys_err: {}".format(detsys_err))
         exp_err = np.sqrt(exp_err**2 + detsys_err**2)
-
         #print ('total exp_err : ', exp_err)
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
@@ -1349,19 +1348,18 @@ class Plotter:
 
         self.cov           = np.zeros([len(exp_err), len(exp_err)])
         self.cov_mc_stat   = np.zeros([len(exp_err), len(exp_err)])
+        self.cov_mc_detsys = np.zeros([len(exp_err), len(exp_err)])
         self.cov_data_stat = np.zeros([len(exp_err), len(exp_err)])
 
         self.cov_mc_stat[np.diag_indices_from(self.cov_mc_stat)]     = (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
+        self.cov_mc_detsys[np.diag_indices_from(self.cov_mc_detsys)] = (sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi)**2
 
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
             self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                        self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                        self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight)
-            exp_err = np.sqrt(np.diag( (self.cov + self.cov_mc_stat) ) )# + exp_err*exp_err)
-
-
-
+            exp_err = np.sqrt( np.diag((self.cov + self.cov_mc_stat + self.cov_mc_detsys))) # + exp_err*exp_err)
 
 
         if "lee" in self.samples:
@@ -1430,9 +1428,13 @@ class Plotter:
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
-
-        leg = ax1.legend(
-            frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
+        if len(order_var_dict.keys()) >= 10:
+            leg = ax1.legend(
+                frameon=False, ncol=4, title=r'MicroBooNE Preliminary %g POT' % self.pot,
+                prop={'size': fig.get_figwidth()})
+        else:
+            leg = ax1.legend(
+                frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
         leg._legend_box.align = "left"
         plt.setp(leg.get_title(), fontweight='bold')
 
