@@ -208,7 +208,7 @@ class Plotter:
                 "Missing necessary columns in the DataFrame: %s" % missing)
 
     @staticmethod
-    def _chisquare(data, mc, err_data, err_mc):
+    def _chisquare(data, mc, err_mc):
         num = (data - mc)**2
         den = data+err_mc**2
         if np.count_nonzero(data):
@@ -363,15 +363,27 @@ class Plotter:
 
         return chisq, chisqsum, dof
 
+    @staticmethod
+    def _data_err(data,doAsym=False):
+        obs = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+        low = [0.00,0.17,0.71,1.37,2.09,2.84,3.62,4.42,5.23,6.06,6.89,7.73,8.58,9.44,10.30,11.17,12.04,12.92,13.80,14.68,15.56]
+#        hig = [0.38,3.30,4.64,5.92,7.16,8.38,9.58,10.77,11.95,13.11,14.27,15.42,16.56,17.70,18.83,19.96,21.08,22.20,23.32,24.44,25.55]
+        hig = [1.84,3.30,4.64,5.92,7.16,8.38,9.58,10.77,11.95,13.11,14.27,15.42,16.56,17.70,18.83,19.96,21.08,22.20,23.32,24.44,25.55]
+        if doAsym:
+            lb = [i-low[i] if i<=20 else (np.sqrt(i)) for i in data]
+            hb = [hig[i]-i if i<=20 else (np.sqrt(i)) for i in data]
+            return (lb,hb)
+        else: return (np.sqrt(data),np.sqrt(data))
 
 
     @staticmethod
     def _ratio_err(num, den, num_err, den_err):
         n, d, n_e, d_e = num, den, num_err, den_err
         n[n == 0] = 0.00001
-        d[d == 0] = 0.00001
+        #d[d == 0] = 0.00001
         return np.array([
-            n[i] / d[i] * math.sqrt((n_e[i] / n[i])**2 + (d_e[i] / d[i])**2)
+            #n[i] / d[i] * math.sqrt((n_e[i] / n[i])**2 + (d_e[i] / d[i])**2) <= this does not work if n[i]==0
+            math.sqrt( ( n_e[i] / d[i] )**2 + ( n[i] * d_e[i] / (d[i]*d[i]) )**2) if d[i]>0 else 0
             for i, k in enumerate(num)
         ])
 
@@ -886,7 +898,7 @@ class Plotter:
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
-                      detsys=None,ratio=True,chisq=False,draw_data=True,genieweight="weightSplineTimesTune",
+                      detsys=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
@@ -939,7 +951,7 @@ class Plotter:
             categorization = self._categorize_entries_int
             cat_labels = int_labels
         elif kind == "sample":
-            return self._plot_variable_samples(variable, query, title, **plot_options)
+            return self._plot_variable_samples(variable, query, title, asymErrs, **plot_options)
         else:
             raise ValueError(
                 "Unrecognized categorization, valid options are 'sample', 'event_category', and 'particle_pdg'")
@@ -1379,7 +1391,7 @@ class Plotter:
         if draw_data:
             n_data, bins = np.histogram(data_plotted_variable, **plot_options)
             self.data = n_data
-            data_err = np.sqrt(n_data)
+            data_err = self._data_err(n_data,asymErrs)
 
             self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
 
@@ -1396,12 +1408,12 @@ class Plotter:
 
         if (draw_sys):
 
-            chisq = self._chisquare(n_data, n_tot, data_err, exp_err)
+            chisq = self._chisquare(n_data, n_tot, exp_err)
             #self.stats['chisq'] = chisq
             chisqCNP = self._chisq_CNP(n_data,n_tot)
             #self.stats['chisqCNP'] = chisqCNP
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
-            #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.zeros(len(n_data)), np.sqrt(np.diag(cov)))))
+            #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.sqrt(np.diag(cov)))))
             chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
             chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
             #self.stats['chisq full covariance'] = chicov
@@ -1453,9 +1465,9 @@ class Plotter:
         if (ratio==True):
             if draw_data == False:
                 n_data = np.zeros(len(n_tot))
-                data_err = np.zeros(len(n_tot))
+                data_err = (np.zeros(len(n_tot)),np.zeros(len(n_tot)))
             else:
-                self.chisqdatamc = self._chisquare(n_data, n_tot, data_err, exp_err)
+                self.chisqdatamc = self._chisquare(n_data, n_tot, exp_err)
             self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
 
         if ( (chisq==True) and (ratio==True)):
@@ -1493,7 +1505,7 @@ class Plotter:
         else:
             return fig, ax1, stacked, labels
 
-    def _plot_variable_samples(self, variable, query, title, **plot_options):
+    def _plot_variable_samples(self, variable, query, title, asymErrs, **plot_options):
 
         '''
         nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
@@ -1848,7 +1860,7 @@ class Plotter:
         ax1.bar(bincenters, n_tot, width=0, yerr=exp_err)
 
         n_data, bins = np.histogram(data_plotted_variable, **plot_options)
-        data_err = np.sqrt(n_data)
+        data_err = self._data_err(n_data,asymErrs)
         ax1.errorbar(
             bincenters,
             n_data,
@@ -1885,14 +1897,14 @@ class Plotter:
     def _draw_ratio(self, ax, bins, n_tot, n_data, tot_err, data_err, draw_data=True):
         bincenters = 0.5 * (bins[1:] + bins[:-1])
         bin_size = [(bins[i + 1] - bins[i]) / 2 for i in range(len(bins) - 1)]
-        #ratio_error = self._ratio_err(n_data, n_tot, data_err, tot_err)
         if draw_data:
-            ratio_error = self._ratio_err(n_data, n_tot, data_err, np.zeros(len(data_err)))
+            data_err_low = self._ratio_err(n_data, n_tot, data_err[0], np.zeros(len(data_err[0])))
+            data_err_high = self._ratio_err(n_data, n_tot, data_err[1], np.zeros(len(data_err[1])))
+            ratio_error = (data_err_low,data_err_high)
             ax.errorbar(bincenters, n_data / n_tot,
                     xerr=bin_size, yerr=ratio_error, fmt="ko")
 
-            #ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, tot_err)
-            ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, np.zeros(len(data_err)))
+            ratio_error_mc = self._ratio_err(n_tot, n_tot, tot_err, np.zeros(len(n_tot)))
             ratio_error_mc = np.insert(ratio_error_mc, 0, ratio_error_mc[0])
             bins = np.array(bins)
             ratio_error_mc = np.array(ratio_error_mc)

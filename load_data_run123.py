@@ -41,6 +41,117 @@ def distance(x1,y1,z1,x2,y2,z2):
 def cosAngleTwoVecs(vx1,vy1,vz1,vx2,vy2,vz2):
     return (vx1*vx2 + vy1*vy2 + vz1*vz2)/(np.sqrt(vx1**2+vy1**2+vz1**2) * np.sqrt(vx2**2+vy2**2+vz2**2))
 
+def pick_closest_shower(up,df):
+    #
+    trk1_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
+    shr1_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
+    #
+    # do the best we can to get the right shr2_id
+    #
+    trk_score_v = up.array("trk_score_v")
+    shr_mask = (trk_score_v<0.5)
+    pfnhits_v = up.array("pfnhits")
+    shr2_id_corr = up.array('shr2_id')-1 # I think we need this -1 to get the right result
+    shr2_id_appr = get_idx_from_vec_sort(-2,pfnhits_v,shr_mask)
+    shr2_id = np.where((shr2_id_corr>=0)&(shr2_id_corr<df['n_showers_tot']),shr2_id_corr,shr2_id_appr)
+    #
+    shr_start_x_v   = up.array("shr_start_x_v")
+    shr_start_y_v   = up.array("shr_start_y_v")
+    shr_start_z_v   = up.array("shr_start_z_v")
+    trk_start_x_v   = up.array("trk_start_x_v")
+    trk_start_y_v   = up.array("trk_start_y_v")
+    trk_start_z_v   = up.array("trk_start_z_v")
+    #
+    df["shr1_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr1_id,-9999.)
+    df["shr1_start_y"] = get_elm_from_vec_idx(shr_start_y_v,shr1_id,-9999.)
+    df["shr1_start_z"] = get_elm_from_vec_idx(shr_start_z_v,shr1_id,-9999.)
+    df["shr2_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr2_id,-9999.)
+    df["shr2_start_y"] = get_elm_from_vec_idx(shr_start_y_v,shr2_id,-9999.)
+    df["shr2_start_z"] = get_elm_from_vec_idx(shr_start_z_v,shr2_id,-9999.)
+    df["trk1_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk1_id,-9999.)
+    df["trk1_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk1_id,-9999.)
+    df["trk1_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk1_id,-9999.)
+    #
+    df['tk1sh1_distance'] = np.where((df['n_showers_contained']>0)&(df['n_tracks_contained']>0),\
+                                     distance(df['shr1_start_x'],df['shr1_start_y'],df['shr1_start_z'],\
+                                              df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z']),\
+                                     9999.)
+    df['tk1sh2_distance'] = np.where((df['n_showers_contained']>1)&(df['n_tracks_contained']>0),\
+                                     distance(df['shr2_start_x'],df['shr2_start_y'],df['shr2_start_z'],\
+                                              df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z']),\
+                                     9999.)
+    # set the shr_id
+    df['shr_id'] = shr1_id
+    df["is_shr2clsr"] = np.zeros_like(df["n_tracks_contained"])
+    shr2clsr = (df['n_showers_contained']>1)&(df['n_tracks_contained']>0)&(df['tk1sh2_distance']<df['tk1sh1_distance'])
+    df.loc[shr2clsr, 'is_shr2clsr' ] = 1
+    #
+    # now redefine shower selection variables
+    # shr_score
+    df["shr2_score"] = get_elm_from_vec_idx(trk_score_v,shr2_id,-9999.)
+    df.loc[shr2clsr,"shr_score"] = df["shr2_score"]
+    # tksh_distance
+    df.loc[shr2clsr,"tksh_distance"] = df['tk1sh2_distance']
+    # tksh_angle
+    shr_px_v = up.array("shr_px_v")
+    shr_py_v = up.array("shr_py_v")
+    shr_pz_v = up.array("shr_pz_v")
+    df["shr2_px"] = get_elm_from_vec_idx(shr_px_v,shr2_id,-9999.)
+    df["shr2_py"] = get_elm_from_vec_idx(shr_py_v,shr2_id,-9999.)
+    df["shr2_pz"] = get_elm_from_vec_idx(shr_pz_v,shr2_id,-9999.)
+    trk_dir_x_v = up.array("trk_dir_x_v")
+    trk_dir_y_v = up.array("trk_dir_y_v")
+    trk_dir_z_v = up.array("trk_dir_z_v")
+    df["trk1_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v,trk1_id,-9999.)
+    df["trk1_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v,trk1_id,-9999.)
+    df["trk1_dir_z"] = get_elm_from_vec_idx(trk_dir_z_v,trk1_id,-9999.)
+    df["tk1sh2_angle"] = cosAngleTwoVecs(df["trk1_dir_x"],df["trk1_dir_y"],df["trk1_dir_z"],\
+                                         df["shr2_px"],    df["shr2_py"],    df["shr2_pz"])
+    df.loc[shr2clsr,"tksh_angle"] = df['tk1sh2_angle']
+    # shr_tkfit_dedx_max
+    shr_tkfit_dedx_u_v = up.array("shr_tkfit_dedx_u_v")
+    shr_tkfit_dedx_v_v = up.array("shr_tkfit_dedx_v_v")
+    shr_tkfit_dedx_y_v = up.array("shr_tkfit_dedx_y_v")
+    shr_tkfit_nhits_u_v = up.array("shr_tkfit_dedx_nhits_u_v")
+    shr_tkfit_nhits_v_v = up.array("shr_tkfit_dedx_nhits_v_v")
+    shr_tkfit_nhits_y_v = up.array("shr_tkfit_dedx_nhits_y_v")
+    df["shr2_tkfit_dedx_u"] = get_elm_from_vec_idx(shr_tkfit_dedx_u_v,shr2_id,-9999.)
+    df["shr2_tkfit_dedx_v"] = get_elm_from_vec_idx(shr_tkfit_dedx_v_v,shr2_id,-9999.)
+    df["shr2_tkfit_dedx_y"] = get_elm_from_vec_idx(shr_tkfit_dedx_y_v,shr2_id,-9999.)
+    df["shr2_tkfit_nhits_u"] = get_elm_from_vec_idx(shr_tkfit_nhits_u_v,shr2_id,0)
+    df["shr2_tkfit_nhits_v"] = get_elm_from_vec_idx(shr_tkfit_nhits_v_v,shr2_id,0)
+    df["shr2_tkfit_nhits_y"] = get_elm_from_vec_idx(shr_tkfit_nhits_y_v,shr2_id,0)
+    df.loc[shr2clsr, 'shr_tkfit_dedx_U' ] = df["shr2_tkfit_dedx_u"]
+    df.loc[shr2clsr, 'shr_tkfit_dedx_V' ] = df["shr2_tkfit_dedx_v"]
+    df.loc[shr2clsr, 'shr_tkfit_dedx_Y' ] = df["shr2_tkfit_dedx_y"]
+    df.loc[shr2clsr, 'shr_tkfit_nhits_U' ] = df['shr2_tkfit_nhits_u']
+    df.loc[shr2clsr, 'shr_tkfit_nhits_V' ] = df['shr2_tkfit_nhits_v']
+    df.loc[shr2clsr, 'shr_tkfit_nhits_Y' ] = df['shr2_tkfit_nhits_y']
+    # trkfit
+    shr_tkfit_nhits_v = up.array("shr_tkfit_nhits_v")
+    df["shr2_tkfit_npointsvalid"] = get_elm_from_vec_idx(shr_tkfit_nhits_v,shr2_id,-9999.)
+    df["shr2_tkfit_npoints"] = get_elm_from_vec_idx(pfnhits_v,shr2_id,-9999.)
+    df.loc[shr2clsr,"shr_tkfit_npointsvalid"] = df["shr2_tkfit_npointsvalid"]
+    df.loc[shr2clsr, 'shr_tkfit_npoints' ] = df["shr2_tkfit_npoints"]
+    # subcluster
+    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
+    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
+    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
+    df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr2_id,0)
+    df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr2_id,0)
+    df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr2_id,0)
+    df.loc[shr2clsr,"shrsubclusters0"] = df["shr2subclusters0"]
+    df.loc[shr2clsr,"shrsubclusters1"] = df["shr2subclusters1"]
+    df.loc[shr2clsr,"shrsubclusters2"] = df["shr2subclusters2"]
+    # shrmoliereavg
+    shr_moliere_avg_v = up.array("shr_moliere_avg_v")
+    df["shr2_moliere_avg"] = get_elm_from_vec_idx(shr_moliere_avg_v,shr2_id,-9999.)
+    df.loc[shr2clsr,"shrmoliereavg"] = df['shr2_moliere_avg']
+    # trkshrhitdist2
+    df.loc[shr2clsr,"trkshrhitdist2"] = df['tksh_distance']
+    #
+    return
+
 def process_uproot(up,df):
     #
     trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
@@ -155,10 +266,12 @@ def process_uproot(up,df):
     df['shr2pid'] = get_elm_from_vec_idx(trk_llr_pid_v,shr2_id,9999.)
     df['shr2_score'] = get_elm_from_vec_idx(trk_score_v,shr2_id,9999.)
     #
-    df.drop(columns=['shr_start_x', 'shr_start_y', 'shr_start_z'])
-    df.drop(columns=['trk1_start_x_alltk', 'trk1_start_y_alltk', 'trk1_start_z_alltk'])
-    df.drop(columns=['trk1_dir_x_alltk', 'trk1_dir_y_alltk', 'trk1_dir_z_alltk'])
-    df.drop(columns=['shr2subclusters0', 'shr2subclusters1', 'shr2subclusters2'])
+    #df.drop(columns=['shr_start_x', 'shr_start_y', 'shr_start_z'])
+    #df.drop(columns=['trk1_start_x_alltk', 'trk1_start_y_alltk', 'trk1_start_z_alltk'])
+    #df.drop(columns=['trk1_dir_x_alltk', 'trk1_dir_y_alltk', 'trk1_dir_z_alltk'])
+    #df.drop(columns=['shr2subclusters0', 'shr2subclusters1', 'shr2subclusters2'])
+    #
+    #pick_closest_shower(up,df)
     #
     return
 
@@ -208,6 +321,8 @@ def process_uproot_recoveryvars(up,df):
     pfnhits_v = up.array("pfnhits")
     df["trk1_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk_id,-9999.)
     df["trk2_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk2_id,-9999.)
+    df["shr1_nhits"] = get_elm_from_vec_idx(pfnhits_v,shr_id,-9999.)
+    df["shr2_nhits"] = get_elm_from_vec_idx(pfnhits_v,shr2_id,-9999.)
     #
     trk_start_x_v   = up.array("trk_start_x_v")
     trk_start_y_v   = up.array("trk_start_y_v")
@@ -339,7 +454,14 @@ def process_uproot_recoveryvars(up,df):
     df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_nhits_V' ] = df['trk2_tkfit_nhits_v']
     df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_nhits_Y' ] = df['trk2_tkfit_nhits_y']
     df.loc[trk2srtshr, 'hits_ratio' ] = (df["shr_hits_tot"]+df["trk2_nhits"])/(df["shr_hits_tot"]+df["trk_hits_tot"])
+    #
     df.loc[trk2srtshr, 'shr_tkfit_npointsvalid' ] = df["shr_tkfit_npointsvalid"] + df["trk2_nhits"] #patched!
+    # other option... taking the track fit npoints for both (results do not change)
+    #shr_tkfit_nhits_v = up.array("shr_tkfit_nhits_v")
+    #df["trk2_tkfit_npointsvalid"] = get_elm_from_vec_idx(shr_tkfit_nhits_v,trk2_id,-9999.)
+    #df.loc[trk2srtshr, 'shr_tkfit_npointsvalid' ] = df["shr_tkfit_npointsvalid"] + df["trk2_tkfit_npointsvalid"]
+    #df.loc[trk2srtshr, 'shr_tkfit_npoints' ] = df["shr_tkfit_npoints"] + df["trk2_nhits"]
+    #
     df.loc[trk2srtshr & (df["trk1trk2hitdist2"]>0) & (df["trkshrhitdist2"]>0) & (df["trk1trk2hitdist2"]<df["trkshrhitdist2"]), 'trkshrhitdist2' ] = df["trk1trk2hitdist2"]
     df.loc[trk2srtshr & (df["trk1trk2hitdist2"]>0) & (df["trkshrhitdist2"]<0), 'trkshrhitdist2' ] = df["trk1trk2hitdist2"]
     df.loc[trk2srtshr, 'shrsubclusters0' ] = df["shrsubclusters0"] + df["trk2subclusters0"]
@@ -386,7 +508,7 @@ def process_uproot_recoveryvars(up,df):
     df.drop(columns=['shr1_start_x', 'shr1_start_y', 'shr1_start_z'])
     df.drop(columns=['shr2_start_x', 'shr2_start_y', 'shr2_start_z'])
     df.drop(columns=['shr12_start_dx', 'shr12_start_dy', 'shr12_start_dz'])
-    df.drop(columns=['shr2_energy'])
+    #df.drop(columns=['shr2_energy'])
     df.drop(columns=['trk1_len', 'trk2_len'])
     df.drop(columns=['trk1_distance', 'trk2_distance'])
     df.drop(columns=['trk1_llr_pid', 'trk2_llr_pid'])
@@ -405,7 +527,7 @@ def process_uproot_recoveryvars(up,df):
     df.drop(columns=['trk2_energy', 'trk2_energy_cali'])
     #
     return
-    
+
 def load_data_run123(which_sideband='pi0', return_plotter=True, 
                      pi0scaling=0,
                      USEBDT=True,

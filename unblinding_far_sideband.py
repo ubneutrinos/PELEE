@@ -84,6 +84,8 @@ BDTCQ_all_showers += ' and pi0_score > 0.67 and nonpi0_score > 0.70'
 BDTCQ = BDTCQ_all_showers + ' and n_showers_contained == 1'
 #BDTCQ = BDTCQ_all_showers + ' and (n_showers_contained == 1 or (n_showers_contained>1 and shr12_cos_p1_dstart>0.99))'
 
+BDTCQ_only = 'pi0_score > 0.67 and nonpi0_score > 0.70'
+
 # test intermediate BDT cuts
 # 0304 extnumi, pi0 and nonpi0
 TESTINTBDTCQ_all_showers = NPPRESQ
@@ -214,6 +216,7 @@ selection_categories = {
     'NPT': {'query': NPTCUTQ, 'title': '1eNp Tight cuts', 'dir': 'NPT'},
     'NPALTEST': {'query': NPALTESTQ, 'title': '1eNp Test cuts', 'dir': 'NPALTEST'},
     'NPBDT': {'query': BDTCQ, 'title': '1eNp BDT sel.', 'dir': 'NPBDT'},
+    'NPBDTOnly': {'query': BDTCQ_only, 'title': '1eNp BDT sel. (no Loose)', 'dir': 'NPBDTOnly'},
     'TESTINTBDTCQ2': {'query': TESTINTBDTCQ2, 'title': '1eNp VL + BDT [0.3,0.6]', 'dir': 'TESTINTBDTCQ2'},
     'NPVLAllShr': {'query': NPVLCUTQ_all_showers, 'title': '1eNp VL cuts, 0+ showers', 'dir': 'NPVLAllShr'},
     'NPLAllShr': {'query': NPLCUTQ_all_showers, 'title': '1eNp Loose cuts, 0+ showers', 'dir': 'NPLAllShr'},
@@ -225,6 +228,8 @@ selection_categories = {
     'TESTBDT02AllShr': {'query': TESTBDT02CQ_all_showers, 'title': '1eNp BDT > 0.2, 0+ showers', 'dir': 'TESTBDT02AllShr'},
     'None': {'query': None, 'title': 'NoCuts', 'dir': 'None'},
     'ZPBDT': {'query': ZPBDTLOOSE, 'title': '1e0p BDT sel.', 'dir': 'ZPBDT'},
+    'ZPBDTAllTrk': {'query': ZPBDTLOOSE_all_tracks, 'title': '1e0p BDT sel.', 'dir': 'ZPBDTAllTrk'},
+    'ZPLAllTrk': {'query': ZPLOOSESEL_all_tracks, 'title': '1e0p Loose sel.', 'dir': 'ZPLAllTrk'},
 }
 
 stages_queries = {
@@ -338,10 +343,10 @@ evtsel_variabls = [
 shrsel_variables = [
         ('trkfit',10,(0,1.0),"Fraction of Track-fitted points"),
         ('shrmoliereavg',20,(0,50),"average Moliere angle [degrees]"),
-        #('shrmoliereavg',10,(0,10),"average Moliere angle [degrees]","zoomed")
+        ('shrmoliereavg',10,(0,10),"average Moliere angle [degrees]","zoomed"),
         ('shr_score',20,(0,0.5),"shr score"),
         ('subcluster',20,(0,40),"N sub-clusters in shower"),
-        #('subcluster',20,(0,80),"N sub-clusters in shower","extended"),
+        ('subcluster',20,(0,80),"N sub-clusters in shower","extended"),
         ('secondshower_Y_nhit',20,(0,200),"Nhit 2nd shower (Y)"),
         ('secondshower_Y_dot',20,(-1,1),"cos(2nd shower direction wrt vtx) (Y)"),
         ('anglediff_Y',20,(0,350),"angle diff 1st-2nd shower (Y) [degrees]"),
@@ -355,10 +360,10 @@ trksel_variables = [
         ('tksh_angle',20,(-1,1),"cos(trk-shr angle)"),
         ('trkshrhitdist2',20,(0,10),"2D trk-shr distance (Y)"),
         ('tksh_distance',20,(0,40),"trk-shr distance [cm]"),
-        #('tksh_distance',12,(0,6),"trk-shr distance [cm]","zoomed")
+        ('tksh_distance',12,(0,6),"trk-shr distance [cm]","zoomed"),
         ('trkpid',21,(-1,1),"track LLR PID"),
         #('trkpid',2,(-1,1),"track LLR PID", 'twobins'),
-        #('trkpid',15,(-1,1),"track LLR PID","coarse")
+        ('trkpid',15,(-1,1),"track LLR PID","coarse")
 ]
 
 bdtscore_variables = [
@@ -371,7 +376,7 @@ bdtscore_variables = [
         #('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
         ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
         #('bkg_score',10,(0,1.0),"1e0p BDT score"),
-        #('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
+        ('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
 ]
 
 energy_variables = [
