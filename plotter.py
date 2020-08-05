@@ -533,7 +533,7 @@ class Plotter:
 
         #df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
-        track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
+        track_cuts_mask = None #df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
         if track_cuts is not None:
             vars, track_cuts_mask = self._apply_track_cuts(df,variable,track_cuts,track_cuts_mask)
         else:
@@ -899,6 +899,7 @@ class Plotter:
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
                       detsys=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
+                      ncol=2,
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
@@ -1428,7 +1429,7 @@ class Plotter:
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
-        if len(order_var_dict.keys()) >= 10:
+        if (ncol > 3):
             leg = ax1.legend(
                 frameon=False, ncol=4, title=r'MicroBooNE Preliminary %g POT' % self.pot,
                 prop={'size': fig.get_figwidth()})
