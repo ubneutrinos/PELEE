@@ -426,17 +426,29 @@ other_variables = [
 pi0_variables = [
         ('pi0_gammadot',20,(-1,1),"$\pi^0$ $\gamma_{\\theta\\theta}$"),
         ('pi0energy',20,(135,1135),"$\pi^0$ Energy [MeV]"),
+        ('pi0energyraw',20,(0,1135),"$\pi^0$ Calorimeric Energy $E_1 + E_2$ [MeV]"),
+        ('pi0momentum',20,(0,1000),"$\pi^0$ Momentum [MeV]"),
+        ('pi0beta',40,(0,1),"$\pi^0$ $\\beta$"),
+        ('pi0momanglecos',40,(0,1),"$\pi^0$ $\cos\theta$"),
+        ('epicospi',40,(0,1),"$\pi^0$ $\cos\theta$ \times $E_{\pi}$"),
         ('asymm',20,(0,1),"$\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
         ('pi0thetacm',20,(0,1),"$\cos\\theta_{\gamma}^{CM} = \\frac{1}{\\beta_{\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
-        ('pi0_mass_Y',20,(10,510),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
-        ('reco_e',19,(0.15,2.15),"reconstructed energy [GeV]"),
-        ('shr_energy_tot_cali',20,(0.05,1.50),"reconstructed shower energy [GeV]"),
-        ('trk_energy_tot',20,(0.05,1.50),"reconstructed track energy [GeV]"),
-        ('n_tracks_contained',5,(0,5),"number of contained tracks"),
-        ('n_showers_contained',5,(2,7),"number of contained showers"),
-        ('pi0_mass_U',20,(10,510),"$M_{\gamma\gamma}$ mass U plane [MeV]"),
-        ('pi0_mass_V',20,(10,510),"$M_{\gamma\gamma}$ mass V plane [MeV]"),
-        ('pi0_mass_Y',20,(10,510),"$M_{\gamma\gamma}$ mass Y plane [MeV]"),
+        ('pi0_mass_Y_corr',49,(10,500),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
+        ('pi0_shrscore1',20,(0,1),"leading $\gamma$ shower score"),
+        ('pi0_shrscore2',20,(0,1),"sub-leading $\gamma$ shower score"),
+        ('pi0_radlen1',20,(3,103),"leading $\gamma$ shower conversion distance [cm]"),
+        ('pi0_radlen2',20,(3,103),"sub-leading $\gamma$ shower conversion distance [cm]"),
+        ('pi0_energy1_Y',20,(60,460),"leading $\gamma$ shower energy [MeV]"),
+        ('pi0_energy2_Y',20,(40,240),"sub-leading $\gamma$ shower energy [MeV]"),
+        ('pi0_dedx1_fit_Y',20,(1.0,11.0),"leading $\gamma$ shower dE/dx [MeV/cm]"),
+        #('reco_e',19,(0.15,2.15),"reconstructed energy [GeV]"),
+        #('shr_energy_tot_cali',20,(0.05,1.50),"reconstructed shower energy [GeV]"),
+        #('trk_energy_tot',20,(0.05,1.50),"reconstructed track energy [GeV]"),
+        #('n_tracks_contained',5,(0,5),"number of contained tracks"),
+        #('n_showers_contained',5,(2,7),"number of contained showers"),
+        ('pi0_mass_U',40,(10,510),"$M_{\gamma\gamma}$ mass U plane [MeV]"),
+        ('pi0_mass_V',40,(10,510),"$M_{\gamma\gamma}$ mass V plane [MeV]"),
+        ('pi0_mass_Y',40,(10,510),"$M_{\gamma\gamma}$ mass Y plane [MeV]"),
 ]
 
 shr12_variables = [
@@ -452,4 +464,4 @@ run_variables = [
 ]
 
 plot_variables = basic_variables + evtsel_variabls + trksel_variables + shrsel_variables + bdtscore_variables
-#plot_variables += kinematic_variables
+plot_variables += kinematic_variables
