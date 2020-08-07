@@ -670,6 +670,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         #"trk_sce_end_x_v","trk_sce_end_y_v","trk_sce_end_z_v",
         #"trk_start_x_v","trk_start_z_v","trk_start_z_v",
         "topological_score",
+        "nu_decay_mode","nu_hadron_pdg","nu_parent_pdg", # flux truth info
         "shr_energy_tot_cali","selected","n_showers_contained",  # only if CC0piNp variables are saved!
     ]
 
@@ -1071,6 +1072,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[ df['weightSplineTimesTune'] == np.inf, 'weightSplineTimesTune' ] = 1.
         df.loc[ df['weightSplineTimesTune'] > 100, 'weightSplineTimesTune' ] = 1.
         df.loc[ np.isnan(df['weightSplineTimesTune']) == True, 'weightSplineTimesTune' ] = 1.
+        # flux parentage
+        df['flux'] = np.zeros_like(df['nslice'])
+        df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] < 11)) , 'flux'] = 10
+        df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] > 10)) , 'flux'] = 1
+        # pi0 scaling
         if pi0scaling == 1:
             df.loc[ df['npi0'] > 0, 'weightSplineTimesTune' ] = df['weightSpline'] * df['weightTune'] * 0.759
         elif pi0scaling == 2:
@@ -1226,6 +1232,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     #nccpi = nccpi.query('category != 5')
     #ncnopi = ncnopi.query('category != 5')
 
+    lee['flux'] = 111
                 
     Npre = float(data.shape[0])
     data = data.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end
