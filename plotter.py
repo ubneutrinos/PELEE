@@ -521,7 +521,7 @@ class Plotter:
 
         #df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
-        track_cuts_mask = df['trk_score_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
+        track_cuts_mask = df['trk_range_muon_e_v'].apply(lambda x: x == x) #all-True mask, assuming trk_score_v is available
         if track_cuts is not None:
             vars, track_cuts_mask = self._apply_track_cuts(df,variable,track_cuts,track_cuts_mask)
         else:

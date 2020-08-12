@@ -36,7 +36,7 @@ muonsel_vars = [
     'trk_p_quality_v', 'trk_score_v', 'trk_llr_pid_score_v',
     'trk_len_v', 'pfp_generation_v', 'trk_distance_v',
 ]
-other_vars = ['nslice','run',
+other_vars = ['nslice','run','sub','evt',
     'trk_theta_v', 'trk_phi_v',
     'trk_cos_theta_v', 'trk_cos_phi_v',
     'reco_ntrack', 'reco_nproton',
@@ -44,25 +44,27 @@ other_vars = ['nslice','run',
     'trk_dx_v', 'trk_dy_v', 'trk_dz_v',
     'trk_range_proton_mom_v','trk_range_muon_mom_v',
     'trk_energy_proton_v',
-    'NeutrinoEnergy2'
+    'NeutrinoEnergy2',
+    'knobCCMECup','knobCCMECdn'
 ]
 crt_vars = [
     'crtveto', 'crthitpe','_closestNuCosmicDist'
 ]
+weightsFlux = [
+    "weightsGenie", "weightsFlux","weightsReint"
+]
 mc_vars = [
      'nu_e', 'theta', 'category', 'interaction','ccnc',
-     'nmuon', 'nproton', 'npi0', 'npion', 'backtracked_pdg_v', 'nu_pdg',
-     "weightSpline","weightTune","weightSplineTimesTune",
+     'nmuon', 'nproton', 'npi0', 'npion', 'backtracked_pdg_v', 'nu_pdg','proton_e',
+     "weightSpline","weightTune","weightSplineTimesTune"
      #'phi',
-]
-weightsFlux = [
-    "weightsGenie", "weightsFlux",
 ]
 vars_agnostic = presel_vars + muonsel_vars + other_vars
 
 load_vars = [
     "nslice", "selected", "nu_pdg",
     "slpdg", "trk_score_v","slclustfrac",
+    'reco_nu_vtx_sce_x','reco_nu_vtx_sce_y','reco_nu_vtx_sce_z',
     #"contained_fraction",
     "backtracked_pdg","category",
     "topological_score",
@@ -87,36 +89,73 @@ def get_plots(label):
             'topological_score',
             'reco_nu_vtx_sce_x','reco_nu_vtx_sce_y','reco_nu_vtx_sce_z',
             'crtveto','crthitpe','_closestNuCosmicDist',
-
         ]
         muon_bins = [25]*len(muon_vars)
         muon_bins[4] = 2
         muon_ranges = [
             (0,1),
             (AVx[0],AVx[1]+1),(AVy[0]-1,AVy[1]+1),(AVz[0]-1,AVz[1]), #bunch of MC is slightly OOAV
-            (-.5,1.5),(0,500),(0,5),
+            (-.5,1.5),(0,500),(0,100),
         ]
         muon_titles = [
             'Topological Score',
             r'Reco $\nu$ Vertex X [cm]', r'Reco $\nu$ Vertex Y [cm]', r'Reco $\nu$ Vertex Z [cm]',
             'CRT veto', 'CRT hitPE', r'Closest $\nu$-Cosmic Distance [cm]',
         ]
+    if label == "crt vars":
+        muon_vars = [
+            'crtveto','crthitpe','_closestNuCosmicDist',
+        ]
+        muon_bins = [25]*len(muon_vars)
+        muon_bins[0] = 2
+        muon_ranges = [
+            (-.5,1.5),(0,500),(0,100),
+        ]
+        muon_titles = [
+            'CRT veto', 'CRT hitPE', r'Closest $\nu$-Cosmic Distance [cm]',
+        ]
+    if label == 'vertex':
+        muon_vars = [
+            'reco_nu_vtx_sce_x','reco_nu_vtx_sce_y','reco_nu_vtx_sce_z',
+        ]
+        muon_bins = [25]*len(muon_vars)
+        muon_ranges = [
+            (AVx[0],AVx[1]+1),(AVy[0]-1,AVy[1]+1),(AVz[0]-1,AVz[1]), #bunch of MC is slightly OOAV
+        ]
+        muon_titles = [
+            r'Reco $\nu$ Vertex X [cm]', r'Reco $\nu$ Vertex Y [cm]', r'Reco $\nu$ Vertex Z [cm]',
+        ]
+    if label == "presel input noCRT":
+        muon_vars = [
+            'topological_score',
+            'reco_nu_vtx_sce_x','reco_nu_vtx_sce_y','reco_nu_vtx_sce_z',
+        ]
+        muon_bins = [25]*len(muon_vars)
+        muon_ranges = [
+            (0,1),
+            (AVx[0],AVx[1]+1),(AVy[0]-1,AVy[1]+1),(AVz[0]-1,AVz[1]), #bunch of MC is slightly OOAV
+        ]
+        muon_titles = [
+            'Topological Score',
+            r'Reco $\nu$ Vertex X [cm]', r'Reco $\nu$ Vertex Y [cm]', r'Reco $\nu$ Vertex Z [cm]',
+        ]
     if label == "muon input":
             #all the variables cut on in the muon selection
             muon_vars = [
-                'trk_sce_start_x_v','trk_sce_start_y_v','trk_sce_start_z_v',
-                'trk_sce_end_x_v','trk_sce_end_y_v','trk_sce_end_z_v',
-                'trk_score_v','trk_llr_pid_score_v','trk_p_quality_v',
-                'trk_len_v','trk_distance_v','pfp_generation_v'
+                'trk_sce_start_x','trk_sce_start_y','trk_sce_start_z',
+                'trk_sce_end_x','trk_sce_end_y','trk_sce_end_z',
+                'trk_score','trk_llr_pid_score','trk_p_quality',
+                'trk_len','trk_distance','pfp_generation'
             ]
+            muon_vars = [x+'_v' for x in muon_vars]
             muon_bins = [26]*len(muon_vars)
-            muon_bins[-1] = 5
+            muon_bins[-1] = 3
 
             muon_ranges = [
                 (AVx[0],AVx[1]+1),(AVy[0]-1,AVy[1]+1),(AVz[0]-1,AVz[1]),
                 (AVx[0],AVx[1]+1),(AVy[0]-1.5,AVy[1]+1.5),(AVz[0]-1,AVz[1]+.5),
                 (0,1),(-1,1),(-1,2.5),
-                (0,1000),(0,5),(-0.5,4.5)
+                (0,1000),(0,5),(0.5,3.5)
             ]
             muon_titles = [
                 'Muon Candidate Start, X [cm]', 'Muon Candidate Start, Y [cm]', 'Muon Candidate Start, Z [cm]',
@@ -169,28 +208,62 @@ def get_plots(label):
             (-0.5,4.5), (-0.5,4.5)
         ]
         muon_titles = ['Reco Protons ()']
+   ###########################
+    if label == "fullselKinematics":
+        muon_vars = [
+            'reco_ntrack',
+            'NeutrinoEnergy2','reco_nu_e_range_v','trk_range_muon_e_v',
+            'trk_len_v',
+            'trk_cos_theta_v',
+        ]
+        muon_ranges = [
+            (0.5,6.5),
+            (0,2000),(0.15,1.55),(0.15,1.15),
+            (0,500),
+            (-1,1),
+        ]
+        muon_bins = [25] * len(muon_vars)
+        muon_bins[0] = 6
+        muon_bins = [
+            6,
+            24, 14, 10,
+            24,
+            24,
+        ]
+        muon_titles = [
+            'Reconstructed track multiplicity',
+            'Visible Energy on Plane 2 [MeV]',r'Reco Range-Based $\nu$ Energy [GeV]',r'Reco Range-Based Muon Energy [GeV]',
+            'Muon Track Length [cm]',
+            r'Muon Cos($\theta$)',
+        ]
     if label == 'CCQE':
         muon_vars = [
-            'Q2','Mhad',
+            'reco_nu_e_range','Q2','Q3',
+            'Mhad',
             'Xbj','Ybj',
             'pT','pL','pTransverseRatio',
             'opening_angle','phi_diff','theta_tot',
-            'trk_len',
+            'trk_len','mu_p_dist',
+             'alpha_t'
         ]
         muon_bins = [25]*len(muon_vars)
         muon_ranges = [
-            (0,0.55),(0,0.55),
+            (0.15,1.55),(0,0.55),(0.05,1.25),
+            (0,0.55),
             (0,3),(0,0.8),
             (0,1.2),(0,2),(0,1),
             (0,3.14159),(-2*3.14159,2*3.14159),(0,5),
-            (0,600),
+            (0,600), (0,6),
+            (0,np.pi)
         ]
         muon_titles = [
-            r'Q$^2$', r'M$_{had}$ [GeV]',
+            r'Reco Range-Based $\nu$ Energy [GeV]',r'Q$^2$ [GeV$^2$]', r'Q$_3$ [GeV]',
+            r'M$_{had}$ [GeV]',
             r"Bj$\"o$rken's Scaling X", r"Bj$\"o$rken's Scaling Y",
-            'Total Transverse Momentum [GeV]', 'Total Linear Momentum [GeV$^2$]', 'Total Transverse Ratio',
+            'Total Transverse Momentum [GeV]', 'Total Squared z-Momentum [GeV$^2$]', 'Total Transverse Ratio',
             r'$\mu$-p Opening Angle', r'$\phi_{l} - \phi_{p}$', r'$\theta_{l} + \theta_{p}$',
-            'Length of longest track [cm]'
+            'Length of longest track [cm]', r'$\mu$-p separation [cm]',
+            r'$\alpha_T$'
         ]
     if label == 'CCQE_proton_kinematics':
         muon_vars = [
@@ -202,7 +275,7 @@ def get_plots(label):
         muon_bins = [25]*len(muon_vars)
         muon_ranges = [
             (0,3.14159), (-3.1415,3.1415),
-            (0.15,0.55),
+            (0.05,0.55),
             (0.25,1),(0,0.8),(0,1),
             (0,120),
         ]
@@ -261,21 +334,9 @@ def make_filename(VARIABLE, date_time, tag, detsys=None):
     return fn
 
 #scale factors for several runs/samples
-def get_scaling(USECRT, ISG1, scaling=1):
-    if USECRT:
-        if not ISG1:
-            weights = {
-                "data": 1 * scaling,
-                "mc": 5.70e-03 * scaling,
-                "nue": 5.70e-3 * scaling,#should be identical to numu weight, since parsed from same sample
-                #"nue": 1.21e-04 * scaling, #weight when using exclusive nue sa3mple
-                #"ext": 3.02E-02 * scaling, #for the combined EXT sample
-                "ext": 2.52E-02 * scaling, #G1
-                "dirt": 2.35e-02 * scaling,
-                #"lee": 1.21e-04 * scaling,
-            }
-            pot = 0.763e19*scaling
-        if ISG1:
+def get_scaling(RUN, bnb_type, mc_type, scaling=1):
+    if RUN == 3:
+        if bnb_type == 'G1':
             weights = {
                 "data": 1 * scaling,
                 "mc": 0.118 * scaling,
@@ -287,6 +348,51 @@ def get_scaling(USECRT, ISG1, scaling=1):
                 #"lee": 1.21e-04 * scaling,
             }
             pot = 1.58E+20*scaling
+        elif bnb_type == 'FD1':
+            weights = {
+                'data': 1,
+                'mc': 2.20e-1,
+                'nue': 2.20e-1,
+                'dirt': 0,
+                'ext': 0,
+            }
+            pot = 2.94e20
+        elif bnb_type == 'FD2':
+            weights = {
+                'data': 1,
+                'mc': 2.92e-1,
+                'nue': 2.92e-1,
+                'dirt': 0,
+                'ext': 0,
+            }
+            pot = 3.91e20
+        elif bnb_type == 'FD3':
+            weights = {
+                'data': 1,
+                'mc': 0.28,
+                'nue': 0.28,
+                'dirt': 0,
+                'ext': 0,
+            }
+            pot = 3.72e20
+        elif bnb_type == 'FD4':
+            weights = {
+                'data': 1,
+                'mc': 0.296,
+                'nue': 0.296,
+                'dirt': 0,
+                'ext': 0
+            }
+            pot = 3.96e20
+        elif mc_type == '0702' and bnb_type == '0617':
+            weights = {
+                'data': 1,
+                'mc': 0.160,
+                'nue': 0.160,
+                'dirt': 0.664,
+                'ext': 0.356,
+            }
+            pot = 2.13e20
         else:
             weights = {
                 "data": 1 * scaling,
@@ -299,25 +405,70 @@ def get_scaling(USECRT, ISG1, scaling=1):
                 #"lee": 1.21e-04 * scaling,
             }
             pot = 0.763e19*scaling
-    else:
-        weights = {
-            "mc": 3.12e-02 * scaling,
-            "nue": 7.73e-04 * scaling,
-            "ext": 2.69E-01 * scaling, #C+D+E #C only: 1.40e-01
-            "dirt": 1.26e-01 * scaling,
-            #"lee": 7.73e-04 * scaling,
-        }
-        pot = 4.08e19*scaling
-
+    elif RUN == 1:
+        if bnb_type == 'FD1':
+            weights = {
+                'data': 1,
+                'mc': 0.158,
+                'nue': 0.158,
+                'dirt': 0,
+                'ext': 0,
+            }
+            pot = 2.07e20
+        elif bnb_type == 'FD2':
+            weights = {
+                'data': 1,
+                'mc': 0.311,
+                'nue': 0.311,
+                'dirt': 0,
+                'ext': 0,
+            }
+            pot = 4.06e20
+        elif bnb_type == 'FD3':
+            weights = {
+                'data': 1,
+                'mc': 0.308,
+                'nue': 0.308,
+                'dirt': 0,
+                'ext': 0,
+            }
+            pot = 4.02e20
+        elif bnb_type == 'FD4':
+            weights = {
+                'data': 1,
+                'mc': 0.29,
+                'nue': 0.29,
+                'dirt': 0,
+                'ext': 0,
+            }
+            pot = 3.79e20
+        elif bnb_type == 'FD5':
+            weights = {
+                'data': 1,
+                'mc': 0.689,
+                'nue': 0.689,
+                'dirt': 0,
+                'ext': 0,
+            }
+            pot = 9e20
+        else:
+            weights = {
+                "mc": 3.12e-02 * scaling,
+                "nue": 7.73e-04 * scaling,
+                "ext": 2.69E-01 * scaling, #C+D+E #C only: 1.40e-01
+                "dirt": 1.26e-01 * scaling,
+                #"lee": 7.73e-04 * scaling,
+            }
+            pot = 4.08e19*scaling
     return weights, pot
 
 #if both the data samples are loaded, have a way to switch between them
-def update_data(data_sample, samples, USECRT, fullsel_samples=None):
+def update_data(data_sample, samples, RUN, bnb_type):
     print("updating data sample to {}...".format(data_sample))
     data = samples[data_sample]
-    if data_sample == "data_1e20": weights,pot = get_scaling(USECRT, True)
-    elif data_sample == "data_7e18": weights,pot = get_scaling(USECRT, False)
-    else: weights,pot =  get_scaling(USECRT, False)
+    if data_sample == "data_1e20": weights,pot = get_scaling(RUN, bnb_type)
+    elif data_sample == "data_7e18": weights,pot = get_scaling(RUN, bnb_type)
+    else: weights,pot =  get_scaling(RUN, bnb_type)
     samples['data'] = data
     return samples, weights, pot
 
@@ -339,9 +490,12 @@ def Eff(df, df_cut, var,acceptance,bin_edges,absval=False):
         df_tmp =  df.query(bincut).query(acceptance) # denominator
         df_sub = df_cut.query(bincut).query(acceptance) # numerator
 
-        if (df_tmp.shape[0] == 0): continue
-        eff = df_sub.shape[0] / float( df_tmp.shape[0] )
-        err = np.sqrt( eff*(1-eff)/df_tmp.shape[0] )
+        if (df_tmp.shape[0] == 0):
+            eff = 0
+            err = 0
+        else:
+            eff = df_sub.shape[0] / float( df_tmp.shape[0] )
+            err = np.sqrt( eff*(1-eff)/df_tmp.shape[0] )
         bin_eff.append( eff )
         bin_err.append( err )
         bins.append(bin_centers[i])
@@ -393,9 +547,10 @@ def get_longest_mask(df, mask):
     longest_mask = trk_lens.apply(lambda x: x == x[list(x).index(max(x))])#identify longest
     return longest_mask
 
-def make_mask(DF, query, track_cuts):
+def make_mask(DF, query, track_cuts, mask=None):
     df = DF.copy().query(query)
-    mask = df['trk_len_v'].apply(lambda x: x==x) #all true mask
+    if type(mask) == type(None):
+        mask = df['trk_len_v'].apply(lambda x: x==x) #all true mask
     #layer on each cut chipping down the all true mask
     for (var,op,val) in track_cuts:
         if type(op) == list:
@@ -404,19 +559,30 @@ def make_mask(DF, query, track_cuts):
             or_mask2 = df[var].apply(lambda x: eval("x{}{}".format(op[1],val[1])))#or condition 2
             mask *= (or_mask1 + or_mask2) #just add the booleans for "or"
         else:
-            mask *= df[var].apply(lambda x: eval("x{}{}".format(op,val))) #layer on each cut mask
-
+            try:
+                mask *= df[var].apply(lambda x: eval("x{}{}".format(op,val))) #layer on each cut mask
+            except:
+                print(var,op,val)
+                print("converting to arrays")
+                df[var] = df[var].apply(lambda x: np.array(x)) #sometimes these are lists instead of arrays...happens for trk_llr_pid_score_v
+                mask *= df[var].apply(lambda x: eval("x{}{}".format(op,val)))
     return df, mask
 
-def apply_mask(df, sample_name, mask, DETSYS, select_longest=False):
+def apply_mask(df, sample_name, mask, DETSYS, select_longest=False, extra_vars=None, common_vars=None, uncommon_vars=None):
     #going to fresh new dataframe with only a few frames
+    #short_list = [common_vars,uncommon_vars]
     df_filtered = pd.DataFrame()
-    common_vars = presel_vars + muonsel_vars + other_vars# + CCQE_vars
+    if not common_vars:
+        common_vars = vars_agnostic# + CCQE_vars
+
+    if extra_vars:
+        common_vars += extra_vars
     temp = []
     [temp.append(str(x)) for x in common_vars if x not in temp] #remove redundancy
     common_vars = temp
     for var in common_vars:
         #apply mask to each variable
+        df[var] = df[var].apply(lambda x: np.where(x==0,0.123,x))
         VAR = (df[var]*mask).apply(lambda x: x[x != False])
         VAR = VAR.apply(lambda x: x[~np.isnan(x)])#clean up nan vals
         VAR = VAR[VAR.apply(lambda x: len(x) > 0)] #clean up empty slices
@@ -427,11 +593,14 @@ def apply_mask(df, sample_name, mask, DETSYS, select_longest=False):
             longest_mask = trk_lens.apply(lambda x: x == x[list(x).index(max(x))])#identify longest
             VAR = (VAR*longest_mask).apply(lambda x: x[x!=False])#apply mask
             VAR = VAR[VAR.apply(lambda x: len(x) > 0)] #clean up empty slices
+        VAR = VAR.apply(lambda x: np.where(x==0.123,0,x))
         if var[-2:] != "_v":
             VAR = VAR.apply(lambda x: x[0])
         df_filtered[var] = VAR
     if sample_name in ['mc','nue','dirt']:
-        uncommon_vars = mc_vars
+        if not uncommon_vars:
+            uncommon_vars = mc_vars
+
         for var in uncommon_vars:
             try:
                 VAR = (df[var]*mask).apply(lambda x: x[x != False])
@@ -451,7 +620,10 @@ def apply_mask(df, sample_name, mask, DETSYS, select_longest=False):
             except:
                 _=1
             if var[-2:] != "_v":
-                VAR = VAR.apply(lambda x: x[0])
+                try:
+                    VAR = VAR.apply(lambda x: x[0])
+                except:
+                    _=1
             df_filtered[var] = VAR
         if DETSYS:
             for var in weightsFlux:
@@ -459,23 +631,119 @@ def apply_mask(df, sample_name, mask, DETSYS, select_longest=False):
 
     return df_filtered
 
-def apply_muon_fullsel(DF, sample_name, USECRT, DETSYS):
+def apply_muon_fullsel(DF, sample_name, USECRT, DETSYS, VARS=None):
     '''
     Returns dataframe will all cuts applied and longest track preselected
     '''
     query, track_cuts = get_NUMU_sel(USECRT, opfilter=False)
+    df_filtered = make_and_apply_mask(DF, query, track_cuts, sample_name, DETSYS, select_longest=True, VARS=VARS)
+    return df_filtered
+
+def make_and_apply_mask(DF, query, track_cuts, sample_name, DETSYS, select_longest=False, VARS=None):
     df, mask = make_mask(DF, query, track_cuts)
     # need to protect the null values of certain variables
+    try:
+        if sample_name in ['mc','dirt','nue']: df['backtracked_pdg_v'] = df['backtracked_pdg_v'].apply(lambda x: [xx + 0.01 for xx in x])
+        df['trk_llr_pid_score_v'] = df['trk_llr_pid_score_v'].apply(lambda x: np.where(x==0,0.01,x)) #avoid having values == 0.0
+        df['reco_nproton'] = df['reco_nproton'].apply(lambda x: x + 0.01)
+        df['reco_ntrack'] = df['reco_ntrack'].apply(lambda x: x + 0.01)
+    except:
+        _=1
+    if not VARS:
+        VARS = []
+        VARS.append(None)
+        VARS.append(None)
+    df_filtered = apply_mask(df.replace(0,-123456789), sample_name, mask, DETSYS, select_longest=select_longest,common_vars=VARS[0],uncommon_vars=VARS[1]).replace(-123456789,0) #0's don't survive...
+    try:
+        if sample_name in ['mc','dirt','nue']: df_filtered['backtracked_pdg_v'] = df_filtered['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
+        df_filtered['reco_nproton'] = df_filtered['reco_nproton'].apply(lambda x: int(round(x)))
+        df_filtered['reco_ntrack'] = df_filtered['reco_nproton'].apply(lambda x: int(round(x)))
+    except:
+        _=1
+    return df_filtered
+
+def split_muon_proton(DF, query, track_cuts_muon, track_cuts_proton, sample_name, DETSYS, SELECT_LONGEST, VARS=None):
+    df, muon_mask = make_mask(DF, query, track_cuts_muon)
+    mask_inverse = muon_mask.apply(lambda x: np.array([not val for val in x]))
+    df, proton_mask = make_mask(DF, query, track_cuts_proton, mask=mask_inverse)
+    # need to protect the null values of certain variables
+
+    try:
+        if sample_name in ['mc','dirt','nue']:
+            df['backtracked_pdg_v'] = df['backtracked_pdg_v'].apply(lambda x: [xx + 0.01 for xx in x])
+        df['trk_llr_pid_score_v'] = df['trk_llr_pid_score_v'].apply(lambda x: [xx + 0.11 for xx in x]) #avoid having values == 0.0
+        df['reco_nproton'] = df['reco_nproton'].apply(lambda x: x + 0.01)
+        df['reco_ntrack'] = df['reco_ntrack'].apply(lambda x: x + 0.01)
+    except:
+        _=1
+    df_muon = apply_mask(df.replace(0,-123456789), sample_name, muon_mask, DETSYS, select_longest=SELECT_LONGEST[0], extra_vars=['reco_ntrack_contained'],common_vars=VARS[0],uncommon_vars=VARS[1]).replace(-123456789,0) #0's don't survive...
+    df_proton = apply_mask(df.replace(0,-123456789), sample_name, proton_mask, DETSYS, select_longest=SELECT_LONGEST[1],extra_vars=['reco_ntrack_contained'],common_vars=VARS[0],uncommon_vars=VARS[1]).replace(-123456789,0) #0's don't survive...
+    for df in [df_muon,df_proton]:
+        try:
+            if sample_name in ['mc','dirt','nue']:
+                df['backtracked_pdg_v'] = df['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
+            df['trk_llr_pid_score_v'] = df['trk_llr_pid_score_v'].apply(lambda x: [xx - 0.11 for xx in x])
+            df['reco_nproton'] = df['reco_nproton'].apply(lambda x: int(round(x)))
+            df['reco_ntrack'] = df['reco_nproton'].apply(lambda x: int(round(x)))
+        except:
+            _=1
+    return df_muon, df_proton
+
+def get_fullsel_dfs(DF, sample_name, USECRT, DETSYS):
+    '''
+    Returns two dataframes,
+       first has only muon candidates in _v variables
+       second is the orthogonal dataframe
+    '''
+    query = 'reco_ntrack >= 2'
+    track_cuts_common = [
+        ('trk_sce_start_x_v', '>', FVx[0]),
+        ('trk_sce_start_x_v', '<', FVx[1]),
+        ('trk_sce_start_y_v', '>', FVy[0]),
+        ('trk_sce_start_y_v', '<', FVy[1]),
+        ('trk_sce_start_z_v', '>', FVz[0]),
+        ('trk_sce_start_z_v', '<', FVz[1]),
+        ('trk_sce_end_x_v', '>', FVx[0]),
+        ('trk_sce_end_x_v', '<', FVx[1]),
+        ('trk_sce_end_y_v', '>', FVy[0]),
+        ('trk_sce_end_y_v', '<', FVy[1]),
+        ('trk_sce_end_z_v', '>', FVz[0]),
+        ('trk_sce_end_z_v', '<', FVz[1]),
+        ('trk_score_v', '>', 0.5),
+        ('pfp_generation_v', '==', 2),
+    ]
+    df_common = make_and_apply_mask(DF, query, track_cuts_common, sample_name, DETSYS, select_longest=False)
+
+    #df_common contains all tracks that could be muon or proton
+    query = 'nslice == 1'
+    track_cuts_muon = [
+        ('trk_llr_pid_score_v', '>', 0.2),
+        ('trk_p_quality_v', '>', -0.5),
+        ('trk_p_quality_v', '<', 0.5),
+        ('trk_score_v', '>', 0.8),
+        ('trk_len_v', '>', 10),
+        ('trk_distance_v', '<', 4)
+    ]
+    df_muon = make_and_apply_mask(df_common, query, track_cuts_muon, sample_name, DETSYS, select_longest=True)
+
+    mask_others = mask_muon.apply(lambda x: [not ismuon for ismuon in x])
+    df_others = make_and_apply_mask(df_common, query, mask_others, sample_name, DETSYS, select_longest=False)
+    '''
+    df, mask_muon = make_mask(df_common, 'nslice == 1', track_cuts_muon)
+    mask_others = mask_muon.apply(lambda x: [not ismuon for ismuon in x])
     if sample_name in ['mc','dirt','nue']:
         df['backtracked_pdg_v'] = df['backtracked_pdg_v'].apply(lambda x: [xx + 0.01 for xx in x])
         df['reco_nproton'] = df['reco_nproton'].apply(lambda x: x + 0.01)
-    df_filtered = apply_mask(df.replace(0,-123456789), sample_name, mask, DETSYS, select_longest=True).replace(-123456789,0) #0's don't survive...
-    if sample_name in ['mc','dirt','nue']:
-        df_filtered['backtracked_pdg_v'] = df_filtered['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
-        df_filtered['reco_nproton'] = df_filtered['reco_nproton'].apply(lambda x: int(round(x)))
-    if sample_name == "mc":
-        print("all vars: \n {}".format(list(df_filtered.keys())))
-    return df_filtered
+        df['reco_ntrack'] = df['reco_ntrack'].apply(lambda x: x + 0.01)
+    df_muon = apply_mask(df.replace(0,-123456789), sample_name, mask_muon, DETSYS, select_longest=True).replace(-123456789,0) #0's don't survive...
+    df_others = apply_mask(df.replace(0,-123456789), sample_name, mask_others, DETSYS, select_longest=False).replace(-123456789,0) #0's don't survive...
+    for df in [df_muon,df_proton]:
+        if sample_name in ['mc','dirt','nue']:
+            df['backtracked_pdg_v'] = df['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
+            df['reco_nproton'] = df['reco_nproton'].apply(lambda x: int(round(x)))
+            df['reco_ntrack'] = df['reco_ntrack'].apply(lambda x: int(round(x)))
+    '''
+    return df_muon,df_others
 
 def apply_fullsel(DF, sample_name, USECRT, DETSYS):
     '''
@@ -491,10 +759,7 @@ def apply_fullsel(DF, sample_name, USECRT, DETSYS):
     if sample_name in ['mc','dirt','nue']:
         df_filtered['backtracked_pdg_v'] = df_filtered['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
         df_filtered['reco_nproton'] = df_filtered['reco_nproton'].apply(lambda x: int(round(x)))
-    if sample_name == "mc":
-        print("all vars: \n {}".format(list(df_filtered.keys())))
     return df_filtered
-
 
 def apply_above105(DF, sample_name, USECRT, DETSYS):
     query, track_cuts = 'nslice == 1', [('reco_nu_e_range_v', '>', 1.05)]
@@ -507,8 +772,6 @@ def apply_above105(DF, sample_name, USECRT, DETSYS):
     if sample_name in ['mc','dirt','nue']:
         df_filtered['backtracked_pdg_v'] = df_filtered['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
         df_filtered['reco_nproton'] = df_filtered['reco_nproton'].apply(lambda x: int(round(x)))
-    if sample_name == "mc":
-        print("all vars: \n {}".format(list(df_filtered.keys())))
     return df_filtered
 
 def apply_CCQE_presel(DF, sample_name, USECRT, DETSYS):
@@ -532,7 +795,7 @@ def apply_CCQE_presel(DF, sample_name, USECRT, DETSYS):
         ('trk_sce_end_y_v', '<', FVy[1]),
         ('trk_sce_end_z_v', '>', FVz[0]),
         ('trk_sce_end_z_v', '<', FVz[1]),
-        ('trk_score_v', '>', 0.5),
+        #('trk_score_v', '>', 0.5),
         ('pfp_generation_v', '==', 2),
         ('trk_distance_v', '<', 4)
     ]
@@ -541,8 +804,6 @@ def apply_CCQE_presel(DF, sample_name, USECRT, DETSYS):
     if sample_name in ['mc','dirt','nue']: df['backtracked_pdg_v'] = df['backtracked_pdg_v'].apply(lambda x: [xx + 0.01 for xx in x])
     df_filtered = apply_mask(df.replace(0,-123456789), sample_name, mask, DETSYS).replace(-123456789,0) #0's don't survive...
     if sample_name in ['mc','dirt','nue']: df_filtered['backtracked_pdg_v'] = df_filtered['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
-    if sample_name == "mc":
-        print("all vars: \n {}".format(list(df_filtered.keys())))
 
     return df_filtered
 
@@ -560,7 +821,6 @@ def select_protons(DF, sample_name, USECRT, DETSYS):
     if sample_name in ['mc','dirt','nue']: df['backtracked_pdg_v'] = df['backtracked_pdg_v'].apply(lambda x: [xx + 0.01 for xx in x])
     df_filtered = apply_mask(df.replace(0,-123456789), sample_name, mask, DETSYS).replace(-123456789,0) #0's don't survive...
     if sample_name in ['mc','dirt','nue']: df_filtered['backtracked_pdg_v'] = df_filtered['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
-
     return df_filtered
 
 def select_muons(DF, sample_name, USECRT, DETSYS):
@@ -630,8 +890,6 @@ def apply_contained(DF, sample_name, ISRUN3, DETSYS):
         df_filtered['backtracked_pdg_v'] = df_filtered['backtracked_pdg_v'].apply(lambda x: [int(round(xx)) for xx in x])
         df_filtered['reco_nproton'] = df_filtered['reco_nproton'].apply(lambda x: int(round(x)))
         df_filtered['reco_ntrack'] = df_filtered['reco_nproton'].apply(lambda x: int(round(x)))
-    if sample_name == "mc":
-        print("all vars: \n {}".format(list(df_filtered.keys())))
     return df_filtered
 
 def apply_onetrackcut(DF, sample_name, ISRUN3, DETSYS):
@@ -847,18 +1105,20 @@ def get_Cuts(tag, ISRUN3, verbose=True):
     #if "opfilter" not in QUERY: QUERY += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
     return QUERY, track_cuts
 
-def get_plotter(tag, samples, pot, ISG1, USECRT):
-    if "7e18" in tag.lower(): samples, weights, pot = update_data("data_7e18", samples, USECRT)
-    elif "g1" in tag.lower(): samples, weights, pot = update_data("data_1e20", samples, USECRT)
-    elif "fullsel_sample" in tag.lower():
-        print("using prefiltered dataframe")
-        weights, pot = get_scaling(USECRT, True)
+def get_plotter(tag, samples, pot, RUN, USECRT, ISG1=False, bnb_type=None):
+    if "7e18" in tag.lower():
+        samples, weights, pot = update_data("data_7e18", samples, RUN, bnb_type)
+    elif "g1" in tag.lower():
+        samples, weights, pot = update_data("data_1e20", samples, RUN, bnb_type)
+    else:
+        weights, pot = get_scaling(RUN, bnb_type)
+    '''
     else:
         #neither is specified, go with safe bet
         if ISG1 and USECRT: weights, pot = get_scaling(USECRT, True)
         elif USECRT: weights, pot = get_scaling(USECRT, False)
         else: print("need a way to deal with this when ISRUN3 = {} <- that should be false".format(ISRUN3))
-
+    '''
     if "allopen" in tag.lower():
         print('using all open data with Run 3 MC')
         weights = {
@@ -874,24 +1134,22 @@ def get_plotter(tag, samples, pot, ISG1, USECRT):
     my_plotter = plotter.Plotter(samples, weights, pot=pot)
     return my_plotter
 
-def get_Detsys(tag,DETSYS,VARIABLE,RANGE,BINS):
+def get_Detsys(tag,VARIABLE,RANGE,BINS):
     # For Systematic Errors
     #unpickle the most up-to-date systematic files, if available
     #must have pickled data of this format available
-    PICKLEPATH = ls.main_path+ls.pickle_path+'NUMU-constr\\04072020\\'
+    PICKLEPATH = ls.main_path+ls.pickle_path+'NUMU-constr\\jar\\'
     pickle_tag = tag
-    pickle_name = "{}_{}_{}-{}-{}.pickle".format(VARIABLE,pickle_tag,RANGE[0],RANGE[1],BINS+1)
-    if DETSYS:
-        try:
-            df_detsys_mc = pd.read_pickle(PICKLEPATH+pickle_name)
-            detsys = {
-                'mc' : df_detsys_mc['sum_noRecomb'] #'sum_noRecomb' or 'sum_nodEdX'
-            }
-        except:
-            detsys = None
-            print("could not load detsys pickle...")
-            print("...tried {}".format(PICKLEPATH+pickle_name))
-    else: detsys = None
+    pickle_name = "{}_{}_{}-{}-{}.pickle".format(VARIABLE,pickle_tag,float(RANGE[0]),float(RANGE[1]),BINS+1)
+    try:
+        df_detsys_mc = pd.read_pickle(PICKLEPATH+pickle_name)
+        detsys = {
+            'mc' : df_detsys_mc['sum_noRecomb'] #'sum_noRecomb' or 'sum_nodEdX'
+        }
+    except:
+        detsys = None
+        print("could not load detsys pickle...")
+        print("...tried {}".format(PICKLEPATH+pickle_name))
 
     return detsys
 
