@@ -22,7 +22,7 @@ def get_elm_from_vec_idx(myvec,idx,defval=9999.):
     #print ('vector check....')
     #print (idx)
     #print (len(pidv))
-    return awkward.fromiter([pidv[tid] if (tid<len(pidv)) else defval for pidv,tid in zip(myvec,idx)])
+    return awkward.fromiter([pidv[tid] if ( (tid<len(pidv) ) & (tid>=0)) else defval for pidv,tid in zip(myvec,idx)])
 
 # this function returns the index in a vector at position argidx after it has been masked and sorted
 # the returned index refers to the original (unsorted and unmaksed) vector
@@ -1148,9 +1148,19 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         INTERCEPT = 0.0
         SLOPE = 0.83
 
+        Me = 0.511e-3
+        Mp = 0.938
+        Mn = 0.940
+        Eb = 0.0285
+
         # define some energy-related variables
         for i,df in enumerate(df_v):
             df["reco_e"] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE + df["trk_energy_tot"]
+            df['electron_e'] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE
+            df['proton_e'] = Mp + df['protonenergy']
+            df['proton_p'] = np.sqrt( (df['proton_e'])**2 - Mp**2 )
+            df['reco_e_qe_l'] = ( df['electron_e'] * (Mn-Eb) + 0.5 * ( Mp**2 - (Mn - Eb)**2 - Me**2 ) ) / ( (Mn - Eb) - df['electron_e'] * (1 - np.cos(df['shr_theta'])) )
+            df['reco_e_qe_p'] = ( df['proton_e']   * (Mn-Eb) + 0.5 * ( Me**2 - (Mn - Eb)**2 - Mp**2 ) ) / ( (Mn - Eb) + df['proton_p'] * np.cos(df['trk_theta']) - df['proton_e'] )
             df["reco_e_qe"] = 0.938*((df["shr_energy"]+INTERCEPT)/SLOPE)/(0.938 - ((df["shr_energy"]+INTERCEPT)/SLOPE)*(1-np.cos(df["shr_theta"])))
             df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
 
