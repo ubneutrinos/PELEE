@@ -129,7 +129,7 @@ ZPLOOSESEL_all_tracks += ' and shrmoliereavg < 15'
 ZPLOOSESEL_all_tracks += ' and subcluster > 4'
 ZPLOOSESEL_all_tracks += ' and trkfit < 0.65'
 ZPLOOSESEL_all_tracks += ' and secondshower_Y_nhit < 50'
-ZPLOOSESEL_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 100'
+ZPLOOSESEL_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 80'
 ZPLOOSESEL_all_tracks += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
 ZPLOOSESEL_all_tracks += ' and shr_trk_len < 300.'
 ZPLOOSESEL_onep_track = ZPLOOSESEL_all_tracks + ' and n_tracks_contained > 0'
@@ -150,6 +150,31 @@ ZPBDT_all_tracks += ' and bkg_score >0.85'
 ZPBDT_onep_track = ZPBDT_all_tracks + ' and n_tracks_contained > 0'
 ZPBDT = ZPBDT_all_tracks + ' and n_tracks_contained == 0'
 
+
+ZPPRESEL_all_tracks = PRESQ
+ZPPRESEL_onep_track = ZPPRESEL_all_tracks + ' and n_tracks_contained > 0'
+ZPPRESEL = ZPPRESEL_all_tracks + ' and n_tracks_contained == 0'
+ZPPRESEL_one_shower = ZPPRESEL + 'and n_showers_contained == 1'
+PLOOSESEL_all_tracks = ZPPRESEL_all_tracks
+ZPLOOSESEL_all_tracks += ' and n_showers_contained == 1'
+ZPLOOSESEL_all_tracks += ' and CosmicIPAll3D > 10.'
+ZPLOOSESEL_all_tracks += ' and CosmicDirAll3D > -0.9 and CosmicDirAll3D < 0.9'
+ZPLOOSESEL_all_tracks += ' and shrmoliereavg < 15'
+ZPLOOSESEL_all_tracks += ' and subcluster > 4'
+ZPLOOSESEL_all_tracks += ' and trkfit < 0.65'
+ZPLOOSESEL_all_tracks += ' and secondshower_Y_nhit < 50'
+ZPLOOSESEL_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 80'
+ZPLOOSESEL_all_tracks += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
+ZPLOOSESEL_all_tracks += ' and shr_trk_len < 300.'
+ZPLOOSESEL_all_tracks += 'and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
+ZPLOOSESEL_onep_track = ZPLOOSESEL_all_tracks + ' and n_tracks_contained > 0'
+ZPLOOSESEL = ZPLOOSESEL_all_tracks + ' and n_tracks_contained == 0'
+ZPBDTLOOSE_all_tracks = ZPLOOSESEL_all_tracks
+ZPBDTLOOSE_all_tracks += ' and bkg_score >0.72'
+ZPBDTLOOSE_onep_track = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained > 0'
+ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
+ZPBDTLOOSE += 'and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
+
 # SIDEBANDS CUTS
 LOW_PID = '(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1))'
 MEDIUM_PID = '(0.1 < pi0_score < 1.0) and (0.1 < nonpi0_score < 1.0) and ~((pi0_score > 0.67) and (nonpi0_score > 0.7))'
@@ -164,6 +189,8 @@ HIGH_ENERGY_EXT_NOUPBOUND = '(reco_e > 0.85)'
 ADD_ENERGY_BINS = '(reco_e > 0.85 and reco_e < 1.05)'
 ALL_ENERGY = '(reco_e > 0.)'
 TWOP_SHOWERS = 'n_showers_contained >= 2'
+LOW_PID_ZP = '(0.0 < bkg_score < 0.4)'
+
 
 # pi0 selection
 SCORECUT = 0.5 # 0.75 #75 # max track score
@@ -182,6 +209,25 @@ PI0SEL += ' & pi0_energy1_Y > %f & pi0_energy2_Y > %f'%(EMIN1,EMIN2)
 #PI0SEL += ' and (filter_pi0 == 1)'
 PI0SEL += ' and pi0_dedx1_fit_Y >= %f'%DEDXCUT
 
+
+# numu selection
+NUMUPRESEL = 'nslice == 1'
+NUMUPRESEL += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
+NUMUPRESEL += ' and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251. '
+NUMUPRESEL += ' and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110. '
+NUMUPRESEL += ' and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986. '
+#NUMUPRESEL += ' and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775) '
+NUMUPRESEL += ' and topological_score > 0.06 '
+#NUMUPRESEL += ' and contained_fraction > 0.9 '
+
+NUMUCRT = ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
+
+NUMUPRESELCRT = NUMUPRESEL + NUMUCRT
+
+NUMUSEL = NUMUPRESEL + ' and muon_length > 0'
+NUMUSELCRT = NUMUSEL + NUMUCRT
+
+
 # sideband categories
 sideband_categories = {
     'HiEextmax2': {'query': HIGH_ENERGY_EXT, 'title': '0.85 GeV < Reco energy < 2.05 GeV', 'dir': 'HiEextmax2'},
@@ -191,6 +237,7 @@ sideband_categories = {
     'HiEadd': {'query': ADD_ENERGY_BINS, 'title': '0.85 < Reco energy < 1.05 GeV', 'dir': 'HiEadd'},
     'HiEZP': {'query': HIGH_ENERGY_ZP, 'title': 'Reco energy > 0.9 GeV', 'dir': 'HiEZP'},
     'LPID': {'query': LOW_PID, 'title': 'Low BDT', 'dir': 'LPID'},
+    'LPIDZP': {'query': LOW_PID_ZP, 'title': 'Low BDT', 'dir': 'LPIDZP'},
     'TwoPShr': {'query': TWOP_SHOWERS, 'title': '2+ showers', 'dir': 'TwoPShr'},
     'TwoPShrHiE': {'query': " and ".join([TWOP_SHOWERS,HIGH_ENERGY_NOUPBOUND]), 'title': '2+ showers,Reco energy > 1.05 GeV', 'dir': 'TwoPShrHiE'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
@@ -204,6 +251,7 @@ preselection_categories = {
     'NPOneTrk': {'query': NPPRESQ_one_track, 'title': '1eNp Presel., 1 track', 'dir': 'NPOneTrk'},
     'NPTwoPTrk': {'query': NPPRESQ_twoplus_tracks, 'title': '1eNp Presel., 2+ tracks', 'dir': 'NPTwoPTrk'},
     'ZP': {'query': ZPPRESEL, 'title': '1e0p Presel.', 'dir': 'ZP'},
+    'ZPOneShr': {'query': ZPPRESEL_one_shower, 'title': '1e0p Presel., 1 shower', 'dir': 'ZPOneShr'},
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
 }
@@ -468,5 +516,157 @@ run_variables = [
         ('run',100,(4500,19500),"run number"),
 ]
 
-plot_variables = basic_variables + evtsel_variabls + trksel_variables + shrsel_variables + bdtscore_variables
+basic_variables = [
+        ('n_showers_contained',1,(-0.5, 9.5),"normalization","onebin"),
+        ('n_showers_contained',10,(-0.5, 9.5),"n showers contained"),
+        ('n_tracks_contained',6,(-0.5, 5.5),"n tracks total"),
+        ('n_tracks_tot',6,(-0.5, 5.5),"n tracks contained"),
+        #('reco_e',21,(0.05,2.15),r"Reconstructed Energy [GeV]"),
+        #('reco_e',20,(0.05,3.05),r"Reconstructed Energy [GeV]","extended"),
+        #('reco_e',7,(0.05,2.85),r"Reconstructed Energy [GeV]","coarse"),
+        ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
+        ('reco_e',21,(-0.05,4.15),r"Reconstructed Energy [GeV]","extended"),
+        ('reco_e',14,(0.15,1.55),r"Reconstructed Energy [GeV]","note"),
+        ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
+]
+evtsel_variabls = [
+        ('hits_ratio',20,(0,1),"shower hits/all hits"),
+        ('CosmicIPAll3D',20,(0,200),"CosmicIPAll3D [cm]"),
+        ('CosmicDirAll3D',20,(-1,1),"cos(CosmicDirAll3D)"),
+        ('tk1sh1_angle_alltk',20,(-1,1),"cos(tk1sh1)"),
+]
+shrsel_variables = [
+        ('trkfit',10,(0,1.0),"Fraction of Track-fitted points"),
+        ('shrmoliereavg',20,(0,50),"average Moliere angle [degrees]"),
+        #('shrmoliereavg',10,(0,10),"average Moliere angle [degrees]","zoomed")
+        ('shr_score',20,(0,0.5),"shr score"),
+        ('subcluster',20,(0,40),"N sub-clusters in shower"),
+        #('subcluster',20,(0,80),"N sub-clusters in shower","extended"),
+        ('secondshower_Y_nhit',20,(0,200),"Nhit 2nd shower (Y)"),
+        ('secondshower_Y_dot',20,(-1,1),"cos(2nd shower direction wrt vtx) (Y)"),
+        ('anglediff_Y',14,(0,350),"angle diff 1st-2nd shower (Y) [degrees]"),
+        ('secondshower_Y_vtxdist',20,(0.,200),"vtx dist 2nd shower (Y)"),
+        ('secondshower_V_nhit',20,(0,200),"Nhit 2nd shower (V)"),
+        ('secondshower_V_dot',20,(-1,1),"cos(2nd shower direction wrt vtx) (V)"),
+        ('anglediff_V',14,(0,350),"angle diff 1st-2nd shower (V) [degrees]"),
+        ('secondshower_V_vtxdist',20,(0.,200),"vtx dist 2nd shower (V)"),
+        ('secondshower_U_nhit',20,(0,200),"Nhit 2nd shower (U)"),
+        ('secondshower_U_dot',20,(-1,1),"cos(2nd shower direction wrt vtx) (U)"),
+        ('anglediff_U',14,(0,350),"angle diff 1st-2nd shower (U) [degrees]"),
+        ('secondshower_U_vtxdist',20,(0.,200),"vtx dist 2nd shower (U)"),
+        ('shr_tkfit_dedx_max',15,(0,10),"shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+        ('shr_trk_sce_start_y',20,(-120,120),"shr_trk_sce_start y [cm]"),
+        ('shr_trk_sce_end_y',20,(-120,120),"shr_trk_sce_end y [cm]"),
+        ('shr_trk_len',40,(0,400),"Shower track fit length [cm]"),
+        ('shr_tkfit_2cm_dedx_Y',10,(0.5,10.5),"shr tkfit dE/dx (Y, 0-2 cm) [MeV/cm]"),
+        ('shr_tkfit_2cm_dedx_V',10,(0.5,10.5),"shr tkfit dE/dx (V, 0-2 cm) [MeV/cm]"),
+        ('shr_tkfit_2cm_dedx_U',10,(0.5,10.5),"shr tkfit dE/dx (U, 0-2 cm) [MeV/cm]"),
+        ('shr_tkfit_gap10_dedx_Y',10,(0.5,10.5),"shr tkfit dE/dx (Y, 1-5 cm) [MeV/cm]"),
+        ('shr_tkfit_gap10_dedx_V',10,(0.5,10.5),"shr tkfit dE/dx (V, 1-5 cm) [MeV/cm]"),
+        ('shr_tkfit_gap10_dedx_U',10,(0.5,10.5),"shr tkfit dE/dx (U, 1-5 cm) [MeV/cm]"),
+]
+trksel_variables = [
+        ('tksh_angle',20,(-1,1),"cos(trk-shr angle)"),
+        ('trkshrhitdist2',20,(0,10),"2D trk-shr distance (Y)"),
+        ('tksh_distance',20,(0,40),"trk-shr distance [cm]"),
+        #('tksh_distance',12,(0,6),"trk-shr distance [cm]","zoomed")
+        ('trkpid',21,(-1,1),"track LLR PID"),
+        #('trkpid',2,(-1,1),"track LLR PID", 'twobins'),
+        #('trkpid',15,(-1,1),"track LLR PID","coarse")
+]
+bdtscore_variables = [
+        #('nonpi0_score',10,(0.,0.5),"BDT non-$\pi^0$ score", "low_bdt"),
+        ('nonpi0_score',10,(0.5,1.0),"BDT non-$\pi^0$ score", "high_bdt"),
+        #('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score"),
+        ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score", "log", True),
+        #('pi0_score',10,(0.,0.5),"BDT $\pi^0$ score", "low_bdt"),
+        ('pi0_score',10,(0.5,1.0),"BDT $\pi^0$ score", "high_bdt"),
+        #('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
+        ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
+        #('bkg_score',10,(0,1.0),"1e0p BDT score"),
+        #('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
+        ('bkg_score',10,(0,1.0),"1e0p BDT score"),
+        ('bkg_score',5,(0,0.5),"1e0p BDT score","low_bdt"),
+        ('bkg_score',5,(0.5,1.0),"1e0p BDT score","high_bdt"),
+        ('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
+]
+energy_variables = [
+        ('trk_energy_tot',10,(0,2),"trk energy (range, P) [GeV]"),
+        ('shr_energy_tot_cali',10,(0,2),"shr energy (calibrated) [GeV]"),
+        #('NeutrinoEnergy0', 20, (0,2000), r"Reconstructed Calorimetric Energy U [MeV]"),
+        #('NeutrinoEnergy1', 20, (0,2000), r"Reconstructed Calorimetric Energy V [MeV]"),
+        ('NeutrinoEnergy2', 20, (0,2000), r"Reconstructed Calorimetric Energy Y [MeV]"),
+]
+kinematic_variables = [
+        ('protonenergy',12,(0,0.6),"proton kinetic energy [GeV]"),
+        ('pt',10,(0,2),"pt [GeV]"),
+        ('ptOverP',20,(0,1),"pt/p"),
+        ('phi1MinusPhi2',13,(-6.5,6.5),"shr phi - trk phi"),
+        ('theta1PlusTheta2',13,(0,6.5),"shr theta + trk theta"),
+        ('trk_theta',21,(0,3.14),r"Track $\theta$"),
+        ('trk_phi',21,(-3.14, 3.14),r"Track $\phi$"),
+        ('trk_len',20,(0,100),"Track length [cm]"),
+        ('trk_len',21,(0,20),"Track length [cm]", "zoom"),
+        ('shr_theta',21,(0,3.14),r"Shower $\theta$"),
+        ('shr_phi',21,(-3.14, 3.14),r"Shower $\phi$"),
+        ('n_trks_gt10cm',6,(-0.5, 5.5),"n tracks longer than 10 cm"),
+        #('n_trks_gt25cm',6,(-0.5, 5.5),"n tracks longer than 25 cm"),
+]
+other_variables = [
+        ('slclustfrac',20,(0,1),"slice clustered fraction"),
+        ('reco_nu_vtx_x',20,(0,260),"x"),
+        ('reco_nu_vtx_y',20,(-120,120),"y"),
+        ('reco_nu_vtx_z',20,(0,1100),"z"),
+        #('slnhits',20,(0.,5000),"N total slice hits"),
+        #('hits_u',20,(0.,1000),"N clustered hits U plane"),
+        #('hits_v',20,(0.,1000),"N clustered hits V plane"),
+        #('hits_y',20,(0.,1000),"N clustered hits Y plane"),
+        #('trk_hits_tot',20,(0.,2000),"Total N hits in tracks"),
+        #('trk_hits_u_tot',20,(0.,700),"Total N hits in tracks (U)"),
+        #('trk_hits_v_tot',20,(0.,700),"Total N hits in tracks (V)"),
+        #('trk_hits_y_tot',20,(0.,700),"Total N hits in tracks (Y)"),
+        #('shr_hits_tot',20,(0.,2000),"Total N hits in showers"),
+        #('shr_hits_u_tot',20,(0.,800),"Total N hits in showers (U)"),
+        #('shr_hits_v_tot',20,(0.,800),"Total N hits in showers (V)"),
+        #('shr_hits_y_tot',20,(0.,800),"Total N hits in showers (Y)"),
+        ('topological_score',20,(0,1),"topological score"),
+        ('trk_score',20,(0.5,1.0),"trk score"),
+        ('shr_tkfit_nhits_tot',20,(0,20),"shr tkfit nhits (tot, 0-4 cm) [MeV/cm]"),
+        #('shrsubclusters0',20,(0,20),"N sub-clusters in shower (U)"),
+        #('shrsubclusters1',20,(0,20),"N sub-clusters in shower (V)"),
+        #('shrsubclusters2',20,(0,20),"N sub-clusters in shower (Y)"),
+        ('shrMCSMom',20,(0, 200),"shr mcs mom [MeV]"),
+        ('DeltaRMS2h',20,(0,10),"Median spread of spacepoints"),
+        ('CylFrac2h_1cm',20,(0,1),"Frac. of spacepoints in 1cm cylinder (2nd half of shr)"),
+        ('shrPCA1CMed_5cm',10,(0.5,1),"Median of 1st component of shr PCA (5cm window)"),
+]
+pi0_variables = [
+        ('pi0_gammadot',20,(-1,1),"$\pi^0$ $\gamma_{\\theta\\theta}$"),
+        ('pi0energy',20,(135,1135),"$\pi^0$ Energy [MeV]"),
+        ('asymm',20,(0,1),"$\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
+        ('pi0thetacm',20,(0,1),"$\cos\\theta_{\gamma}^{CM} = \\frac{1}{\\beta_{\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
+        ('pi0_mass_Y',20,(10,510),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
+        ('reco_e',19,(0.15,2.15),"reconstructed energy [GeV]"),
+        ('shr_energy_tot_cali',20,(0.05,1.50),"reconstructed shower energy [GeV]"),
+        ('trk_energy_tot',20,(0.05,1.50),"reconstructed track energy [GeV]"),
+        ('n_tracks_contained',5,(0,5),"number of contained tracks"),
+        ('n_showers_contained',5,(2,7),"number of contained showers"),
+        ('pi0_mass_U',20,(10,510),"$M_{\gamma\gamma}$ mass U plane [MeV]"),
+        ('pi0_mass_V',20,(10,510),"$M_{\gamma\gamma}$ mass V plane [MeV]"),
+        ('pi0_mass_Y',20,(10,510),"$M_{\gamma\gamma}$ mass Y plane [MeV]"),
+]
+shr12_variables = [
+        ('hitratio_shr12',10,(0,1),"hit ratio two showers"),
+        ('min_tksh_dist',20,(0,40),"min tksh dist of two showers"),
+        ('max_tksh_dist',20,(0,40),"max tksh dist of two showers"),
+        ('tksh2_dist',20,(0,40),"tksh dist of second shower"),
+        ('cos_shr12',10,(-1,1),"cos two showers")
+]
+run_variables = [
+        ('run',100,(4500,19500),"run number"),
+]
+
+
+plot_variables = basic_variables + evtsel_variabls + shrsel_variables + bdtscore_variables
 plot_variables += kinematic_variables
+

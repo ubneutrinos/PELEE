@@ -61,6 +61,22 @@ category_labels = {
     0: r"No slice"
 }
 
+
+flux_labels = {
+    1: r"$\pi$",
+    10: r"K",
+    111: r"MiniBooNE LEE",
+    0: r"backgrounds"
+}
+
+flux_colors = {
+    0: "xkcd:cerulean",
+    111: "xkcd:goldenrod",
+    10: "xkcd:light red",
+    1: "xkcd:purple",
+}
+
+
 pdg_labels = {
     2212: r"$p$",
     13: r"$\mu$",
@@ -629,6 +645,13 @@ class Plotter:
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
 
 
+    def _categorize_entries_flux(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+        category = self._selection(
+            "flux", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        plotted_variable = self._selection(
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+
+
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable or select_longest:
@@ -951,6 +974,9 @@ class Plotter:
         elif kind == "interaction":
             categorization = self._categorize_entries_int
             cat_labels = int_labels
+        elif kind == "flux":
+            categorization = self._categorize_entries_flux
+            cat_labels = flux_labels
         elif kind == "sample":
             return self._plot_variable_samples(variable, query, title, asymErrs, **plot_options)
         else:
@@ -1192,6 +1218,9 @@ class Plotter:
                                      for c in order_var_dict.keys()]
         elif kind == "particle_pdg":
             plot_options["color"] = [pdg_colors[c]
+                                     for c in order_var_dict.keys()]
+        elif kind == "flux":
+            plot_options["color"] = [flux_colors[c]
                                      for c in order_var_dict.keys()]
         else:
             plot_options["color"] = [int_colors[c]
