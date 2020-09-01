@@ -384,7 +384,7 @@ energy_variables = [
         ('shr_energy_tot_cali',10,(0,2),"shr energy (calibrated) [GeV]"),
         #('NeutrinoEnergy0', 20, (0,2000), r"Reconstructed Calorimetric Energy U [MeV]"),
         #('NeutrinoEnergy1', 20, (0,2000), r"Reconstructed Calorimetric Energy V [MeV]"),
-        ('NeutrinoEnergy2', 20, (0,2000), r"Reconstructed Calorimetric Energy Y [MeV]"),
+        #('NeutrinoEnergy2', 20, (0,2000), r"Reconstructed Calorimetric Energy Y [MeV]"),
 ]
 
 kinematic_variables = [
