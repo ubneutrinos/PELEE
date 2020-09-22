@@ -11,3 +11,4 @@ __pycache__/
 pickles
 localSettings.py
 .vscode/
+*~
