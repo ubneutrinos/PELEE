@@ -1339,7 +1339,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
 
     # define ratio of deposited to total shower energy for pi0
-    if (PI0VARS):
+    if (loadpi0variables):
         for i,df in enumerate(df_v):
             df['pi0truth_gamma1_edep_frac'] = df["pi0truth_gamma1_edep"]/df["pi0truth_gamma1_etot"]
             df['pi0truth_gamma2_edep_frac'] = df["pi0truth_gamma2_edep"]/df["pi0truth_gamma2_etot"]
