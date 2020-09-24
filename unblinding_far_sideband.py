@@ -175,6 +175,20 @@ ZPBDTLOOSE_onep_track = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained > 0'
 ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
 ZPBDTLOOSE += 'and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 
+ZPPRESEL_two_shower = ZPPRESEL + 'and n_showers_contained > 1'
+ZPLOOSESEL_two_shower = ZPPRESEL_two_shower
+ZPLOOSESEL_two_shower += ' and CosmicIPAll3D > 10.'
+ZPLOOSESEL_two_shower += ' and CosmicDirAll3D > -0.9 and CosmicDirAll3D < 0.9'
+ZPLOOSESEL_two_shower += ' and shrmoliereavg < 15'
+ZPLOOSESEL_two_shower += ' and subcluster > 4'
+ZPLOOSESEL_two_shower += ' and trkfit < 0.65'
+ZPLOOSESEL_two_shower += ' and secondshower_Y_nhit < 50'
+ZPLOOSESEL_two_shower += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 100'
+ZPLOOSESEL_two_shower += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
+ZPLOOSESEL_two_shower += ' and shr_trk_len < 300.'
+ZPLOOSESEL_two_shower += ' and n_tracks_contained == 0'
+ZPBDTLOOSE_two_shower = ZPLOOSESEL_two_shower + 'and bkg_score > 0.72'
+
 # SIDEBANDS CUTS
 LOW_PID = '(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1))'
 MEDIUM_PID = '(0.1 < pi0_score < 1.0) and (0.1 < nonpi0_score < 1.0) and ~((pi0_score > 0.67) and (nonpi0_score > 0.7))'
@@ -253,6 +267,7 @@ preselection_categories = {
     'ZP': {'query': ZPPRESEL, 'title': '1e0p Presel.', 'dir': 'ZP'},
     'ZPOneShr': {'query': ZPPRESEL_one_shower, 'title': '1e0p Presel., 1 shower', 'dir': 'ZPOneShr'},
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
+    'ZPTwoShr': {'query': ZPPRESEL_two_shower, 'title': '1e0p Presel., 2+ shower', 'dir': 'ZPTwoShr'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
 }
 
@@ -278,6 +293,8 @@ selection_categories = {
     'ZPBDT': {'query': ZPBDTLOOSE, 'title': '1e0p BDT sel.', 'dir': 'ZPBDT'},
     'ZPBDTAllTrk': {'query': ZPBDTLOOSE_all_tracks, 'title': '1e0p BDT sel.', 'dir': 'ZPBDTAllTrk'},
     'ZPLAllTrk': {'query': ZPLOOSESEL_all_tracks, 'title': '1e0p Loose sel.', 'dir': 'ZPLAllTrk'},
+    'ZPLOOSETWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
+    'ZPBDTTWOSHR': {'query': ZPBDTLOOSE_two_shower, 'title': '1e0p BDT sel. 2+shr', 'dir': 'ZPBDT_two_shower'},
 }
 
 stages_queries = {
