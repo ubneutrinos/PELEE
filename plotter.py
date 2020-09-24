@@ -384,7 +384,7 @@ class Plotter:
         obs = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
         low = [0.00,0.17,0.71,1.37,2.09,2.84,3.62,4.42,5.23,6.06,6.89,7.73,8.58,9.44,10.30,11.17,12.04,12.92,13.80,14.68,15.56]
 #        hig = [0.38,3.30,4.64,5.92,7.16,8.38,9.58,10.77,11.95,13.11,14.27,15.42,16.56,17.70,18.83,19.96,21.08,22.20,23.32,24.44,25.55]
-        hig = [1.84,3.30,4.64,5.92,7.16,8.38,9.58,10.77,11.95,13.11,14.27,15.42,16.56,17.70,18.83,19.96,21.08,22.20,23.32,24.44,25.55]
+        hig = [1.15,3.30,4.64,5.92,7.16,8.38,9.58,10.77,11.95,13.11,14.27,15.42,16.56,17.70,18.83,19.96,21.08,22.20,23.32,24.44,25.55]
         if doAsym:
             lb = [i-low[i] if i<=20 else (np.sqrt(i)) for i in data]
             hb = [hig[i]-i if i<=20 else (np.sqrt(i)) for i in data]
@@ -1438,7 +1438,7 @@ class Plotter:
 
         if (draw_sys):
 
-            chisq = self._chisquare(n_data, n_tot, exp_err)
+            #chisq = self._chisquare(n_data, n_tot, exp_err)
             #self.stats['chisq'] = chisq
             chisqCNP = self._chisq_CNP(n_data,n_tot)
             #self.stats['chisqCNP'] = chisqCNP
@@ -1503,11 +1503,13 @@ class Plotter:
         if ( (chisq==True) and (ratio==True)):
             if sum(n_data) > 0:
                 ax2.text(
-                    0.88,
-                    0.845,
-                    r'$\chi^2 /$n.d.f. = %.2f' % self.chisqdatamc, #+
-                    #         '\n' +
-                    #         'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                    0.725,
+                    0.9,
+                    r'$\chi^2 /$n.d.f. = %.2f' % (self.stats['chisq']/self.stats['dof']) +
+                             #'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                             ', p = %.2f' % (1 - scipy.stats.chi2.cdf(self.stats['chisq'],self.stats['dof'])) +
+                             ', O/P = %.2f' % (sum(n_data)/sum(n_tot)) +
+                             ' $\pm$ %.2f' % (self._data_err([sum(n_data)],asymErrs)[0]/sum(n_tot)),
                     va='center',
                     ha='center',
                     ma='right',

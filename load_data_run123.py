@@ -858,7 +858,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                "pi0_mass_Y","pi0_mass_V","pi0_mass_U",
                "pi0_nshower",
                "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z",
-               "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent"
+               "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent",
+               "pi0truth_gamma1_dist", "pi0truth_gamma1_edep", "pi0truth_gamma2_dist", "pi0truth_gamma2_edep",
+               "true_nu_vtx_x", "true_nu_vtx_y", "true_nu_vtx_z",
     ]
 
     
@@ -1335,6 +1337,12 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             df['reco_e_qe_p'] = ( df['proton_e']   * (Mn-Eb) + 0.5 * ( Me**2 - (Mn - Eb)**2 - Mp**2 ) ) / ( (Mn - Eb) + df['proton_p'] * np.cos(df['trk_theta']) - df['proton_e'] )
             df["reco_e_qe"] = 0.938*((df["shr_energy"]+INTERCEPT)/SLOPE)/(0.938 - ((df["shr_energy"]+INTERCEPT)/SLOPE)*(1-np.cos(df["shr_theta"])))
             df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
+
+    # define ratio of deposited to total shower energy for pi0
+    if (PI0VARS):
+        for i,df in enumerate(df_v):
+            df['pi0truth_gamma1_edep_frac'] = df["pi0truth_gamma1_edep"]/df["pi0truth_gamma1_etot"]
+            df['pi0truth_gamma2_edep_frac'] = df["pi0truth_gamma2_edep"]/df["pi0truth_gamma2_etot"]
 
     # and a way to filter out data
     for i,df in enumerate(df_v):
