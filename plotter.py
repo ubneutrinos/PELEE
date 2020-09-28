@@ -53,10 +53,13 @@ category_labels = {
     31: r"$\nu$ NC $\pi^{0}$",
     4: r"Cosmic",
     5: r"Out. fid. vol.",
-    71: r"$\nu_{\mu} \eta \rightarrow 3\pi^0$",
-    72: r"$\nu_{\mu} \eta \rightarrow \gamma\gamma$",
-    73: r"$\nu_{\mu} \eta \rightarrow \pi^+ \pi^0 \pi^-$",
-    8: r'$\pi^0 \rightarrow \gamma\gamma$',
+    # eta categories start with 80XX
+    801: r"$\eta \rightarrow$ other",
+    802: r"$\nu_{\mu} \eta \rightarrow \gamma\gamma$",
+    803: r'1 $\pi^0$',
+    804: r'2 $\pi^0$',
+    805: r'$\nu$ other',
+    806: r'out of FV',
     6: r"other",
     0: r"No slice"
 }
@@ -120,7 +123,9 @@ int_colors = {
     5: "turquoise",
     6: "teal",
     7: "deepskyblue",
-    8: "steelblue",
+    80: "steelblue",
+    81: "steelblue",
+    82: "steelblue",
     9: "royalblue",
     10: "crimson",
     11: "mediumorchid",
@@ -133,9 +138,6 @@ category_colors = {
     4: "xkcd:light red",
     5: "xkcd:brick",
     8: "xkcd:cerulean",
-    71: "xkcd:purple",
-    72: "xkcd:lavender",
-    73: "xkcd:fuchsia",
     2: "xkcd:cyan",
     21: "xkcd:cerulean",
     22: "xkcd:lightblue",
@@ -149,7 +151,14 @@ category_colors = {
     11: "xkcd:lime green",
     111: "xkcd:goldenrod",
     6: "xkcd:grey",
-    0: "xkcd:black"
+    0: "xkcd:black",
+    # eta categories
+    803: "xkcd:cerulean",
+    804: "xkcd:blue",
+    801: "xkcd:purple",
+    802: "xkcd:lavender",
+    806: "xkcd:crimson",
+    805: "xkcd:cyan",
 }
 
 pdg_colors = {
@@ -193,6 +202,8 @@ class Plotter:
         self.cov_mc_stat = None
         self.cov_data_stat = None
         self.cov_full = None
+        self._ratio_vals = None
+        self._ratio_errs = None
         self.data = None # data binned events
 
         self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
@@ -1938,6 +1949,8 @@ class Plotter:
             ratio_error_mc = np.insert(ratio_error_mc, 0, ratio_error_mc[0])
             bins = np.array(bins)
             ratio_error_mc = np.array(ratio_error_mc)
+        self._ratio_vals = n_data / n_tot
+        self._ratio_errs = ratio_error
         ax.fill_between(
             bins,
             1.0 - ratio_error_mc,
