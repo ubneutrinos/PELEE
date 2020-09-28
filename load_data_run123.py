@@ -889,9 +889,32 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if (loadnumucrtonly ==True):
         R3VARS += CRTVARS
 
+
     if (loadsystematics == True):
         WEIGHTS += SYSTVARS
         WEIGHTSLEE += SYSTVARS
+
+    RCVRYVARS = ["shr_energy_tot", "trk_energy_tot",
+                 "trk_end_x_v","trk_end_y_v","trk_end_z_v",
+                 "trk_phi_v","trk_theta_v","trk_len_v","trk_id",
+                 "shr_start_x","shr_start_y","shr_start_z","trk_hits_max",
+                 "shr_tkfit_dedx_u_v","shr_tkfit_dedx_v_v","shr_tkfit_dedx_y_v",
+                 "shr_tkfit_dedx_nhits_u_v","shr_tkfit_dedx_nhits_v_v","shr_tkfit_dedx_nhits_y_v",
+                 "trk2shrhitdist2","trk1trk2hitdist2","shr1shr2moliereavg","shr1trk1moliereavg","shr1trk2moliereavg",
+                 "trk2_id","shr2_id","trk_hits_2nd","shr_hits_2nd"
+    ]
+    PI0VARS = ["pi0_radlen1","pi0_radlen2","pi0_dot1","pi0_dot2","pi0_energy1_Y","pi0_energy2_Y",
+               "pi0_dedx1_fit_Y","pi0_dedx2_fit_Y","pi0_shrscore1","pi0_shrscore2","pi0_gammadot",
+               "pi0_dedx1_fit_V","pi0_dedx2_fit_V","pi0_dedx1_fit_U","pi0_dedx2_fit_U",
+               "pi0_mass_Y","pi0_mass_V","pi0_mass_U",
+               "pi0_nshower",
+               "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z",
+               "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent",
+               "pi0truth_gamma1_dist", "pi0truth_gamma1_edep", "pi0truth_gamma2_dist", "pi0truth_gamma2_edep",
+               "true_nu_vtx_x", "true_nu_vtx_y", "true_nu_vtx_z",
+    ]
+
+    
     if (loadpi0variables == True):
         VARIABLES += PI0VARS
     if (loadshowervariables == True):
@@ -1378,6 +1401,12 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             df['reco_e_qe_p'] = ( df['proton_e']   * (Mn-Eb) + 0.5 * ( Me**2 - (Mn - Eb)**2 - Mp**2 ) ) / ( (Mn - Eb) + df['proton_p'] * np.cos(df['trk_theta']) - df['proton_e'] )
             df["reco_e_qe"] = 0.938*((df["shr_energy"]+INTERCEPT)/SLOPE)/(0.938 - ((df["shr_energy"]+INTERCEPT)/SLOPE)*(1-np.cos(df["shr_theta"])))
             df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
+
+    # define ratio of deposited to total shower energy for pi0
+    if (loadpi0variables):
+        for i,df in enumerate(df_v):
+            df['pi0truth_gamma1_edep_frac'] = df["pi0truth_gamma1_edep"]/df["pi0truth_gamma1_etot"]
+            df['pi0truth_gamma2_edep_frac'] = df["pi0truth_gamma2_edep"]/df["pi0truth_gamma2_etot"]
 
     # and a way to filter out data
     for i,df in enumerate(df_v):
