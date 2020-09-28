@@ -32,6 +32,7 @@ import bisect
 from collections import defaultdict
 from collections.abc import Iterable
 import scipy.stats
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -196,6 +197,7 @@ class Plotter:
         self.significance = 0
         self.significance_likelihood = 0
         self.chisqdatamc = 0
+        self.sigma_shapeonly = 0
         self.detsys = None
         self.stats = {}
         self.cov = None # covariance matrix from systematics
@@ -241,6 +243,7 @@ class Plotter:
         if np.count_nonzero(data):
             return sum(num / den) / len(data)
         return np.inf
+
 
     @staticmethod
     def _chisq_pearson(data, mc):
@@ -303,12 +306,126 @@ class Plotter:
         return np.sqrt(chisq)
 
 
+    def deltachisqfakedata(self, BinMin, BinMax, LEE_v, SM_v, nsample):
+
+        deltachisq_v = []
+        deltachisq_SM_v  = []
+        deltachisq_LEE_v = []
+
+        #print ('deltachisqfakedata!!!!!!')
+        
+        for n in range(1000):
+
+            SM_obs, LEE_obs = self.genfakedata(BinMin, BinMax, LEE_v, SM_v, nsample)
+
+            #chisq = self._chisq_CNP(SM_obs,LEE_obs)           
+            #print ('LEE obs : ',LEE_obs)
+            #print ('SM obs : ',SM_obs)
+            
+            chisq_SM_SM  = self._chisq_CNP(SM_v,SM_obs)
+            chisq_LEE_SM = self._chisq_CNP(LEE_v,SM_obs)
+            
+            chisq_SM_LEE  = self._chisq_CNP(SM_v,LEE_obs)
+            chisq_LEE_LEE = self._chisq_CNP(LEE_v,LEE_obs)
+            
+            deltachisq_SM  = (chisq_SM_SM-chisq_LEE_SM)
+            deltachisq_LEE = (chisq_SM_LEE-chisq_LEE_LEE)
+
+            #if (np.isnan(chisq)):
+            #    continue
+
+            #deltachisq_v.append(chisq)
+            
+            if (np.isnan(deltachisq_SM ) or np.isnan(deltachisq_LEE) ):
+                continue
+
+            deltachisq_SM_v.append(deltachisq_SM)
+            deltachisq_LEE_v.append(deltachisq_LEE)
+
+        #median = np.median(deltachisq_v)
+        #dof = len(LEE_v)
+
+        #return median/float(dof)
+
+        #print ('delta SM  : ',deltachisq_SM_v)
+        #print ('delta LEE : ',deltachisq_LEE_v)
+
+        deltachisq_SM_v  = np.array(deltachisq_SM_v)
+        deltachisq_LEE_v = np.array(deltachisq_LEE_v)
+
+        if (len(deltachisq_SM_v) == 0):
+            return 999.
+        
+        # find median of LEE distribution
+        med_LEE = np.median(deltachisq_LEE_v)
+        #print ('median LEE is ',med_LEE)
+        # how many values in SM are above this value?
+        nabove = len( np.where(deltachisq_SM_v > med_LEE)[0] )
+        #print ('n above is ',nabove)
+        frac = float(nabove) / len(deltachisq_SM_v)
+
+        #print ('deltachisqfakedata!!!!!!')
+        
+        return math.sqrt(2)*scipy.special.erfinv(1-frac*2)
+        
+        #return frac
+
+            
+    def genfakedata(self, BinMin, BinMax, LEE_v, SM_v, nsample):
+
+        p_LEE = LEE_v / np.sum(LEE_v)
+        p_SM  = SM_v / np.sum(SM_v)
+
+        #print ('PDF for LEE : ',p_LEE)
+        #print ('PDF for SM  : ',p_SM)
+
+        obs_LEE = np.zeros(len(LEE_v))
+        obs_SM  = np.zeros(len(SM_v))
+
+        max_LEE = np.max(p_LEE)
+        max_SM  = np.max(p_SM)
+
+        #print ('max of LEE : ',max_LEE)
+        #print ('max of SM  : ',max_SM)
+
+        n_sampled_LEE = 0
+        n_sampled_SM  = 0
+
+        while (n_sampled_LEE < nsample):
+
+            value = BinMin + (BinMax-BinMin) * np.random.random()
+
+            BinNumber = int((value-BinMin)/(BinMax-BinMin) * len(LEE_v))
+            
+            prob = np.random.random() * max_LEE
+            if (prob < p_LEE[BinNumber]):
+                #print ('LEE simulation: prob of %.02f vs. bin prob of %.02f leads to selecting event at bin %i'%(prob,p_LEE[BinNumber],BinNumber))
+                obs_LEE[BinNumber] += 1
+                n_sampled_LEE += 1
+
+        while (n_sampled_SM < nsample):
+
+            value = BinMin + (BinMax-BinMin) * np.random.random()
+
+            BinNumber = int((value-BinMin)/(BinMax-BinMin) * len(SM_v))
+            
+            prob = np.random.random() * max_SM
+            if (prob < p_SM[BinNumber]):
+                obs_SM[BinNumber] += 1
+                n_sampled_SM += 1
+
+        return obs_SM, obs_LEE
+            
+            
+
     def _chisq_full_covariance(self,data, mc,CNP=True,STATONLY=False):
 
-        #np.set_printoptions(precision=3)
+        np.set_printoptions(precision=3)
 
-        COV = self.cov + self.cov_mc_stat
-
+        dof = len(data)
+        
+        COV = self.cov + self.cov_mc_stat + self.cov_mc_detsys
+            
         # remove rows/columns with zero data and MC
         remove_indices_v = []
         for i,d in enumerate(data):
@@ -316,7 +433,6 @@ class Plotter:
             if ((data[idx]==0) and (mc[idx] == 0)):
                 remove_indices_v.append(idx)
 
-        #COVcopy = COV
         for idx in remove_indices_v:
             COV = np.delete(COV,idx,0)
             COV = np.delete(COV,idx,1)
@@ -324,17 +440,13 @@ class Plotter:
             mc   = np.delete(mc,idx,0)
 
 
-        #print ('COV matrix (syst only) : ',COV)
-
-        #self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
-        #self.cov           = np.zeros([len(exp_err), len(exp_err)])
-
         COV_STAT = np.zeros([len(data), len(data)])
 
 
         ERR_STAT = 3. / ( 1./data + 2./mc )
-
+        
         for i,d in enumerate(data):
+            
             if (d == 0):
                 ERR_STAT[i] = mc[i]/2.
             if (mc[i] == 0):
@@ -342,24 +454,7 @@ class Plotter:
 
         if (CNP == False):
             ERR_STAT = data + mc
-
-        #print ('ERR_STAT : ',ERR_STAT)
-        #print ('data : ',data)
-        #print ('mc   : ',mc)
-        #print ('COV  : ',COV)
-
-        dof = len(data)
-
-        #for i,d in enumerate(data):
-        #    if (ERR_STAT[i] == 0):
-        #        ERR_STAT[i] = 1e-5
-        #    COV_STAT[i][i] = 3. / ( (1./d) + (2./mc[i]) )
-
-        #COV_STAT = 3 * np.linalg.inv( np.linalg.inv(self.cov_data_stat) + 2 * np.linalg.inv(self.cov_mc_stat) )
-        #if (CNP == False):
-        #    for i,d in enumerate(data):
-        #    COV_STAT[i][i] += (d+mc[i])
-        #    #COV_STAT = self.cov_data_stat + self.cov_mc_stat
+        
 
         COV_STAT[np.diag_indices_from(COV_STAT)] = ERR_STAT
 
@@ -367,21 +462,13 @@ class Plotter:
 
         if (STATONLY == True):
             COV = COV_STAT
-            #print ('COV : ',COV)
-            #print ('data : ',data)
-            #print ('mc : ',mc)
 
-        self.cov_full = COV
-
-        #print ('COV matrix : ',COV)
-
+        #print("COV matrix : ",COV)
+                
         diff = (data-mc)
-        #coverr = cov
-        #coverr[np.diag_indices_from(coverr)] += data
         emtxinv = np.linalg.inv(COV)
-        #print ('ERR matrix : ',emtxinv)
         chisq = float(diff.dot(emtxinv).dot(diff.T))
-
+        
         covdiag = np.diag(COV)
         chisqsum = 0.
         for i,d in enumerate(diff):
@@ -934,6 +1021,7 @@ class Plotter:
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
                       detsys=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
                       ncol=2,
+                      COVMATRIX='', # path to covariance matrix file
                       **plot_options):
         """It plots the variable from the TTree, after applying an eventual query
 
@@ -1397,10 +1485,17 @@ class Plotter:
 
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
-            self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                       self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                       self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight)
+
+            if (COVMATRIX == ""):
+                self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                           self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                           self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight)
+            else:
+                self.cov = self.get_SBNFit_cov_matrix(COVMATRIX,len(bin_edges)-1)
             exp_err = np.sqrt( np.diag((self.cov + self.cov_mc_stat + self.cov_mc_detsys))) # + exp_err*exp_err)
+
+            np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
+
 
 
         if "lee" in self.samples:
@@ -1410,6 +1505,11 @@ class Plotter:
                         lee_hist, n_tot-lee_hist, scale_factor=1.01e21/self.pot, cov=(self.cov+self.cov_mc_stat))
                     self.significance_likelihood = self._sigma_calc_likelihood(
                         lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi), scale_factor=1.01e21/self.pot)
+                    # area normalized version
+                    #normLEE = 68. / np.sum(n_tot)
+                    #normSM  = 68. / np.sum(n_tot-lee_hist)
+                    #self.significance_likelihood = self._sigma_calc_likelihood(
+                    #    lee_hist * normLEE, (n_tot-lee_hist) * normSM, np.sqrt(normSM) * np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi), scale_factor=1.0)
                 except (np.linalg.LinAlgError, ValueError) as err:
                     print("Error calculating the significance", err)
                     self.significance = -1
@@ -1447,6 +1547,9 @@ class Plotter:
                 fmt='ko',
                 label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
+        #frac = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], np.array([1,1,1,5,5,5]), np.array([1,1,1,5,5,5]), 70)
+        self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 70)
+
         if (draw_sys):
 
             chisq = self._chisquare(n_data, n_tot, exp_err)
@@ -1456,16 +1559,22 @@ class Plotter:
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.sqrt(np.diag(cov)))))
             chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
-            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)
+            #chiarea, aab, aac = self._chisq_full_covariance(n_tot-lee_hist,n_tot,CNP=True,STATONLY=True,AREANORMED=True)
+            chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)#,USEFULLCOV=True)
+            chilee, chileenocov,dof = self._chisq_full_covariance(n_tot-lee_hist,n_tot,CNP=True)
             #self.stats['chisq full covariance'] = chicov
             #self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['dof']            = dof
             self.stats['chisqstatonly']  = chistatonly
+            #self.stats['chiarea']  = chiarea
             self.stats['pvaluestatonly'] = (1 - scipy.stats.chi2.cdf(chistatonly,dof))
             self.stats['chisqdiag']     = chinocov
             self.stats['pvaluediag']     = (1 - scipy.stats.chi2.cdf(chinocov,dof))
+            #self.stats['parea']          = (1 - scipy.stats.chi2.cdf(chiarea,dof))
             self.stats['chisq']          = chicov
+            #self.stats['chilee']          = chilee
             self.stats['pvalue']         = (1 - scipy.stats.chi2.cdf(chicov,dof))
+            self.stats['pvaluelee']         = (1 - scipy.stats.chi2.cdf(chilee,dof))
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
@@ -2038,3 +2147,48 @@ class Plotter:
         cov /= Nuniverse
 
         return cov
+
+
+    def get_SBNFit_cov_matrix(self,COVMATRIX,NBINS):
+
+        covmatrix = np.zeros([NBINS,NBINS])
+        
+        if (os.path.isfile("COV/"+COVMATRIX) == False):
+            print ('ERROR : file-path for covariance matrix not valid!')
+            return covmatrix
+
+        covmatrixfile = open("COV/"+COVMATRIX,"r")
+
+        NLINES = len(covmatrixfile.readlines())
+
+        print ('file has %i lines and histo has %i bins'%(NLINES,NBINS))
+
+        if NLINES != NBINS:
+            print ('ERROR : number of lines in text-file does not match number of bins!')
+            return covmatrix
+
+        LINECTR = 0
+
+        covmatrixfile.seek(0,0)
+        for line in covmatrixfile:
+
+            words = line.split(",")
+
+            WORDCTR = 0
+
+            if len(words) != NBINS:
+                print ('ERROR : number of words in line does not match number of bins!')
+                break
+                
+            for word in words:
+
+                val = float(word)
+
+                covmatrix[LINECTR][WORDCTR] = val
+
+                WORDCTR += 1
+
+            LINECTR += 1
+
+        return covmatrix
+    

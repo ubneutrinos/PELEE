@@ -654,7 +654,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                      loadshowervariables=True,
                      loadnumuntuples=False,
                      loadnumuvariables=False,
-                     loadcrt=False,
+                     loadnumucrtonly=False,
                      loadeta=False,
                      loadsystematics=True,
                      loadrecoveryvars=False):
@@ -690,7 +690,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         #"shr_energy_tot_cali","selected","n_showers_contained",  # only if CC0piNp variables are saved!
     ]
     
-    CRTVARS = ["crtveto","crthitpe"]#,"_closestNuCosmicDist"]
+    CRTVARS = ["crtveto","crthitpe","_closestNuCosmicDist"]
     
     WEIGHTS = ["weightSpline","weightTune","weightSplineTimesTune"]
     WEIGHTSLEE = ["weightSpline","weightTune","weightSplineTimesTune", "leeweight"]
@@ -767,12 +767,21 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R1NCNOPI = 'prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_run1_reco2_reco2'
     R1NCCPI  = 'prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2'
 
+    # dummy samples to load faster
+    if (loadnumucrtonly):
+        R1BNB = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
+        R1EXT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
+        R1NU  = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
+        R1DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
+        
     R2NU = "prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run2_reco2_D1D2_reco2"
     R2NUE = "prodgenie_bnb_intrinsic_nue_overlay_run2_v08_00_00_35_run2a_reco2_reco2"
     R2EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_D_E_all_reco2'
     
     R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
     R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2'
+    if (loadnumucrtonly):
+        R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
     #R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
     R3NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2'
     R3NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
@@ -871,9 +880,13 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         R123_NUMU_SIDEBAND_BNB = 'neutrinoselection_filt_numu_ALL'
         ur1data_numu_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NUMU_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur2data_numu_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NUMU_SIDEBAND_BNB+".root")['nuselection'][tree]
-        ur3data_numu_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NUMU_SIDEBAND_BNB+".root")['nuselection'][tree]
+        if (loadnumucrtonly):
+            ur3data_numu_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+"data_bnb_peleeFilter_uboone_v08_00_00_41_pot_run3_G1_neutrinoselection_filt.root")['nuselection'][tree]
+        else:
+            ur3data_numu_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NUMU_SIDEBAND_BNB+".root")['nuselection'][tree]
+        
 
-    if (loadcrt ==True):
+    if (loadnumucrtonly ==True):
         R3VARS += CRTVARS
 
     if (loadsystematics == True):
@@ -905,18 +918,18 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r3nccpi = ur3nccpi.pandas.df(VARIABLES + WEIGHTS + R3VARS, flatten=False)
     r3data = ur3data.pandas.df(VARIABLES, flatten=False)
     print ('r3data has shape : ',r3data.shape)
-    r3ext = ur3ext.pandas.df(VARIABLES, flatten=False)
+    r3ext = ur3ext.pandas.df(VARIABLES + R3VARS, flatten=False)
     r3dirt = ur3dirt.pandas.df(VARIABLES + WEIGHTS + R3VARS, flatten=False)
     r3lee = ur3lee.pandas.df(VARIABLES + WEIGHTSLEE + R3VARS, flatten=False)
     
-    r3data_two_showers_sidebands = ur3data_two_showers_sidebands.pandas.df(VARIABLES + R3VARS, flatten=False) # note removed R3VARS due to missing CRT vars
-    r3data_np_far_sidebands = ur3data_np_far_sidebands.pandas.df(VARIABLES + R3VARS, flatten=False) # note removed R3VARS due to missing CRT vars
-    r3data_0p_far_sidebands = ur3data_0p_far_sidebands.pandas.df(VARIABLES + R3VARS, flatten=False) # note removed R3VARS due to missing CRT vars
+    r3data_two_showers_sidebands = ur3data_two_showers_sidebands.pandas.df(VARIABLES, flatten=False) # note removed R3VARS due to missing CRT vars
+    r3data_np_far_sidebands = ur3data_np_far_sidebands.pandas.df(VARIABLES, flatten=False) # note removed R3VARS due to missing CRT vars
+    r3data_0p_far_sidebands = ur3data_0p_far_sidebands.pandas.df(VARIABLES, flatten=False) # note removed R3VARS due to missing CRT vars
     #if (loadshowervariables == False):
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r3data_numu_sidebands   = ur3data_numu_sidebands.pandas.df(VARIABLES + R3VARS, flatten=False)
     if (loadrecoveryvars == True):
-        r3ext_np_recovery_sidebands = ur3ext_np_recovery_sidebands.pandas.df(VARIABLES + R3VARS, flatten=False)
+        r3ext_np_recovery_sidebands = ur3ext_np_recovery_sidebands.pandas.df(VARIABLES, flatten=False)
         
     r3lee["is_signal"] = r3lee["category"] == 11
     r3data["is_signal"] = r3data["category"] == 11
@@ -1065,10 +1078,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r1_dataset['run2'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run3'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run12'] = np.ones(len(r1_dataset), dtype=bool)
-        if (loadcrt == True):
+        if (loadnumucrtonly == True):
             #r1_dataset["_closestNuCosmicDist"] = np.zeros(len(r1_dataset),dtype=float)
             r1_dataset["crtveto"] = np.zeros(len(r1_dataset),dtype=int)
             r1_dataset["crthitpe"] = np.zeros(len(r1_dataset),dtype=float)
+            r1_dataset["_closestNuCosmicDist"] = np.zeros(len(r1_dataset),dtype=float)
     
     uproot_v = [ur1lee,ur1mc,ur1nue,ur1ext,ur1data,ur1dirt, ur1data_two_showers_sidebands, ur1data_np_far_sidebands, ur1data_0p_far_sidebands]
     if (loadtruthfilters == True):
@@ -1144,10 +1158,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2_dataset['run2'] = np.ones(len(r2_dataset), dtype=bool)
         r2_dataset['run3'] = np.zeros(len(r2_dataset), dtype=bool)
         r2_dataset['run12'] = np.ones(len(r2_dataset), dtype=bool)
-        if (loadcrt == True):
+        if (loadnumucrtonly == True):
             #r2_dataset["_closestNuCosmicDist"] = np.zeros(len(r1_dataset),dtype=float)
             r2_dataset["crtveto"] = np.zeros(len(r2_dataset),dtype=int)
             r2_dataset["crthitpe"] = np.zeros(len(r2_dataset),dtype=float)
+            r2_dataset["_closestNuCosmicDist"] = np.zeros(len(r2_dataset),dtype=float)
 
     r1dirt['run2'] = np.ones(len(r1dirt), dtype=bool)
     r3dirt['run2'] = np.ones(len(r3dirt), dtype=bool)
@@ -1564,7 +1579,8 @@ pot_data_unblinded = {
     "numu" : {
         1: (1.62E+20, 36139233),
         2: (2.62E+20, 62045760),
-        3: (2.55E+20, 61012955), },
+        3: (2.55E+20, 61012955),
+        30: (2.13E+20, 51090727), }, # 30 = 3 G1
     "fakeset1" : {
         1: (2.07E+20, 32139256),
         2: (1.00E+01, 1),
@@ -1625,7 +1641,7 @@ pot_mc_samples[1] = {
 }
 
 def get_weights(run,dataset="farsideband",scaling=1.0):
-    assert run in [1, 2, 3, 123, 12]
+    assert run in [1, 2, 3, 123, 12, 30]
     weights_out = {}
     if run in [1, 2, 3]:
         pot_on, n_trig_on = pot_data_unblinded[dataset][run]
@@ -1673,6 +1689,14 @@ def get_weights(run,dataset="farsideband",scaling=1.0):
             else:
                 weights_out[sample] = total_pot_on/this_sample_pot
         pot_out = total_pot_on
+    if run == 30:
+        pot_on, n_trig_on = pot_data_unblinded[dataset][30]
+        for sample, pot in pot_mc_samples[3].items():
+            if sample == 'ext':
+                weights_out[sample] = n_trig_on/pot
+            else:
+                weights_out[sample] = pot_on/pot
+        pot_out = pot_on
 
     for key, val in weights_out.items():
         weights_out[key] *= scaling
