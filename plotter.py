@@ -198,7 +198,7 @@ class Plotter:
         self.significance_likelihood = 0
         self.chisqdatamc = 0
         self.sigma_shapeonly = 0
-        self.detsys = None
+        self.detsys = {}
         self.stats = {}
         self.cov = None # covariance matrix from systematics
         self.cov_mc_stat = None
@@ -1001,7 +1001,7 @@ class Plotter:
         return fig, axis, image
 
 
-    def load_detsys_errors(self,var,path,binedges):
+    def load_detsys_errors(self,sample,var,path,binedges):
 
         detsys_frac = np.zeros(len(binedges)-1)
 
@@ -1013,7 +1013,7 @@ class Plotter:
 
         for varsample in DETSAMPLES:
 
-            filename = var + "_" + varsample + ".txt"
+            filename = var + "_" + sample + "_" + varsample + ".txt"
 
             if (os.path.isfile(path+filename) == False):
                 #print ('file-name %s is not valid'%filename)
@@ -1025,7 +1025,6 @@ class Plotter:
 
                 binmin = binedges[binnumber]
                 binmax = binedges[binnumber+1]
-
                 bincenter = 0.5*(binmin+binmax)
 
                 # find uncertainty associated to this bin in the text-file
@@ -1036,9 +1035,10 @@ class Plotter:
 
                     words = line.split(",")
                     binrange_v = words[0].split(" - ")
-                    bincenter = 0.5*(float(binrange_v[0])+float(binrange_v[1]))
+                    binrangemin = float(binrange_v[0])
+                    binrangemax = float(binrange_v[1])
 
-                    if ( (bincenter > binmin) and (bincenter <= binmax) ):
+                    if ( (bincenter > binrangemin) and (bincenter <= binrangemax) ):
                     
                         fracerror = float(words[1].split()[0])
                         detsys_frac[binnumber] += fracerror * fracerror
@@ -1069,7 +1069,7 @@ class Plotter:
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
-                      detsys=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
+                      detsysdict=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
                       ncol=2,
                       COVMATRIX='', # path to covariance matrix file
                       DETSYSPATH="", # path where to find detector systematics files
@@ -1096,9 +1096,6 @@ class Plotter:
             Figure, top subplot, and bottom subplot (ratio)
 
         """
-
-        #if (detsys != None):
-        self.detsys = detsys
 
         if not title:
             title = variable
@@ -1427,16 +1424,16 @@ class Plotter:
             mc_plotted_variable, **plot_options)
         err_mc = np.array(
             [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
-        if ("mc" in self.detsys.keys()):
-            self.detsys["mc"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+        if ("mc" in detsysdict.keys() and detsysdict["mc"]==True):
+            self.detsys["mc"] = self.load_detsys_errors("mc",variable,DETSYSPATH,bin_edges)
         sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"])
 
         nue_uncertainties, bins = np.histogram(
             nue_plotted_variable, **plot_options)
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
-        if ("nue" in self.detsys.keys()):
-            self.detsys["nue"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+        if ("nue" in detsysdict.keys() and detsysdict["nue"]==True):
+            self.detsys["nue"] = self.load_detsys_errors("nue",variable,DETSYSPATH,bin_edges)
         sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"])
 
         err_dirt = np.array([0 for n in mc_uncertainties])
@@ -1445,8 +1442,8 @@ class Plotter:
                 dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
-        if ("dirt" in self.detsys.keys()):
-            self.detsys["dirt"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+        if ("dirt" in detsysdict.keys() and detsysdict["dirt"]==True):
+            self.detsys["dirt"] = self.load_detsys_errors("dirt",variable,DETSYSPATH,bin_edges)
         sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"])
 
         err_lee = np.array([0 for n in mc_uncertainties])
@@ -1469,8 +1466,8 @@ class Plotter:
                 ncpi0_plotted_variable, **plot_options)
             err_ncpi0 = np.array(
                 [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
-            if ("ncpi0" in self.detsys.keys()):
-                self.detsys["ncpi0"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+            if ("ncpi0" in detsysdict.keys() and detsysdict["ncpi0"]==True):
+                self.detsys["ncpi0"] = self.load_detsys_errors("ncpi0",variable,DETSYSPATH,bin_edges)
             sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"])
 
         err_ccpi0 = np.array([0 for n in mc_uncertainties])
@@ -1480,8 +1477,8 @@ class Plotter:
                 ccpi0_plotted_variable, **plot_options)
             err_ccpi0 = np.array(
                 [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
-            if ("ccpi0" in self.detsys.keys()):
-                self.detsys["ccpi0"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+            if ("ccpi0" in detsysdict.keys() and detsysdict["ccpi0"]==True):
+                self.detsys["ccpi0"] = self.load_detsys_errors("ccpi0",variable,DETSYSPATH,bin_edges)
             sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"])
 
         err_ccnopi = np.array([0 for n in mc_uncertainties])
@@ -1491,8 +1488,8 @@ class Plotter:
                 ccnopi_plotted_variable, **plot_options)
             err_ccnopi = np.array(
                 [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
-            if ("ccnopi" in self.detsys.keys()):
-                self.detsys["ccnopi"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+            if ("ccnopi" in detsysdict.keys() and detsysdict["ccnopi"]==True):
+                self.detsys["ccnopi"] = self.load_detsys_errors("ccnopi",variable,DETSYSPATH,bin_edges)
             sys_ccnopi = self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"])
 
         err_cccpi = np.array([0 for n in mc_uncertainties])
@@ -1502,8 +1499,8 @@ class Plotter:
                 cccpi_plotted_variable, **plot_options)
             err_cccpi = np.array(
                 [n * self.weights["cccpi"] * self.weights["cccpi"] for n in cccpi_uncertainties])
-            if ("cccpi" in self.detsys.keys()):
-                self.detsys["cccpi"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+            if ("cccpi" in detsysdict.keys() and detsysdict["cccpi"]==True):
+                self.detsys["cccpi"] = self.load_detsys_errors("cccpi",variable,DETSYSPATH,bin_edges)
             sys_cccpi = self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])
 
         err_nccpi = np.array([0 for n in mc_uncertainties])
@@ -1513,8 +1510,8 @@ class Plotter:
                 nccpi_plotted_variable, **plot_options)
             err_nccpi = np.array(
                 [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
-            if ("nccpi" in self.detsys.keys()):
-                self.detsys["nccpi"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+            if ("nccpi" in detsysdict.keys() and detsysdict["nccpi"]==True):
+                self.detsys["nccpi"] = self.load_detsys_errors("nccpi",variable,DETSYSPATH,bin_edges)
             sys_nccpi = self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])
 
         err_ncnopi = np.array([0 for n in mc_uncertainties])
@@ -1524,8 +1521,8 @@ class Plotter:
                 ncnopi_plotted_variable, **plot_options)
             err_ncnopi = np.array(
                 [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
-            if ("ncnopi" in self.detsys.keys()):
-                self.detsys["ncnopi"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+            if ("ncnopi" in detsysdict.keys() and detsysdict["ncnopi"]==True):
+                self.detsys["ncnopi"] = self.load_detsys_errors("ncnopi",variable,DETSYSPATH,bin_edges)
             sys_ncnopi = self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
 
         if draw_data:
