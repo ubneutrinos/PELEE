@@ -230,7 +230,7 @@ NUMUPRESEL += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbd
 NUMUPRESEL += ' and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251. '
 NUMUPRESEL += ' and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110. '
 NUMUPRESEL += ' and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986. '
-#NUMUPRESEL += ' and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775) '
+NUMUPRESEL += ' and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775) '
 NUMUPRESEL += ' and topological_score > 0.06 '
 #NUMUPRESEL += ' and contained_fraction > 0.9 '
 
@@ -269,7 +269,7 @@ preselection_categories = {
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'ZPTwoShr': {'query': ZPPRESEL_two_shower, 'title': '1e0p Presel., 2+ shower', 'dir': 'ZPTwoShr'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
-    'NUMU': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'}
+    'NUMU': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'}
 }
 
 
@@ -575,17 +575,17 @@ run_variables = [
 ]
 
 numupresel_variables = [
-        ('trk_start_x_v',28,(0,260),"muon candidate start x [cm]"),
-        ('trk_start_y_v',28,(-120,120),"muon candidate start y [cm]"),
-        ('trk_start_z_v',28,(0,1030),"muon candidate start z [cm]"),
-        ('trk_end_x_v',28,(0,260),"muon candidate end x [cm]"),
-        ('trk_end_y_v',28,(-120,120),"muon candidate end y [cm]"),
-        ('trk_end_z_v',28,(0,1030),"muon candidate end z [cm]"),
-        ('trk_score_v',26,(0,1),"muon candidate track score"),
-        ('trk_llr_pid_v',26,(-1,1),"muon candidate PID score"),
-        ('muon_mcs_consistency_v',26,(-1,2.5),"muon candidate MCS consistency"),
-        ('trk_len_v',26,(0,1000),"muon candidate length [cm]"),
-        ('trk_distance_v',26,(0,5),"muon candidate vtx distance [cm]"),
+        ('muon_candidate_start_x',28,(0,260),"muon candidate start x [cm]"),
+        ('muon_candidate_start_y',28,(-120,120),"muon candidate start y [cm]"),
+        ('muon_candidate_start_z',28,(0,1030),"muon candidate start z [cm]"),
+        ('muon_candidate_end_x',28,(0,260),"muon candidate end x [cm]"),
+        ('muon_candidate_end_y',28,(-120,120),"muon candidate end y [cm]"),
+        ('muon_candidate_end_z',28,(0,1030),"muon candidate end z [cm]"),
+        ('muon_candidate_score',26,(0,1),"muon candidate track score"),
+        ('muon_candidate_pid',26,(-1,1),"muon candidate PID score"),
+        ('muon_candidate_mcs',26,(-1,2.5),"muon candidate MCS consistency"),
+        ('muon_candidate_length',24,(0,900),"muon candidate length [cm]"),
+        ('muon_candidate_distance',26,(0,5),"muon candidate vtx distance [cm]"),
 ]
 
 

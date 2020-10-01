@@ -1035,7 +1035,7 @@ class Plotter:
                 for line in f:
 
                     words = line.split(",")
-                    binrange_v = words[0].split("-")
+                    binrange_v = words[0].split(" - ")
                     bincenter = 0.5*(float(binrange_v[0])+float(binrange_v[1]))
 
                     if ( (bincenter > binmin) and (bincenter <= binmax) ):
