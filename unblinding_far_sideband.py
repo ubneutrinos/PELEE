@@ -238,7 +238,7 @@ NUMUCRT = ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
 
 NUMUPRESELCRT = NUMUPRESEL + NUMUCRT
 
-NUMUSEL = NUMUPRESEL + ' and muon_length > 0'
+NUMUSEL = NUMUPRESEL + ' and n_muons_tot > 0'
 NUMUSELCRT = NUMUSEL + NUMUCRT
 
 
@@ -269,6 +269,7 @@ preselection_categories = {
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'ZPTwoShr': {'query': ZPPRESEL_two_shower, 'title': '1e0p Presel., 2+ shower', 'dir': 'ZPTwoShr'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
+    'NUMU': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'}
 }
 
 
@@ -292,9 +293,11 @@ selection_categories = {
     'None': {'query': None, 'title': 'NoCuts', 'dir': 'None'},
     'ZPBDT': {'query': ZPBDTLOOSE, 'title': '1e0p BDT sel.', 'dir': 'ZPBDT'},
     'ZPBDTAllTrk': {'query': ZPBDTLOOSE_all_tracks, 'title': '1e0p BDT sel.', 'dir': 'ZPBDTAllTrk'},
+    'ZPLOOSESEL': {'query': ZPLOOSESEL, 'title': '1e0p Loose sel.', 'dir': 'ZPLOOSESEL'},
     'ZPLAllTrk': {'query': ZPLOOSESEL_all_tracks, 'title': '1e0p Loose sel.', 'dir': 'ZPLAllTrk'},
     'ZPLOOSETWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
     'ZPBDTTWOSHR': {'query': ZPBDTLOOSE_two_shower, 'title': '1e0p BDT sel. 2+shr', 'dir': 'ZPBDT_two_shower'},
+    'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'}
 }
 
 stages_queries = {
@@ -570,6 +573,90 @@ shr12_variables = [
 run_variables = [
         ('run',100,(4500,19500),"run number"),
 ]
+
+numupresel_variables = [
+        ('trk_start_x_v',28,(0,260),"muon candidate start x [cm]"),
+        ('trk_start_y_v',28,(-120,120),"muon candidate start y [cm]"),
+        ('trk_start_z_v',28,(0,1030),"muon candidate start z [cm]"),
+        ('trk_end_x_v',28,(0,260),"muon candidate end x [cm]"),
+        ('trk_end_y_v',28,(-120,120),"muon candidate end y [cm]"),
+        ('trk_end_z_v',28,(0,1030),"muon candidate end z [cm]"),
+        ('trk_score_v',26,(0,1),"muon candidate track score"),
+        ('trk_llr_pid_v',26,(-1,1),"muon candidate PID score"),
+        ('muon_mcs_consistency_v',26,(-1,2.5),"muon candidate MCS consistency"),
+        ('trk_len_v',26,(0,1000),"muon candidate length [cm]"),
+        ('trk_distance_v',26,(0,5),"muon candidate vtx distance [cm]"),
+]
+
+
+numusel_variables = [
+        ('muon_energy',14,(0.15,1.55),"muon candidate reconstructed energy [GeV]"),
+        ('neutrino_energy',14,(0.15,1.55),"neutrino reconstructed energy [GeV]"),
+        ('muon_theta',28,(-1,1),r"muon candidate $\cos(\theta)$"),
+]
+
+bdt_common_variables_1eNp = [
+    ('shr_score',10,(0,0.5),"shr score"), 
+    ('trkfit',10,(0,0.65),"Fraction of Track-fitted points"),
+    ('subcluster',10,(4,44),"N sub-clusters in shower"),
+    ('shrmoliereavg',9,(0,9),"average Moliere angle [degrees]"),
+    ('CosmicIPAll3D',10,(10,200),"CosmicIPAll3D [cm]"),
+    ('CosmicDirAll3D',10,(-1,1),"cos(CosmicDirAll3D)"),
+    ('secondshower_Y_nhit',10,(0,200),"Nhit 2nd shower (Y)"),
+    ('secondshower_Y_dot',10,(0,1),"cos(2nd shower direction wrt vtx) (Y)"),
+    ('anglediff_Y',10,(0,350),"angle diff 1st-2nd shower (Y) [degrees]"),
+    ('secondshower_Y_vtxdist',10,(0.,200),"vtx dist 2nd shower (Y)"),
+]
+
+bdt_1enp_variables = [
+    ('tksh_angle',10,(-0.9,1),"cos(trk-shr angle)"),
+    ('trkshrhitdist2',10,(0,10),"2D trk-shr distance (Y)"),
+    ('tksh_distance',6,(0,6),"trk-shr distance [cm]"),
+    ('trkpid',5,(-1,0.02),"track LLR PID"),
+    ('hits_ratio',10,(0.5,1.0),"shower hits/all hits"),
+    ('shr_tkfit_dedx_max',5,(0.5,5.5),"shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    ]
+
+bdt_common_variables_1e0p = [
+    ('shr_score',10,(0,0.5),"shr score"), 
+    ('trkfit',10,(0,0.65),"Fraction of Track-fitted points"),
+    ('subcluster',10,(4,44),"N sub-clusters in shower"),
+    ('shrmoliereavg',9,(0,15),"average Moliere angle [degrees]"),
+    ('CosmicIPAll3D',10,(10,200),"CosmicIPAll3D [cm]"),
+    ('CosmicDirAll3D',10,(-0.9,0.9),"cos(CosmicDirAll3D)"),
+    ('secondshower_Y_nhit',10,(0,50),"Nhit 2nd shower (Y)"),
+    ('secondshower_Y_dot',10,(0,1),"cos(2nd shower direction wrt vtx) (Y)"),
+    ('anglediff_Y',10,(0,350),"angle diff 1st-2nd shower (Y) [degrees]"),
+    ('secondshower_Y_vtxdist',10,(0.,200),"vtx dist 2nd shower (Y)"),
+]
+
+bdt_1e0p_variables = [
+    ('shr_tkfit_2cm_dedx_U',10,(0,10),"shr tkfit dE/dx (U, 0-2 cm) [MeV/cm]"),
+    ('shr_tkfit_2cm_dedx_V',10,(0,10),"shr tkfit dE/dx (V, 0-2 cm) [MeV/cm]"),
+    ('shr_tkfit_2cm_dedx_Y',10,(0,10),"shr tkfit dE/dx (Y, 0-2 cm) [MeV/cm]"),
+    ('shr_tkfit_gap10_dedx_U',10,(0,10),"shr tkfit dE/dx (U, 1-5 cm) [MeV/cm]"),
+    ('shr_tkfit_gap10_dedx_V',10,(0,10),"shr tkfit dE/dx (V, 1-5 cm) [MeV/cm]"),
+    ('shr_tkfit_gap10_dedx_Y',10,(0,10),"shr tkfit dE/dx (Y, 1-5 cm) [MeV/cm]"),
+    ('secondshower_U_nhit',10,(0,200),"Nhit 2nd shower (U)"),
+    ('secondshower_U_dot',10,(-1,1),"cos(2nd shower direction wrt vtx) (U)"),
+    ('anglediff_U',10,(0,350),"angle diff 1st-2nd shower (U) [degrees]"),
+    ('secondshower_U_vtxdist',10,(0.,200),"vtx dist 2nd shower (U)"),
+    ('secondshower_V_nhit',10,(0,200),"Nhit 2nd shower (V)"),
+    ('secondshower_V_dot',10,(-1,1),"cos(2nd shower direction wrt vtx) (V)"),
+    ('anglediff_V',10,(0,350),"angle diff 1st-2nd shower (V) [degrees]"),
+    ('secondshower_V_vtxdist',10,(0.,200),"vtx dist 2nd shower (V)"),
+    ('shrMCSMom',10,(0, 200),"shr mcs mom [MeV]"),
+    ('DeltaRMS2h',10,(0,10),"Median spread of spacepoints"),
+    ('CylFrac2h_1cm',10,(0,1),"Frac. of spacepoints in 1cm cylinder (2nd half of shr)"),
+    ('shrPCA1CMed_5cm',10,(0.5,1),"Median of 1st component of shr PCA (5cm window)"),
+    ]
+
+vtx_variables = [
+    ('reco_nu_vtx_sce_x',10,(0,260),"reco neutrino vertex x [cm]"),
+    ('reco_nu_vtx_sce_y',10,(-120,120),"reco neutrino vertex y [cm]"),
+    ('reco_nu_vtx_sce_z',10,(0,1030),"reco neutrino vertex z [cm]"),
+    ]
+
 
 plot_variables = basic_variables + evtsel_variabls + shrsel_variables + bdtscore_variables
 plot_variables += kinematic_variables
