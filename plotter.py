@@ -1681,6 +1681,31 @@ class Plotter:
             alpha=0.5)
         '''
 
+        if (chisq==True):
+            if sum(n_data) > 0:
+
+                nd = sum(n_data)
+                nm = sum(n_tot)
+                mcnormerr2 = (self.sys_err("weightsFlux", variable, query, plot_options["range"], 1, genieweight) + \
+                              self.sys_err("weightsGenie", variable, query, plot_options["range"], 1, genieweight) + \
+                              self.sys_err("weightsReint", variable, query, plot_options["range"], 1, genieweight))[0][0]
+                datanormerr2 = (0.5*(self._data_err([nd],asymErrs)[0][0]+\
+                                     self._data_err([nd],asymErrs)[1][0]))**2
+
+                ax1.text(
+                    0.17,
+                    0.89,
+                    r'$\chi^2 /$n.d.f. = %.2f' % (self.stats['chisq']/self.stats['dof']) +
+                             #'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
+                             ', p = %.2f' % (1 - scipy.stats.chi2.cdf(self.stats['chisq'],self.stats['dof'])) +
+                             '\n'+'Obs/Pred = %.2f' % (nd/nm) +
+                             ' $\pm$ %.2f' % ((nd/nm)*np.sqrt(datanormerr2/(nd**2) + mcnormerr2/(nm**2))),
+                    va='center',
+                    ha='center',
+                    ma='left',
+                    fontsize=12,
+                    transform=ax1.transAxes)
+
         if (ratio==True):
             if draw_data == False:
                 n_data = np.zeros(len(n_tot))
@@ -1688,22 +1713,6 @@ class Plotter:
             else:
                 self.chisqdatamc = self._chisquare(n_data, n_tot, exp_err)
             self._draw_ratio(ax2, bins, n_tot, n_data, exp_err, data_err)
-
-        if ( (chisq==True) and (ratio==True)):
-            if sum(n_data) > 0:
-                ax2.text(
-                    0.725,
-                    0.9,
-                    r'$\chi^2 /$n.d.f. = %.2f' % (self.stats['chisq']/self.stats['dof']) +
-                             #'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
-                             ', p = %.2f' % (1 - scipy.stats.chi2.cdf(self.stats['chisq'],self.stats['dof'])) +
-                             ', O/P = %.2f' % (sum(n_data)/sum(n_tot)) +
-                             ' $\pm$ %.2f' % (self._data_err([sum(n_data)],asymErrs)[0]/sum(n_tot)),
-                    va='center',
-                    ha='center',
-                    ma='right',
-                    fontsize=12,
-                    transform=ax2.transAxes)
 
         if (ratio==True):
             ax2.set_xlabel(title,fontsize=18)
