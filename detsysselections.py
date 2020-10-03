@@ -106,6 +106,10 @@ def BDTCQ(APP):
     q = BDTCQ_all_showers(APP) + ' and n_showers_contained_%s == 1'%APP
     return q
 
+def BDTCQ_2pshowers(APP):
+    q = BDTCQ_all_showers(APP) + ' and n_showers_contained_%s > 1'%APP
+    return q
+
 
 def NUMUPRESEL(APP):
 
