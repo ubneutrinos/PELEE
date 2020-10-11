@@ -1097,6 +1097,8 @@ class Plotter:
 
         """
 
+        self.detsys = {}
+
         if not title:
             title = variable
         if not query:
@@ -1684,12 +1686,9 @@ class Plotter:
 
                 nd = sum(n_data)
                 nm = sum(n_tot)
-                mcnormerr2 = (self.sys_err("weightsFlux", variable, query, plot_options["range"], 1, genieweight) + \
-                              self.sys_err("weightsGenie", variable, query, plot_options["range"], 1, genieweight) + \
-                              self.sys_err("weightsReint", variable, query, plot_options["range"], 1, genieweight))[0][0]
+                mcnormerr2 = (exp_err**2).sum()
                 datanormerr2 = (0.5*(self._data_err([nd],asymErrs)[0][0]+\
                                      self._data_err([nd],asymErrs)[1][0]))**2
-
                 ax1.text(
                     0.17,
                     0.89,
