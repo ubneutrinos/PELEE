@@ -106,10 +106,47 @@ def BDTCQ(APP):
     q = BDTCQ_all_showers(APP) + ' and n_showers_contained_%s == 1'%APP
     return q
 
+def NPPRESQ_2pshowers(APP):
+    q = NPPRESQ(APP) + ' and n_showers_contained_%s > 1'%APP
+    return q
+
+def NPLCUTQ_2pshowers(APP):
+    q = NPLCUTQ_all_showers(APP) + ' and n_showers_contained_%s > 1'%APP
+    return q
+
 def BDTCQ_2pshowers(APP):
     q = BDTCQ_all_showers(APP) + ' and n_showers_contained_%s > 1'%APP
     return q
 
+def ZPPRESQ(APP):
+    # 1e0p preselection
+    q = PRESQ(APP)
+    q += ' and n_tracks_contained_%s == 0'%APP
+    return q
+
+def ZPLCUTQ_all_showers(APP):
+    # loose box cuts
+    q = ZPPRESQ(APP)
+    q += ' and CosmicIPAll3D_%s > 10.'%APP
+    q += ' and CosmicDirAll3D_%s > -0.9 and CosmicDirAll3D_%s < 0.9'%(APP,APP)
+    q += ' and shrmoliereavg_%s < 15'%APP
+    q += ' and subcluster_%s > 4'%APP
+    q += ' and trkfit_%s < 0.65'%APP
+    q += ' and secondshower_Y_nhit_%s < 50'%APP
+    q += ' and shr_trk_sce_start_y_%s > -100 and shr_trk_sce_start_y_%s < 80'%(APP,APP)
+    q += ' and shr_trk_sce_end_y_%s > -100 and shr_trk_sce_end_y_%s < 100 '%(APP,APP)
+    q += ' and shr_trk_len_%s < 300.'%APP
+    q += ' and (n_tracks_tot_%s == 0 or (n_tracks_tot_%s>0 and tk1sh1_angle_alltk_%s>-0.9))'%(APP,APP,APP)
+    return q
+
+def ZPLCUTQ(APP):
+    q = ZPLCUTQ_all_showers(APP) + ' and n_showers_contained_%s == 1'%APP
+    return q
+
+def ZPBDTCQ(APP):
+    q = ZPLCUTQ(APP)
+    q += ' and bkg_score_%s >0.72'%APP
+    return q
 
 def NUMUPRESEL(APP):
 

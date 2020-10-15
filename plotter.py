@@ -39,6 +39,14 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
 
+paper_labels = {
+    11: r"$\nu_e$ CC",
+    111: r"MiniBooNE LEE",
+    2: r"$\nu$ other",
+    31: r"$\nu$ with $\pi^{0}$",
+    5: r"dirt",
+}
+
 category_labels = {
     1: r"$\nu_e$ CC",
     10: r"$\nu_e$ CC0$\pi$0p",
@@ -736,6 +744,33 @@ class Plotter:
 
         return category, plotted_variable
 
+    def _categorize_entries_paper(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+        category = self._selection(
+            "paper_category", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        plotted_variable = self._selection(
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+
+        if plotted_variable.size > 0:
+            if isinstance(plotted_variable[0], np.ndarray):
+                if "trk" in variable or select_longest:
+                    score = self._selection(
+                        "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+                    category = np.array([
+                        np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
+                    ])
+                else:
+                    score = self._selection(
+                        "shr_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+                    category = np.array([
+                        np.array([c] * len(v[s < 0.5])) for c, v, s in zip(category, plotted_variable, score)
+                    ])
+                category = np.hstack(category)
+
+            plotted_variable = self._select_showers(
+                plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
+
+        return category, plotted_variable
+
     def _categorize_entries_int(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
             "interaction", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
@@ -1011,6 +1046,7 @@ class Plotter:
             #print ('DETSYS. path %s is not valid'%path)
             return detsys_frac
 
+        anyfilefound = False
         for varsample in DETSAMPLES:
 
             filename = var + "_" + sample + "_" + varsample + ".txt"
@@ -1019,6 +1055,7 @@ class Plotter:
                 #print ('file-name %s is not valid'%filename)
                 continue
 
+            anyfilefound = True
             f = open(path+filename,'r')
 
             for binnumber in range(len(detsys_frac)):
@@ -1045,8 +1082,12 @@ class Plotter:
 
                         break
 
-        detsys_frac = np.sqrt(np.array(detsys_frac))
-        print ('detsys diag error terms are ', detsys_frac)
+        if anyfilefound:
+            detsys_frac = np.sqrt(np.array(detsys_frac))
+            np.nan_to_num(detsys_frac, copy=False, nan=1)
+        else:
+            detsys_frac = 0.2*np.ones(len(binedges)-1)
+        print (sample,': frac. detsys diag error terms are ', detsys_frac)
 
         return detsys_frac
 
@@ -1113,6 +1154,9 @@ class Plotter:
         if kind == "event_category":
             categorization = self._categorize_entries
             cat_labels = category_labels
+        elif kind == "paper_category":
+            categorization = self._categorize_entries_paper
+            cat_labels = paper_labels
         elif kind == "particle_pdg":
             var = self.samples["mc"].query(query).eval(variable)
             if var.dtype == np.float32:
@@ -1351,7 +1395,6 @@ class Plotter:
             for c in weight_dict.keys():
                 order_weight_dict[c] = weight_dict[c]
 
-
         total = sum(sum(order_weight_dict[c]) for c in order_var_dict)
         if draw_data:
             total += sum([self.weights["ext"]] * len(ext_plotted_variable))
@@ -1361,8 +1404,7 @@ class Plotter:
             for c in order_var_dict.keys()
         ]
 
-
-        if kind == "event_category":
+        if kind == "event_category" or kind == "paper_category":
             plot_options["color"] = [category_colors[c]
                                      for c in order_var_dict.keys()]
         elif kind == "particle_pdg":
@@ -1420,6 +1462,12 @@ class Plotter:
         histtype="step",
         edgecolor="black",
         **plot_options)
+
+        summarydict = {}
+        for c in order_var_dict.keys():
+            summarydict[c] = {'cat' : cat_labels[c], 'val' : sum(order_weight_dict[c])}
+        summarydict[100] = {'cat' : 'ext', 'val' : sum(n_ext)}
+        #print(summarydict)
 
         bincenters = 0.5 * (bin_edges[1:] + bin_edges[:-1])
         mc_uncertainties, bins = np.histogram(
@@ -1529,7 +1577,7 @@ class Plotter:
 
         if draw_data:
             err_ext = np.array(
-                [n * self.weights["ext"] * self.weights["ext"] for n in n_ext])
+                [n * self.weights["ext"] for n in n_ext]) #here n is already weighted
         else:
             err_ext = np.zeros(len(err_mc))
 
@@ -1565,6 +1613,42 @@ class Plotter:
             np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 
 
+        if 0:#kind == "paper_category":
+            '''
+            11: r"$\nu_e$ CC",
+            111: r"MiniBooNE LEE",
+            2: r"$\nu$ other",
+            31: r"$\nu$ with $\pi^{0}$",
+            5: r"dirt",
+            '''
+            if 11 in summarydict.keys():
+                nue_covF = self.sys_err("weightsFlux", variable, query+" and category==11",plot_options["range"], 1,genieweight)
+                nue_covG = self.sys_err("weightsGenie", variable, query+" and category==11",plot_options["range"],1,genieweight)
+                nue_covR = self.sys_err("weightsReint", variable, query+" and category==11",plot_options["range"],1,genieweight)
+                summarydict[11]['err2'] = np.diag(nue_covF).sum() + np.diag(nue_covG).sum() + np.diag(nue_covR).sum() + \
+                                          np.diag(err_nue).sum() + np.diag(sys_nue**2).sum()
+            if 31 in summarydict.keys():
+                pi0_covF = self.sys_err("weightsFlux", variable, query+" and category==31",plot_options["range"], 1,genieweight)
+                pi0_covG = self.sys_err("weightsGenie", variable, query+" and category==31",plot_options["range"],1,genieweight)
+                pi0_covR = self.sys_err("weightsReint", variable, query+" and category==31",plot_options["range"],1,genieweight)
+                summarydict[31]['err2'] = np.diag(pi0_covF).sum() + np.diag(pi0_covG).sum() + np.diag(pi0_covR).sum() + \
+                                          np.diag(err_ncpi0).sum() + np.diag(err_ccpi0).sum() + \
+                                          np.diag(sys_ncpi0**2).sum() + np.diag(sys_ccpi0**2).sum()
+            if 2 in summarydict.keys():
+                oth_covF = self.sys_err("weightsFlux", variable, query+" and category==2",plot_options["range"], 1,genieweight)
+                oth_covG = self.sys_err("weightsGenie", variable, query+" and category==2",plot_options["range"],1,genieweight)
+                oth_covR = self.sys_err("weightsReint", variable, query+" and category==2",plot_options["range"],1,genieweight)
+                summarydict[2]['err2'] = np.diag(oth_covF).sum() + np.diag(oth_covG).sum() + np.diag(oth_covR).sum() + \
+                                         np.diag(err_mc).sum() + np.diag(err_ccnopi).sum() + np.diag(err_cccpi).sum() + \
+                                         np.diag(err_nccpi).sum() + np.diag(err_ncnopi).sum() + \
+                                         np.diag(sys_mc**2).sum() + np.diag(sys_ccnopi**2).sum() + np.diag(sys_cccpi**2).sum() + \
+                                         np.diag(sys_nccpi**2).sum() + np.diag(sys_ncnopi**2).sum()
+            if 111 in summarydict.keys():
+                summarydict[111]['err2'] = 0
+            if 100 in summarydict.keys():
+                summarydict[100]['err2'] = err_ext.sum()
+            for v in summarydict.values():
+                if (v['val']>0 and 'err2' in v): print(v['cat'],v['val'],np.sqrt(v['err2']))
 
         if "lee" in self.samples:
             if kind == "event_category":
@@ -1685,7 +1769,10 @@ class Plotter:
 
                 nd = sum(n_data)
                 nm = sum(n_tot)
-                mcnormerr2 = (exp_err**2).sum()
+                cov1b = self.sys_err("weightsFlux", variable, query, plot_options["range"], 1, genieweight) + \
+                        self.sys_err("weightsGenie", variable, query, plot_options["range"], 1, genieweight) + \
+                        self.sys_err("weightsReint", variable, query, plot_options["range"], 1, genieweight)
+                mcnormerr2 = np.diag(cov1b).sum() + np.diag(self.cov_mc_stat).sum() + np.diag(self.cov_mc_detsys).sum()
                 datanormerr2 = (0.5*(self._data_err([nd],asymErrs)[0][0]+\
                                      self._data_err([nd],asymErrs)[1][0]))**2
                 ax1.text(
