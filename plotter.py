@@ -1052,7 +1052,7 @@ class Plotter:
             filename = var + "_" + sample + "_" + varsample + ".txt"
 
             if (os.path.isfile(path+filename) == False):
-                #print ('file-name %s is not valid'%filename)
+                print ('file-name %s @ path %s is not valid'%(filename,path))
                 continue
 
             anyfilefound = True
@@ -1605,7 +1605,8 @@ class Plotter:
             if (COVMATRIX == ""):
                 self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                            self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                           self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight)
+                           self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                           self.sys_err_unisim(variable, query, plot_options["range"], plot_options["bins"], genieweight)
             else:
                 self.cov = self.get_SBNFit_cov_matrix(COVMATRIX,len(bin_edges)-1)
             exp_err = np.sqrt( np.diag((self.cov + self.cov_mc_stat + self.cov_mc_detsys))) # + exp_err*exp_err)
@@ -2223,6 +2224,9 @@ class Plotter:
             ratio_error_mc = np.array(ratio_error_mc)
         self._ratio_vals = n_data / n_tot
         self._ratio_errs = ratio_error
+        np.set_printoptions(precision=3)
+        #print ('ratio : ',np.array(self._ratio_vals))
+        #print ('ratio : ',np.array(self._ratio_errs))
         ax.fill_between(
             bins,
             1.0 - ratio_error_mc,
@@ -2235,6 +2239,87 @@ class Plotter:
         ax.set_ylabel("BNB / (MC+EXT)")
         ax.axhline(1, linestyle="--", color="k")
 
+    def sys_err_unisim(self, var_name, query, x_range, n_bins, weightVar):
+
+        # assume list of knobs is fixed. If not we will get errors
+        # knobRPA [up,dn]
+        # knobCCMEC [up,dn]
+        # knobAxFFCCQE [up,dn]
+        # knobVecFFCCQE [up,dn]
+        # knobDecayAngMEC [up,dn]
+        # knobThetaDelta2Npi [up,dn]
+        knob_v = ['knobRPA','knobCCMEC','knobAxFFCCQE','knobVecFFCCQE','knobDecayAngMEC','knobThetaDelta2Npi']
+
+        n_tot_v = []
+        for knob in knob_v:
+            n_tot_v.append( np.empty([2,n_bins]) )
+            n_tot_v[-1].fill(0)
+        
+        n_cv_tot = np.empty(n_bins)
+        n_cv_tot.fill(0)
+
+        for t in self.samples:
+            if t in ["ext", "data", "lee", "data_7e18", "data_1e20"]:
+                continue
+
+            tree = self.samples[t]
+
+            extra_query = ""
+            if t == "mc":
+                extra_query = "& " + self.nu_pdg
+
+            queried_tree = tree.query(query+extra_query)
+            variable = queried_tree[var_name]
+            spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
+            spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
+
+            n_cv, bins = np.histogram(variable,range=x_range,bins=n_bins,weights=spline_fix_cv)
+            n_cv_tot += n_cv
+
+            for n,knob in enumerate(knob_v):
+                
+                weight_up = queried_tree['%sup'%knob].values
+                weight_dn = queried_tree['%sdn'%knob].values
+                
+                weight_up[np.isnan(weight_up)] = 1
+                weight_up[weight_up > 100] = 1
+                weight_up[weight_up < 0] = 1
+                weight_up[weight_up == np.inf] = 1
+                
+                weight_dn[np.isnan(weight_dn)] = 1
+                weight_dn[weight_dn > 100] = 1
+                weight_dn[weight_dn < 0] = 1
+                weight_dn[weight_dn == np.inf] = 1
+                
+                n_up, bins = np.histogram(variable, weights=weight_up * spline_fix_var, range=x_range, bins=n_bins)
+                n_dn, bins = np.histogram(variable, weights=weight_dn * spline_fix_var, range=x_range, bins=n_bins)
+                n_tot_v[n][0] += n_up
+                n_tot_v[n][1] += n_dn
+                
+        cov = np.empty([len(n_cv), len(n_cv)])
+
+        for n,knob in enumerate(knob_v):
+
+            this_cov = np.empty([len(n_cv), len(n_cv)])
+            this_cov.fill(0)
+
+            #print ('knob : %s has :'%knob)
+            #print ('n_cv : ',n_cv_tot)
+            #print ('n_up : ',n_tot_v[n][0])
+            #print ('n_dn : ',n_tot_v[n][1])
+            
+            for i in range(len(n_cv)):
+                for j in range(len(n_cv)):
+                    this_cov[i][j] += (n_tot_v[n][0][i] - n_cv_tot[i]) * (n_tot_v[n][0][j] - n_cv_tot[j])
+                    this_cov[i][j] += (n_tot_v[n][1][i] - n_cv_tot[i]) * (n_tot_v[n][1][j] - n_cv_tot[j])
+                        
+            this_cov /= 2.
+
+            cov += this_cov
+
+        return cov
+
+        
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
         # how many universes?
         Nuniverse = 100 #len(df)

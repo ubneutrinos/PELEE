@@ -592,6 +592,24 @@ def process_uproot_numu(up,df):
     muon_calo_consistency_v   = ( (trk_calo_energy_y_v - trk_range_muon_mom_v) / trk_range_muon_mom_v )
     proton_calo_consistency_v = ( (trk_calo_energy_y_v * 0.001 - trk_energy_proton_v) / trk_energy_proton_v )
 
+    shr_mask = (trk_score_v<0.5)
+    trk_mask = (trk_score_v>0.5)
+    
+    muon_candidate_idx = get_idx_from_vec_sort(-1,trk_len_v,trk_mask)
+    
+    df["muon_candidate_length"]  = get_elm_from_vec_idx(trk_len_v,muon_candidate_idx)
+    df["muon_candidate_score"]   = get_elm_from_vec_idx(trk_score_v,muon_candidate_idx)
+    df["muon_candidate_pid"]     = get_elm_from_vec_idx(trk_llr_pid_v,muon_candidate_idx)
+    df["muon_candidate_distance"]= get_elm_from_vec_idx(trk_distance_v,muon_candidate_idx)
+    df["muon_candidate_gen"]     = get_elm_from_vec_idx(pfp_generation_v,muon_candidate_idx)
+    df["muon_candidate_mcs"]     = get_elm_from_vec_idx(muon_mcs_consistency_v,muon_candidate_idx)
+    df["muon_candidate_start_x"] = get_elm_from_vec_idx(trk_start_x_v,muon_candidate_idx)
+    df["muon_candidate_start_y"] = get_elm_from_vec_idx(trk_start_y_v,muon_candidate_idx)
+    df["muon_candidate_start_z"] = get_elm_from_vec_idx(trk_start_z_v,muon_candidate_idx)
+    df["muon_candidate_end_x"]   = get_elm_from_vec_idx(trk_end_x_v,muon_candidate_idx)
+    df["muon_candidate_end_y"]   = get_elm_from_vec_idx(trk_end_y_v,muon_candidate_idx)
+    df["muon_candidate_end_z"]   = get_elm_from_vec_idx(trk_end_z_v,muon_candidate_idx)
+    
     df["trk1_muon_mcs_consistency"]    = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(muon_mcs_consistency_v[trk_mask] ,trk_len_v[trk_mask])])
     df["trk1_muon_calo_consistency"]   = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(muon_calo_consistency_v[trk_mask],trk_len_v[trk_mask])])
     df["trk2_proton_calo_consistency"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(proton_calo_consistency_v[trk_mask],trk_len_v[trk_mask])])
@@ -623,10 +641,8 @@ def process_uproot_numu(up,df):
     #df['neutrino_energy'] = df['trk_energy_tot'] + df['muon_energy'] - df['muon_proton_energy']
     df['neutrino_energy'] = df['trk_energy_tot'] + get_elm_from_vec_idx(muon_energy_correction_v,muon_idx)
     df['muon_mcs_consistency'] = get_elm_from_vec_idx(muon_mcs_consistency_v,muon_idx)
-
+    
     trk_score_v = up.array("trk_score_v")
-    shr_mask = (trk_score_v<0.5)
-    trk_mask = (trk_score_v>0.5)
     df['n_muons_tot'] = muon_mask.sum()
     df['n_tracks_tot'] = trk_mask.sum()
     df['n_tracks_contained'] = contained_track_mask.sum()
@@ -682,7 +698,13 @@ def get_variables():
 
     VARDICT['CRTVARS'] = CRTVARS
     
-    WEIGHTS = ["weightSpline","weightTune","weightSplineTimesTune"]
+    WEIGHTS = ["weightSpline","weightTune","weightSplineTimesTune",
+               'knobRPAup','knobRPAdn',
+               'knobCCMECup','knobCCMECdn',
+               'knobAxFFCCQEup','knobAxFFCCQEdn',
+               'knobVecFFCCQEup','knobVecFFCCQEdn',
+               'knobDecayAngMECup','knobDecayAngMECdn',
+               'knobThetaDelta2Npiup','knobThetaDelta2Npidn']
 
     VARDICT['WEIGHTS'] = WEIGHTS
     
@@ -733,7 +755,7 @@ def get_variables():
 
     VARDICT['NUEVARS'] = NUEVARS
     
-    NUMUVARS = []#'contained_fraction']
+    NUMUVARS = []
 
     VARDICT['NUMUVARS'] = NUMUVARS
     
@@ -794,7 +816,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R1NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2'
     R1NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     R1DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
-    R1NCPI0  = 'prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2'
+    R1NCPI0  = 'prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2_extra'
     R1CCPI0  = 'prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run1_reco2'
     R1CCNOPI = 'prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run1_reco2_reco2'
     R1CCCPI  = 'prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2'
@@ -823,9 +845,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if (loadnumucrtonly):
         R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
     #R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
-    R3NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2'
+    R3NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2'#_newtune'
     R3NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
-    R3DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
+    R3DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'#_newtune'
     R3NCPI0  = 'prodgenie_nc_pi0_uboone_overlay_mcc9.1_v08_00_00_26_run3_G_reco2'
     R3CCPI0  = 'prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run3_G_reco2'
     R3CCNOPI = 'prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run3_reco2_reco2'
@@ -1056,6 +1078,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r3_dataset['run1'] = np.zeros(len(r3_dataset), dtype=bool)
         r3_dataset['run2'] = np.zeros(len(r3_dataset), dtype=bool)
         r3_dataset['run3'] = np.ones(len(r3_dataset), dtype=bool)
+        r3_dataset['run30'] = np.ones(len(r3_dataset), dtype=bool)
         r3_dataset['run12'] = np.zeros(len(r3_dataset), dtype=bool)
         
     uproot_v = [ur3lee,ur3mc,ur3nue,ur3ext,ur3data,ur3dirt]#, ur3data_two_showers_sidebands, ur3data_np_far_sidebands, ur3data_0p_far_sidebands]
@@ -1187,6 +1210,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r1_dataset['run1'] = np.ones(len(r1_dataset), dtype=bool)
         r1_dataset['run2'] = np.zeros(len(r1_dataset), dtype=bool)
         r1_dataset['run3'] = np.zeros(len(r1_dataset), dtype=bool)
+        r3_dataset['run30'] = np.zeros(len(r3_dataset), dtype=bool)
         r1_dataset['run12'] = np.ones(len(r1_dataset), dtype=bool)
         if (loadnumucrtonly == True):
             #r1_dataset["_closestNuCosmicDist"] = np.zeros(len(r1_dataset),dtype=float)
@@ -1289,6 +1313,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2_dataset['run1'] = np.zeros(len(r2_dataset), dtype=bool)
         r2_dataset['run2'] = np.ones(len(r2_dataset), dtype=bool)
         r2_dataset['run3'] = np.zeros(len(r2_dataset), dtype=bool)
+        r3_dataset['run30'] = np.zeros(len(r3_dataset), dtype=bool)
         r2_dataset['run12'] = np.ones(len(r2_dataset), dtype=bool)
         if (loadnumucrtonly == True):
             #r2_dataset["_closestNuCosmicDist"] = np.zeros(len(r1_dataset),dtype=float)
@@ -1634,6 +1659,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         cccpi = cccpi.query('(nslice==0 | (slnunhits/slnhits)>0.1)')
         ncnopi = ncnopi.query('(nslice==0 | (slnunhits/slnhits)>0.1)')
         nccpi = nccpi.query('(nslice==0 | (slnunhits/slnhits)>0.1)')
+        ncpi0 = ncpi0.query('(nslice==0 | (slnunhits/slnhits)>0.1)')
 
     # avoid double-counting of events out of FV in the NC/CC pi0 samples
     # not needed anymore since we improved matching with filtered samples
@@ -1644,7 +1670,13 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     #ncnopi = ncnopi.query('category != 5')
 
     lee['flux'] = 111
-                
+
+    if (loadtruthfilters == True):
+        Npre = float(ncpi0.shape[0])
+        ncpi0 = ncpi0.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end                                  
+        Npos = float(ncpi0.shape[0])
+        print ('fraction of ncpi0 surviving duplicate removal : %.02f'%(Npos/Npre))
+    
     Npre = float(data.shape[0])
     if (loadfakedata == 0):
         data = data.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end
@@ -1776,6 +1808,71 @@ pot_data_unblinded = {
 
 pot_mc_samples = {}
 
+#'''
+pot_mc_samples[30] = {
+    'mc': 1.34E+21, # 1.33E+21,
+    'nue':7.75E+22, # 7.73E+22,
+    'lee': 7.75E+22, #7.73E+22,
+    'ncpi0': 2.31E+21, # 2.29E+21,
+    'ccpi0': (6.43E+21)/2., # (6.40E+21)/2.,
+    'dirt': 3.28E+20, # 3.20E+20,
+    'ncnopi': 7.14E+21, #7.23E+21,
+    'nccpi': 1.82E+22, # 1.80E+22,
+    'ccnopi': 5.51E+21, # 5.51E+21,
+    'cccpi': 5.18E+21, # 5.19E+21,
+    'ext': 198642758, # 30 -> Run3 G-only 
+}
+
+pot_mc_samples[3] = {
+    'mc': 1.34E+21, # 1.33E+21,
+    'nue':7.75E+22, # 7.73E+22,
+    'lee': 7.75E+22, #7.73E+22,
+    'ncpi0': 2.31E+21, # 2.29E+21,
+    'ccpi0': (6.43E+21)/2., # (6.40E+21)/2.,
+    'dirt': 3.28E+20, # 3.20E+20,
+    'ncnopi': 7.14E+21, #7.23E+21,
+    'nccpi': 1.82E+22, # 1.80E+22,
+    'ccnopi': 5.51E+21, # 5.51E+21,
+    'cccpi': 5.18E+21, # 5.19E+21,
+    'ext': 214555174,
+}
+
+pot_mc_samples[2] = {
+    'mc': 1.02E+21, # 1.01E+21,                                                                                                                                                           
+    'nue': 6.32E+22, # 6.41E+22,
+    'lee': 6.32E+22, #6.41E+22,
+    'ext': 152404980,
+}
+
+pot_mc_samples[1] = {
+    'mc': 1.31E+21, # 1.30E+21,
+    'nue': 5.25E+22, # 5.25E+22,
+    'lee': 5.25E+22, #5.25E+22,
+    'ncpi0': 9.30E+21, #2.66E+21, # 2.63E+21,
+    'ccpi0': 3.48E+21, # 3.45E+21,
+    'dirt': 3.23E+20, # 3.21E+20,
+    'ncnopi': 4.22E+21, # 4.24E+21,
+    'nccpi': 8.78E+21, # 8.93E+21,
+    'ccnopi': 5.76E+21, # 5.81E+21,
+    'cccpi': 6.05E+21, # 6.04E+21,
+    'ext': 65498807,
+}
+'''
+# 30 -> Run3 for CRT-only data (epoch G)
+pot_mc_samples[30] = {
+    'mc': 1.33E+21,
+    'nue': 7.73E+22,
+    'lee': 7.73E+22,
+    'ncpi0': 2.29E+21,
+    'ccpi0': (6.40E+21)/2.,
+    'dirt': 3.20E+20,
+    'ncnopi': 7.23E+21,
+    'nccpi': 1.80E+22,
+    'ccnopi': 5.51E+21,
+    'cccpi': 5.19E+21,
+    'ext': 198642758, # 30 -> Run3 G-only
+}
+
 pot_mc_samples[3] = {
     'mc': 1.33E+21,
     'nue': 7.73E+22,
@@ -1810,7 +1907,7 @@ pot_mc_samples[1] = {
     'cccpi': 6.04E+21,
     'ext': 65498807,
 }
-
+'''
 def get_weights(run,dataset="farsideband",scaling=1.0):
     assert run in [1, 2, 3, 123, 12, 30]
     weights_out = {}
@@ -1862,7 +1959,7 @@ def get_weights(run,dataset="farsideband",scaling=1.0):
         pot_out = total_pot_on
     if run == 30:
         pot_on, n_trig_on = pot_data_unblinded[dataset][30]
-        for sample, pot in pot_mc_samples[3].items():
+        for sample, pot in pot_mc_samples[30].items():
             if sample == 'ext':
                 weights_out[sample] = n_trig_on/pot
             else:

@@ -284,7 +284,8 @@ preselection_categories = {
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'ZPTwoShr': {'query': ZPPRESEL_two_shower, 'title': '1e0p Presel., 2+ shower', 'dir': 'ZPTwoShr'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
-    'NUMU': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'}
+    'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
+    'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'}
 }
 
 
@@ -312,7 +313,10 @@ selection_categories = {
     'ZPLAllTrk': {'query': ZPLOOSESEL_all_tracks, 'title': '1e0p Loose sel.', 'dir': 'ZPLAllTrk'},
     'ZPLOOSETWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
     'ZPBDTTWOSHR': {'query': ZPBDTLOOSE_two_shower, 'title': '1e0p BDT sel. 2+shr', 'dir': 'ZPBDT_two_shower'},
-    'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'},
+    'NUMUPRE': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'},
+    'NUMU': {'query': NUMUSEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
+    'NUMUCRT': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'},
+    'PI0SEL': {'query': PI0SEL,'title': r"$\pi^0$ selection",'dir':"PI0"}
     'CCNCPI0': {'query': CCNCPI0SEL, 'title': r"CC/NC pi0 selection", 'dir': 'CCNCPI0'},
     'CCPI0': {'query': CCPI0SEL, 'title': r"CC pi0 selection", 'dir': 'CCPI0'},
     'NCPI0': {'query': NCPI0SEL, 'title': r"NC pi0 selection", 'dir': 'NCPI0'}
