@@ -214,6 +214,7 @@ class Plotter:
             self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccpi0==1)"
         if ("ncpi0" in self.samples):
             self.nu_pdg = self.nu_pdg+" & ~(mcf_np0==1 & mcf_nmp==0 & mcf_nmm==0 & mcf_nem==0 & mcf_nep==0)" #note: mcf_pass_ccpi0 is wrong (includes 'mcf_actvol' while sample is in all cryostat)
+            self.nu_pdg = self.nu_pdg+" & (mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ccnopi" in self.samples):
             self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("cccpi" in self.samples):
@@ -1617,7 +1618,7 @@ class Plotter:
                 label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         #frac = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], np.array([1,1,1,5,5,5]), np.array([1,1,1,5,5,5]), 70)
-        self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 70)
+        self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 220)
 
         if (draw_sys):
 
