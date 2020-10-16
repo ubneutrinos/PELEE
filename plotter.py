@@ -81,6 +81,21 @@ flux_labels = {
     0: r"backgrounds"
 }
 
+sample_labels = {
+    0: r"data",
+    1: r"mc",
+    2: r"nue",
+    3: r"ext",
+    4: r"lee",
+    5: r"dirt",
+    6: r"ccnopi",
+    7: r"cccpi",
+    8: r"ncnopi",
+    9: r"nccpi",
+    10: r"ncpi0",
+    11: r"ncpi0"
+}
+
 flux_colors = {
     0: "xkcd:cerulean",
     111: "xkcd:goldenrod",
@@ -783,6 +798,14 @@ class Plotter:
             "flux", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        return category, plotted_variable
+
+    def _categorize_entries_sample(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+        category = self._selection(
+            "sample", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        plotted_variable = self._selection(
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        return category, plotted_variable
 
 
         if plotted_variable.size > 0:
@@ -1171,7 +1194,9 @@ class Plotter:
             categorization = self._categorize_entries_flux
             cat_labels = flux_labels
         elif kind == "sample":
-            return self._plot_variable_samples(variable, query, title, asymErrs, **plot_options)
+            categorization = self._categorize_entries_sample
+            cat_labels = sample_labels
+            #return self._plot_variable_samples(variable, query, title, asymErrs, **plot_options)
         else:
             raise ValueError(
                 "Unrecognized categorization, valid options are 'sample', 'event_category', and 'particle_pdg'")
