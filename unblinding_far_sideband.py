@@ -316,7 +316,7 @@ selection_categories = {
     'NUMUPRE': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'},
     'NUMU': {'query': NUMUSEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'},
-    'PI0SEL': {'query': PI0SEL,'title': r"$\pi^0$ selection",'dir':"PI0"}
+    'PI0SEL': {'query': PI0SEL,'title': r"$\pi^0$ selection",'dir':"PI0"},
     'CCNCPI0': {'query': CCNCPI0SEL, 'title': r"CC/NC pi0 selection", 'dir': 'CCNCPI0'},
     'CCPI0': {'query': CCPI0SEL, 'title': r"CC pi0 selection", 'dir': 'CCPI0'},
     'NCPI0': {'query': NCPI0SEL, 'title': r"NC pi0 selection", 'dir': 'NCPI0'}
