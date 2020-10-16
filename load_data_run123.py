@@ -750,7 +750,7 @@ def get_variables():
                "trk_hits_tot", "trk_hits_u_tot", "trk_hits_v_tot", "trk_hits_y_tot",
                "shr_dedx_Y_cali", "trk_energy_tot","shr_id",
                "hits_ratio", "n_tracks_contained",
-               "shr_px","shr_py","shr_pz","p", "pt", 
+               "shr_px","shr_py","shr_pz","p", "pt", "hits_y"
     ]
 
     VARDICT['NUEVARS'] = NUEVARS
@@ -1704,6 +1704,44 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         samples["ncpi0"]  = ncpi0
         samples["ccpi0"]  = ccpi0
     
+    for key, df in samples.items():
+        df["paper_category"] = df.loc[1, 'category']
+        if key is 'data': continue
+        df.loc[ (df['paper_category']== 1 ),  'paper_category' ] = 11
+        df.loc[ (df['paper_category']== 10 ),  'paper_category' ] = 11
+        if key is 'nue':
+            df.loc[(df['paper_category']==5)&(df['ccnc']==0), 'paper_category'] = 11
+            df.loc[(df['paper_category']==5)&(df['ccnc']==1), 'paper_category'] = 2
+            df.loc[(df['paper_category']==4)&(df['ccnc']==0), 'paper_category'] = 11
+            df.loc[(df['paper_category']==4)&(df['ccnc']==1), 'paper_category'] = 2
+            df.loc[(df['paper_category']==3), 'paper_category'] = 2
+            continue
+        if key is 'lee':
+            df.loc[(df['paper_category']==4), 'paper_category'] = 111
+            df.loc[(df['paper_category']==5), 'paper_category'] = 111
+            df.loc[(df['paper_category']==3), 'paper_category'] = 2
+            continue
+        if key is 'dirt':
+            df['paper_category'] = 2
+            continue
+        df.loc[(df['npi0']>0), 'paper_category'] = 31
+        df.loc[(df['npi0']==0), 'paper_category'] = 2
+
+    for key, df in samples.items():
+        if key is 'data':   df.loc[1, "sample"] = 0
+        if key is 'mc':     df.loc[1, "sample"] = 1
+        if key is 'nue':    df.loc[1, "sample"] = 2
+        if key is 'ext':    df.loc[1, "sample"] = 3
+        if key is 'lee':    df.loc[1, "sample"] = 4
+        if key is 'dirt':   df.loc[1, "sample"] = 5
+        if key is 'ccnopi': df.loc[1, "sample"] = 6
+        if key is 'cccpi':  df.loc[1, "sample"] = 7
+        if key is 'ncnopi': df.loc[1, "sample"] = 8
+        if key is 'nccpi':  df.loc[1, "sample"] = 9
+        if key is 'ncpi0':  df.loc[1, "sample"] = 10
+        if key is 'ccpi0':  df.loc[1, "sample"] = 11
+
+
     if return_plotter is True:
         scaling = 1
 

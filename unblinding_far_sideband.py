@@ -166,14 +166,15 @@ ZPLOOSESEL_all_tracks += ' and secondshower_Y_nhit < 50'
 ZPLOOSESEL_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 80'
 ZPLOOSESEL_all_tracks += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
 ZPLOOSESEL_all_tracks += ' and shr_trk_len < 300.'
-ZPLOOSESEL_all_tracks += 'and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
+ZPLOOSESEL_all_tracks += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 ZPLOOSESEL_onep_track = ZPLOOSESEL_all_tracks + ' and n_tracks_contained > 0'
 ZPLOOSESEL = ZPLOOSESEL_all_tracks + ' and n_tracks_contained == 0'
 ZPBDTLOOSE_all_tracks = ZPLOOSESEL_all_tracks
 ZPBDTLOOSE_all_tracks += ' and bkg_score >0.72'
 ZPBDTLOOSE_onep_track = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained > 0'
+
 ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
-ZPBDTLOOSE += 'and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
+ZPBDTLOOSE += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 
 ZPPRESEL_two_shower = ZPPRESEL + 'and n_showers_contained > 1'
 ZPLOOSESEL_two_shower = ZPPRESEL_two_shower
@@ -188,6 +189,20 @@ ZPLOOSESEL_two_shower += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 
 ZPLOOSESEL_two_shower += ' and shr_trk_len < 300.'
 ZPLOOSESEL_two_shower += ' and n_tracks_contained == 0'
 ZPBDTLOOSE_two_shower = ZPLOOSESEL_two_shower + 'and bkg_score > 0.72'
+
+CCNCPI0SEL = PRESQ
+CCNCPI0SEL += ' and CosmicIPAll3D > 30.'
+CCNCPI0SEL += ' and CosmicDirAll3D > -0.90 and CosmicDirAll3D < 0.90'
+CCNCPI0SEL += ' and shr_trk_sce_start_y < 100 and shr_trk_sce_end_y < 100 and shr_trk_sce_start_y > -100 and shr_trk_sce_end_y > -100'
+CCNCPI0SEL += ' and hits_y > 50'
+CCNCPI0SEL += ' and shr_score < 0.20'
+
+CCPI0SEL = CCNCPI0SEL
+CCPI0SEL += ' and n_tracks_contained > 0 and trkpid > 0.3'
+
+NCPI0SEL = CCNCPI0SEL
+NCPI0SEL += ' and (n_tracks_contained == 0 or trkpid < 0.3)'
+
 
 # SIDEBANDS CUTS
 LOW_PID = '(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1))'
@@ -299,9 +314,13 @@ selection_categories = {
     'ZPLAllTrk': {'query': ZPLOOSESEL_all_tracks, 'title': '1e0p Loose sel.', 'dir': 'ZPLAllTrk'},
     'ZPLOOSETWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
     'ZPBDTTWOSHR': {'query': ZPBDTLOOSE_two_shower, 'title': '1e0p BDT sel. 2+shr', 'dir': 'ZPBDT_two_shower'},
-    'NUMU': {'query': NUMUSEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'},
+    'NUMUPRE': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'},
+    'NUMU': {'query': NUMUSEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'},
-    'PI0SEL': {'query': PI0SEL,'title': r"$\pi^0$ selection",'dir':"PI0"}
+    'PI0SEL': {'query': PI0SEL,'title': r"$\pi^0$ selection",'dir':"PI0"},
+    'CCNCPI0': {'query': CCNCPI0SEL, 'title': r"CC/NC pi0 selection", 'dir': 'CCNCPI0'},
+    'CCPI0': {'query': CCPI0SEL, 'title': r"CC pi0 selection", 'dir': 'CCPI0'},
+    'NCPI0': {'query': NCPI0SEL, 'title': r"NC pi0 selection", 'dir': 'NCPI0'}
 }
 
 stages_queries = {
