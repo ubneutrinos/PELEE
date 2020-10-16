@@ -776,7 +776,7 @@ class Plotter:
             "interaction", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
-
+        return category, plotted_variable
 
     def _categorize_entries_flux(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
@@ -1464,10 +1464,11 @@ class Plotter:
         **plot_options)
 
         summarydict = {}
-        for c in order_var_dict.keys():
-            summarydict[c] = {'cat' : cat_labels[c], 'val' : sum(order_weight_dict[c])}
-        summarydict[100] = {'cat' : 'ext', 'val' : sum(n_ext)}
-        #print(summarydict)
+        if 0:#kind == "paper_category":
+            for c in order_var_dict.keys():
+                summarydict[c] = {'cat' : cat_labels[c], 'val' : sum(order_weight_dict[c])}
+            summarydict[100] = {'cat' : 'ext', 'val' : sum(n_ext)}
+            #print(summarydict)
 
         bincenters = 0.5 * (bin_edges[1:] + bin_edges[:-1])
         mc_uncertainties, bins = np.histogram(
