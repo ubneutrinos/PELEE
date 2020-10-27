@@ -284,6 +284,7 @@ preselection_categories = {
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'ZPTwoShr': {'query': ZPPRESEL_two_shower, 'title': '1e0p Presel., 2+ shower', 'dir': 'ZPTwoShr'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
+    'NSLICE': {'query': 'nslice==1', 'title': r"SliceID selection", 'dir': 'NSLICE'},
     'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'}
 }
@@ -674,9 +675,9 @@ bdt_1e0p_variables = [
     ]
 
 vtx_variables = [
-    ('reco_nu_vtx_sce_x',10,(0,260),"reco neutrino vertex x [cm]"),
-    ('reco_nu_vtx_sce_y',10,(-120,120),"reco neutrino vertex y [cm]"),
-    ('reco_nu_vtx_sce_z',10,(0,1030),"reco neutrino vertex z [cm]"),
+    ('reco_nu_vtx_sce_x',5,(0,260),"reco neutrino vertex x [cm]"),
+    ('reco_nu_vtx_sce_y',5,(-120,120),"reco neutrino vertex y [cm]"),
+    ('reco_nu_vtx_sce_z',5,(0,1030),"reco neutrino vertex z [cm]"),
     ]
 
 

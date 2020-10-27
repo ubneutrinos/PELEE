@@ -698,7 +698,7 @@ def get_variables():
 
     VARDICT['CRTVARS'] = CRTVARS
     
-    WEIGHTS = ["weightSpline","weightTune","weightSplineTimesTune",
+    WEIGHTS = ["weightSpline","weightTune","weightSplineTimesTune","nu_decay_mode",
                'knobRPAup','knobRPAdn',
                'knobCCMECup','knobCCMECdn',
                'knobAxFFCCQEup','knobAxFFCCQEdn',
@@ -708,7 +708,7 @@ def get_variables():
 
     VARDICT['WEIGHTS'] = WEIGHTS
     
-    WEIGHTSLEE = ["weightSpline","weightTune","weightSplineTimesTune", "leeweight"]
+    WEIGHTSLEE = ["weightSpline","weightTune","weightSplineTimesTune","nu_decay_mode","leeweight"]
 
     VARDICT['WEIGHTSLEE'] = WEIGHTSLEE
     
@@ -1417,6 +1417,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     #lee = pd.concat([r3lee,r1lee],ignore_index=True)
     
     print("Add derived variables")
+    # update CRT hit to calibrate out time-dependence [DcoDB 24031] 
+    if (loadnumucrtonly):                                             
+        ext.loc[  ext['run'] > 16300 , 'crthitpe'] = ext['crthitpe'] * 1.09
+        data.loc[data['run'] > 16300 , 'crthitpe'] = data['crthitpe'] * 1.09
 
     df_v_mc = [lee,mc,nue,dirt]
     if (loadtruthfilters == True):
@@ -1434,8 +1438,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[ np.isnan(df['weightSplineTimesTune']) == True, 'weightSplineTimesTune' ] = 1.
         # flux parentage
         df['flux'] = np.zeros_like(df['nslice'])
-        #df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] < 11)) , 'flux'] = 10
-        #df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] > 10)) , 'flux'] = 1
+        df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] < 11)) , 'flux'] = 10
+        df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] > 10)) , 'flux'] = 1
         # pi0 scaling
         if pi0scaling == 1:
             df.loc[ df['npi0'] > 0, 'weightSplineTimesTune' ] = df['weightSpline'] * df['weightTune'] * 0.759
@@ -1558,6 +1562,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df["extdata"] = np.zeros_like(df["nslice"])
     data["bnbdata"] = np.ones_like(data["nslice"])
     ext["extdata"] = np.ones_like(ext["nslice"])
+    data["nu_decay_mode"] = np.zeros_like(data["nslice"])
+    ext["nu_decay_mode"]  = np.zeros_like(ext["nslice"])
 
     # set EXT and DIRT contributions to 0 for fake-data studies
     if (loadfakedata > 0):

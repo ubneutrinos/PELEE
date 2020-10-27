@@ -39,6 +39,14 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
 
+paper_labels_numu = {
+    11: r"$\nu_e$ CC",
+    111: r"MiniBooNE LEE",
+    2: r"$\nu_{\mu}$ CC",
+    3: r"NC $\nu$",
+    5: r"dirt",
+}
+
 paper_labels = {
     11: r"$\nu_e$ CC",
     111: r"MiniBooNE LEE",
@@ -46,6 +54,7 @@ paper_labels = {
     31: r"$\nu$ with $\pi^{0}$",
     5: r"dirt",
 }
+
 
 category_labels = {
     1: r"$\nu_e$ CC",
@@ -237,6 +246,7 @@ class Plotter:
             self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccpi0==1)"
         if ("ncpi0" in self.samples):
             self.nu_pdg = self.nu_pdg+" & ~(mcf_np0==1 & mcf_nmp==0 & mcf_nmm==0 & mcf_nem==0 & mcf_nep==0)" #note: mcf_pass_ccpi0 is wrong (includes 'mcf_actvol' while sample is in all cryostat)
+            self.nu_pdg = self.nu_pdg+" & (mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ccnopi" in self.samples):
             self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("cccpi" in self.samples):
@@ -800,6 +810,13 @@ class Plotter:
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         return category, plotted_variable
 
+    def _categorize_entries_paper_numu(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+        category = self._selection(
+            "paper_category_numu", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        plotted_variable = self._selection(
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        return category, plotted_variable
+    
     def _categorize_entries_sample(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
             "sample", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
@@ -1180,6 +1197,9 @@ class Plotter:
         elif kind == "paper_category":
             categorization = self._categorize_entries_paper
             cat_labels = paper_labels
+        elif kind == "paper_category_numu":
+            categorization = self._categorize_entries_paper_numu
+            cat_labels = paper_labels_numu
         elif kind == "particle_pdg":
             var = self.samples["mc"].query(query).eval(variable)
             if var.dtype == np.float32:
@@ -1439,7 +1459,7 @@ class Plotter:
             for c in order_var_dict.keys()
         ]
 
-        if kind == "event_category" or kind == "paper_category":
+        if kind == "event_category" or kind == "paper_category" or kind == "paper_category_numu":
             plot_options["color"] = [category_colors[c]
                                      for c in order_var_dict.keys()]
         elif kind == "particle_pdg":
@@ -1655,8 +1675,8 @@ class Plotter:
             if (COVMATRIX == ""):
                 self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                            self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                           self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                           self.sys_err_unisim(variable, query, plot_options["range"], plot_options["bins"], genieweight)
+                           self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) #+ \
+                           #self.sys_err_unisim(variable, query, plot_options["range"], plot_options["bins"], genieweight)
             else:
                 self.cov = self.get_SBNFit_cov_matrix(COVMATRIX,len(bin_edges)-1)
             exp_err = np.sqrt( np.diag((self.cov + self.cov_mc_stat + self.cov_mc_detsys))) # + exp_err*exp_err)
@@ -1757,7 +1777,7 @@ class Plotter:
                 label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         #frac = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], np.array([1,1,1,5,5,5]), np.array([1,1,1,5,5,5]), 70)
-        self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 70)
+        self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 220)
 
         if (draw_sys):
 
