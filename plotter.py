@@ -1340,6 +1340,15 @@ class Plotter:
             variable, self.samples["data"], query=query, track_cuts=track_cuts, select_longest=select_longest)
             data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
+            #### for paper add EXT to the stacked plot
+            if kind == "paper_category":
+                var_dict[100] = ext_plotted_variable
+                ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
+                weight_dict[100] = ext_weight
+                cat_labels[100] = "EXT"
+                category_colors[100] = "xkcd:cerulean"
+                n_ext, dummy = np.histogram(ext_plotted_variable,bins=plot_options["bins"],
+                                   range=plot_options["range"],weights=ext_weight)
 
 
         if ratio:
@@ -1390,7 +1399,8 @@ class Plotter:
                 order_dict[10] = sum(weight_dict[10])
             if has11:
                 order_dict[11] = sum(weight_dict[11])
-            if has111:
+            #### for paper do not add lee to stack plot
+            if has111 and kind != "paper_category":
                 order_dict[111] = sum(weight_dict[111])
             # now that the order has been sorted out, fill the actual dicts
             for c in order_dict.keys():
@@ -1467,7 +1477,8 @@ class Plotter:
         total_hist, total_bins = np.histogram(
             total_array, weights=total_weight,  **plot_options)
 
-        if draw_data:
+        #### for paper do not draw EXT on top of stack plot
+        if draw_data and kind != "paper_category":
             ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
             n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
@@ -1477,9 +1488,22 @@ class Plotter:
             hatch="//",
             color="white",
             **plot_options)
-
             total_array = np.concatenate([total_array, ext_plotted_variable])
             total_weight = np.concatenate([total_weight, ext_weight])
+
+        #### for paper draw lee as dashed line on top of stack plot
+        if kind == "paper_category":
+            lee_tot_array = np.concatenate([total_array,var_dict[111]])
+            lee_tot_weight = np.concatenate([total_weight,weight_dict[111]])
+            n_tot_lee, bin_edges_lee, patches_lee = ax1.hist(
+                lee_tot_array,
+                weights=lee_tot_weight,
+                histtype="step",
+                edgecolor="red",#category_colors[111],
+                linestyle="--",
+                linewidth=2,
+                label="eLEE: %.1f" % sum(weight_dict[111]) if sum(weight_dict[111]) else "",
+                **plot_options)
 
         n_tot, bin_edges, patches = ax1.hist(
         total_array,
@@ -1652,20 +1676,26 @@ class Plotter:
                 nue_covF = self.sys_err("weightsFlux", variable, query+" and category==11",plot_options["range"], 1,genieweight)
                 nue_covG = self.sys_err("weightsGenie", variable, query+" and category==11",plot_options["range"],1,genieweight)
                 nue_covR = self.sys_err("weightsReint", variable, query+" and category==11",plot_options["range"],1,genieweight)
-                summarydict[11]['err2'] = np.diag(nue_covF).sum() + np.diag(nue_covG).sum() + np.diag(nue_covR).sum() + \
+                nue_covU = self.sys_err_unisim(variable, query+" and category==11", plot_options["range"], 1, genieweight)
+                summarydict[11]['err2'] = np.diag(nue_covF).sum() + np.diag(nue_covG).sum() + \
+                                          np.diag(nue_covR).sum() + np.diag(nue_covU).sum() + \
                                           np.diag(err_nue).sum() + np.diag(sys_nue**2).sum()
             if 31 in summarydict.keys():
                 pi0_covF = self.sys_err("weightsFlux", variable, query+" and category==31",plot_options["range"], 1,genieweight)
                 pi0_covG = self.sys_err("weightsGenie", variable, query+" and category==31",plot_options["range"],1,genieweight)
                 pi0_covR = self.sys_err("weightsReint", variable, query+" and category==31",plot_options["range"],1,genieweight)
-                summarydict[31]['err2'] = np.diag(pi0_covF).sum() + np.diag(pi0_covG).sum() + np.diag(pi0_covR).sum() + \
+                pi0_covU = self.sys_err_unisim(variable, query+" and category==31", plot_options["range"], 1, genieweight)
+                summarydict[31]['err2'] = np.diag(pi0_covF).sum() + np.diag(pi0_covG).sum() +\
+                                          np.diag(pi0_covR).sum() + np.diag(pi0_covU).sum() + \
                                           np.diag(err_ncpi0).sum() + np.diag(err_ccpi0).sum() + \
                                           np.diag(sys_ncpi0**2).sum() + np.diag(sys_ccpi0**2).sum()
             if 2 in summarydict.keys():
                 oth_covF = self.sys_err("weightsFlux", variable, query+" and category==2",plot_options["range"], 1,genieweight)
                 oth_covG = self.sys_err("weightsGenie", variable, query+" and category==2",plot_options["range"],1,genieweight)
                 oth_covR = self.sys_err("weightsReint", variable, query+" and category==2",plot_options["range"],1,genieweight)
-                summarydict[2]['err2'] = np.diag(oth_covF).sum() + np.diag(oth_covG).sum() + np.diag(oth_covR).sum() + \
+                oth_covU = self.sys_err_unisim(variable, query+" and category==2", plot_options["range"], 1, genieweight)
+                summarydict[2]['err2'] = np.diag(oth_covF).sum() + np.diag(oth_covG).sum() + \
+                                         np.diag(oth_covR).sum() + np.diag(oth_covU).sum() + \
                                          np.diag(err_mc).sum() + np.diag(err_ccnopi).sum() + np.diag(err_cccpi).sum() + \
                                          np.diag(err_nccpi).sum() + np.diag(err_ncnopi).sum() + \
                                          np.diag(sys_mc**2).sum() + np.diag(sys_ccnopi**2).sum() + np.diag(sys_cccpi**2).sum() + \
@@ -1798,7 +1828,8 @@ class Plotter:
                 nm = sum(n_tot)
                 cov1b = self.sys_err("weightsFlux", variable, query, plot_options["range"], 1, genieweight) + \
                         self.sys_err("weightsGenie", variable, query, plot_options["range"], 1, genieweight) + \
-                        self.sys_err("weightsReint", variable, query, plot_options["range"], 1, genieweight)
+                        self.sys_err("weightsReint", variable, query, plot_options["range"], 1, genieweight) + \
+                        self.sys_err_unisim(variable, query, plot_options["range"], 1, genieweight)
                 mcnormerr2 = np.diag(cov1b).sum() + np.diag(self.cov_mc_stat).sum() + np.diag(self.cov_mc_detsys).sum()
                 datanormerr2 = (0.5*(self._data_err([nd],asymErrs)[0][0]+\
                                      self._data_err([nd],asymErrs)[1][0]))**2
@@ -2261,7 +2292,8 @@ class Plotter:
             color="grey",
             alpha=0.5)
 
-        ax.set_ylim(0, 2)
+        #ax.set_ylim(0, 2)
+        ax.set_ylim(0.5, 1.5)
         ax.set_ylabel("BNB / (MC+EXT)")
         ax.axhline(1, linestyle="--", color="k")
 
