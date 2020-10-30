@@ -1080,7 +1080,7 @@ class Plotter:
 
         detsys_frac = np.zeros(len(binedges)-1)
 
-        DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","dEdX","SCE","LYD","LYR","LYA"]
+        DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","R2","SCE","LYD","LYR","LYA"]
 
         if os.path.isdir(path) == False:
             #print ('DETSYS. path %s is not valid'%path)
@@ -1092,7 +1092,7 @@ class Plotter:
             filename = var + "_" + sample + "_" + varsample + ".txt"
 
             if (os.path.isfile(path+filename) == False):
-                print ('file-name %s @ path %s is not valid'%(filename,path))
+                #print ('file-name %s @ path %s is not valid'%(filename,path))
                 continue
 
             anyfilefound = True
@@ -1127,7 +1127,7 @@ class Plotter:
             np.nan_to_num(detsys_frac, copy=False, nan=1)
         else:
             detsys_frac = 0.2*np.ones(len(binedges)-1)
-        print (sample,': frac. detsys diag error terms are ', detsys_frac)
+        #print (sample,': frac. detsys diag error terms are ', detsys_frac)
 
         return detsys_frac
 
@@ -1649,10 +1649,10 @@ class Plotter:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
 
             if (COVMATRIX == ""):
-                self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                           self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                           self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) #+ \
-                           #self.sys_err_unisim(variable, query, plot_options["range"], plot_options["bins"], genieweight)
+                self.cov = ( self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                             self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                             self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                             self.sys_err_unisim(variable, query, plot_options["range"], plot_options["bins"], genieweight) )
             else:
                 self.cov = self.get_SBNFit_cov_matrix(COVMATRIX,len(bin_edges)-1)
             exp_err = np.sqrt( np.diag((self.cov + self.cov_mc_stat + self.cov_mc_detsys))) # + exp_err*exp_err)
@@ -1700,10 +1700,12 @@ class Plotter:
         if "lee" in self.samples:
             if kind == "event_category":
                 try:
+                    #SCALE = 1.01e21/self.pot
+                    SCALE = 1.0
                     self.significance = self._sigma_calc_matrix(
-                        lee_hist, n_tot-lee_hist, scale_factor=1.01e21/self.pot, cov=(self.cov+self.cov_mc_stat))
+                        lee_hist, n_tot-lee_hist, scale_factor=SCALE, cov=(self.cov+self.cov_mc_stat))
                     self.significance_likelihood = self._sigma_calc_likelihood(
-                        lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi), scale_factor=1.01e21/self.pot)
+                        lee_hist, n_tot-lee_hist, np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi), scale_factor=SCALE)
                     # area normalized version
                     #normLEE = 68. / np.sum(n_tot)
                     #normSM  = 68. / np.sum(n_tot-lee_hist)
