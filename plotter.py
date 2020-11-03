@@ -156,6 +156,7 @@ int_colors = {
     5: "turquoise",
     6: "teal",
     7: "deepskyblue",
+    8: "steelblue",
     80: "steelblue",
     81: "steelblue",
     82: "steelblue",
@@ -246,7 +247,6 @@ class Plotter:
             self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccpi0==1)"
         if ("ncpi0" in self.samples):
             self.nu_pdg = self.nu_pdg+" & ~(mcf_np0==1 & mcf_nmp==0 & mcf_nmm==0 & mcf_nem==0 & mcf_nep==0)" #note: mcf_pass_ccpi0 is wrong (includes 'mcf_actvol' while sample is in all cryostat)
-            self.nu_pdg = self.nu_pdg+" & (mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("ccnopi" in self.samples):
             self.nu_pdg = self.nu_pdg+" & ~(mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
         if ("cccpi" in self.samples):
@@ -1221,22 +1221,6 @@ class Plotter:
             raise ValueError(
                 "Unrecognized categorization, valid options are 'sample', 'event_category', and 'particle_pdg'")
 
-
-        nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)"
-        if ("ccpi0" in self.samples):
-            nu_pdg = nu_pdg+" & ~(mcf_pass_ccpi0==1)"
-        if ("ncpi0" in self.samples):
-            nu_pdg = nu_pdg+" & ~(mcf_np0==1 & mcf_nmp==0 & mcf_nmm==0 & mcf_nem==0 & mcf_nep==0)" #note: mcf_pass_ccpi0 is wrong (includes 'mcf_actvol' while sample is in all cryostat)
-        if ("ccnopi" in self.samples):
-            nu_pdg = nu_pdg+" & ~(mcf_pass_ccnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
-        if ("cccpi" in self.samples):
-            nu_pdg = nu_pdg+" & ~(mcf_pass_cccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
-        if ("nccpi" in self.samples):
-            nu_pdg = nu_pdg+" & ~(mcf_pass_nccpi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
-        if ("ncnopi" in self.samples):
-            nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
-
-
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
 
@@ -1673,6 +1657,7 @@ class Plotter:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
 
             if (COVMATRIX == ""):
+
                 self.cov = ( self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                              self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                              self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
@@ -2314,8 +2299,8 @@ class Plotter:
             color="grey",
             alpha=0.5)
 
-        #ax.set_ylim(0, 2)
-        ax.set_ylim(0.5, 1.5)
+        ax.set_ylim(0, 2)
+        #ax.set_ylim(0.5, 1.5)
         ax.set_ylabel("BNB / (MC+EXT)")
         ax.axhline(1, linestyle="--", color="k")
 

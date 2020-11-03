@@ -816,7 +816,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R1NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2'
     R1NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     R1DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
-    R1NCPI0  = 'prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2_extra'
+    R1NCPI0  = 'prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2_extra'#v48
+    #R1NCPI0  = 'prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2'#v43
     R1CCPI0  = 'prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run1_reco2'
     R1CCNOPI = 'prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run1_reco2_reco2'
     R1CCCPI  = 'prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2'
@@ -1739,7 +1740,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         samples["ccpi0"]  = ccpi0
     
     for key, df in samples.items():
-        df["paper_category"] = df.loc[1, 'category']
+        df.loc[:,"paper_category"] = 0
         if key is 'data': continue
         df.loc[ (df['paper_category']== 1 ),  'paper_category' ] = 11
         df.loc[ (df['paper_category']== 10 ),  'paper_category' ] = 11
@@ -1776,20 +1777,18 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             df['paper_category'] = 5
             continue
 
-    for key, df in samples.items():
-        if key is 'data':   df.loc[1, "sample"] = 0
-        if key is 'mc':     df.loc[1, "sample"] = 1
-        if key is 'nue':    df.loc[1, "sample"] = 2
-        if key is 'ext':    df.loc[1, "sample"] = 3
-        if key is 'lee':    df.loc[1, "sample"] = 4
-        if key is 'dirt':   df.loc[1, "sample"] = 5
-        if key is 'ccnopi': df.loc[1, "sample"] = 6
-        if key is 'cccpi':  df.loc[1, "sample"] = 7
-        if key is 'ncnopi': df.loc[1, "sample"] = 8
-        if key is 'nccpi':  df.loc[1, "sample"] = 9
-        if key is 'ncpi0':  df.loc[1, "sample"] = 10
-        if key is 'ccpi0':  df.loc[1, "sample"] = 11
-
+        if key is 'data':   df.loc[:, "sample"] = 0
+        if key is 'mc':     df.loc[:, "sample"] = 1
+        if key is 'nue':    df.loc[:, "sample"] = 2
+        if key is 'ext':    df.loc[:, "sample"] = 3
+        if key is 'lee':    df.loc[:, "sample"] = 4
+        if key is 'dirt':   df.loc[:, "sample"] = 5
+        if key is 'ccnopi': df.loc[:, "sample"] = 6
+        if key is 'cccpi':  df.loc[:, "sample"] = 7
+        if key is 'ncnopi': df.loc[:, "sample"] = 8
+        if key is 'nccpi':  df.loc[:, "sample"] = 9
+        if key is 'ncpi0':  df.loc[:, "sample"] = 10
+        if key is 'ccpi0':  df.loc[:, "sample"] = 11
 
     if return_plotter is True:
         scaling = 1
@@ -1882,7 +1881,8 @@ pot_data_unblinded = {
 
 pot_mc_samples = {}
 
-#'''
+
+# v48
 pot_mc_samples[30] = {
     'mc': 1.34E+21, # 1.33E+21,
     'nue':7.75E+22, # 7.73E+22,
@@ -1931,7 +1931,8 @@ pot_mc_samples[1] = {
     'cccpi': 6.05E+21, # 6.04E+21,
     'ext': 65498807,
 }
-''' 
+'''
+# v43
 # 30 -> Run3 for CRT-only data (epoch G)
 pot_mc_samples[30] = {
     'mc': 1.33E+21,
