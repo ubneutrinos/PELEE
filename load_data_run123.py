@@ -1763,7 +1763,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[(df['npi0']==0), 'paper_category'] = 2
 
     for key, df in samples.items():
-        df["paper_category_numu"] = df.loc[1, 'category']
+        df.loc[:,"paper_category_numu"] = 0
         if key is 'data': continue
         df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] = 2
         df.loc[ (df['ccnc'] == 1), 'paper_category_numu'] = 3
@@ -1777,6 +1777,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             df['paper_category'] = 5
             continue
 
+    for key, df in samples.items():
         if key is 'data':   df.loc[:, "sample"] = 0
         if key is 'mc':     df.loc[:, "sample"] = 1
         if key is 'nue':    df.loc[:, "sample"] = 2
