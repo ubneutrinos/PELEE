@@ -844,7 +844,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2'
     if (loadnumucrtonly):
         R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
-    #R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
     R3NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2'#_newtune'
     R3NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
     R3DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'#_newtune'
@@ -1418,9 +1417,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     
     print("Add derived variables")
     # update CRT hit to calibrate out time-dependence [DcoDB 24031] 
-    if (loadnumucrtonly):                                             
-        ext.loc[  ext['run'] > 16300 , 'crthitpe'] = ext['crthitpe'] * 1.09
-        data.loc[data['run'] > 16300 , 'crthitpe'] = data['crthitpe'] * 1.09
+    #if (loadnumucrtonly):                                             
+    #    ext.loc[  ext['run'] > 16300 , 'crthitpe'] = ext['crthitpe'] * 1.09
+    #    data.loc[data['run'] > 16300 , 'crthitpe'] = data['crthitpe'] * 1.09
 
     df_v_mc = [lee,mc,nue,dirt]
     if (loadtruthfilters == True):
@@ -1428,6 +1427,35 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
 
     for i,df in enumerate(df_v_mc):
 
+        # add MCC8-style weights
+        df['weightMCC8'] = 1.0
+
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.0) & (df['nu_e'] < 0.1)), 'weightMCC8' ] = 1./0.05
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.1) & (df['nu_e'] < 0.2)), 'weightMCC8' ] = 1./0.1
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.2) & (df['nu_e'] < 0.3)), 'weightMCC8' ] = 1./0.25
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.3) & (df['nu_e'] < 0.4)), 'weightMCC8' ] = 1./0.4
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.4) & (df['nu_e'] < 0.5)), 'weightMCC8' ] = 1./0.5
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.5) & (df['nu_e'] < 0.6)), 'weightMCC8' ] = 1./0.65
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.6) & (df['nu_e'] < 0.7)), 'weightMCC8' ] = 1./0.65
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.7) & (df['nu_e'] < 0.8)), 'weightMCC8' ] = 1./0.7
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.8) & (df['nu_e'] < 0.9)), 'weightMCC8' ] = 1./0.8
+        df.loc[ ((df['nu_pdg'] == 12) & (df['nu_e'] > 0.9) & (df['nu_e'] < 1.0)), 'weightMCC8' ] = 1./0.85
+
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.6) & (df['nu_e'] < 0.7)), 'weightMCC8' ] = 1./0.65
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.7) & (df['nu_e'] < 0.8)), 'weightMCC8' ] = 1./0.73
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.8) & (df['nu_e'] < 0.9)), 'weightMCC8' ] = 1./0.75
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.9) & (df['nu_e'] < 1.0)), 'weightMCC8' ] = 1./0.8
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.0) & (df['nu_e'] < 0.1)), 'weightMCC8' ] = 1./0.05
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.1) & (df['nu_e'] < 0.2)), 'weightMCC8' ] = 1./0.1
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.2) & (df['nu_e'] < 0.3)), 'weightMCC8' ] = 1./0.2
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.3) & (df['nu_e'] < 0.4)), 'weightMCC8' ] = 1./0.35
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.4) & (df['nu_e'] < 0.5)), 'weightMCC8' ] = 1./0.45
+        df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.5) & (df['nu_e'] < 0.6)), 'weightMCC8' ] = 1./0.55
+	#df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.6) & (df['nu_e'] < 0.7)), 'weightMCC8' ] = 1./0.65
+        #df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.7) & (df['nu_e'] < 0.8)), 'weightMCC8' ] = 1./0.73
+	#df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.8) & (df['nu_e'] < 0.9)), 'weightMCC8' ] = 1./0.75
+        #df.loc[ ((df['nu_pdg'] == 14) & (df['nu_e'] > 0.9) & (df['nu_e'] < 1.0)), 'weightMCC8' ] = 1./0.8
+        
         df.loc[ df['weightTune'] <= 0, 'weightTune' ] = 1.
         df.loc[ df['weightTune'] == np.inf, 'weightTune' ] = 1.
         df.loc[ df['weightTune'] > 100, 'weightTune' ] = 1.
@@ -1734,6 +1762,21 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[(df['npi0']==0), 'paper_category'] = 2
 
     for key, df in samples.items():
+        df["paper_category_numu"] = df.loc[1, 'category']
+        if key is 'data': continue
+        df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] = 2
+        df.loc[ (df['ccnc'] == 1), 'paper_category_numu'] = 3
+        if key is 'nue':
+            df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] = 11
+            continue
+        if key is 'lee':
+            df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] =	111
+            continue
+        if key is 'dirt':
+            df['paper_category'] = 5
+            continue
+
+    for key, df in samples.items():
         if key is 'data':   df.loc[1, "sample"] = 0
         if key is 'mc':     df.loc[1, "sample"] = 1
         if key is 'nue':    df.loc[1, "sample"] = 2
@@ -1785,11 +1828,21 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     
 pot_data_unblinded = {
 # v47 NTuples
-    "farsideband" : { 
+    "farsideband" : {
         1: (1.67E+20, 37094101),
         2: (2.62E+20, 62168648),
         3: (2.57E+20, 61381194),
         123: (6.86E+20, 160643943), },
+        # Np blind-safe
+        #1: ((0.9095)*1.67E+20, (0.9095)*37094101),
+        #2: ((0.9095)*2.62E+20, (0.9095)*62168648),
+        #3: ((0.9095)*2.57E+20, (0.9095)*61381194),
+        # Zp blind-safe
+        #1: ((0.953)*1.67E+20, (0.953)*37094101),
+        #2: ((0.953)*2.62E+20, (0.953)*62168648),
+        #3: ((0.953)*2.57E+20, (0.953)*61381194),
+        #123: (6.86E+20*(0.953), 160643943*(0.953)), },#1eNp bdt-validation plots
+      #123: (6.86E+20, 160643943), },
 # 0304 samples
 #    "opendata" : {
 #        1: (4.08E+19, 9028010),
@@ -1878,7 +1931,7 @@ pot_mc_samples[1] = {
     'cccpi': 6.05E+21, # 6.04E+21,
     'ext': 65498807,
 }
-'''
+''' 
 # 30 -> Run3 for CRT-only data (epoch G)
 pot_mc_samples[30] = {
     'mc': 1.33E+21,
