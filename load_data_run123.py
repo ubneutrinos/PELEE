@@ -1740,7 +1740,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         samples["ccpi0"]  = ccpi0
     
     for key, df in samples.items():
-        df.loc[:,"paper_category"] = 0
+        df.loc[:,"paper_category"] = df["category"]
         if key is 'data': continue
         df.loc[ (df['paper_category']== 1 ),  'paper_category' ] = 11
         df.loc[ (df['paper_category']== 10 ),  'paper_category' ] = 11
