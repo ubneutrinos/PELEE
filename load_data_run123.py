@@ -551,6 +551,8 @@ def process_uproot_numu(up,df):
     pfp_generation_v = up.array('pfp_generation_v')
     trk_distance_v  = up.array('trk_distance_v')
     trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
+    #trk_pfp_id_v = up.array('trk_pfp_id_v')
+    #pfp_pdg_v = up.array('backtracked_pdg')
     
     #trk_dir_x_v = up.array('trk_dir_x_v')
     #trk_dir_y_v = up.array('trk_dir_y_v')
@@ -583,6 +585,7 @@ def process_uproot_numu(up,df):
     df["trk2_mcs_muon"]   = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_mcs_muon_mom_v[trk_mask],trk_len_v[trk_mask])])
     df["trk2_theta"] = np.cos(awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_theta_v[trk_mask],trk_len_v[trk_mask])]))
     df["trk2_phi"]   = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_phi_v[trk_mask],trk_len_v[trk_mask])])
+    #df['trk2_pdg'] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(pfp_pdg_v[trk_pfp_id_v[trk_mask]],trk_len_v[trk_pfp_id_v[trk_mask]])])
     
     # get element-wise reconstructed neutrino energy (for each index the value will be the neutrino energy assuming the track at that index is the muon)
     df['trk_energy_tot'] = trk_energy_proton_v.sum()
@@ -1830,18 +1833,20 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         print ('number of data entries returned is : ',data.shape)
         print ('number of data entries returned is : ',samples['data'].shape)
         return samples
+
+BLIND = 1.00
     
 pot_data_unblinded = {
 # v47 NTuples
     "farsideband" : {
-        1: (1.67E+20, 37094101),
-        2: (2.62E+20, 62168648),
-        3: (2.57E+20, 61381194),
-        123: (6.86E+20, 160643943), },
+        #1: (1.67E+20, 37094101),
+        #2: (2.62E+20, 62168648),
+        #3: (2.57E+20, 61381194),
+        #123: (6.86E+20, 160643943), },
         # Np blind-safe
-        #1: ((0.9095)*1.67E+20, (0.9095)*37094101),
-        #2: ((0.9095)*2.62E+20, (0.9095)*62168648),
-        #3: ((0.9095)*2.57E+20, (0.9095)*61381194),
+        1: (BLIND*1.67E+20, BLIND*37094101),
+        2: (BLIND*2.62E+20, BLIND*62168648),
+        3: (BLIND*2.57E+20, BLIND*61381194), },
         # Zp blind-safe
         #1: ((0.953)*1.67E+20, (0.953)*37094101),
         #2: ((0.953)*2.62E+20, (0.953)*62168648),
@@ -1929,7 +1934,7 @@ pot_mc_samples[1] = {
     'mc': 1.31E+21, # 1.30E+21,
     'nue': 5.25E+22, # 5.25E+22,
     'lee': 5.25E+22, #5.25E+22,
-    'ncpi0': 9.30E+21, #2.66E+21, # 2.63E+21,
+    'ncpi0': 1.16E+22, #2.66E+21, # 2.63E+21,
     'ccpi0': 3.48E+21, # 3.45E+21,
     'dirt': 3.23E+20, # 3.21E+20,
     'ncnopi': 1.31E+22, # 4.24E+21,
