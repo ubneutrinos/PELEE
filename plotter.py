@@ -240,6 +240,7 @@ class Plotter:
         self._ratio_vals = None
         self._ratio_errs = None
         self.data = None # data binned events
+        self.prediction = None # EXT + MC binned events
 
         self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
 
@@ -1345,12 +1346,13 @@ class Plotter:
             data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
             #### for paper add EXT to the stacked plot
-            if kind == "paper_category":
+            if (kind == "paper_category" or kind == "paper_category_numu"):
                 var_dict[100] = ext_plotted_variable
                 ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
                 weight_dict[100] = ext_weight
                 cat_labels[100] = "EXT"
-                category_colors[100] = "xkcd:cerulean"
+                #category_colors[100] = "xkcd:cerulean"
+                category_colors[100] = "xkcd:greyish blue"
                 n_ext, dummy = np.histogram(ext_plotted_variable,bins=plot_options["bins"],
                                    range=plot_options["range"],weights=ext_weight)
 
@@ -1404,7 +1406,7 @@ class Plotter:
             if has11:
                 order_dict[11] = sum(weight_dict[11])
             #### for paper do not add lee to stack plot
-            if has111 and kind != "paper_category":
+            if has111 and kind != "paper_category" and kind != "paper_category_numu":
                 order_dict[111] = sum(weight_dict[111])
             # now that the order has been sorted out, fill the actual dicts
             for c in order_dict.keys():
@@ -1482,7 +1484,7 @@ class Plotter:
             total_array, weights=total_weight,  **plot_options)
 
         #### for paper do not draw EXT on top of stack plot
-        if draw_data and kind != "paper_category":
+        if draw_data and kind != "paper_category" and kind!= "paper_category_numu":
             ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
             n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
@@ -1496,6 +1498,7 @@ class Plotter:
             total_weight = np.concatenate([total_weight, ext_weight])
 
         #### for paper draw lee as dashed line on top of stack plot
+        #'''
         if kind == "paper_category":
             lee_tot_array = np.concatenate([total_array,var_dict[111]])
             lee_tot_weight = np.concatenate([total_weight,weight_dict[111]])
@@ -1508,6 +1511,7 @@ class Plotter:
                 linewidth=2,
                 label="eLEE: %.1f" % sum(weight_dict[111]) if sum(weight_dict[111]) else "",
                 **plot_options)
+        #'''
 
         n_tot, bin_edges, patches = ax1.hist(
         total_array,
@@ -1767,6 +1771,7 @@ class Plotter:
         if draw_data:
             n_data, bins = np.histogram(data_plotted_variable, **plot_options)
             self.data = n_data
+            self.prediction = n_tot
             data_err = self._data_err(n_data,asymErrs)
 
             self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data

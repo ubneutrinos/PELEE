@@ -551,6 +551,8 @@ def process_uproot_numu(up,df):
     pfp_generation_v = up.array('pfp_generation_v')
     trk_distance_v  = up.array('trk_distance_v')
     trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
+    #trk_pfp_id_v = up.array('trk_pfp_id_v')
+    #pfp_pdg_v = up.array('backtracked_pdg')
     
     #trk_dir_x_v = up.array('trk_dir_x_v')
     #trk_dir_y_v = up.array('trk_dir_y_v')
@@ -583,6 +585,7 @@ def process_uproot_numu(up,df):
     df["trk2_mcs_muon"]   = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_mcs_muon_mom_v[trk_mask],trk_len_v[trk_mask])])
     df["trk2_theta"] = np.cos(awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_theta_v[trk_mask],trk_len_v[trk_mask])]))
     df["trk2_phi"]   = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_phi_v[trk_mask],trk_len_v[trk_mask])])
+    #df['trk2_pdg'] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(pfp_pdg_v[trk_pfp_id_v[trk_mask]],trk_len_v[trk_pfp_id_v[trk_mask]])])
     
     # get element-wise reconstructed neutrino energy (for each index the value will be the neutrino energy assuming the track at that index is the muon)
     df['trk_energy_tot'] = trk_energy_proton_v.sum()
@@ -835,11 +838,13 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R2NU = "prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run2_reco2_D1D2_reco2"
     R2NUE = "prodgenie_bnb_intrinsic_nue_overlay_run2_v08_00_00_35_run2a_reco2_reco2"
     R2EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_D_E_all_reco2'
+    R2DRT = 'prodgenie_dirt_overlay_v08_00_00_35_all_run2_reco2_reco2'
 
     # dummy samples to load data more quickly / using less memory when we only care about Run3 numus
     if (loadnumucrtonly):
         R2NU  = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
         R2NUE = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
+        R2DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
         R2EXT  = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     
     R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
@@ -886,6 +891,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
 
     ur2mc = uproot.open(ls.ntuple_path+ls.RUN2+R2NU+ls.APPEND+".root")[fold][tree]
     ur2nue = uproot.open(ls.ntuple_path+ls.RUN2+R2NUE+ls.APPEND+".root")[fold][tree]
+    ur2drt = uproot.open(ls.ntuple_path+ls.RUN2+R2DRT+ls.APPEND+".root")[fold][tree]
     ur2lee = uproot.open(ls.ntuple_path+ls.RUN2+R2NUE+ls.APPEND+".root")[fold][tree]
     ur2ext = uproot.open(ls.ntuple_path+ls.RUN2+R2EXT+ls.APPEND+".root")[fold][tree]
 
@@ -1264,7 +1270,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
 
     print("Loading Run2 dataframes")
     r2nue = ur2nue.pandas.df(VARIABLES + WEIGHTS, flatten=False)
-    r2mc = ur2mc.pandas.df(VARIABLES + WEIGHTS + MCFVARS, flatten=False)
+    r2drt = ur2drt.pandas.df(VARIABLES + WEIGHTS, flatten=False)
+    r2mc  = ur2mc.pandas.df(VARIABLES + WEIGHTS + MCFVARS, flatten=False)
     r2ext = ur2ext.pandas.df(VARIABLES, flatten=False)
     r2lee = ur2lee.pandas.df(VARIABLES + WEIGHTSLEE, flatten=False)
 
@@ -1329,7 +1336,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         for r_dataset in [r1ncpi0, r1ccpi0, r3ncpi0, r3ccpi0,r1ccnopi, r1cccpi, r1ncnopi, r1nccpi, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi]:
             r_dataset['run2'] = np.ones(len(r_dataset), dtype=bool)
     
-    uproot_v = [ur2lee,ur2mc,ur2nue, ur2ext]#, ur2data_two_showers_sidebands, ur2data_np_far_sidebands, ur2data_0p_far_sidebands]
+    uproot_v = [ur2lee,ur2mc,ur2nue, ur2drt, ur2ext]#, ur2data_two_showers_sidebands, ur2data_np_far_sidebands, ur2data_0p_far_sidebands]
     if (which_sideband == "2plus_showers" or which_sideband == "np_sb_comb"):
         uproot_v += [ur2data_two_showers_sidebands]
     if (which_sideband == "np_far" or which_sideband == "np_sb_comb"):
@@ -1341,7 +1348,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if (loadrecoveryvars == True):
         uproot_v += [ur2ext_np_recovery_sidebands]
 
-    df_v = [r2lee,r2mc,r2nue, r2ext]#, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_0p_far_sidebands]
+    df_v = [r2lee,r2mc,r2nue, r2drt, r2ext]#, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_0p_far_sidebands]
     if (which_sideband == "2plus_showers" or which_sideband == "np_sb_comb"):
         df_v += [r2data_two_showers_sidebands]
     if (which_sideband == "np_far" or which_sideband == "np_sb_comb"):
@@ -1368,6 +1375,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
 
     r1nue["pot_scale"] = 1
     r2nue["pot_scale"] = 1
+    r2drt["pot_scale"] = 1
     r3nue["pot_scale"] = 1
     
     r1lee["pot_scale"] = 1
@@ -1414,7 +1422,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                          r1ext, r1ext_np_recovery_sidebands],ignore_index=True, sort=True)
     else:
         ext = pd.concat([r3ext, r2ext, r1ext],ignore_index=True)
-    dirt = pd.concat([r3dirt,r1dirt],ignore_index=True)
+    dirt = pd.concat([r3dirt,r2drt,r1dirt],ignore_index=True)
     lee = pd.concat([r1lee,r2lee,r3lee],ignore_index=True)
     #lee = pd.concat([r3lee,r1lee],ignore_index=True)
     
@@ -1827,18 +1835,20 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         print ('number of data entries returned is : ',data.shape)
         print ('number of data entries returned is : ',samples['data'].shape)
         return samples
+
+BLIND = 1.00
     
 pot_data_unblinded = {
 # v47 NTuples
     "farsideband" : {
-        1: (1.67E+20, 37094101),
-        2: (2.62E+20, 62168648),
-        3: (2.57E+20, 61381194),
-        123: (6.86E+20, 160643943), },
+        #1: (1.67E+20, 37094101),
+        #2: (2.62E+20, 62168648),
+        #3: (2.57E+20, 61381194),
+        #123: (6.86E+20, 160643943), },
         # Np blind-safe
-        #1: ((0.9095)*1.67E+20, (0.9095)*37094101),
-        #2: ((0.9095)*2.62E+20, (0.9095)*62168648),
-        #3: ((0.9095)*2.57E+20, (0.9095)*61381194),
+        1: (BLIND*1.67E+20, BLIND*37094101),
+        2: (BLIND*2.62E+20, BLIND*62168648),
+        3: (BLIND*2.57E+20, BLIND*61381194), },
         # Zp blind-safe
         #1: ((0.953)*1.67E+20, (0.953)*37094101),
         #2: ((0.953)*2.62E+20, (0.953)*62168648),
@@ -1907,31 +1917,32 @@ pot_mc_samples[3] = {
     'ncpi0': 2.31E+21, # 2.29E+21,
     'ccpi0': (6.43E+21)/2., # (6.40E+21)/2.,
     'dirt': 3.28E+20, # 3.20E+20,
-    'ncnopi': 7.14E+21, #7.23E+21,
-    'nccpi': 1.82E+22, # 1.80E+22,
-    'ccnopi': 5.51E+21, # 5.51E+21,
-    'cccpi': 5.18E+21, # 5.19E+21,
+    'ncnopi': 1.59E+22, #7.23E+21,
+    'nccpi': 3.63E+22, # 1.80E+22,
+    'ccnopi': 1.11E+22, # 5.51E+21,
+    'cccpi': 1.48E+22, # 5.19E+21,
     'ext': 214555174,
 }
 
 pot_mc_samples[2] = {
-    'mc': 1.02E+21, # 1.01E+21,                                                                                                                                                           
+    'mc': 1.02E+21, # 1.01E+21,
     'nue': 6.32E+22, # 6.41E+22,
     'lee': 6.32E+22, #6.41E+22,
     'ext': 152404980,
+    'dirt': 9.50E+20,
 }
 
 pot_mc_samples[1] = {
     'mc': 1.31E+21, # 1.30E+21,
     'nue': 5.25E+22, # 5.25E+22,
     'lee': 5.25E+22, #5.25E+22,
-    'ncpi0': 11.58E+21, #2.66E+21, # 2.63E+21,
+    'ncpi0': 1.16E+22, #2.66E+21, # 2.63E+21,
     'ccpi0': 3.48E+21, # 3.45E+21,
     'dirt': 3.23E+20, # 3.21E+20,
-    'ncnopi': 4.22E+21, # 4.24E+21,
-    'nccpi': 8.78E+21, # 8.93E+21,
-    'ccnopi': 5.76E+21, # 5.81E+21,
-    'cccpi': 6.05E+21, # 6.04E+21,
+    'ncnopi': 1.31E+22, # 4.24E+21,
+    'nccpi': 2.76E+22, # 8.93E+21,
+    'ccnopi': 1.14E+22, # 5.81E+21,
+    'cccpi': 1.55E+22, # 6.04E+21,
     'ext': 65498807,
 }
 '''
@@ -1997,7 +2008,7 @@ def get_weights(run,dataset="farsideband",scaling=1.0):
             else:
                 weights_out[sample] = pot_on/pot
         if run == 2:
-            for sample in ['ncpi0', 'ccpi0', 'dirt', 'ncnopi', 'nccpi', 'ccnopi', 'cccpi']:
+            for sample in ['ncpi0', 'ccpi0', 'ncnopi', 'nccpi', 'ccnopi', 'cccpi']:
                 weights_out[sample] = pot_on/(pot_mc_samples[1][sample] + pot_mc_samples[3][sample])
         pot_out = pot_on
     elif run == 123:
