@@ -731,7 +731,8 @@ def get_variables():
 
     VARDICT['WEIGHTS'] = WEIGHTS
     
-    WEIGHTSLEE = ["weightSpline","weightTune","weightSplineTimesTune","nu_decay_mode","leeweight"]
+    #WEIGHTSLEE = ["weightSpline","weightTune","weightSplineTimesTune","nu_decay_mode","leeweight"]
+    WEIGHTSLEE = WEIGHTS+["leeweight"]
 
     VARDICT['WEIGHTSLEE'] = WEIGHTSLEE
     
@@ -1172,11 +1173,12 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if ((USEBDT == True) and (loadtruthfilters == True)):
         dfcsv = pd.read_csv(ls.ntuple_path+ls.RUN3+"ccpi0nontrainevents.csv")
         dfcsv['identifier']   = dfcsv['run'] * 100000 + dfcsv['evt']
-        r3ccpi0['identifier'] = r3ccpi0['run'] * 100000 + r3ccpi0['evt']
-        Npre = float(r3ccpi0.shape[0])
-        r3ccpi0 = pd.merge(r3ccpi0, dfcsv, how='inner', on=['identifier'],suffixes=('', '_VAR'))
-        Npost = float(r3ccpi0.shape[0])
-        print ('fraction of R3 CCpi0 sample after split : %.02f'%(Npost/Npre))
+        if (loadtruthfilters == True):
+            r3ccpi0['identifier'] = r3ccpi0['run'] * 100000 + r3ccpi0['evt']
+            Npre = float(r3ccpi0.shape[0])
+            r3ccpi0 = pd.merge(r3ccpi0, dfcsv, how='inner', on=['identifier'],suffixes=('', '_VAR'))
+            Npost = float(r3ccpi0.shape[0])
+            print ('fraction of R3 CCpi0 sample after split : %.02f'%(Npost/Npre))
         #train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
 
     print("Loading Run1 dataframes")

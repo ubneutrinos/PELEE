@@ -1649,6 +1649,7 @@ class Plotter:
             for c in order_var_dict.keys():
                 summarydict[c] = {'cat' : cat_labels[c], 'val' : sum(order_weight_dict[c])}
             summarydict[100] = {'cat' : 'ext', 'val' : sum(n_ext)}
+            summarydict[111] = {'cat' : 'lee', 'val' : sum(weight_dict[111])}
             #print(summarydict)
 
         bincenters = 0.5 * (bin_edges[1:] + bin_edges[:-1])
@@ -1679,7 +1680,9 @@ class Plotter:
         sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"])
 
         err_lee = np.array([0 for n in mc_uncertainties])
+        sys_lee = np.array([0 for n in mc_uncertainties])
         if "lee" in self.samples:
+            lee_uncertainties, bins = np.histogram(lee_plotted_variable, weights=leeweight, **plot_options)
             if isinstance(plot_options["bins"], Iterable):
                 lee_bins = plot_options["bins"]
             else:
@@ -1690,6 +1693,9 @@ class Plotter:
                 binned_lee = pd.cut(self.samples["lee"].query(query).eval(variable), lee_bins)
                 err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
                     "sum").values * self.weights["lee"] * self.weights["lee"]
+            if ("lee" in detsysdict.keys() and detsysdict["lee"]==True):
+                self.detsys["lee"] = self.load_detsys_errors("lee",variable,DETSYSPATH,bin_edges)
+            sys_lee = self.add_detsys_error("lee",lee_uncertainties,self.weights["lee"])
 
         err_ncpi0 = np.array([0 for n in mc_uncertainties])
         sys_ncpi0 = np.array([0 for n in mc_uncertainties])
@@ -1793,9 +1799,9 @@ class Plotter:
                 '''
                 self.cov = ( self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                              self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                             self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) )#+ \
-                             #self.sys_err_unisim(variable, query, plot_options["range"], plot_options["bins"], genieweight) )
-                #'''
+                             self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
+                             self.sys_err_unisim(variable, query, plot_options["range"], plot_options["bins"], genieweight)
+                           )
             else:
                 self.cov = self.get_SBNFit_cov_matrix(COVMATRIX,len(bin_edges)-1)
             exp_err = np.sqrt( np.diag((self.cov + self.cov_mc_stat + self.cov_mc_detsys))) # + exp_err*exp_err)
@@ -1819,6 +1825,20 @@ class Plotter:
                 summarydict[11]['err2'] = np.diag(nue_covF).sum() + np.diag(nue_covG).sum() + \
                                           np.diag(nue_covR).sum() + np.diag(nue_covU).sum() + \
                                           np.diag(err_nue).sum() + np.diag(sys_nue**2).sum()
+            if 111 in summarydict.keys():
+                lee_covF = self.sys_err("weightsFlux", variable, query+" and category==111",plot_options["range"], 1,genieweight,islee=True)
+                lee_covG = self.sys_err("weightsGenie", variable, query+" and category==111",plot_options["range"],1,genieweight,islee=True)
+                lee_covR = self.sys_err("weightsReint", variable, query+" and category==111",plot_options["range"],1,genieweight,islee=True)
+                lee_covU = self.sys_err_unisim(variable, query+" and category==111", plot_options["range"], 1, genieweight,islee=True)
+                #print("flux=",lee_covF[0][0])
+                #print("genie=",lee_covG[0][0])
+                #print("reint=",lee_covR[0][0])
+                #print("unsim=",lee_covU[0][0])
+                #print("mcstat=",err_lee)
+                #print("detsys=",sys_lee**2)
+                summarydict[111]['err2'] = np.diag(lee_covF).sum() + np.diag(lee_covG).sum() + \
+                                           np.diag(lee_covR).sum() + np.diag(lee_covU).sum() + \
+                                           np.diag(err_lee).sum() + np.diag(sys_lee**2).sum()
             if 31 in summarydict.keys():
                 pi0_covF = self.sys_err("weightsFlux", variable, query+" and category==31",plot_options["range"], 1,genieweight)
                 pi0_covG = self.sys_err("weightsGenie", variable, query+" and category==31",plot_options["range"],1,genieweight)
@@ -1839,8 +1859,6 @@ class Plotter:
                                          np.diag(err_nccpi).sum() + np.diag(err_ncnopi).sum() + \
                                          np.diag(sys_mc**2).sum() + np.diag(sys_ccnopi**2).sum() + np.diag(sys_cccpi**2).sum() + \
                                          np.diag(sys_nccpi**2).sum() + np.diag(sys_ncnopi**2).sum()
-            if 111 in summarydict.keys():
-                summarydict[111]['err2'] = 0
             if 100 in summarydict.keys():
                 summarydict[100]['err2'] = err_ext.sum()
             for v in summarydict.values():
@@ -2434,12 +2452,13 @@ class Plotter:
             color="grey",
             alpha=0.5)
 
-        ax.set_ylim(0, 2)
-        #ax.set_ylim(0.5, 1.5)
+        #ax.set_ylim(0, 2)
+        ax.set_ylim(0.5, 1.5)
+        #ax.set_ylim(0.8, 1.2)
         ax.set_ylabel("BNB / (MC+EXT)")
         ax.axhline(1, linestyle="--", color="k")
 
-    def sys_err_unisim(self, var_name, query, x_range, n_bins, weightVar):
+    def sys_err_unisim(self, var_name, query, x_range, n_bins, weightVar, islee=False):
 
         # assume list of knobs is fixed. If not we will get errors
         # knobRPA [up,dn]
@@ -2459,7 +2478,11 @@ class Plotter:
         n_cv_tot.fill(0)
 
         for t in self.samples:
-            if t in ["ext", "data", "lee", "data_7e18", "data_1e20"]:
+            if t in ["ext", "data", "data_7e18", "data_1e20"]:#, "lee"
+                continue
+            if islee and t not in ["lee"]:
+                continue
+            if islee==False and t in ["lee"]:
                 continue
 
             tree = self.samples[t]
@@ -2470,8 +2493,12 @@ class Plotter:
 
             queried_tree = tree.query(query+extra_query)
             variable = queried_tree[var_name]
-            spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
-            spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
+            if islee:
+                spline_fix_cv  = queried_tree[weightVar] * queried_tree['leeweight'] * self.weights[t]
+                spline_fix_var = queried_tree["weightSpline"] * queried_tree['leeweight'] * self.weights[t]
+            else:
+                spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
+                spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
 
             n_cv, bins = np.histogram(variable,range=x_range,bins=n_bins,weights=spline_fix_cv)
             n_cv_tot += n_cv
@@ -2497,6 +2524,7 @@ class Plotter:
                 n_tot_v[n][1] += n_dn
                 
         cov = np.empty([len(n_cv), len(n_cv)])
+        cov.fill(0)
 
         for n,knob in enumerate(knob_v):
 
@@ -2520,12 +2548,11 @@ class Plotter:
         return cov
 
         
-    def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
+    def sys_err(self, name, var_name, query, x_range, n_bins, weightVar, islee=False):
         # how many universes?
         Nuniverse = 100 #len(df)
         #if (name == "weightsGenie"):
         #    Nuniverse = 100
-
 
         n_tot = np.empty([Nuniverse, n_bins])
         n_cv_tot = np.empty(n_bins)
@@ -2533,7 +2560,11 @@ class Plotter:
         n_cv_tot.fill(0)
 
         for t in self.samples:
-            if t in ["ext", "data", "lee", "data_7e18", "data_1e20"]: #,"dirt","ccnopi","cccpi","nccpi","ncnopi","ncpi0","mc","ccpi0"]:
+            if t in ["ext", "data", "data_7e18", "data_1e20"]: #, "lee"#,"dirt","ccnopi","cccpi","nccpi","ncnopi","ncpi0","mc","ccpi0"]:
+                continue
+            if islee and t not in ["lee"]:
+                continue
+            if islee==False and t in ["lee"]:
                 continue
 
             # for pi0 fit only
@@ -2551,10 +2582,16 @@ class Plotter:
             variable = queried_tree[var_name]
             syst_weights = queried_tree[name]
             #print ('N universes is :',len(syst_weights))
-            spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
-            spline_fix_var = queried_tree[weightVar] * self.weights[t]
-            if (name == "weightsGenie"):
-                spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
+            if islee:
+                spline_fix_cv  = queried_tree[weightVar] * queried_tree['leeweight'] * self.weights[t]
+                spline_fix_var = queried_tree[weightVar] * queried_tree['leeweight'] * self.weights[t]
+                if (name == "weightsGenie"):
+                    spline_fix_var = queried_tree["weightSpline"] * queried_tree['leeweight'] * self.weights[t]
+            else:
+                spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
+                spline_fix_var = queried_tree[weightVar] * self.weights[t]
+                if (name == "weightsGenie"):
+                    spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
 
             s = syst_weights
             df = pd.DataFrame(s.values.tolist())
