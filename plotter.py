@@ -811,6 +811,13 @@ class Plotter:
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         return category, plotted_variable
 
+    def _categorize_entries_trk1(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+        category = self._selection(
+            "trk1_backtracked_pdg", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        plotted_variable = self._selection(
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        return category, plotted_variable
+
     def _categorize_entries_paper_numu(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
             "paper_category_numu", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
@@ -1077,62 +1084,172 @@ class Plotter:
         return fig, axis, image
 
 
-    def load_detsys_errors(self,sample,var,path,binedges):
+    def load_detsys_errors(self,sample,var,path,binedges,fullcov=False):
 
+        detsys_frac_cov = np.zeros((len(binedges)-1,len(binedges)-1))
+        detsys_frac_cov = detsys_frac_cov.astype(float)
         detsys_frac = np.zeros(len(binedges)-1)
 
-        DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","R2","SCE","LYD","LYR","LYA"]
+        #DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","R2","SCE","LYD","LYR","LYA"]
+        DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","dEdX","SCE","LYD","LYR","LYA"]
 
-        if os.path.isdir(path) == False:
+        if (os.path.isdir(path) == False):
             #print ('DETSYS. path %s is not valid'%path)
             return detsys_frac
 
         anyfilefound = False
         for varsample in DETSAMPLES:
 
-            filename = var + "_" + sample + "_" + varsample + ".txt"
+            # using only diagonal terms
+            if (fullcov == False):
 
-            if (os.path.isfile(path+filename) == False):
-                #print ('file-name %s @ path %s is not valid'%(filename,path))
-                continue
+                filename = var + "_" + sample + "_" + varsample + ".txt"
 
-            anyfilefound = True
-            f = open(path+filename,'r')
+                if (os.path.isfile(path+filename) == False):
+                    #print ('file-name %s @ path %s is not valid'%(filename,path))
+                    continue
 
-            for binnumber in range(len(detsys_frac)):
+                anyfilefound = True
+                f = open(path+filename,'r')
 
-                binmin = binedges[binnumber]
-                binmax = binedges[binnumber+1]
-                bincenter = 0.5*(binmin+binmax)
+                for binnumber in range(len(detsys_frac)):
+                    
+                    binmin = binedges[binnumber]
+                    binmax = binedges[binnumber+1]
+                    bincenter = 0.5*(binmin+binmax)
+                    
+                    # find uncertainty associated to this bin in the text-file
 
-                # find uncertainty associated to this bin in the text-file
-
-                f.seek(0,0)
+                    f.seek(0,0)
                 
+                    for line in f:
+
+                        words = line.split(",")
+                        binrange_v = words[0].split(" - ")
+                        binrangemin = float(binrange_v[0])
+                        binrangemax = float(binrange_v[1])
+
+                        if ( (bincenter > binrangemin) and (bincenter <= binrangemax) ):
+                    
+                            fracerror = float(words[1].split()[0])
+                            detsys_frac[binnumber] += fracerror * fracerror
+
+                            break
+
+            # using full covariance
+            if (fullcov == True):
+
+                filename = var + "_" + sample + "_" + varsample + "_COV.txt"
+
+                if (os.path.isfile(path+filename) == False):
+                    continue
+
+                f = open(path+filename,'r')
+
+                # import the fractional covariance matrix
+                f.seek(0,0)
+                matrix_binedge_v = []
+                frac_cov_matrix = []
+                linectr = 0
                 for line in f:
 
-                    words = line.split(",")
-                    binrange_v = words[0].split(" - ")
-                    binrangemin = float(binrange_v[0])
-                    binrangemax = float(binrange_v[1])
+                    # get bin edges
+                    if (linectr == 0):
+                        words = line.split(',')
+                        wordctr = 0
+                        words = words[:-1]
+                        for word in words:
+                            binrange_v = word.split("-")
+                            #print ('binrange_v : ',binrange_v)
+                            binrangemin = float(binrange_v[0])
+                            binrangemax = float(binrange_v[1])
+                            if (wordctr == 0):
+                                matrix_binedge_v.append(binrangemin)
+                                matrix_binedge_v.append(binrangemax)
+                            else:
+                                matrix_binedge_v.append(binrangemax)
+                            wordctr += 1
 
-                    if ( (bincenter > binrangemin) and (bincenter <= binrangemax) ):
-                    
-                        fracerror = float(words[1].split()[0])
-                        detsys_frac[binnumber] += fracerror * fracerror
+                    # get cov matrix entries
+                    if (linectr > 0):
+                        words = line.split(',')
+                        words = np.array(words[1:-1])
+                        words = words.astype(float)
+                        frac_cov_matrix.append(words)
+                            
+                    linectr += 1
 
+                frac_cov_matrix = np.array(frac_cov_matrix)
+                #print ('the full COV matrix for sample %s is : \n'%(varsample),frac_cov_matrix)
+
+                # use of covariance matrix input required identical binning...let's check
+                if (len(binedges) != len(matrix_binedge_v)):
+                    print ('COV matrix and binning for plotter not identical [1]...exit')
+                    continue
+
+                binmatch = True
+                for i,e in enumerate(binedges):
+                    if ( np.abs(matrix_binedge_v[i] - e) > 0.001):
+                        #print ('binedges[i] == %.05f and matrix_binedge_v[i] == %.05f'%(e,matrix_binedge_v[i]))
+                        binmatch = False
                         break
 
+                if (binmatch == False):
+                    print ('COV matrix and binning for plotter not identical [2]...exit')
+                    continue
+
+                anyfilefound = True
+
+                detsys_frac_cov += frac_cov_matrix
+
+        '''
         if anyfilefound:
             detsys_frac = np.sqrt(np.array(detsys_frac))
+            detsys_frac_cov = np.array(detsys_frac_cov)
+            np.nan_to_num(detsys_frac, copy=False, nan=1)
             np.nan_to_num(detsys_frac, copy=False, nan=1)
         else:
             detsys_frac = 0.2*np.ones(len(binedges)-1)
-        #print (sample,': frac. detsys diag error terms are ', detsys_frac)
+            detsys_frac_cov = np.array(detsys_frac_cov)
+            detsys_frac_cov[np.diag_indices_from(detsys_frac_cov)] = (0.2**2) * np.ones(len(binedges)-1)
+        '''
 
-        return detsys_frac
+        if (fullcov == False):
+            detsys_frac_cov[np.diag_indices_from(detsys_frac_cov)] = np.array(detsys_frac)
+            
+        detsys_frac_cov = np.array(detsys_frac_cov)
+            
+        if (anyfilefound == True):
+            np.nan_to_num(detsys_frac_cov, copy=False, nan=1)
+        else:
+            detsys_frac_cov[np.diag_indices_from(detsys_frac_cov)] = (0.2**2) * np.ones(len(binedges)-1)
+        
+            
+        #print (sample,': frac. detsys matrix is : \n', detsys_frac_cov)
+        return detsys_frac_cov
 
+    def add_detsys_error(self,sample,mc_entries_v,weight):
 
+        detsys_v  = np.zeros( (len(mc_entries_v),len(mc_entries_v)) )
+
+        if (self.detsys == None): return detsys_v
+        
+        if sample in self.detsys:
+            if (len(self.detsys[sample]) == len(mc_entries_v)):
+                for i,n in enumerate(mc_entries_v):
+                    for j,m in enumerate(mc_entries_v):
+                        detsys_v[i][j] = (self.detsys[sample][i][j] * n * m * weight * weight)
+            else:
+                print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))
+
+        #print ('mc entries for sample %s : \n'%(sample),mc_entries_v)
+        #print ('weight for sample %s : '%sample,weight)
+        #print ('detys frac. cov. matrix fir sample %s : \n '%(sample),self.detsys[sample])
+        #print ('detsys covariance matrix for sample %s : \n'%(sample), detsys_v)
+                
+        return detsys_v
+    
+    '''
     def add_detsys_error(self,sample,mc_entries_v,weight):
         detsys_v  = np.zeros(len(mc_entries_v))
         entries_v = np.zeros(len(mc_entries_v))
@@ -1146,12 +1263,14 @@ class Plotter:
                 print ('NO MATCH! len detsys : %i. Len plotting : %i'%(len(self.detsys[sample]),len(mc_entries_v) ))
 
         return detsys_v
+    '''
 
 
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
                       detsysdict=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
+                      fullcov=False,
                       ncol=2,
                       COVMATRIX='', # path to covariance matrix file
                       DETSYSPATH="", # path where to find detector systematics files
@@ -1195,6 +1314,9 @@ class Plotter:
         if kind == "event_category":
             categorization = self._categorize_entries
             cat_labels = category_labels
+        elif kind == "trk1_backtracked_pdg":
+            categorization = self._categorize_entries_trk1
+            cat_labels = pdg_labels
         elif kind == "paper_category":
             categorization = self._categorize_entries_paper
             cat_labels = paper_labels
@@ -1325,7 +1447,7 @@ class Plotter:
             leeweight = self._get_genie_weight(
                 self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest,weightsignal="leeweight", weightvar=genieweight)
             #self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)
-
+            
             for c, v, w in zip(category, lee_plotted_variable, leeweight):
                 var_dict[c].append(v)
                 weight_dict[c].append(self.weights["lee"] * w)
@@ -1451,6 +1573,9 @@ class Plotter:
         elif kind == "particle_pdg":
             plot_options["color"] = [pdg_colors[c]
                                      for c in order_var_dict.keys()]
+        elif kind == "trk1_backtracked_pdg":
+            plot_options["color"] = [pdg_colors[c]
+                                     for c in order_var_dict.keys()]
         elif kind == "flux":
             plot_options["color"] = [flux_colors[c]
                                      for c in order_var_dict.keys()]
@@ -1498,7 +1623,7 @@ class Plotter:
             total_weight = np.concatenate([total_weight, ext_weight])
 
         #### for paper draw lee as dashed line on top of stack plot
-        #'''
+        '''
         if kind == "paper_category":
             lee_tot_array = np.concatenate([total_array,var_dict[111]])
             lee_tot_weight = np.concatenate([total_weight,weight_dict[111]])
@@ -1511,7 +1636,7 @@ class Plotter:
                 linewidth=2,
                 label="eLEE: %.1f" % sum(weight_dict[111]) if sum(weight_dict[111]) else "",
                 **plot_options)
-        #'''
+        '''
 
         n_tot, bin_edges, patches = ax1.hist(
         total_array,
@@ -1534,7 +1659,7 @@ class Plotter:
         err_mc = np.array(
             [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
         if ("mc" in detsysdict.keys() and detsysdict["mc"]==True):
-            self.detsys["mc"] = self.load_detsys_errors("mc",variable,DETSYSPATH,bin_edges)
+            self.detsys["mc"] = self.load_detsys_errors("mc",variable,DETSYSPATH,bin_edges,fullcov)
         sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"])
 
         nue_uncertainties, bins = np.histogram(
@@ -1542,7 +1667,7 @@ class Plotter:
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
         if ("nue" in detsysdict.keys() and detsysdict["nue"]==True):
-            self.detsys["nue"] = self.load_detsys_errors("nue",variable,DETSYSPATH,bin_edges)
+            self.detsys["nue"] = self.load_detsys_errors("nue",variable,DETSYSPATH,bin_edges,fullcov)
         sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"])
 
         err_dirt = np.array([0 for n in mc_uncertainties])
@@ -1552,7 +1677,7 @@ class Plotter:
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
         if ("dirt" in detsysdict.keys() and detsysdict["dirt"]==True):
-            self.detsys["dirt"] = self.load_detsys_errors("dirt",variable,DETSYSPATH,bin_edges)
+            self.detsys["dirt"] = self.load_detsys_errors("dirt",variable,DETSYSPATH,bin_edges,fullcov)
         sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"])
 
         err_lee = np.array([0 for n in mc_uncertainties])
@@ -1570,7 +1695,7 @@ class Plotter:
                 err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
                     "sum").values * self.weights["lee"] * self.weights["lee"]
             if ("lee" in detsysdict.keys() and detsysdict["lee"]==True):
-                self.detsys["lee"] = self.load_detsys_errors("lee",variable,DETSYSPATH,bin_edges)
+                self.detsys["lee"] = self.load_detsys_errors("lee",variable,DETSYSPATH,bin_edges,fullcov)
             sys_lee = self.add_detsys_error("lee",lee_uncertainties,self.weights["lee"])
 
         err_ncpi0 = np.array([0 for n in mc_uncertainties])
@@ -1581,7 +1706,7 @@ class Plotter:
             err_ncpi0 = np.array(
                 [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
             if ("ncpi0" in detsysdict.keys() and detsysdict["ncpi0"]==True):
-                self.detsys["ncpi0"] = self.load_detsys_errors("ncpi0",variable,DETSYSPATH,bin_edges)
+                self.detsys["ncpi0"] = self.load_detsys_errors("ncpi0",variable,DETSYSPATH,bin_edges,fullcov)
             sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"])
 
         err_ccpi0 = np.array([0 for n in mc_uncertainties])
@@ -1592,7 +1717,7 @@ class Plotter:
             err_ccpi0 = np.array(
                 [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
             if ("ccpi0" in detsysdict.keys() and detsysdict["ccpi0"]==True):
-                self.detsys["ccpi0"] = self.load_detsys_errors("ccpi0",variable,DETSYSPATH,bin_edges)
+                self.detsys["ccpi0"] = self.load_detsys_errors("ccpi0",variable,DETSYSPATH,bin_edges,fullcov)
             sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"])
 
         err_ccnopi = np.array([0 for n in mc_uncertainties])
@@ -1603,7 +1728,7 @@ class Plotter:
             err_ccnopi = np.array(
                 [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
             if ("ccnopi" in detsysdict.keys() and detsysdict["ccnopi"]==True):
-                self.detsys["ccnopi"] = self.load_detsys_errors("ccnopi",variable,DETSYSPATH,bin_edges)
+                self.detsys["ccnopi"] = self.load_detsys_errors("ccnopi",variable,DETSYSPATH,bin_edges,fullcov)
             sys_ccnopi = self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"])
 
         err_cccpi = np.array([0 for n in mc_uncertainties])
@@ -1614,7 +1739,7 @@ class Plotter:
             err_cccpi = np.array(
                 [n * self.weights["cccpi"] * self.weights["cccpi"] for n in cccpi_uncertainties])
             if ("cccpi" in detsysdict.keys() and detsysdict["cccpi"]==True):
-                self.detsys["cccpi"] = self.load_detsys_errors("cccpi",variable,DETSYSPATH,bin_edges)
+                self.detsys["cccpi"] = self.load_detsys_errors("cccpi",variable,DETSYSPATH,bin_edges,fullcov)
             sys_cccpi = self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])
 
         err_nccpi = np.array([0 for n in mc_uncertainties])
@@ -1625,7 +1750,7 @@ class Plotter:
             err_nccpi = np.array(
                 [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
             if ("nccpi" in detsysdict.keys() and detsysdict["nccpi"]==True):
-                self.detsys["nccpi"] = self.load_detsys_errors("nccpi",variable,DETSYSPATH,bin_edges)
+                self.detsys["nccpi"] = self.load_detsys_errors("nccpi",variable,DETSYSPATH,bin_edges,fullcov)
             sys_nccpi = self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])
 
         err_ncnopi = np.array([0 for n in mc_uncertainties])
@@ -1636,7 +1761,7 @@ class Plotter:
             err_ncnopi = np.array(
                 [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
             if ("ncnopi" in detsysdict.keys() and detsysdict["ncnopi"]==True):
-                self.detsys["ncnopi"] = self.load_detsys_errors("ncnopi",variable,DETSYSPATH,bin_edges)
+                self.detsys["ncnopi"] = self.load_detsys_errors("ncnopi",variable,DETSYSPATH,bin_edges,fullcov)
             sys_ncnopi = self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
 
         if draw_data:
@@ -1648,8 +1773,9 @@ class Plotter:
         exp_err    = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
         #print("counting_err: {}".format(exp_err))
         detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
+        #print ('detsys covariance matrix is : \n',detsys_err)
         #print("detsys_err: {}".format(detsys_err))
-        exp_err = np.sqrt(exp_err**2 + detsys_err**2)
+        exp_err = np.sqrt(exp_err**2 + detsys_err)#**2)
         #print ('total exp_err : ', exp_err)
 
         bin_size = [(bin_edges[i + 1] - bin_edges[i]) / 2
@@ -1661,13 +1787,17 @@ class Plotter:
         self.cov_data_stat = np.zeros([len(exp_err), len(exp_err)])
 
         self.cov_mc_stat[np.diag_indices_from(self.cov_mc_stat)]     = (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
-        self.cov_mc_detsys[np.diag_indices_from(self.cov_mc_detsys)] = (sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi)**2
+        #self.cov_mc_detsys[np.diag_indices_from(self.cov_mc_detsys)] = (sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi)**2
+        self.cov_mc_detsys = (sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi)
+                        
 
         if draw_sys:
             #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
 
             if (COVMATRIX == ""):
-
+                '''
+                self.cov = ( self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) )
+                '''
                 self.cov = ( self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                              self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                              self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
