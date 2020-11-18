@@ -1689,41 +1689,35 @@ class Plotter:
             5: r"dirt",
             '''
             if 11 in summarydict.keys():
-                nue_covF = self.sys_err("weightsFlux", variable, query+" and category==11",plot_options["range"], 1,genieweight)
-                nue_covG = self.sys_err("weightsGenie", variable, query+" and category==11",plot_options["range"],1,genieweight)
-                nue_covR = self.sys_err("weightsReint", variable, query+" and category==11",plot_options["range"],1,genieweight)
-                nue_covU = self.sys_err_unisim(variable, query+" and category==11", plot_options["range"], 1, genieweight)
+                nue_covF = self.sys_err("weightsFlux", variable, query+" and paper_category==11",plot_options["range"], 1,genieweight)
+                nue_covG = self.sys_err("weightsGenie", variable, query+" and paper_category==11",plot_options["range"],1,genieweight)
+                nue_covR = self.sys_err("weightsReint", variable, query+" and paper_category==11",plot_options["range"],1,genieweight)
+                nue_covU = self.sys_err_unisim(variable, query+" and paper_category==11", plot_options["range"], 1, genieweight)
                 summarydict[11]['err2'] = np.diag(nue_covF).sum() + np.diag(nue_covG).sum() + \
                                           np.diag(nue_covR).sum() + np.diag(nue_covU).sum() + \
                                           np.diag(err_nue).sum() + np.diag(sys_nue**2).sum()
             if 111 in summarydict.keys():
-                lee_covF = self.sys_err("weightsFlux", variable, query+" and category==111",plot_options["range"], 1,genieweight,islee=True)
-                lee_covG = self.sys_err("weightsGenie", variable, query+" and category==111",plot_options["range"],1,genieweight,islee=True)
-                lee_covR = self.sys_err("weightsReint", variable, query+" and category==111",plot_options["range"],1,genieweight,islee=True)
+                lee_covF = self.sys_err("weightsFlux", variable, query+" and paper_category==111",plot_options["range"], 1,genieweight,islee=True)
+                lee_covG = self.sys_err("weightsGenie", variable, query+" and paper_category==111",plot_options["range"],1,genieweight,islee=True)
+                lee_covR = self.sys_err("weightsReint", variable, query+" and paper_category==111",plot_options["range"],1,genieweight,islee=True)
                 lee_covU = self.sys_err_unisim(variable, query+" and category==111", plot_options["range"], 1, genieweight,islee=True)
-                #print("flux=",lee_covF[0][0])
-                #print("genie=",lee_covG[0][0])
-                #print("reint=",lee_covR[0][0])
-                #print("unsim=",lee_covU[0][0])
-                #print("mcstat=",err_lee)
-                #print("detsys=",sys_lee**2)
                 summarydict[111]['err2'] = np.diag(lee_covF).sum() + np.diag(lee_covG).sum() + \
                                            np.diag(lee_covR).sum() + np.diag(lee_covU).sum() + \
                                            np.diag(err_lee).sum() + np.diag(sys_lee**2).sum()
             if 31 in summarydict.keys():
-                pi0_covF = self.sys_err("weightsFlux", variable, query+" and category==31",plot_options["range"], 1,genieweight)
-                pi0_covG = self.sys_err("weightsGenie", variable, query+" and category==31",plot_options["range"],1,genieweight)
-                pi0_covR = self.sys_err("weightsReint", variable, query+" and category==31",plot_options["range"],1,genieweight)
-                pi0_covU = self.sys_err_unisim(variable, query+" and category==31", plot_options["range"], 1, genieweight)
+                pi0_covF = self.sys_err("weightsFlux", variable, query+" and paper_category==31",plot_options["range"], 1,genieweight)
+                pi0_covG = self.sys_err("weightsGenie", variable, query+" and paper_category==31",plot_options["range"],1,genieweight)
+                pi0_covR = self.sys_err("weightsReint", variable, query+" and paper_category==31",plot_options["range"],1,genieweight)
+                pi0_covU = self.sys_err_unisim(variable, query+" and paper_category==31", plot_options["range"], 1, genieweight)
                 summarydict[31]['err2'] = np.diag(pi0_covF).sum() + np.diag(pi0_covG).sum() +\
                                           np.diag(pi0_covR).sum() + np.diag(pi0_covU).sum() + \
                                           np.diag(err_ncpi0).sum() + np.diag(err_ccpi0).sum() + \
                                           np.diag(sys_ncpi0**2).sum() + np.diag(sys_ccpi0**2).sum()
             if 2 in summarydict.keys():
-                oth_covF = self.sys_err("weightsFlux", variable, query+" and category==2",plot_options["range"], 1,genieweight)
-                oth_covG = self.sys_err("weightsGenie", variable, query+" and category==2",plot_options["range"],1,genieweight)
-                oth_covR = self.sys_err("weightsReint", variable, query+" and category==2",plot_options["range"],1,genieweight)
-                oth_covU = self.sys_err_unisim(variable, query+" and category==2", plot_options["range"], 1, genieweight)
+                oth_covF = self.sys_err("weightsFlux", variable, query+" and paper_category==2",plot_options["range"], 1,genieweight)
+                oth_covG = self.sys_err("weightsGenie", variable, query+" and paper_category==2",plot_options["range"],1,genieweight)
+                oth_covR = self.sys_err("weightsReint", variable, query+" and paper_category==2",plot_options["range"],1,genieweight)
+                oth_covU = self.sys_err_unisim(variable, query+" and paper_category==2", plot_options["range"], 1, genieweight)
                 summarydict[2]['err2'] = np.diag(oth_covF).sum() + np.diag(oth_covG).sum() + \
                                          np.diag(oth_covR).sum() + np.diag(oth_covU).sum() + \
                                          np.diag(err_mc).sum() + np.diag(err_ccnopi).sum() + np.diag(err_cccpi).sum() + \
