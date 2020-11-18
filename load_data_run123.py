@@ -551,8 +551,8 @@ def process_uproot_numu(up,df):
     pfp_generation_v = up.array('pfp_generation_v')
     trk_distance_v  = up.array('trk_distance_v')
     trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
-    #trk_pfp_id_v = up.array('trk_pfp_id_v')
-    #pfp_pdg_v = up.array('backtracked_pdg')
+    trk_pfp_id_v = up.array('trk_pfp_id_v')
+    pfp_pdg_v = up.array('backtracked_pdg')
     
     #trk_dir_x_v = up.array('trk_dir_x_v')
     #trk_dir_y_v = up.array('trk_dir_y_v')
@@ -575,6 +575,14 @@ def process_uproot_numu(up,df):
     df["trk1_mcs_muon"]   = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_mcs_muon_mom_v[trk_mask],trk_len_v[trk_mask])])
     df["trk1_theta"] = np.cos(awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_theta_v[trk_mask],trk_len_v[trk_mask])]))
     df["trk1_phi"]   = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_phi_v[trk_mask],trk_len_v[trk_mask])])
+    #df["trk1_pfp_idx"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_pfp_id_v[trk_mask],trk_len_v[trk_mask])])
+    df["trk1_pfp_idx"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_pfp_id_v[trk_mask],trk_len_v[trk_mask])])
+    trk1_pfp_idx = df["trk1_pfp_idx"].values
+    #print ('trk1_pfp_idx : ', trk1_pfp_idx)
+    #print ('pfp_pdg_v : ', pfp_pdg_v)
+    df["trk1_backtracked_pdg"] = awkward.fromiter([vec[int(vid)-1] if ( (len(vec) > 0) and (vid >= 0) and (vid < 10000) and (vid != -9999.) ) else -9999. for vec,vid in zip(pfp_pdg_v,trk1_pfp_idx)])
+    #df["trk1_backtracked_pdg"] = awkward.fromiter([vec1[vec2[vid.argsort()[-1]]] if ( (len(vid)>0) and (len(vec1) >= len(vec2)) ) else -9999. for vec1,vec2,vid in zip(pfp_pdg_v,trk_pfp_id_v[trk_mask],trk_len_v[trk_mask])])
+    #df["trk1_backtracked_pdg"] = get_elm_from_vec_idx(pfp_pdg_v,trk1_pfp_idx)
 
     # 2nd longest track
     df["trk2_len"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_len_v[trk_mask],trk_len_v[trk_mask])])
@@ -585,7 +593,11 @@ def process_uproot_numu(up,df):
     df["trk2_mcs_muon"]   = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_mcs_muon_mom_v[trk_mask],trk_len_v[trk_mask])])
     df["trk2_theta"] = np.cos(awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_theta_v[trk_mask],trk_len_v[trk_mask])]))
     df["trk2_phi"]   = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_phi_v[trk_mask],trk_len_v[trk_mask])])
-    #df['trk2_pdg'] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(pfp_pdg_v[trk_pfp_id_v[trk_mask]],trk_len_v[trk_pfp_id_v[trk_mask]])])
+    df["trk2_pfp_idx"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_pfp_id_v[trk_mask],trk_len_v[trk_mask])])
+    trk2_pfp_idx = df["trk2_pfp_idx"].values
+    #print ('trk1_pfp_idx : ', trk1_pfp_idx)                                                                                                                   
+    #print ('pfp_pdg_v : ', pfp_pdg_v)                                                                                                                     
+    df["trk2_backtracked_pdg"] = awkward.fromiter([vec[int(vid)-1] if ( (len(vec) > 0) and (vid >= 0) and (vid < 10000) and (vid != -9999.) ) else -9999. for vec,vid in zip(pfp_pdg_v,trk2_pfp_idx)])
     
     # get element-wise reconstructed neutrino energy (for each index the value will be the neutrino energy assuming the track at that index is the muon)
     df['trk_energy_tot'] = trk_energy_proton_v.sum()
@@ -619,6 +631,7 @@ def process_uproot_numu(up,df):
     
     # apply numu selection as defined by Ryan
     trk_score_v = up.array("trk_score_v")
+    #'''
     muon_mask = (trk_score_v>0.8) & (trk_llr_pid_v > 0.2) \
                 & (trk_start_x_v > 5.) & (trk_start_x_v < 251.) & (trk_end_x_v > 5.) & (trk_end_x_v < 251.) \
                 & (trk_start_y_v > -110.) & (trk_start_y_v < 110.) & (trk_end_y_v > -110.) & (trk_end_y_v < 110.) \
@@ -626,6 +639,13 @@ def process_uproot_numu(up,df):
                 & (trk_len_v > 10) & (trk_distance_v < 4.) & (pfp_generation_v == 2) \
                 & ( ( (trk_mcs_muon_mom_v - trk_range_muon_mom_v) / trk_range_muon_mom_v ) > -0.5 ) \
                 & ( ( (trk_mcs_muon_mom_v - trk_range_muon_mom_v) / trk_range_muon_mom_v ) < 0.5 )
+    '''
+    muon_mask = (trk_score_v>0.8) & (trk_llr_pid_v > -1.0) \
+                & (trk_start_x_v > 5.) & (trk_start_x_v < 251.) & (trk_end_x_v > 5.) & (trk_end_x_v < 251.) \
+                & (trk_start_y_v > -110.) & (trk_start_y_v < 110.) & (trk_end_y_v > -110.) & (trk_end_y_v < 110.) \
+                & (trk_start_z_v > 20.) & (trk_start_z_v < 986.) & (trk_end_z_v > 20.) & (trk_end_z_v < 986.) \
+                & (trk_len_v > 10) & (trk_distance_v < 4.) & (pfp_generation_v == 2)
+    '''
 
     contained_track_mask = (trk_start_x_v > 5.) & (trk_start_x_v < 251.) & (trk_end_x_v > 5.) & (trk_end_x_v < 251.) \
                            & (trk_start_y_v > -110.) & (trk_start_y_v < 110.) & (trk_end_y_v > -110.) & (trk_end_y_v < 110.) \
@@ -780,7 +800,8 @@ def get_variables():
                "pi0_mass_Y","pi0_mass_V","pi0_mass_U",
                "pi0_nshower",
                "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z",
-               "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent"
+               "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent",
+               "n_showers_contained"
     ]
 
     VARDICT['PI0VARS'] = PI0VARS
@@ -816,7 +837,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R1BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
     R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C_all_reco2'
     #R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C1_C2_D1_D2_E1_E2_all_reco2' #Run1 + Run2
-    R1NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2'
+    R1NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2' # OFFICIA
+    #R1NU  = 'prodgenie_bnb_nu_overlay_extra' # DETVAR
     R1NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     R1DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     R1NCPI0  = 'prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2_extra'#v48
@@ -850,7 +872,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2'
     if (loadnumucrtonly):
         R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
-    R3NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2'#_newtune'
+    R3NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2'#_newtune' # OFFICIAL
+    #R3NU  = 'prodgenie_bnb_nu_overlay_extra' # DETVAR
     R3NUE = 'prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'
     R3DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2'#_newtune'
     R3NCPI0  = 'prodgenie_nc_pi0_uboone_overlay_mcc9.1_v08_00_00_26_run3_G_reco2'
@@ -924,6 +947,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R123_TWO_SHOWERS_SIDEBAND_BNB = 'neutrinoselection_filt_1e_2showers_sideband_skimmed_extended_v47'
     R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_v47'
     R123_0P_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1e0p_far_sideband_skimmed_v47'
+    R1_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN1_pi0_reco2'
+    R2_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN2_pi0_reco2'
+    R3_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN3_pi0_reco2'
     R123_NP_RECOVERY_BNB = 'bnb_recovery'
     R123_NP_RECOVERY_EXT = 'bnb_recovery_ext'
 
@@ -939,6 +965,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         ur1data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur2data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur3data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+    if (which_sideband == "pi0"):
+        ur1data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R1_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur2data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R2_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur3data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R3_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
 
     if (loadrecoveryvars == True):
         ur1ext_np_recovery_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_RECOVERY_EXT+".root")['nuselection'][tree]
@@ -991,7 +1021,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z",
                "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent",
                "pi0truth_gamma1_dist", "pi0truth_gamma1_edep", "pi0truth_gamma2_dist", "pi0truth_gamma2_edep",
-               "true_nu_vtx_x", "true_nu_vtx_y", "true_nu_vtx_z",
+               "true_nu_vtx_x", "true_nu_vtx_y", "true_nu_vtx_z","n_showers_contained"
     ]
 
     
@@ -1031,6 +1061,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r3data_two_showers_sidebands = ur3data_two_showers_sidebands.pandas.df(VARIABLES, flatten=False)
     if (which_sideband == "0p_far"):
         r3data_0p_far_sidebands = ur3data_0p_far_sidebands.pandas.df(VARIABLES, flatten=False)
+    if (which_sideband == "pi0"):
+        r3data_pi0_sidebands = ur3data_pi0_sidebands.pandas.df(VARIABLES, flatten=False)
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r3data_numu_sidebands   = ur3data_numu_sidebands.pandas.df(VARIABLES + R3VARS, flatten=False)
     if (loadrecoveryvars == True):
@@ -1059,6 +1091,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r3data_np_far_sidebands["is_signal"] = r3data_np_far_sidebands["category"] == 11
     if (which_sideband == "0p_far"):
         r3data_0p_far_sidebands["is_signal"] = r3data_0p_far_sidebands["category"] == 11
+    if (which_sideband == "pi0"):
+        r3data_pi0_sidebands["is_signal"] = r3data_pi0_sidebands["category"] == 11
     #if (loadshowervariables == False):
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r3data_numu_sidebands["is_signal"]   = r3data_numu_sidebands["category"] == 11
@@ -1072,6 +1106,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r3_datasets += [r3data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         r3_datasets += [r3data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        r3_datasets += [r3data_pi0_sidebands]
     if (loadtruthfilters == True):
         r3_datasets += [r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi]
     #if (loadshowervariables == False):
@@ -1094,6 +1130,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         uproot_v += [ur3data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         uproot_v += [ur3data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        uproot_v += [ur3data_pi0_sidebands]
     if (loadtruthfilters == True):
         uproot_v += [ur3ncpi0,ur3ccpi0,ur3ccnopi, ur3cccpi, ur3ncnopi, ur3nccpi]
     #if (loadshowervariables == False):
@@ -1109,6 +1147,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df_v += [r3data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         df_v += [r3data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        df_v += [r3data_pi0_sidebands]
     if (loadtruthfilters == True):
         df_v += [r3ncpi0,r3ccpi0,r3ccnopi, r3cccpi, r3ncnopi, r3nccpi]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
@@ -1129,7 +1169,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         if (loadrecoveryvars == True):
             process_uproot_recoveryvars(up,df)
 
-    if (USEBDT == True):
+    if ((USEBDT == True) and (loadtruthfilters == True)):
         dfcsv = pd.read_csv(ls.ntuple_path+ls.RUN3+"ccpi0nontrainevents.csv")
         dfcsv['identifier']   = dfcsv['run'] * 100000 + dfcsv['evt']
         r3ccpi0['identifier'] = r3ccpi0['run'] * 100000 + r3ccpi0['evt']
@@ -1161,6 +1201,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r1data_two_showers_sidebands = ur1data_two_showers_sidebands.pandas.df(VARIABLES, flatten=False)
     if (which_sideband == "0p_far"):
         r1data_0p_far_sidebands = ur1data_0p_far_sidebands.pandas.df(VARIABLES, flatten=False)
+    if (which_sideband == "pi0"):
+        r1data_pi0_sidebands = ur1data_pi0_sidebands.pandas.df(VARIABLES, flatten=False)
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r1data_numu_sidebands = ur1data_numu_sidebands.pandas.df(VARIABLES, flatten=False)
     if (loadrecoveryvars == True):
@@ -1189,6 +1231,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r1data_two_showers_sidebands["is_signal"] = r1data_two_showers_sidebands["category"] == 11
     if (which_sideband == "0p_far"):
         r1data_0p_far_sidebands["is_signal"] = r1data_0p_far_sidebands["category"] == 11
+    if (which_sideband == "pi0"):
+        r1data_pi0_sidebands["is_signal"] = r1data_pi0_sidebands["category"] == 11
 
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r1data_numu_sidebands["is_signal"]   = r1data_numu_sidebands["category"] == 11
@@ -1203,6 +1247,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r1_datasets += [r1data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         r1_datasets += [r1data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        r1_datasets += [r1data_pi0_sidebands]
         
     if (loadtruthfilters == True):
         r1_datasets += [r1ncpi0, r1ccpi0, r1ccnopi, r1cccpi, r1ncnopi, r1nccpi]
@@ -1231,6 +1277,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         uproot_v += [ur1data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         uproot_v += [ur1data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        uproot_v += [ur1data_pi0_sidebands]
     if (loadtruthfilters == True):
         uproot_v += [ur1ncpi0,ur1ccpi0,ur1ccnopi, ur1cccpi, ur1ncnopi, ur1nccpi]
     #if (loadshowervariables == False):
@@ -1246,6 +1294,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df_v += [r1data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         df_v += [r1data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        df_v += [r1data_pi0_sidebands]
     if (loadtruthfilters == True):
         df_v += [r1ncpi0,r1ccpi0,r1ccnopi, r1cccpi, r1ncnopi, r1nccpi]
     #if (loadshowervariables == False):
@@ -1279,6 +1329,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2data_two_showers_sidebands = ur2data_two_showers_sidebands.pandas.df(VARIABLES, flatten=False)
     if (which_sideband == "0p_far"):
         r2data_0p_far_sidebands = ur2data_0p_far_sidebands.pandas.df(VARIABLES, flatten=False)
+    if (which_sideband == "pi0"):
+        r2data_pi0_sidebands = ur2data_pi0_sidebands.pandas.df(VARIABLES, flatten=False)
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2data_numu_sidebands = ur2data_numu_sidebands.pandas.df(VARIABLES, flatten=False)
     if (loadrecoveryvars == True):
@@ -1297,7 +1349,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if (which_sideband == "np_far" or which_sideband == "np_sb_comb"):
         r2data_np_far_sidebands["is_signal"] = r2data_np_far_sidebands["category"] == 11
     if (which_sideband == "0p_far"):
-        r2data_0p_far_sidebands["is_signal"] = r2data_0p_far_sidebands["category"] == 11    
+        r2data_0p_far_sidebands["is_signal"] = r2data_0p_far_sidebands["category"] == 11
+    if (which_sideband == "pi0"):
+        r2data_pi0_sidebands["is_signal"] = r2data_pi0_sidebands["category"] == 11
     #if (loadshowervariables == False):
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2data_numu_sidebands["is_signal"] = r2data_numu_sidebands["category"] == 11
@@ -1311,6 +1365,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2_datasets += [r2data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         r2_datasets += [r2data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        r2_datasets += [r2data_pi0_sidebands]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2_datasets += [r2data_numu_sidebands]
     if (loadrecoveryvars == True):
@@ -1341,6 +1397,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         uproot_v += [ur2data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         uproot_v += [ur2data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        uproot_v += [ur2data_pi0_sidebands]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         uproot_v += [ur2data_numu_sidebands]
     if (loadrecoveryvars == True):
@@ -1353,6 +1411,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df_v += [r2data_np_far_sidebands]
     if (which_sideband == "0p_far"):
         df_v += [r2data_0p_far_sidebands]
+    if (which_sideband == "pi0"):
+        df_v += [r2data_pi0_sidebands]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         df_v += [r2data_numu_sidebands]
     if (loadrecoveryvars == True):
@@ -1410,6 +1470,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                          ignore_index=True)
     elif which_sideband == '0p_far':
         data = pd.concat([r1data_0p_far_sidebands, r2data_0p_far_sidebands, r3data_0p_far_sidebands],ignore_index=True)
+    elif which_sideband == 'pi0':
+        data = pd.concat([r1data_pi0_sidebands, r2data_pi0_sidebands, r3data_pi0_sidebands],ignore_index=True)
     elif which_sideband == 'numu':
         data = pd.concat([r1data_numu_sidebands, r2data_numu_sidebands, r3data_numu_sidebands],ignore_index=True)
     elif which_sideband == "opendata":
@@ -1473,6 +1535,14 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[ df['weightSplineTimesTune'] == np.inf, 'weightSplineTimesTune' ] = 1.
         df.loc[ df['weightSplineTimesTune'] > 100, 'weightSplineTimesTune' ] = 1.
         df.loc[ np.isnan(df['weightSplineTimesTune']) == True, 'weightSplineTimesTune' ] = 1.
+        # backtracker category
+        '''
+        df.loc[ ( (df['trk1_backtracked_pdg'] != 2212) & (df['trk1_backtracked_pdg'] != 13) & (df['trk1_backtracked_pdg'] != 11) & (df['trk1_backtracked_pdg'] != 111) & (df['trk1_backtracked_pdg'] != -13) & (df['trk1_backtracked_pdg'] != -11) & (df['trk1_backtracked_pdg'] != 211) & (df['trk1_backtracked_pdg'] != -211) & (df['trk1_backtracked_pdg'] != 2112) & (df['trk1_backtracked_pdg'] != 22) & (df['trk1_backtracked_pdg'] != 321) & (df['trk1_backtracked_pdg'] != -321) ), 'trk1_backtracked_pdg' ] = 0
+        df.loc[ ( df['trk1_backtracked_pdg'] == -13), 'trk1_backtracked_pdg' ] = 13
+        df.loc[ ( df['trk1_backtracked_pdg'] == -11), 'trk1_backtracked_pdg' ] = 11
+        df.loc[ ( df['trk1_backtracked_pdg'] == -211), 'trk1_backtracked_pdg' ] = 211
+        df.loc[ ( df['trk1_backtracked_pdg'] == -321), 'trk1_backtracked_pdg' ] = 321
+        '''
         # flux parentage
         df['flux'] = np.zeros_like(df['nslice'])
         df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] < 11)) , 'flux'] = 10
@@ -1835,6 +1905,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         return samples
 
 BLIND = 1.00
+#BLIND = 1.00/40.9
+#BLIND = 1.00/220.2
     
 pot_data_unblinded = {
 # v47 NTuples
@@ -1862,7 +1934,11 @@ pot_data_unblinded = {
     "opendata" : {
         1: (4.54E+19, 10080350),
         2: (1.00E+01, 1),
-        3: (9.43E+18, 2271036), },    
+        3: (9.43E+18, 2271036), },
+    "pi0" : {
+        1: (1.509E+20, 33582996),
+        2: (2.411E+20, 56116016),
+	3: (1.971E+20, 47133521), },
     "numu" : {
         1: (1.62E+20, 36139233),
         2: (2.62E+20, 62045760),
@@ -1910,6 +1986,7 @@ pot_mc_samples[30] = {
 
 pot_mc_samples[3] = {
     'mc': 1.34E+21, # 1.33E+21,
+    #'mc': 19.68E+20, # DETVAR
     'nue':7.75E+22, # 7.73E+22,
     'lee': 7.75E+22, #7.73E+22,
     'ncpi0': 2.31E+21, # 2.29E+21,
@@ -1932,6 +2009,7 @@ pot_mc_samples[2] = {
 
 pot_mc_samples[1] = {
     'mc': 1.31E+21, # 1.30E+21,
+    #'mc': 18.93E+20, #DETVAR
     'nue': 5.25E+22, # 5.25E+22,
     'lee': 5.25E+22, #5.25E+22,
     'ncpi0': 1.16E+22, #2.66E+21, # 2.63E+21,
