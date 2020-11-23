@@ -762,7 +762,7 @@ def get_variables():
                "shr_hits_tot", "shr_hits_u_tot", "shr_hits_v_tot", "shr_hits_y_tot",
                "shr_theta_v","shr_phi_v","shr_energy_y_v",
                "shr_start_x_v","shr_start_z_v","shr_start_z_v",
-               "shr_tkfit_dedx_U", "shr_tkfit_dedx_V", "trk_bkt_pdg",  
+               "trk_bkt_pdg",
                "shr_energy", "shr_dedx_U", "shr_dedx_V", "shr_phi", "trk_phi", "trk_theta",
                "shr_distance", "trk_distance",
                "matched_E", "shr_bkt_E", "trk_bkt_E",
@@ -774,7 +774,8 @@ def get_variables():
                "trk_hits_tot", "trk_hits_u_tot", "trk_hits_v_tot", "trk_hits_y_tot",
                "shr_dedx_Y_cali", "trk_energy_tot","shr_id",
                "hits_ratio", "n_tracks_contained",
-               "shr_px","shr_py","shr_pz","p", "pt", "hits_y"
+               "shr_px","shr_py","shr_pz","p", "pt", "hits_y",
+               "elec_pz","elec_e","truthFiducial"
     ]
 
     VARDICT['NUEVARS'] = NUEVARS
