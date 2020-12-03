@@ -152,6 +152,7 @@ def pick_closest_shower(up,df):
 
 def process_uproot(up,df):
     #
+    
     trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
     shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
     #
@@ -161,6 +162,7 @@ def process_uproot(up,df):
     trk_theta_v         = up.array('trk_theta_v')
     trk_phi_v           = up.array('trk_phi_v')
 
+    print(trk_calo_energy_y_v.shape, len(trk_llr_pid_v))
     #
     trk_llr_pid_v_sel     = get_elm_from_vec_idx(trk_llr_pid_v,trk_id)
     trk_calo_energy_y_sel = get_elm_from_vec_idx(trk_calo_energy_y_v,trk_id)
@@ -214,24 +216,24 @@ def process_uproot(up,df):
     trk_start_x_v   = up.array("trk_start_x_v")
     trk_start_y_v   = up.array("trk_start_y_v")
     trk_start_z_v   = up.array("trk_start_z_v")
-    #df["trk1_start_x_alltk"] = get_elm_from_vec_idx(trk_start_x_v,trk_id_all)
-    #df["trk1_start_y_alltk"] = get_elm_from_vec_idx(trk_start_y_v,trk_id_all)
-    #df["trk1_start_z_alltk"] = get_elm_from_vec_idx(trk_start_z_v,trk_id_all)
+    df["trk1_start_x_alltk"] = get_elm_from_vec_idx(trk_start_x_v,trk_id_all)
+    df["trk1_start_y_alltk"] = get_elm_from_vec_idx(trk_start_y_v,trk_id_all)
+    df["trk1_start_z_alltk"] = get_elm_from_vec_idx(trk_start_z_v,trk_id_all)
     trk_dir_x_v = up.array("trk_dir_x_v")
     trk_dir_y_v = up.array("trk_dir_y_v")
     trk_dir_z_v = up.array("trk_dir_z_v")
-    #df["trk1_dir_x_alltk"] = get_elm_from_vec_idx(trk_dir_x_v,trk_id_all)
-    #df["trk1_dir_y_alltk"] = get_elm_from_vec_idx(trk_dir_y_v,trk_id_all)
-    #df["trk1_dir_z_alltk"] = get_elm_from_vec_idx(trk_dir_z_v,trk_id_all)
+    df["trk1_dir_x_alltk"] = get_elm_from_vec_idx(trk_dir_x_v,trk_id_all)
+    df["trk1_dir_y_alltk"] = get_elm_from_vec_idx(trk_dir_y_v,trk_id_all)
+    df["trk1_dir_z_alltk"] = get_elm_from_vec_idx(trk_dir_z_v,trk_id_all)
     #
     # tksh_distance and tksh_angle for track with most hits, regardless of containment
     #
     #df['tk1sh1_distance_alltk'] = np.where(df['n_tracks_tot']==0,99999,
     #                                 distance(df['shr_start_x'],       df['shr_start_y'],       df['shr_start_z'],\
     #                                          df['trk1_start_x_alltk'],df['trk1_start_y_alltk'],df['trk1_start_z_alltk']))
-    #df["tk1sh1_angle_alltk"] = np.where(df['n_tracks_tot']==0,99999,
-    #                              cosAngleTwoVecs(df["trk1_dir_x_alltk"],df["trk1_dir_y_alltk"],df["trk1_dir_z_alltk"],\
-    #                                              df["shr_px"],          df["shr_py"],          df["shr_pz"]))
+    df["tk1sh1_angle_alltk"] = np.where(df['n_tracks_tot']==0,99999,
+                                  cosAngleTwoVecs(df["trk1_dir_x_alltk"],df["trk1_dir_y_alltk"],df["trk1_dir_z_alltk"],\
+                                                  df["shr_px"],          df["shr_py"],          df["shr_pz"]))
 
     # return # DAVIDC
     

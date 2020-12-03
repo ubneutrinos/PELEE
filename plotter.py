@@ -40,8 +40,9 @@ from matplotlib import gridspec
 
 
 category_labels = {
-    1: r"$\nu_e$ CC",
+    1: r"$\nu_e$ Other",
     10: r"$\nu_e$ CC0$\pi$0p",
+    12: r"$\bar\nu_e$ CC0$\pi$Np",
     11: r"$\nu_e$ CC0$\pi$Np",
     111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
@@ -147,8 +148,9 @@ category_colors = {
     25: "blue",
     3: "xkcd:cobalt",
     31: "xkcd:sky blue",
-    1: "xkcd:green",
+    1: "xkcd:moss green",
     10: "xkcd:mint green",
+    12: "xkcd:green",
     11: "xkcd:lime green",
     111: "xkcd:goldenrod",
     6: "xkcd:grey",
@@ -1096,7 +1098,6 @@ class Plotter:
             Figure, top subplot, and bottom subplot (ratio)
 
         """
-
         #if (detsys != None):
         self.detsys = detsys
 
@@ -1295,10 +1296,11 @@ class Plotter:
             # Options are to have no exceptions (stacksort=1),
             # put eLEE on top (stacksort=2), or put nue+eLEE on top (stacksort=3)
             # put numu on top (stacksort >= 4)
-            has1 = False
-            has10 = False
-            has11 = False
+            has1   = False
+            has10  = False
+            has11  = False
             has111 = False
+            has12  = False
             for c in var_dict.keys():
                 if stacksort >= 2:
                     if int(c)==111:
@@ -1308,6 +1310,10 @@ class Plotter:
                     if int(c)==1:
                         has1 = True
                         continue
+                    if int(c)==12:
+                        has12 = True
+                        continue
+
                     if int(c)==10:
                         has10 = True
                         continue
@@ -1318,6 +1324,8 @@ class Plotter:
                 order_dict = {k: v for k, v in sorted(order_dict.items(), key=lambda item: item[1])}
             if has1:
                 order_dict[1] = sum(weight_dict[1])
+            if has1:
+                order_dict[12] = sum(weight_dict[12])
             if has10:
                 order_dict[10] = sum(weight_dict[10])
             if has11:
@@ -1427,16 +1435,16 @@ class Plotter:
             mc_plotted_variable, **plot_options)
         err_mc = np.array(
             [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
-        if ("mc" in self.detsys.keys()):
-            self.detsys["mc"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+        #if ("mc" in self.detsys.keys()):
+        #    self.detsys["mc"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
         sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"])
 
         nue_uncertainties, bins = np.histogram(
             nue_plotted_variable, **plot_options)
         err_nue = np.array(
             [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
-        if ("nue" in self.detsys.keys()):
-            self.detsys["nue"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+        #if ("nue" in self.detsys.keys()):
+        #    self.detsys["nue"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
         sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"])
 
         err_dirt = np.array([0 for n in mc_uncertainties])
@@ -1445,9 +1453,9 @@ class Plotter:
                 dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
                 [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
-        if ("dirt" in self.detsys.keys()):
-            self.detsys["dirt"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
-        sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"])
+        #if ("dirt" in self.detsys.keys()):
+        #    self.detsys["dirt"] = self.load_detsys_errors(variable,DETSYSPATH,bin_edges)
+            sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"])
 
         err_lee = np.array([0 for n in mc_uncertainties])
         if "lee" in self.samples:
@@ -1536,7 +1544,10 @@ class Plotter:
 
         exp_err    = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
         #print("counting_err: {}".format(exp_err))
-        detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
+        if "dirt" in self.samples:
+            detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
+        else:
+            detsys_err = sys_mc + sys_nue + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
         #print("detsys_err: {}".format(detsys_err))
         exp_err = np.sqrt(exp_err**2 + detsys_err**2)
         #print ('total exp_err : ', exp_err)
@@ -1550,21 +1561,26 @@ class Plotter:
         self.cov_data_stat = np.zeros([len(exp_err), len(exp_err)])
 
         self.cov_mc_stat[np.diag_indices_from(self.cov_mc_stat)]     = (err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
-        self.cov_mc_detsys[np.diag_indices_from(self.cov_mc_detsys)] = (sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi)**2
+        if "dirt" in self.samples:
+            self.cov_mc_detsys[np.diag_indices_from(self.cov_mc_detsys)] = (sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi)**2
+        else:
+            self.cov_mc_detsys[np.diag_indices_from(self.cov_mc_detsys)] = (sys_mc + sys_nue + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi)**2
 
         if draw_sys:
-            #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
-
             if (COVMATRIX == ""):
-                self.cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                           self.sys_err("weightsGenie", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
-                           self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight)
+                print("IN COVMATRIX_XS_PPFX")
+                self.cov = (self.sys_err("weightsPPFX",variable,query,plot_options["range"],plot_options["bins"],genieweight)+ self.sys_err("weightsGenie",variable,query,plot_options["range"],plot_options["bins"],genieweight) + self.sys_err("weightsReint",variable,query, plot_options["range"], plot_options["bins"], genieweight))
+
+                #self.cov = (self.sys_err("weightsReint",variable,query,plot_options["range"],plot_options["bins"],genieweight))
+
             else:
                 self.cov = self.get_SBNFit_cov_matrix(COVMATRIX,len(bin_edges)-1)
             exp_err = np.sqrt( np.diag((self.cov + self.cov_mc_stat + self.cov_mc_detsys))) # + exp_err*exp_err)
 
             np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-
+            print("draw Sys")
+            
+            #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
 
 
         if "lee" in self.samples:
@@ -1586,7 +1602,7 @@ class Plotter:
         # old error-bar plotting
         #ax1.bar(bincenters, n_tot, facecolor='none',
         #       edgecolor='none', width=0, yerr=exp_err)
-        ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.2,bottom=(n_tot-exp_err))
+        ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='tab:blue',alpha=0.2,bottom=(n_tot-exp_err))
         #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
         '''
         ax1.fill_between(
@@ -1614,11 +1630,16 @@ class Plotter:
                 xerr=bin_size,
                 yerr=data_err,
                 fmt='ko',
-                label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
+                label="NuMI: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         #frac = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], np.array([1,1,1,5,5,5]), np.array([1,1,1,5,5,5]), 70)
-        self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 70)
+        if "lee" in self.samples:
+            self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 70)
 
+
+        chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
+        self.stats['pvaluestatonly'] = (1 - scipy.stats.chi2.cdf(chistatonly,aac))
+        
         if (draw_sys):
 
             #chisq = self._chisquare(n_data, n_tot, exp_err)
@@ -1627,23 +1648,25 @@ class Plotter:
             #self.stats['chisqCNP'] = chisqCNP
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(chisq))
             #print ('chisq for data/mc agreement with diagonal terms only : %.02f'%(self._chisquare(n_data, n_tot, np.sqrt(np.diag(cov)))))
-            chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
+        
             #chiarea, aab, aac = self._chisq_full_covariance(n_tot-lee_hist,n_tot,CNP=True,STATONLY=True,AREANORMED=True)
             chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)#,USEFULLCOV=True)
-            chilee, chileenocov,dof = self._chisq_full_covariance(n_tot-lee_hist,n_tot,CNP=True)
+            if "lee" in self.samples:
+                chilee, chileenocov,dof = self._chisq_full_covariance(n_tot-lee_hist,n_tot,CNP=True)
             #self.stats['chisq full covariance'] = chicov
             #self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['dof']            = dof
             self.stats['chisqstatonly']  = chistatonly
             #self.stats['chiarea']  = chiarea
-            self.stats['pvaluestatonly'] = (1 - scipy.stats.chi2.cdf(chistatonly,dof))
-            self.stats['chisqdiag']     = chinocov
             self.stats['pvaluediag']     = (1 - scipy.stats.chi2.cdf(chinocov,dof))
+            self.stats['chisqdiag']     = chinocov
+
             #self.stats['parea']          = (1 - scipy.stats.chi2.cdf(chiarea,dof))
             self.stats['chisq']          = chicov
             #self.stats['chilee']          = chilee
             self.stats['pvalue']         = (1 - scipy.stats.chi2.cdf(chicov,dof))
-            self.stats['pvaluelee']         = (1 - scipy.stats.chi2.cdf(chilee,dof))
+            if "lee" in self.samples:
+                self.stats['pvaluelee']         = (1 - scipy.stats.chi2.cdf(chilee,dof))
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
@@ -1907,7 +1930,7 @@ class Plotter:
         n_mc, mc_bins, patches = ax1.hist(
             mc_plotted_variable,
             weights=mc_weight,
-            label="BNB overlay: %.1f entries" % sum(mc_weight),
+            label="NuMI overlay: %.1f entries" % sum(mc_weight),
             **plot_options)
 
         n_nue, nue_bins, patches = ax1.hist(
@@ -2018,7 +2041,7 @@ class Plotter:
             [n * self.weights["ext"] * self.weights["ext"] for n in ext_uncertainties])
         err_dirt = np.array([0 for n in n_mc])
         err_lee = np.array([0 for n in n_mc])
-
+            
         if "dirt" in self.samples:
             dirt_uncertainties, bins = np.histogram(dirt_plotted_variable, **plot_options)
             err_dirt = np.array(
@@ -2073,6 +2096,7 @@ class Plotter:
                 query).eval(variable), lee_bins)
             err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
                 "sum").values * self.weights["lee"] * self.weights["lee"]
+
         exp_err = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_lee + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
 
         bincenters = 0.5 * (tot_bins[1:] + tot_bins[:-1])
@@ -2088,7 +2112,7 @@ class Plotter:
             xerr=bin_size,
             yerr=data_err,
             fmt='ko',
-            label="BNB: %i events" % len(data_plotted_variable))
+            label="NuMI: %i events" % len(data_plotted_variable))
 
         leg = ax1.legend(
             frameon=False, title=r'MicroBooNE Preliminary %g POT' % self.pot)
@@ -2136,16 +2160,18 @@ class Plotter:
             1.0 - ratio_error_mc,
             ratio_error_mc + 1,
             step="pre",
-            color="grey",
+            color="tab:blue",
             alpha=0.5)
 
         ax.set_ylim(0, 2)
-        ax.set_ylabel("BNB / (MC+EXT)")
+        ax.set_ylabel("NuMI / (MC+EXT)")
         ax.axhline(1, linestyle="--", color="k")
 
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
         # how many universes?
-        Nuniverse = 100 #len(df)
+        Nuniverse = 600 #100 #len(df)
+        print("Universes",Nuniverse)
+
         #if (name == "weightsGenie"):
         #    Nuniverse = 100
 
@@ -2156,7 +2182,7 @@ class Plotter:
         n_cv_tot.fill(0)
 
         for t in self.samples:
-            if t in ["ext", "data", "lee", "data_7e18", "data_1e20"]: #,"dirt","ccnopi","cccpi","nccpi","ncnopi","ncpi0","mc","ccpi0"]:
+            if t in ["ext", "data", "lee", "data_7e18", "data_1e20"]: 
                 continue
 
             # for pi0 fit only
