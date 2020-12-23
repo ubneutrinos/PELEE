@@ -783,7 +783,7 @@ class Plotter:
         return 0
 
     def _get_genie_weight(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None,\
-                          select_longest=True, weightvar="weightSplineTimesTune",weightsignal=None):
+                          select_longest=True, weightvar="weightSplineTimesTuneTimesPPFX",weightsignal=None):
 
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
@@ -1071,7 +1071,7 @@ class Plotter:
 
     def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
-                      detsys=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
+                      detsys=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTuneTimesPPFX",
                       ncol=2,
                       COVMATRIX='', # path to covariance matrix file
                       DETSYSPATH="", # path where to find detector systematics files
@@ -1247,12 +1247,12 @@ class Plotter:
             category, lee_plotted_variable = categorization(
                 self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
             #print ('weight 1 : ',len(self.samples["lee"].query(query)["leeweight"]))
-            #print ('weight 2 : ',len(self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)))
+            #print ('weight 2 : ',len(self._selection("weightSplineTimesTuneTimesPPFX", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)))
             #print ('track cuts : ',track_cuts)
             #print ('select_longest : ',select_longest)
             leeweight = self._get_genie_weight(
                 self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest,weightsignal="leeweight", weightvar=genieweight)
-            #self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTune", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)
+            #self.samples["lee"].query(query)["leeweight"] * self._selection("weightSplineTimesTuneTimesPPFX", self.samples["lee"], query=query, track_cuts=track_cuts, select_longest=select_longest)
 
             for c, v, w in zip(category, lee_plotted_variable, leeweight):
                 var_dict[c].append(v)
@@ -1580,7 +1580,7 @@ class Plotter:
             np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
             print("draw Sys")
             
-            #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTune")
+            #cov = self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], "weightSplineTimesTuneTimesPPFX")
 
 
         if "lee" in self.samples:
@@ -1621,7 +1621,10 @@ class Plotter:
 
             self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
 
-        self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
+        #self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
+        # This is a hacky workaround -- I should be ashamed of myself, EG
+        else:
+            n_data = np.zeros(len(bin_size))
 
         if sum(n_data) > 0:
             ax1.errorbar(
