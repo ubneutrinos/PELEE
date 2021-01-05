@@ -35,11 +35,44 @@ def get_idx_from_vec_sort(argidx,vecsort,mask):
     result = [[i for i, n in enumerate(m) if n == 1][p] if (p)>=0 else -1 for m,p in zip(mask,mskd_pos)]
     return result
 
+# this function sums all elements in a vector after applying a mask
+def sum_elements_from_mask(vector,mask):
+    vid = vector[mask]
+    result = vid.sum()
+    return result
+
 def distance(x1,y1,z1,x2,y2,z2):
     return np.sqrt( (x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2 )
 
 def cosAngleTwoVecs(vx1,vy1,vz1,vx2,vy2,vz2):
     return (vx1*vx2 + vy1*vy2 + vz1*vz2)/(np.sqrt(vx1**2+vy1**2+vz1**2) * np.sqrt(vx2**2+vy2**2+vz2**2))
+
+def mgg(e1,e2,px1,px2,py1,py2,pz1,pz2):
+    return np.sqrt(2*e1*e2*(1-px1*px2-py1*py2-pz1*pz2))
+
+def combs(args):
+    res = []
+    for i in range(0,len(args)):
+        for j in range(i+1,len(args)):
+            res.append( (args[i],args[j]) )
+    return res
+
+def all_comb_mgg(ev,pxv,pyv,pzv,combs):
+    res = []
+    for i,j in combs:
+        res.append(np.nan_to_num(mgg(ev[i],ev[j],pxv[i],pxv[j],pyv[i],pyv[j],pzv[i],pzv[j])))
+    return res
+
+def unique_combs(combs, combs_argsort):
+    res = []
+    usedargs = []
+    for arg in combs_argsort:
+        i,j = combs[arg]
+        if i in usedargs or j in usedargs: continue
+        usedargs.append(i)
+        usedargs.append(j)
+        res.append(arg)
+    return res
 
 def pick_closest_shower(up,df):
     #
@@ -268,6 +301,8 @@ def process_uproot(up,df):
     #
     df['shr2pid'] = get_elm_from_vec_idx(trk_llr_pid_v,shr2_id,9999.)
     df['shr2_score'] = get_elm_from_vec_idx(trk_score_v,shr2_id,9999.)
+    shr_moliere_avg_v = up.array("shr_moliere_avg_v")
+    df["shr2_moliereavg"] = get_elm_from_vec_idx(shr_moliere_avg_v,shr2_id,-9999.)
     #
     #df.drop(columns=['shr_start_x', 'shr_start_y', 'shr_start_z'])
     #df.drop(columns=['trk1_start_x_alltk', 'trk1_start_y_alltk', 'trk1_start_z_alltk'])
@@ -679,10 +714,185 @@ def process_uproot_numu(up,df):
 def process_uproot_eta(up,df):
     #
     trk_score_v = up.array("trk_score_v")
+    #trk_calo_energy_y_v = up.array("trk_calo_energy_y_v")
     shr_mask = (trk_score_v<0.5)
     #df['n_tracks_tot'] = trk_mask.sum()
     df['n_showers_tot'] = shr_mask.sum()
+    #shr_mask_025 = ( (trk_score_v<0.5) & (trk_calo_energy_y_v > 25.) )
+    #shr_mask_050 = ( (trk_score_v<0.5) & (trk_calo_energy_y_v > 50.) )
+    #shr_mask_100 = ( (trk_score_v<0.5) & (trk_calo_energy_y_v > 100.) )
+    #df['n_showers_025_tot'] = shr_mask_025.sum()
+    #df['n_showers_050_tot'] = shr_mask_050.sum()
+    #df['n_showers_100_tot'] = shr_mask_100.sum()
 
+
+def process_uproot_ccncpi0vars(up,df):
+    mc_pdg = up.array('mc_pdg')
+    # compute hadronic mass
+    #hadron_mask = (mc_pdg!=11)&(mc_pdg!=-11)&(mc_pdg!=13)&(mc_pdg!=-13)&(mc_pdg!=15)&(mc_pdg!=-15)&\
+    #              (mc_pdg!=12)&(mc_pdg!=-12)&(mc_pdg!=14)&(mc_pdg!=-14)&(mc_pdg!=16)&(mc_pdg!=-16)&\
+    #              (mc_pdg!=22)
+    # compute hadronic mass, consider the leading nucleon only
+    #nucleon_mask = (mc_pdg==2112)|(mc_pdg==2212)
+    #other_mask = (mc_pdg!=11)&(mc_pdg!=-11)&(mc_pdg!=13)&(mc_pdg!=-13)&(mc_pdg!=15)&(mc_pdg!=-15)&\
+    #             (mc_pdg!=12)&(mc_pdg!=-12)&(mc_pdg!=14)&(mc_pdg!=-14)&(mc_pdg!=16)&(mc_pdg!=-16)&\
+    #             (mc_pdg!=22)&(mc_pdg!=2112)&(mc_pdg!=2212)
+    mc_E = up.array('mc_E')
+    mc_px = up.array('mc_px')
+    mc_py = up.array('mc_py')
+    mc_pz = up.array('mc_pz')
+    #mc_E_hadsum = sum_elements_from_mask(mc_E,hadron_mask)
+    #mc_px_hadsum = sum_elements_from_mask(mc_px,hadron_mask)
+    #mc_py_hadsum = sum_elements_from_mask(mc_py,hadron_mask)
+    #mc_pz_hadsum = sum_elements_from_mask(mc_pz,hadron_mask)
+    #mc_E_other = sum_elements_from_mask(mc_E,other_mask)
+    #mc_px_other = sum_elements_from_mask(mc_px,other_mask)
+    #mc_py_other = sum_elements_from_mask(mc_py,other_mask)
+    #mc_pz_other = sum_elements_from_mask(mc_pz,other_mask)
+    #mostEnuclIdx = get_idx_from_vec_sort(-1,mc_E,nucleon_mask)
+    #mc_E_nucl = get_elm_from_vec_idx(mc_E,mostEnuclIdx,0.)
+    #mc_px_nucl = get_elm_from_vec_idx(mc_px,mostEnuclIdx,0.)
+    #mc_py_nucl = get_elm_from_vec_idx(mc_py,mostEnuclIdx,0.)
+    #mc_pz_nucl = get_elm_from_vec_idx(mc_pz,mostEnuclIdx,0.)
+    #mc_E_hadsum = mc_E_other+mc_E_nucl
+    #mc_px_hadsum = mc_px_other+mc_px_nucl
+    #mc_py_hadsum = mc_py_other+mc_py_nucl
+    #mc_pz_hadsum = mc_pz_other+mc_pz_nucl
+    #mc_M_had = np.sqrt(mc_E_hadsum*mc_E_hadsum - mc_px_hadsum*mc_px_hadsum -\
+    #                   mc_py_hadsum*mc_py_hadsum - mc_pz_hadsum*mc_pz_hadsum)
+    proton_mask = (mc_pdg==2212)
+    pi0_mask = (mc_pdg==111)
+    pipm_mask = (mc_pdg==211)|(mc_pdg==-211)
+    pi_mask = (pi0_mask|pipm_mask)
+    mostEprotIdx = get_idx_from_vec_sort(-1,mc_E,proton_mask)
+    mc_E_prot = get_elm_from_vec_idx(mc_E,mostEprotIdx,0.)
+    mc_px_prot = get_elm_from_vec_idx(mc_px,mostEprotIdx,0.)
+    mc_py_prot = get_elm_from_vec_idx(mc_py,mostEprotIdx,0.)
+    mc_pz_prot = get_elm_from_vec_idx(mc_pz,mostEprotIdx,0.)
+    mc_E_pi = sum_elements_from_mask(mc_E,pi_mask)
+    mc_px_pi = sum_elements_from_mask(mc_px,pi_mask)
+    mc_py_pi = sum_elements_from_mask(mc_py,pi_mask)
+    mc_pz_pi = sum_elements_from_mask(mc_pz,pi_mask)
+    mc_E_hadsum = mc_E_prot+mc_E_pi
+    mc_px_hadsum = mc_px_prot+mc_px_pi
+    mc_py_hadsum = mc_py_prot+mc_py_pi
+    mc_pz_hadsum = mc_pz_prot+mc_pz_pi
+    mc_M_had = np.sqrt(mc_E_hadsum*mc_E_hadsum - mc_px_hadsum*mc_px_hadsum -\
+                       mc_py_hadsum*mc_py_hadsum - mc_pz_hadsum*mc_pz_hadsum)
+    df['mc_W'] = mc_M_had
+    #
+    # compute hadronic mass, consider the leading proton and leading pi0 only
+    proton_mask = (mc_pdg==2212)
+    pi0_mask = (mc_pdg==111)
+    mostEprotIdx = get_idx_from_vec_sort(-1,mc_E,proton_mask)
+    mc_E_prot = get_elm_from_vec_idx(mc_E,mostEprotIdx,0.)
+    mc_px_prot = get_elm_from_vec_idx(mc_px,mostEprotIdx,0.)
+    mc_py_prot = get_elm_from_vec_idx(mc_py,mostEprotIdx,0.)
+    mc_pz_prot = get_elm_from_vec_idx(mc_pz,mostEprotIdx,0.)
+    mostEpi0Idx = get_idx_from_vec_sort(-1,mc_E,pi0_mask)
+    mc_E_pi0 = get_elm_from_vec_idx(mc_E,mostEpi0Idx,0.)
+    mc_px_pi0 = get_elm_from_vec_idx(mc_px,mostEpi0Idx,0.)
+    mc_py_pi0 = get_elm_from_vec_idx(mc_py,mostEpi0Idx,0.)
+    mc_pz_pi0 = get_elm_from_vec_idx(mc_pz,mostEpi0Idx,0.)
+    mc_E_ppi0 = mc_E_pi0+mc_E_prot
+    mc_px_ppi0 = mc_px_pi0+mc_px_prot
+    mc_py_ppi0 = mc_py_pi0+mc_py_prot
+    mc_pz_ppi0 = mc_pz_pi0+mc_pz_prot
+    mc_M_ppi0 = np.sqrt(mc_E_ppi0*mc_E_ppi0 - mc_px_ppi0*mc_px_ppi0 - mc_py_ppi0*mc_py_ppi0 - mc_pz_ppi0*mc_pz_ppi0)
+    df['mc_W_ppi0'] = mc_M_ppi0
+    # compute momentum transfer
+    nu_e = up.array('nu_e')
+    lepton_mask = (mc_pdg==11)|(mc_pdg==-11)|(mc_pdg==13)|(mc_pdg==-13)|(mc_pdg==15)|(mc_pdg==-15)|\
+                  (mc_pdg==12)|(mc_pdg==-12)|(mc_pdg==14)|(mc_pdg==-14)|(mc_pdg==16)|(mc_pdg==-16)
+    mc_E_lep = sum_elements_from_mask(mc_E,lepton_mask)
+    mc_px_lep = sum_elements_from_mask(mc_px,lepton_mask)
+    mc_py_lep = sum_elements_from_mask(mc_py,lepton_mask)
+    mc_pz_lep = sum_elements_from_mask(mc_pz,lepton_mask)
+    mc_q_E = nu_e - mc_E_lep
+    mc_q_px = -1 * mc_px_lep
+    mc_q_py = -1 * mc_py_lep
+    mc_q_pz = nu_e - mc_pz_lep
+    mc_Q2 = -1*(mc_q_E*mc_q_E - mc_q_px*mc_q_px - mc_q_py*mc_q_py - mc_q_pz*mc_q_pz)
+    df['mc_Q2'] = mc_Q2
+    #
+    #
+    protonidcut = 0.5 #fimxe (original was 0)
+    trk_dir_x_v = up.array('trk_dir_x_v')
+    trk_dir_y_v = up.array('trk_dir_y_v')
+    trk_dir_z_v = up.array('trk_dir_z_v')
+    trk_energy_proton_v = up.array('trk_energy_proton_v')
+    trk_llr_pid_score_v = up.array('trk_llr_pid_score_v')
+    trk_score_v = up.array('trk_score_v')
+    pi0_energy1_Y = 0.001*up.array('pi0_energy1_Y')/0.83
+    pi0_dir1_x = up.array('pi0_dir1_x')
+    pi0_dir1_y = up.array('pi0_dir1_y')
+    pi0_dir1_z = up.array('pi0_dir1_z')
+    pi0_energy2_Y = 0.001*up.array('pi0_energy2_Y')/0.83
+    pi0_dir2_x = up.array('pi0_dir2_x')
+    pi0_dir2_y = up.array('pi0_dir2_y')
+    pi0_dir2_z = up.array('pi0_dir2_z')
+    proton_mask = (trk_llr_pid_score_v<protonidcut)&(trk_score_v>0.5)
+    leadProtonIdx = get_idx_from_vec_sort(-1,trk_energy_proton_v,proton_mask)
+    leadP_KE = get_elm_from_vec_idx(trk_energy_proton_v,leadProtonIdx,0.)
+    leadP_dirx = get_elm_from_vec_idx(trk_dir_x_v,leadProtonIdx,0.)
+    leadP_diry = get_elm_from_vec_idx(trk_dir_y_v,leadProtonIdx,0.)
+    leadP_dirz = get_elm_from_vec_idx(trk_dir_z_v,leadProtonIdx,0.)
+    leadP_E = leadP_KE + 0.938
+    leadP_P = np.sqrt(leadP_E*leadP_E - 0.938*0.938)
+    reco_E_hadsum = leadP_E + pi0_energy1_Y + pi0_energy2_Y
+    reco_px_hadsum = leadP_P*leadP_dirx + pi0_energy1_Y*pi0_dir1_x + pi0_energy2_Y*pi0_dir2_x
+    reco_py_hadsum = leadP_P*leadP_diry + pi0_energy1_Y*pi0_dir1_y + pi0_energy2_Y*pi0_dir2_y
+    reco_pz_hadsum = leadP_P*leadP_dirz + pi0_energy1_Y*pi0_dir1_z + pi0_energy2_Y*pi0_dir2_z
+    reco_M_had = np.sqrt(reco_E_hadsum*reco_E_hadsum - reco_px_hadsum*reco_px_hadsum - reco_py_hadsum*reco_py_hadsum - reco_pz_hadsum*reco_pz_hadsum)
+    df['reco_W'] = reco_M_had
+    # multiplicities
+    mip_mask = (trk_llr_pid_score_v>=protonidcut)&(trk_score_v>0.5)
+    df['n_reco_protons'] = proton_mask.sum()
+    df['n_reco_mip'] = mip_mask.sum()
+    #
+    # multiple pi0 combinatorics
+    #
+    shr_energy_y_v = up.array('shr_energy_y_v')
+    shr_dist_v = up.array('shr_dist_v')
+    shr_px_v = up.array('shr_px_v')
+    shr_py_v = up.array('shr_py_v')
+    shr_pz_v = up.array('shr_pz_v')
+    trk_score_v = up.array('trk_score_v')
+    shr_mask = (trk_score_v<0.5)
+    shr_mask_args = [ np.argwhere(mask).flatten().tolist() for mask in shr_mask ]
+    gg_combs = awkward.fromiter([ combs(args) for args in shr_mask_args ])
+    mggs = awkward.fromiter([ all_comb_mgg(ev,pxv,pyv,pzv,combs) for ev,pxv,pyv,pzv,combs in zip(shr_energy_y_v,shr_px_v,shr_py_v,shr_pz_v,gg_combs) ])
+    mdiffs = awkward.fromiter([ [np.abs(m-134.98) for m in ms] for ms in mggs])
+    gg_combs_argsort = awkward.fromiter([ np.argsort(d) for d in mdiffs ])
+    gg_unique_combs = awkward.fromiter([ unique_combs(c,a) for c,a in zip(gg_combs, gg_combs_argsort) ])
+    npi0s_delta20 = (mdiffs[gg_unique_combs]<20).sum()
+    npi0s_delta30 = (mdiffs[gg_unique_combs]<30).sum()
+    npi0s_delta40 = (mdiffs[gg_unique_combs]<40).sum()
+    npi0s_delta50 = (mdiffs[gg_unique_combs]<50).sum()
+    df['npi0s_delta20'] = npi0s_delta20
+    df['npi0s_delta30'] = npi0s_delta30
+    df['npi0s_delta40'] = npi0s_delta40
+    df['npi0s_delta50'] = npi0s_delta50
+    #
+    shr_mask_025 = ( (trk_score_v<0.5) & (shr_energy_y_v > 25.) )
+    shr_mask_050 = ( (trk_score_v<0.5) & (shr_energy_y_v > 50.) )
+    shr_mask_100 = ( (trk_score_v<0.5) & (shr_energy_y_v > 100.) )
+    df['n_showers_025_tot2'] = shr_mask_025.sum()
+    df['n_showers_050_tot2'] = shr_mask_050.sum()
+    df['n_showers_100_tot2'] = shr_mask_100.sum()
+    #
+    #leading pi0 mc truth kinematics
+    leadPi0Idx = get_idx_from_vec_sort(-1,mc_E,pi0_mask)
+    leadPi0_E = get_elm_from_vec_idx(mc_E,leadPi0Idx,0.)
+    leadPi0_px = get_elm_from_vec_idx(mc_px,leadPi0Idx,0.)
+    leadPi0_py = get_elm_from_vec_idx(mc_py,leadPi0Idx,0.)
+    leadPi0_pz = get_elm_from_vec_idx(mc_pz,leadPi0Idx,0.)
+    df['leadPi0_E'] = leadPi0_E
+    df['leadPi0_px'] = leadPi0_px
+    df['leadPi0_py'] = leadPi0_py
+    df['leadPi0_pz'] = leadPi0_pz
+    df['leadPi0_uz'] = leadPi0_pz/np.sqrt(leadPi0_px*leadPi0_px + leadPi0_py*leadPi0_py + leadPi0_pz*leadPi0_pz)
+    return
 
 def get_variables():
 
@@ -701,7 +911,7 @@ def get_variables():
         "reco_nu_vtx_sce_x","reco_nu_vtx_sce_y","reco_nu_vtx_sce_z",
         "nproton", "nu_e", 
         #"hits_u", "hits_v", "hits_y", 
-        "nproton", "mc_pdg", "slnunhits", "slnhits", "true_e_visible",
+        "nneutron", "mc_pdg", "slnunhits", "slnhits", "true_e_visible",
         "npi0","npion","pion_e","muon_e","pi0truth_elec_etot",
         "pi0_e", "evnunhits", "nslice", "interaction",
         "slclustfrac", "reco_nu_vtx_x", "reco_nu_vtx_y", "reco_nu_vtx_z",
@@ -827,7 +1037,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                      loadnumucrtonly=False,
                      loadeta=False,
                      loadsystematics=True,
-                     loadrecoveryvars=False):
+                     loadrecoveryvars=False,
+                     loadccncpi0vars=False):
 
     fold = ls.fold
     tree = "NeutrinoSelectionFilter"
@@ -1170,6 +1381,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             process_uproot(up,df)
         if (loadrecoveryvars == True):
             process_uproot_recoveryvars(up,df)
+        if (loadccncpi0vars == True):
+            process_uproot_ccncpi0vars(up,df)
 
     if ((USEBDT == True) and (loadtruthfilters == True)):
         dfcsv = pd.read_csv(ls.ntuple_path+ls.RUN3+"ccpi0nontrainevents.csv")
@@ -1318,6 +1531,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             process_uproot(up,df)
         if (loadrecoveryvars == True):
             process_uproot_recoveryvars(up,df)
+        if (loadccncpi0vars == True):
+            process_uproot_ccncpi0vars(up,df)
 
     print("Loading Run2 dataframes")
     r2nue = ur2nue.pandas.df(VARIABLES + WEIGHTS, flatten=False)
@@ -1431,6 +1646,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             process_uproot(up,df)
         if (loadrecoveryvars == True):
             process_uproot_recoveryvars(up,df)
+        if (loadccncpi0vars == True):
+            process_uproot_ccncpi0vars(up,df)
     
     print("Concatenate dataframes")
 
@@ -1557,6 +1774,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             pi0emax = 0.6
             df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] < pi0emax) , 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*df['pi0_e'])
             df.loc[ (df['pi0_e'] > 0.1) & (df['pi0_e'] >= pi0emax), 'weightSplineTimesTune'] = df['weightSplineTimesTune']*(1.-0.4*pi0emax)
+        #
+        # create branch to weigh each run according to its POT (to be modified later in the plotter notebook)
+        #df["weightSplineTimesTuneTimesRunMod"] = df["weightSplineTimesTune"]
 
         if (loadeta==True):
             df['pi0_mass_truth'] = np.sqrt( 2 * df['pi0truth_gamma1_etot'] * df['pi0truth_gamma2_etot'] * (1 - df['pi0truth_gammadot']) )
@@ -1566,6 +1786,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             df.loc[ (df['category']== 21) & (df['npi0'] == 1), 'category' ] = 803
             df.loc[ (df['category']== 31) & (df['npi0'] >  1), 'category' ] = 804
             df.loc[ (df['category']== 21) & (df['npi0'] >  1), 'category' ] = 804
+            #df.loc[ (df['category']== 31) & (df['npi0'] >  2), 'category' ] = 807
+            #df.loc[ (df['category']== 21) & (df['npi0'] >  2), 'category' ] = 807
             df.loc[ (df['category']== 4), 'category' ] = 806
             df.loc[ (df['category']== 5), 'category' ] = 806
             df.loc[ (df['category']== 1),   'category' ] = 805
@@ -1941,7 +2163,7 @@ pot_data_unblinded = {
     "pi0" : {
         1: (1.509E+20, 33582996),
         2: (2.411E+20, 56116016),
-	3: (1.971E+20, 47133521), },
+        3: (1.971E+20, 47133521), },
     "numu" : {
         1: (1.62E+20, 36139233),
         2: (2.62E+20, 62045760),
@@ -1971,7 +2193,6 @@ pot_data_unblinded = {
 
 pot_mc_samples = {}
 
-
 # v48
 pot_mc_samples[30] = {
     'mc': 1.34E+21, # 1.33E+21,
@@ -1999,14 +2220,16 @@ pot_mc_samples[3] = {
     'nccpi': 3.63E+22, # 1.80E+22,
     'ccnopi': 1.11E+22, # 5.51E+21,
     'cccpi': 1.48E+22, # 5.19E+21,
-    'ext': 214555174,
+    #'ext': 205802114,
+    'ext': 214555174, #OLD
 }
 
 pot_mc_samples[2] = {
     'mc': 1.02E+21, # 1.01E+21,
     'nue': 6.32E+22, # 6.41E+22,
     'lee': 6.32E+22, #6.41E+22,
-    'ext': 152404980,
+    #'ext': 153236385,
+    'ext': 152404980, #OLD
     'dirt': 9.50E+20,
 }
 
@@ -2022,7 +2245,8 @@ pot_mc_samples[1] = {
     'nccpi': 2.76E+22, # 8.93E+21,
     'ccnopi': 1.14E+22, # 5.81E+21,
     'cccpi': 1.55E+22, # 6.04E+21,
-    'ext': 65498807,
+    #'ext': 65473410,
+    'ext': 65498807, OLD
 }
 '''
 # v43

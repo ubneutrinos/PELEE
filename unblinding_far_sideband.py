@@ -1,3 +1,9 @@
+# pi0 preselection
+PREPI0Q = 'nslice == 1'
+PREPI0Q += ' and contained_fraction > 0.4'
+PREPI0Q += ' and shr_energy_tot_cali > 0.07'
+PREPI0Q += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
+
 # nue preselection
 PRESQ = 'nslice == 1'
 PRESQ += ' and selected == 1'
@@ -29,7 +35,7 @@ NPVLCUTQ = NPVLCUTQ_all_showers + ' and n_showers_contained == 1'
 #NPVLCUTQ = NPVLCUTQ_all_showers + ' and (n_showers_contained == 1 or (n_showers_contained>1 and shr12_cos_p1_dstart>0.99))'
 
 # loose box cuts
-NPLCUTQ_all_showers = NPVLCUTQ_all_showers
+NPLCUTQ_all_showers = NPPRESQ
 NPLCUTQ_all_showers += ' and CosmicIPAll3D > 10.'
 NPLCUTQ_all_showers += ' and trkpid < 0.02'
 NPLCUTQ_all_showers += ' and hits_ratio > 0.50'
@@ -154,8 +160,8 @@ ZPBDT = ZPBDT_all_tracks + ' and n_tracks_contained == 0'
 ZPPRESEL_all_tracks = PRESQ
 ZPPRESEL_onep_track = ZPPRESEL_all_tracks + ' and n_tracks_contained > 0'
 ZPPRESEL = ZPPRESEL_all_tracks + ' and n_tracks_contained == 0'
-ZPPRESEL_one_shower = ZPPRESEL + 'and n_showers_contained == 1'
-PLOOSESEL_all_tracks = ZPPRESEL_all_tracks
+ZPPRESEL_one_shower = ZPPRESEL + ' and n_showers_contained == 1'
+ZPLOOSESEL_all_tracks = ZPPRESEL_all_tracks
 ZPLOOSESEL_all_tracks += ' and n_showers_contained == 1'
 ZPLOOSESEL_all_tracks += ' and CosmicIPAll3D > 10.'
 ZPLOOSESEL_all_tracks += ' and CosmicDirAll3D > -0.9 and CosmicDirAll3D < 0.9'
@@ -176,7 +182,7 @@ ZPBDTLOOSE_onep_track = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained > 0'
 ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
 ZPBDTLOOSE += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 
-ZPPRESEL_two_shower = ZPPRESEL + 'and n_showers_contained > 1'
+ZPPRESEL_two_shower = ZPPRESEL + ' and n_showers_contained > 1'
 ZPLOOSESEL_two_shower = ZPPRESEL_two_shower
 ZPLOOSESEL_two_shower += ' and CosmicIPAll3D > 10.'
 ZPLOOSESEL_two_shower += ' and CosmicDirAll3D > -0.9 and CosmicDirAll3D < 0.9'
@@ -187,21 +193,28 @@ ZPLOOSESEL_two_shower += ' and secondshower_Y_nhit < 50'
 ZPLOOSESEL_two_shower += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 100'
 ZPLOOSESEL_two_shower += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
 ZPLOOSESEL_two_shower += ' and shr_trk_len < 300.'
+ZPLOOSESEL_two_shower += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 ZPLOOSESEL_two_shower += ' and n_tracks_contained == 0'
-ZPBDTLOOSE_two_shower = ZPLOOSESEL_two_shower + 'and bkg_score > 0.72'
+ZPBDTLOOSE_two_shower = ZPLOOSESEL_two_shower + ' and bkg_score > 0.72'
 
-CCNCPI0SEL = PRESQ
-CCNCPI0SEL += ' and CosmicIPAll3D > 30.'
-CCNCPI0SEL += ' and CosmicDirAll3D > -0.90 and CosmicDirAll3D < 0.90'
-CCNCPI0SEL += ' and shr_trk_sce_start_y < 100 and shr_trk_sce_end_y < 100 and shr_trk_sce_start_y > -100 and shr_trk_sce_end_y > -100'
-CCNCPI0SEL += ' and hits_y > 50'
-CCNCPI0SEL += ' and shr_score < 0.20'
+CCNCPI0SEL = 'CosmicIPAll3D > 30.'
+#CCNCPI0SEL += ' and CosmicDirAll3D > -0.90 and CosmicDirAll3D < 0.90'
+#CCNCPI0SEL += ' and shr_trk_sce_start_y < 100 and shr_trk_sce_end_y < 100 and shr_trk_sce_start_y > -100 and shr_trk_sce_end_y > -100'
+CCNCPI0SEL += ' and shr_trk_sce_end_y < 105'
+CCNCPI0SEL += ' and hits_y > 80'
+CCNCPI0SEL += ' and shr_score < 0.25'
+#v1
+CCNCPI0SEL += ' and topological_score > 0.1'
+
+CCNCPI0SEL1TRK = CCNCPI0SEL
+CCNCPI0SEL1TRK += ' and n_tracks_contained > 0'
 
 CCPI0SEL = CCNCPI0SEL
-CCPI0SEL += ' and n_tracks_contained > 0 and trkpid > 0.3'
+CCPI0SEL += ' and n_tracks_contained > 0 and trkpid > 0.5'
 
 NCPI0SEL = CCNCPI0SEL
-NCPI0SEL += ' and (n_tracks_contained == 0 or trkpid < 0.3)'
+NCPI0SEL += ' and (n_tracks_contained == 0 or trkpid < 0.5)'
+NCPI0SEL += ' and (n_tracks_contained == n_tracks_tot)' # no exiting tracks
 
 
 # SIDEBANDS CUTS
@@ -274,6 +287,7 @@ sideband_categories = {
 
 # preselection categories
 preselection_categories = {
+    'PI0': {'query': PREPI0Q, 'title': 'Pi0 Presel.', 'dir': 'PI0'},
     'NUE': {'query': PRESQ, 'title': 'Nue Presel.', 'dir': 'NUE'},
     'NP': {'query': NPPRESQ, 'title': '1eNp Presel.', 'dir': 'NP'},
     'NPOneShr': {'query': NPPRESQ_one_shower, 'title': '1eNp Presel., 1 shower', 'dir': 'NPOneShr'},
@@ -473,6 +487,12 @@ trksel_variables = [
         #('trkpid',2,(-1,1),"track LLR PID", 'twobins'),
         #('trkpid',15,(-1,1),"track LLR PID","coarse")
 ]
+shr2sel_variables = [
+        ('shr2_moliereavg',20,(0,50),"shr2 average Moliere angle [degrees]"),
+        ('shr2_score',20,(0,0.5),"shr2 score"),
+        ('subcluster2',20,(0,40),"N sub-clusters in shower2"),
+        ('tk1sh2_distance',20,(0,40),"trk1-shr2 distance [cm]"),
+]
 bdtscore_variables = [
         #('nonpi0_score',10,(0.,0.5),"BDT non-$\pi^0$ score", "low_bdt"),
         ('nonpi0_score',10,(0.5,1.0),"BDT non-$\pi^0$ score", "high_bdt"),
@@ -546,11 +566,10 @@ pi0_variables = [
         ('pi0momentum',20,(0,1000),"$\pi^0$ Momentum [MeV]"),
         ('pi0beta',40,(0,1),"$\pi^0$ $\\beta$"),
         ('pi0momanglecos',40,(0,1),"$\pi^0$ $\cos\theta$"),
-        ('epicospi',40,(0,1),"$\pi^0$ $\cos\theta$ \times $E_{\pi}$"),
+        ('epicospi',40,(0,800),"$\pi^0$ $\cos{\theta}$ $\times$ $E_{\pi}$"),
         ('asymm',20,(0,1),"$\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
         ('pi0thetacm',20,(0,1),"$\cos\\theta_{\gamma}^{CM} = \\frac{1}{\\beta_{\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
-        ('pi0_mass_Y',20,(10,510),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
-        ('pi0_mass_Y_corr',49,(10,500),"$\pi^0$ asymmetry $\pi^0$ mass [MeV]"),
+        ('pi0_mass_Y_corr',49,(10,500),"$\pi^0$ mass [MeV]"),
         ('reco_e',19,(0.15,2.15),"reconstructed energy [GeV]"),
         ('shr_energy_tot_cali',20,(0.05,1.50),"reconstructed shower energy [GeV]"),
         ('trk_energy_tot',20,(0.05,1.50),"reconstructed track energy [GeV]"),
@@ -566,6 +585,11 @@ pi0_variables = [
         ('pi0_energy1_Y',20,(60,460),"leading $\gamma$ shower energy [MeV]"),
         ('pi0_energy2_Y',20,(40,240),"sub-leading $\gamma$ shower energy [MeV]"),
         ('pi0_dedx1_fit_Y',20,(1.0,11.0),"leading $\gamma$ shower dE/dx [MeV/cm]"),
+        #('pi0_radlen1',25,(0,100),"leading $\gamma$ shower conversion distance [cm]"),
+        #('pi0_radlen2',25,(0,100),"sub-leading $\gamma$ shower conversion distance [cm]"),
+        #('pi0_energy1_Y',25,(0,500),"leading $\gamma$ shower energy [MeV]"),
+        #('pi0_energy2_Y',25,(0,250),"sub-leading $\gamma$ shower energy [MeV]"),
+        #('pi0_dedx1_fit_Y',20,(1.0,11.0),"leading $\gamma$ shower dE/dx [MeV/cm]"),
 ]
 pi0_truth_variables = [
         ('shr_bkt_pdg',20,(5, 25),r"shower backtracked pdg"),

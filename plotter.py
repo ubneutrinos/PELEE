@@ -76,6 +76,7 @@ category_labels = {
     802: r"$\nu_{\mu} \eta \rightarrow \gamma\gamma$",
     803: r'1 $\pi^0$',
     804: r'2 $\pi^0$',
+    807: r'3+ $\pi^0$',
     805: r'$\nu$ other',
     806: r'out of FV',
     6: r"other",
@@ -189,6 +190,7 @@ category_colors = {
     # eta categories
     803: "xkcd:cerulean",
     804: "xkcd:blue",
+    807: "xkcd:blurple",
     801: "xkcd:purple",
     802: "xkcd:lavender",
     806: "xkcd:crimson",
@@ -1221,11 +1223,15 @@ class Plotter:
             
         if (anyfilefound == True):
             np.nan_to_num(detsys_frac_cov, copy=False, nan=1)
+            for i,j in zip(np.diag_indices_from(detsys_frac_cov)[0],np.diag_indices_from(detsys_frac_cov)[1]):
+                if detsys_frac_cov[i][j] == 0:
+                    detsys_frac_cov[i][j] = (0.2**2)
         else:
             detsys_frac_cov[np.diag_indices_from(detsys_frac_cov)] = (0.2**2) * np.ones(len(binedges)-1)
         
             
         #print (sample,': frac. detsys matrix is : \n', detsys_frac_cov)
+        #print (sample,': frac. detsys matrix is : \n', np.diag(detsys_frac_cov))
         return detsys_frac_cov
 
     def add_detsys_error(self,sample,mc_entries_v,weight):
@@ -1645,6 +1651,8 @@ class Plotter:
         edgecolor="black",
         **plot_options)
 
+        #print(n_tot)
+
         summarydict = {}
         if 0:#kind == "paper_category":
             for c in order_var_dict.keys():
@@ -1772,7 +1780,7 @@ class Plotter:
 
         exp_err    = np.sqrt(err_mc + err_ext + err_nue + err_dirt + err_ncpi0 + err_ccpi0 + err_ccnopi + err_cccpi + err_nccpi + err_ncnopi)
         #print("counting_err: {}".format(exp_err))
-        detsys_err = sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi
+        detsys_err = np.diag(sys_mc + sys_nue + sys_dirt + sys_ncpi0 + sys_ccpi0 + sys_ccnopi + sys_cccpi + sys_nccpi + sys_ncnopi)
         #print ('detsys covariance matrix is : \n',detsys_err)
         #print("detsys_err: {}".format(detsys_err))
         exp_err = np.sqrt(exp_err**2 + detsys_err)#**2)
@@ -1912,7 +1920,7 @@ class Plotter:
                 label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
 
         #frac = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], np.array([1,1,1,5,5,5]), np.array([1,1,1,5,5,5]), 70)
-        self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 220)
+        #self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 220)
 
         if (draw_sys):
 

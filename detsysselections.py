@@ -143,6 +143,10 @@ def ZPLCUTQ(APP):
     q = ZPLCUTQ_all_showers(APP) + ' and n_showers_contained_%s == 1'%APP
     return q
 
+def ZPLCUTQ_2pshowers(APP):
+    q = ZPLCUTQ_all_showers(APP) + ' and n_showers_contained_%s > 1'%APP
+    return q
+
 def ZPBDTCQ(APP):
     q = ZPLCUTQ(APP)
     q += ' and bkg_score_%s >0.72'%APP
