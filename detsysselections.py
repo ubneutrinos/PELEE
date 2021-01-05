@@ -152,6 +152,28 @@ def ZPBDTCQ(APP):
     q += ' and bkg_score_%s >0.72'%APP
     return q
 
+def ETAPI0SEL(APP):
+
+    #q =  'npi0_%s > 1'%APP
+    q = 'nslice_%s == 1'%APP
+    q += ' and topological_score_%s > 0.1'%APP
+    q += ' and reco_nu_vtx_sce_x_%s > 10  and reco_nu_vtx_sce_x_%s < 250'%(APP,APP)
+    q += ' and reco_nu_vtx_sce_y_%s > -110 and reco_nu_vtx_sce_y_%s < 110'%(APP,APP)
+    q += ' and reco_nu_vtx_sce_z_%s > 25 and reco_nu_vtx_sce_z_%s < 990'%(APP,APP)
+    q += ' and n_showers_050_tot_%s == 2'%APP
+    q += ' and pi0_dot1_%s > 0.9 and pi0_dot2_%s > 0.9'%(APP,APP)
+    q += ' and pi0_radlen1_%s > 2 and pi0_radlen2_%s > 2'%(APP,APP)
+    return q
+
+def ETASEL(APP):
+    q = ETAPI0SEL(APP)
+    q += ' and pi0_mass_Y_corr_%s > 250'%APP
+    q += ' and pfp_1_dir_z_%s > 0'%APP
+    q += ' and pi0_gammadot_%s < 0'%APP
+    q += ' and pi0_energy1_Y_%s > 200'%APP
+    q += ' and pi0_energy2_Y_%s > 100'%APP
+    return q
+
 def NUMUPRESEL(APP):
 
     q = 'nslice_%s == 1'%APP
@@ -171,6 +193,29 @@ def NUMUSEL(APP):
     q += ' and n_muons_tot_%s > 0'%APP
 
     return q
+
+def NUMUSELNP(APP):
+
+
+    q = NUMUSEL(APP)
+    q += ' and n_protons_tot_%s > 0'%APP
+
+    return q
+
+def NUMUSEL0P(APP):
+
+
+    q = NUMUSEL(APP)
+    q += ' and n_protons_tot_%s == 0'%APP
+
+    return q
+
+def NUMUSEL1MU1P(APP):
+
+    q = NUMUPRESEL(APP)
+    q += ' and n_tracks_contained_%s == 2 and trk2_pid_%s < -0.2'%(APP,APP)
+
+    return q    
 
 
 def NpQuery(APP):

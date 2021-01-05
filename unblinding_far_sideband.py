@@ -267,7 +267,18 @@ NUMUCRT = ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
 NUMUPRESELCRT = NUMUPRESEL + NUMUCRT
 
 NUMUSEL = NUMUPRESEL + ' and n_muons_tot > 0'
+
+NUMUSELNP = NUMUSEL + ' and n_protons_tot > 0'
+NUMUSEL0P = NUMUSEL + ' and n_protons_tot == 0'
+
 NUMUSELCRT = NUMUSEL + NUMUCRT
+
+NUMUSELCRTNP = NUMUSELCRT + ' and n_protons_tot > 0'
+NUMUSELCRT0P = NUMUSELCRT + ' and n_protons_tot == 0'
+
+
+
+NUMUSEL1MU1P = NUMUSEL + ' and n_tracks_contained == 2 and trk2_pid < -0.2'
 
 
 # sideband categories
@@ -300,7 +311,8 @@ preselection_categories = {
     'None': {'query': None, 'title': None, 'dir': 'None'},
     'NSLICE': {'query': 'nslice==1', 'title': r"SliceID selection", 'dir': 'NSLICE'},
     'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
-    'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'}
+    'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ pre-selection w/ CRT", 'dir': 'NUMUCRT'}
+
 }
 
 
@@ -331,10 +343,16 @@ selection_categories = {
     'NUMUPRE': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'},
     'NUMU': {'query': NUMUSEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'},
+    'NUMU1MU1P': {'query': NUMUSEL1MU1P, 'title': r"$\nu_{\mu}$ 1$\mu$1$p$ selection", 'dir': 'NUMU1MU1P'},
     'PI0SEL': {'query': PI0SEL,'title': r"$\pi^0$ selection",'dir':"PI0"},
     'CCNCPI0': {'query': CCNCPI0SEL, 'title': r"CC/NC pi0 selection", 'dir': 'CCNCPI0'},
     'CCPI0': {'query': CCPI0SEL, 'title': r"CC pi0 selection", 'dir': 'CCPI0'},
-    'NCPI0': {'query': NCPI0SEL, 'title': r"NC pi0 selection", 'dir': 'NCPI0'}
+    'NCPI0': {'query': NCPI0SEL, 'title': r"NC pi0 selection", 'dir': 'NCPI0'},
+    'PI0': {'query': PI0SEL, 'title': r"$\pi^0$ selection", 'dir': 'PI0'},
+    'NUMUCRTNP': {'query': NUMUSELCRTNP, 'title': r"$1\mu$Np selection w/ CRT", 'dir': 'NUMUCRTNP'},
+    'NUMUCRT0P': {'query': NUMUSELCRT0P, 'title': r"$1\mu$0p selection w/ CRT", 'dir': 'NUMUCRT0P'},
+    'NUMUNP': {'query': NUMUSELNP, 'title': r"$1\mu$Np selection", 'dir': 'NUMUNP'},
+    'NUMU0P': {'query': NUMUSEL0P, 'title': r"$1\mu$0p selection", 'dir': 'NUMU0P'},
 }
 
 stages_queries = {
@@ -670,8 +688,8 @@ bdt_common_variables_1e0p = [
     ('subcluster',10,(4,44),"N sub-clusters in shower"),
     ('shrmoliereavg',9,(0,15),"average Moliere angle [degrees]"),
     ('CosmicIPAll3D',10,(10,200),"CosmicIPAll3D [cm]"),
-    ('CosmicDirAll3D',10,(-0.9,0.9),"cos(CosmicDirAll3D)"),
-    ('secondshower_Y_nhit',10,(0,50),"Nhit 2nd shower (Y)"),
+    ('CosmicDirAll3D',10,(-1,1),"cos(CosmicDirAll3D)"),
+    ('secondshower_Y_nhit',10,(0,200),"Nhit 2nd shower (Y)"),
     ('secondshower_Y_dot',10,(0,1),"cos(2nd shower direction wrt vtx) (Y)"),
     ('anglediff_Y',10,(0,350),"angle diff 1st-2nd shower (Y) [degrees]"),
     ('secondshower_Y_vtxdist',10,(0.,200),"vtx dist 2nd shower (Y)"),
