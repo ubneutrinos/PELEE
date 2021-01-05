@@ -1117,9 +1117,9 @@ class Plotter:
         #DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","R2","SCE","LYD","LYR","LYA"]
         DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","dEdX","SCE","LYD","LYR","LYA"]
 
-        if (os.path.isdir(path) == False):
-            #print ('DETSYS. path %s is not valid'%path)
-            return detsys_frac
+        #if (os.path.isdir(path) == False):
+        #    #print ('DETSYS. path %s is not valid'%path)
+        #    return detsys_frac
 
         anyfilefound = False
         for varsample in DETSAMPLES:
@@ -1275,7 +1275,7 @@ class Plotter:
 
         #print ('mc entries for sample %s : \n'%(sample),mc_entries_v)
         #print ('weight for sample %s : '%sample,weight)
-        #print ('detys frac. cov. matrix fir sample %s : \n '%(sample),self.detsys[sample])
+        #print ('detys frac. cov. matrix for sample %s : \n '%(sample),self.detsys[sample])
         #print ('detsys covariance matrix for sample %s : \n'%(sample), detsys_v)
                 
         return detsys_v
