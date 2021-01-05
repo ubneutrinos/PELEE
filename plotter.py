@@ -1069,7 +1069,7 @@ class Plotter:
 
 
 
-    def plot_variable(self, variable, query="selected==1", title="", kind="event_category",
+    def plot_variable(self, variable, query="selected==1", title="", kind="event_category", draw_geoSys=False,
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
                       detsys=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTuneTimesPPFX",
                       ncol=2,
@@ -1569,7 +1569,12 @@ class Plotter:
         if draw_sys:
             if (COVMATRIX == ""):
                 print("IN COVMATRIX_XS_PPFX")
-                self.cov = (self.sys_err("weightsPPFX",variable,query,plot_options["range"],plot_options["bins"],genieweight)+ self.sys_err("weightsGenie",variable,query,plot_options["range"],plot_options["bins"],genieweight) + self.sys_err("weightsReint",variable,query, plot_options["range"], plot_options["bins"], genieweight))
+                self.cov = (self.sys_err("weightsPPFX",variable,query,plot_options["range"],plot_options["bins"],genieweight)+
+                            self.sys_err("weightsGenie",variable,query,plot_options["range"],plot_options["bins"],genieweight)+
+                            self.sys_err("weightsReint",variable,query, plot_options["range"],plot_options["bins"],genieweight))
+                if draw_geoSys :
+                    print("Add Drawing Geo Sys")
+                    self.cov += self.sys_err_NuMIGeo("weightsNuMIGeo",variable,query,plot_options["range"],plot_options["bins"],genieweight)
 
                 #self.cov = (self.sys_err("weightsReint",variable,query,plot_options["range"],plot_options["bins"],genieweight))
 
@@ -2170,14 +2175,11 @@ class Plotter:
         ax.set_ylabel("NuMI / (MC+EXT)")
         ax.axhline(1, linestyle="--", color="k")
 
+    # NuMI needs to add PPFX workaround for dirt
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar):
         # how many universes?
-        Nuniverse = 600 #100 #len(df)
+        Nuniverse = 500 #100 #len(df)
         print("Universes",Nuniverse)
-
-        #if (name == "weightsGenie"):
-        #    Nuniverse = 100
-
 
         n_tot = np.empty([Nuniverse, n_bins])
         n_cv_tot = np.empty(n_bins)
@@ -2185,7 +2187,7 @@ class Plotter:
         n_cv_tot.fill(0)
 
         for t in self.samples:
-            if t in ["ext", "data", "lee", "data_7e18", "data_1e20"]: 
+            if t in ["ext", "data", "lee", "data_7e18", "data_1e20","dirt"]: 
                 continue
 
             # for pi0 fit only
@@ -2248,6 +2250,148 @@ class Plotter:
 
         return cov
 
+    def sys_err_NuMIGeoMultiverse(self, name, var_name, query, x_range, n_bins, weightVar):
+        # how many universes?
+        Nuniverse = 20 #100 #len(df)
+        print("Universes Geo Multiverses",Nuniverse)
+
+        n_tot = np.empty([Nuniverse, n_bins])
+        n_cv_tot = np.empty(n_bins)
+        n_tot.fill(0)
+        n_cv_tot.fill(0)
+
+        for t in self.samples:
+            if t in ["ext", "data", "lee", "data_7e18", "data_1e20","dirt"]: 
+                continue
+
+            # for pi0 fit only
+            #if ((t in ["ncpi0","ccpi0"]) and (name == "weightsGenie") ):
+            #    continue
+
+            tree = self.samples[t]
+
+
+            extra_query = ""
+            if t == "mc":
+                extra_query = "& " + self.nu_pdg # "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
+
+            queried_tree = tree.query(query+extra_query)
+            variable = queried_tree[var_name]
+            syst_weights = queried_tree[name]
+            #print ('N universes is :',len(syst_weights))
+            spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
+            spline_fix_var = queried_tree[weightVar] * self.weights[t]
+            if (name != "weightsNuMIGeo"):                     
+                    sys.exit(1) 
+
+            s = syst_weights
+            df = pd.DataFrame(s.values.tolist())
+            #print (df)
+            #continue
+
+            if var_name[-2:] == "_v":
+                #this will break for vector, "_v", entries
+                variable = variable.apply(lambda x: x[0])
+
+            n_cv, bins = np.histogram(
+                variable,
+                range=x_range,
+                bins=n_bins,
+                weights=spline_fix_cv)
+            n_cv_tot += n_cv
+
+            if not df.empty:
+                for i in range(Nuniverse):
+                    weight = df[i].values 
+                    weight[np.isnan(weight)] = 1
+                    weight[weight > 100] = 1
+                    weight[weight < 0] = 1
+                    weight[weight == np.inf] = 1
+
+                    n, bins = np.histogram(
+                        variable, weights=weight*spline_fix_var, range=x_range, bins=n_bins)
+                    n_tot[i] += n
+
+        cov = np.empty([len(n_cv), len(n_cv)])
+        cov.fill(0)
+
+        for n in n_tot:
+            for i in range(len(n_cv)):
+                for j in range(len(n_cv)):
+                    cov[i][j] += (n[i] - n_cv_tot[i]) * (n[j] - n_cv_tot[j])
+
+        cov /= Nuniverse
+
+        return cov
+    
+    def sys_err_NuMIGeo(self, name, var_name, query, x_range, n_bins, weightVar):
+      # how many universes?
+        print("Number of variations Universes",10)
+        for variationNumber in [x*2 for x in range(10)]:
+            n_tot = np.empty([2, n_bins])
+            n_cv_tot = np.empty(n_bins)
+            n_tot.fill(0)
+            n_cv_tot.fill(0)########
+
+            for t in self.samples:
+                if t in ["ext", "data", "lee", "data_7e18", "data_1e20","dirt"]: 
+                    continue
+               
+                tree = self.samples[t]
+                extra_query = ""
+                if t == "mc":
+                    extra_query = "& " + self.nu_pdg # "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
+
+                queried_tree = tree.query(query+extra_query)
+                variable = queried_tree[var_name]
+                syst_weights = queried_tree[name]
+                spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
+                spline_fix_var = queried_tree[weightVar] * self.weights[t]
+                if (name != "weightsNuMIGeo"):                     
+                    sys.exit(1) 
+    
+                s = syst_weights
+                df = pd.DataFrame(s.values.tolist())
+
+                if var_name[-2:] == "_v":
+                    #this will break for vector, "_v", entries
+                    variable = variable.apply(lambda x: x[0])
+
+                n_cv, bins = np.histogram(
+                    variable,
+                    range=x_range,
+                    bins=n_bins,
+                    weights=spline_fix_cv)
+                n_cv_tot += n_cv
+
+                if not df.empty:
+                    for i in range(2):
+                        #print(df.shape)
+                        weight = df[i+variationNumber].values
+                        weight[np.isnan(weight)] = 1
+                        weight[weight > 100] = 1
+                        weight[weight < 0] = 1
+                        weight[weight == np.inf] = 1
+
+                        n, bins = np.histogram(
+                            variable, weights=weight*spline_fix_var, range=x_range, bins=n_bins)
+                        n_tot[i] += n
+
+            tempCov = np.empty([len(n_cv), len(n_cv)])
+            tempCov.fill(0)
+            for n in n_tot:
+                for i in range(len(n_cv)):
+                    for j in range(len(n_cv)):
+                        tempCov[i][j] += (n[i] - n_cv_tot[i]) * (n[j] - n_cv_tot[j])
+
+            tempCov /= 2
+            if variationNumber == 0:
+                cov = tempCov
+            else:
+                cov += tempCov
+
+            
+        return cov
 
     def get_SBNFit_cov_matrix(self,COVMATRIX,NBINS):
 
