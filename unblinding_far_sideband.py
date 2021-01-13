@@ -210,12 +210,11 @@ CCNCPI0SEL1TRK = CCNCPI0SEL
 CCNCPI0SEL1TRK += ' and n_tracks_contained > 0'
 
 CCPI0SEL = CCNCPI0SEL
-CCPI0SEL += ' and n_tracks_contained > 0 and trkpid > 0.5'
+CCPI0SEL += ' and ((trkpid>0.6 and n_tracks_contained>0) or (n_tracks_contained < n_tracks_tot))'
 
 NCPI0SEL = CCNCPI0SEL
-NCPI0SEL += ' and (n_tracks_contained == 0 or trkpid < 0.5)'
+NCPI0SEL += ' and (n_tracks_contained == 0 or trkpid < 0.6)'
 NCPI0SEL += ' and (n_tracks_contained == n_tracks_tot)' # no exiting tracks
-
 
 # SIDEBANDS CUTS
 LOW_PID = '(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1))'

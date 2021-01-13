@@ -1923,6 +1923,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         for i,df in enumerate(df_v):
             df['asymm'] = np.abs(df['pi0_energy1_Y']-df['pi0_energy2_Y'])/(df['pi0_energy1_Y']+df['pi0_energy2_Y'])
             df['pi0energy'] = 134.98 * np.sqrt( 2. / ( (1-(df['asymm'])**2) * (1-df['pi0_gammadot']) ) )
+            df["pi0energygev"] = df["pi0energy"]*0.001
             df['pi0momentum'] = np.sqrt(df['pi0energy']**2 - 134.98**2)
             df['pi0beta'] = df['pi0momentum']/df['pi0energy']
             df['pi0thetacm'] = df['asymm']/df['pi0beta']
