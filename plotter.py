@@ -79,6 +79,15 @@ category_labels = {
     807: r'3+ $\pi^0$',
     805: r'$\nu$ other',
     806: r'out of FV',
+    # ccncpi0 categories start with 90X
+    901: r"$\nu$, no $\pi^0$",
+    902: r"$\nu$, 2+$\pi^0$",
+    903: r"$\nu_{\mu}$ CC 1$\pi^{0}$",
+    904: r"$\nu$ NC 1$\pi^{0}$",
+    905: r"$\nu_{e}$ CC $\pi^{0}$",
+    906: r"OOFV",
+    907: r"Cosmic",
+    #
     6: r"other",
     0: r"No slice"
 }
@@ -196,6 +205,14 @@ category_colors = {
     802: "xkcd:lavender",
     806: "xkcd:crimson",
     805: "xkcd:cyan",
+    # ccncpi0 categories
+    901: "xkcd:cyan",
+    902: "xkcd:blurple",
+    903: "xkcd:cerulean",
+    904: "xkcd:sky blue",
+    905: "xkcd:green",
+    906: "xkcd:brick",
+    907: "xkcd:light red",
 }
 
 pdg_colors = {
@@ -812,6 +829,13 @@ class Plotter:
 
         return category, plotted_variable
 
+    def _categorize_entries_ccncpi0(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+        category = self._selection(
+            "ccncpi0_category", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        plotted_variable = self._selection(
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        return category, plotted_variable
+
     def _categorize_entries_int(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
             "interaction", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
@@ -1355,6 +1379,9 @@ class Plotter:
         elif kind == "paper_category_numu":
             categorization = self._categorize_entries_paper_numu
             cat_labels = paper_labels_numu
+        elif kind == "ccncpi0_category":
+            categorization = self._categorize_entries_ccncpi0
+            cat_labels = category_labels
         elif kind == "particle_pdg":
             var = self.samples["mc"].query(query).eval(variable)
             if var.dtype == np.float32:
@@ -1609,7 +1636,7 @@ class Plotter:
             for c in order_var_dict.keys()
         ]
 
-        if kind == "event_category" or kind == "paper_category" or kind == "paper_category_numu":
+        if kind == "event_category" or kind == "paper_category" or kind == "paper_category_numu" or kind == "ccncpi0_category":
             plot_options["color"] = [category_colors[c]
                                      for c in order_var_dict.keys()]
         elif kind == "particle_pdg":

@@ -2188,6 +2188,20 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             continue
 
     for key, df in samples.items():
+        df.loc[:,"ccncpi0_category"] = df["category"]
+        if key is 'data': continue
+        if key is 'dirt':
+            df['ccncpi0_category'] = 906
+            continue
+        df.loc[(df['npi0']==0),  'ccncpi0_category' ] = 901
+        df.loc[(df['npi0']>1),   'ccncpi0_category' ] = 902
+        df.loc[(df['npi0']==1)&(df['ccnc']==0)&((df['nu_pdg']==14)|(df['nu_pdg']==-14)),  'ccncpi0_category' ] = 903
+        df.loc[(df['npi0']==1)&(df['ccnc']==1),  'ccncpi0_category' ] = 904
+        df.loc[(df['npi0']==1)&(df['ccnc']==0)&((df['nu_pdg']==12)|(df['nu_pdg']==-12)),  'ccncpi0_category' ] = 905
+        df.loc[(df['isVtxInFiducial']==0),  'ccncpi0_category' ] = 906
+        df.loc[(df['slnunhits']/df['slnhits']<=0.1),  'ccncpi0_category' ] = 907
+
+    for key, df in samples.items():
         if key is 'data':   df.loc[:, "sample"] = 0
         if key is 'mc':     df.loc[:, "sample"] = 1
         if key is 'nue':    df.loc[:, "sample"] = 2
@@ -2326,7 +2340,7 @@ pot_mc_samples[3] = {
     'nue':7.75E+22, # 7.73E+22,
     'lee': 7.75E+22, #7.73E+22,
     'ncpi0': 2.31E+21, # 2.29E+21,
-    'ccpi0': (6.43E+21)/2., # (6.40E+21)/2.,
+    'ccpi0': (6.43E+21),#/2., # (6.40E+21)/2.,
     'dirt': 3.28E+20, # 3.20E+20,
     'ncnopi': 1.59E+22, #7.23E+21,
     'nccpi': 3.63E+22, # 1.80E+22,
