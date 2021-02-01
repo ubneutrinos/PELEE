@@ -2479,7 +2479,7 @@ class Plotter:
         print("Flux mean : %.02f. Flux var : %.02f"%(np.mean(flux_int_v),np.std(flux_int_v)))
 
         return            
-        
+    
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar, islee=False):
         # how many universes?
         Nuniverse = 100 #len(df)
