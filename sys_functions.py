@@ -51,6 +51,7 @@ def sampleSystematics(df, function, var_weight_sys, var_weight_cv='weightSplineT
         weights_sys = np.stack(df["weightSpline"] * df[var_weight_sys].values, axis=1)
     else:
         weights_sys = np.stack(df[var_weight_sys].values, axis=1)
+    weights_sys = weights_sys.astype(float)
     weights_sys /= 1000.
     
     if n_max_universes is not None:

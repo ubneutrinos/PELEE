@@ -42,7 +42,8 @@ class ccncpi0_analysis(object):
                     self.vardict['MCFVARS']+\
                     ['weightSplineTimesTune']+\
                     ['pi0_mcgamma0_pz','pi0_mcgamma1_pz','pi0_mcgamma0_e','pi0_mcgamma1_e']+\
-                    ["weightsGenie", "weightSpline"]
+                    ["weightsGenie", "weightSpline"]+\
+                    ["weightsFlux", "weightSpline"]
         self.variables = list(set(self.variables))
 
         self.ccr1 = self.ucc1.pandas.df(self.variables, flatten=False)
