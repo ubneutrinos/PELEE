@@ -6,11 +6,11 @@
 #include <iostream>
 #include <cstdlib>
 
-void slimmer_1enp_far_sideband_extended(TString finname)
+void slimmer_1enp_near_sideband_extended(TString finname)
 {
   // Get old file, old tree and set top branch address
   //TString finname = "/home/nic/Desktop/MicroBooNE/bnb_nue_analysis/PELEE/0304/run1/nuepresel/data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19_nuepresel.root";
-  TString foutname = "neutrinoselection_filt_1enp_far_sideband_skimmed.root";
+  TString foutname = "neutrinoselection_filt_1enp_near_sideband_skimmed.root";
   TFile oldfile(finname);
   TTree *oldtree;
   oldfile.GetObject("nuselection/NeutrinoSelectionFilter", oldtree);
@@ -115,16 +115,16 @@ void slimmer_1enp_far_sideband_extended(TString finname)
       std::cout << "high_energy++" << std::endl;
     */
 
-    bool far_sideband = np_preseq_one_shower && (low_pid || high_energy);
+    bool near_sideband = np_preseq_one_shower && (low_pid || high_energy);
 
     /*
-    if (far_sideband)
-      std::cout << "far_sideband++" << std::endl;
+    if (near_sideband)
+      std::cout << "near_sideband++" << std::endl;
     */
 
-    if (far_sideband)
+    if (near_sideband)
     {
-      //std::cout << "far sideband pass!" << std::endl;
+      //std::cout << "near sideband pass!" << std::endl;
       newtree->Fill();
     }// if cuts pass
   }// for all entries

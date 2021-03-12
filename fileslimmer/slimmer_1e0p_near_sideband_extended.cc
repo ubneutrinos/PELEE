@@ -6,11 +6,11 @@
 #include <iostream>
 #include <cstdlib>
 
-void slimmer_1e0p_far_sideband_extended(TString finname)
+void slimmer_1e0p_near_sideband_extended(TString finname)
 {
   // Get old file, old tree and set top branch address
   //TString finname = "/uboone/data/users/cerati/searchingfornues/v08_00_00_42/cc0pinp/0414/run1/data_bnb_peleeTuple_unblinded_uboone_v08_00_00_42_run1_C1_nuepresel.root";
-  TString foutname = "neutrinoselection_filt_1e0p_far_sideband_skimmed.root";
+  TString foutname = "neutrinoselection_filt_1e0p_near_sideband_skimmed.root";
   TFile oldfile(finname);
   TTree *oldtree;
   oldfile.GetObject("nuselection/NeutrinoSelectionFilter", oldtree);
@@ -70,7 +70,7 @@ void slimmer_1e0p_far_sideband_extended(TString finname)
 
     bool low_bkg_score = bdt_bkg_0p < 0.72;
     bool high_energy = reco_e > 0.65;
-    bool far_sideband = presel1e0p && (low_bkg_score || high_energy);
+    bool near_sideband = presel1e0p && (low_bkg_score || high_energy);
 
     /*
     if (preseq)
@@ -81,11 +81,11 @@ void slimmer_1e0p_far_sideband_extended(TString finname)
       std::cout << "low_bkg_score ++ " << std::endl;
     if (high_energy)
       std::cout << "high_energy ++ " << std::endl;
-    if (far_sideband)
-      std::cout << "far_sideband ++ " << std::endl;
+    if (near_sideband)
+      std::cout << "near_sideband ++ " << std::endl;
     */
 
-    if (far_sideband)
+    if (near_sideband)
     {
       std::cout << "saving  " << i << std::endl;
       newtree->Fill();
