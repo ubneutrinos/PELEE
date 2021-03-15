@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import binned_statistic
 
 def Eff_vectorial(df,weights,var,num_query,den_query,bin_edges,with_uncertainties=False):
+    '''to be removed'''
     if len(weights.shape) == 1:
         if type(weights) != np.ndarray:
             weights = weights.values
@@ -36,7 +37,11 @@ def Eff_ccnc(df,weights,var,num_query,den_query,bin_edges, num_dem=False):
             out.append(num_counts[0])
             out.append(den_counts[0])
         out.append(num_counts[0]/den_counts[0])
-    out.append(out[5]/out[2])
+    if num_dem:
+        out.append(out[5]/out[2])
+        out.append(out[2]/out[5])
+    else:
+        out.append(out[1]/out[0])
     return np.concatenate(out, axis=1)
 
 def sampleSystematics(df, function, var_weight_sys, var_weight_cv='weightSplineTimesTune', n_max_universes=None, **kwargs):
@@ -47,10 +52,10 @@ def sampleSystematics(df, function, var_weight_sys, var_weight_cv='weightSplineT
     cv = function(df, weights_cv, **kwargs) # shape = (1, n_bin)
     print(f"cv shape = {cv.shape}")
     
-    if var_weight_sys == "weightsGenie":
-        weights_sys = np.stack(df["weightSpline"] * df[var_weight_sys].values, axis=1)
-    else:
-        weights_sys = np.stack(df[var_weight_sys].values, axis=1)
+    aux_weight_sys = df[var_weight_sys].values
+    if "Genie" in var_weight_sys:
+        aux_weight_sys *= df["weightSpline"]
+    weights_sys = np.stack(aux_weight_sys, axis=1)
     weights_sys = weights_sys.astype(float)
     weights_sys /= 1000.
     
