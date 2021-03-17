@@ -16,6 +16,7 @@ CCNCSEL = "n_showers_contained >= 2 and nslice == 1 and contained_fraction > 0.4
           " and slnunhits/slnhits>0.1"#the others are in Cosmic background category
 CCSEL = CCNCSEL + ' and ((trkpid>0.6 and n_tracks_contained>0 and n_tracks_contained == n_tracks_tot) or (n_tracks_contained < n_tracks_tot))'
 NCSEL = CCNCSEL + ' and (trkpid<0.6 or n_tracks_contained==0) and (n_tracks_contained == n_tracks_tot)'
+ACCEPTANCE = 'isVtxInFiducial == 1 and npi0==1'
 
 var2label = {
     'pi0_e': 'True Pi0 Energy [GeV]',
@@ -28,13 +29,7 @@ def gauss(x, *p):
     return A*np.exp(-(x-mu)**2/(2.*sigma**2))
 
 class ccncpi0_analysis(object):
-    def __init__(self, ntuple_path, fold = "nuselection", tree = "NeutrinoSelectionFilter", fcc1 = "prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run1_reco2", fcc3 = "prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run3_G_reco2", fnc1 = "prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2", fnc3 = "prodgenie_nc_pi0_uboone_overlay_mcc9.1_v08_00_00_26_run3_G_reco2"):
-        self.ucc1 = uproot.open(ntuple_path+fcc1+".root")[fold][tree]
-        self.unc1 = uproot.open(ntuple_path+fnc1+".root")[fold][tree]
-        self.ucc3 = uproot.open(ntuple_path+fcc3+".root")[fold][tree]
-        self.unc3 = uproot.open(ntuple_path+fnc3+".root")[fold][tree]
-        self.uproot_v = [self.ucc1, self.ucc3, self.unc1, self.unc3]
-        
+    def __init__(self, ntuple_path, fold="nuselection", tree="NeutrinoSelectionFilter", fcc1="prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run1_reco2", fcc3="prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run3_G_reco2", fnc1="prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2", fnc3="prodgenie_nc_pi0_uboone_overlay_mcc9.1_v08_00_00_26_run3_G_reco2"):
         self.vardict = get_variables()
         self.variables = self.vardict['VARIABLES']+\
                     self.vardict['NUEVARS']+\
@@ -43,18 +38,52 @@ class ccncpi0_analysis(object):
                     ['weightSplineTimesTune']+\
                     ['pi0_mcgamma0_pz','pi0_mcgamma1_pz','pi0_mcgamma0_e','pi0_mcgamma1_e']+\
                     ["weightsGenie", "weightSpline"]+\
+                    ["weightsGenieUp", "weightsGenieDn"]+\
                     ["weightsFlux", "weightSpline"]
         self.variables = list(set(self.variables))
-
-        self.ccr1 = self.ucc1.pandas.df(self.variables, flatten=False)
-        self.ncr1 = self.unc1.pandas.df(self.variables, flatten=False)
-        self.ccr3 = self.ucc3.pandas.df(self.variables, flatten=False)
-        self.ncr3 = self.unc3.pandas.df(self.variables, flatten=False)
-        self.df_v = [self.ccr1, self.ccr3, self.ncr1, self.ncr3]
+        
+        self.uproot_v = []
+        self.df_v = []
+        if fcc1 is None:
+            self.ucc1 = None
+            self.ccr1 = None
+        else:
+            print('Loading cc1')
+            self.ucc1 = uproot.open(ntuple_path+fcc1+".root")[fold][tree]
+            self.uproot_v.append(self.ucc1)
+            self.ccr1 = self.ucc1.pandas.df(self.variables, flatten=False)
+            self.df_v.append(self.ccr1)
+        if fnc1 is None:
+            self.unc1 = None
+            self.ncr1 = None
+        else:
+            print('Loading nc1')
+            self.unc1 = uproot.open(ntuple_path+fnc1+".root")[fold][tree]
+            self.uproot_v.append(self.unc1)
+            self.ncr1 = self.unc1.pandas.df(self.variables, flatten=False)
+            self.df_v.append(self.ncr1)
+        if fcc3 is None:
+            self.ucc3 = None
+            self.ccr3 = None
+        else:
+            print('Loading cc3')
+            self.ucc3 = uproot.open(ntuple_path+fcc3+".root")[fold][tree]
+            self.uproot_v.append(self.ucc3)
+            self.ccr3 = self.ucc3.pandas.df(self.variables, flatten=False)
+            self.df_v.append(self.ccr3)
+        if fnc3 is None:
+            self.unc3 = None
+            self.ncr3 = None
+        else:
+            print('Loading nc3')
+            self.unc3 = uproot.open(ntuple_path+fnc3+".root")[fold][tree]
+            self.uproot_v.append(self.unc3)
+            self.ncr3 = self.unc3.pandas.df(self.variables, flatten=False)
+            self.df_v.append(self.cnr3)
         
         self.first_initialisation()
         self.set_POT()
-        self.pi0s = pd.concat([self.ccr1, self.ccr3, self.ncr1, self.ncr3], ignore_index=True)
+        self.pi0s = pd.concat(self.df_v, ignore_index=True)
         self.set_selections()
         
     def first_initialisation(self):
@@ -115,17 +144,21 @@ class ccncpi0_analysis(object):
         ccPOT = ccr1POT+ccr3POT
         ncPOT = ncr1POT+ncr3POT
         dataPOT = 6.86e20
-
-        self.ccr1['POT'] = np.ones_like(self.ccr1['nslice'])*dataPOT/ccPOT
-        self.ccr3['POT'] = np.ones_like(self.ccr3['nslice'])*dataPOT/ccPOT
-        self.ncr1['POT'] = np.ones_like(self.ncr1['nslice'])*dataPOT/ncPOT
-        self.ncr3['POT'] = np.ones_like(self.ncr3['nslice'])*dataPOT/ncPOT
+        
+        if self.ccr1 is not None:
+            self.ccr1['POT'] = np.ones_like(self.ccr1['nslice'])*dataPOT/ccPOT
+        if self.ccr3 is not None:
+            self.ccr3['POT'] = np.ones_like(self.ccr3['nslice'])*dataPOT/ccPOT
+        if self.ncr1 is not None:
+            self.ncr1['POT'] = np.ones_like(self.ncr1['nslice'])*dataPOT/ncPOT
+        if self.ncr3 is not None:
+            self.ncr3['POT'] = np.ones_like(self.ncr3['nslice'])*dataPOT/ncPOT
         
     def set_selections(self):
         self.CCNCSEL = CCNCSEL
         self.CCSEL = CCSEL
         self.NCSEL = NCSEL
-        self.ACCEPTANCE = 'isVtxInFiducial == 1 and npi0==1'
+        self.ACCEPTANCE = ACCEPTANCE
 
     def efficiency_plot(self, variable, bin_edges):
         '''variable will be pi0_e or leadPi0_uz'''
