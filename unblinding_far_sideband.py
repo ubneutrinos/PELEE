@@ -225,6 +225,7 @@ LOW_MEDIUM_ENERGY = '(0.05 < reco_e < 1.05)'
 HIGH_ENERGY = '(1.05 < reco_e < 2.05)'
 HIGH_ENERGY_ZP = '(reco_e > 0.9)'
 HIGH_ENERGY_NOUPBOUND = '(reco_e > 1.05)'
+NEAR_ENERGY_NOUPBOUND = '(reco_e > 0.65)'
 HIGH_ENERGY_EXT = '(0.85 < reco_e < 2.05)'
 HIGH_ENERGY_EXT_NOUPBOUND = '(reco_e > 0.85)'
 ADD_ENERGY_BINS = '(reco_e > 0.85 and reco_e < 1.05)'
@@ -280,11 +281,28 @@ NUMUSELCRT0P = NUMUSELCRT + ' and n_protons_tot == 0'
 NUMUSEL1MU1P = NUMUSEL + ' and n_tracks_contained == 2 and trk2_pid < -0.2'
 
 
+# eta queries
+ETASLICE = ' nslice == 1'
+ETASLICE += ' and topological_score > 0.1'
+ETASLICE += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
+
+ETACONTAINMENT  = ETASLICE + ' and ' + 'reco_nu_vtx_sce_x > 10 and reco_nu_vtx_sce_x < 250'
+ETACONTAINMENT += ' and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 100'
+ETACONTAINMENT += ' and reco_nu_vtx_sce_z > 25 and reco_nu_vtx_sce_z < 990'
+
+ETATWOSHRQUERY  = ETACONTAINMENT + ' and ' + 'n_showers_050_tot == 2'
+
+ETAPI0QUERY = ETATWOSHRQUERY + ' and ' + 'pi0_dot1 > 0.9 and pi0_dot2 > 0.9'
+ETAPI0QUERY += ' and pi0_radlen1 > 2 and pi0_radlen2 > 2'
+
+ETAQUERY = ETAPI0QUERY + ' and ' + 'pi0_mass_Y_corr > 250. and pi0_mass_Y_corr < 750.'
+
 # sideband categories
 sideband_categories = {
     'HiEextmax2': {'query': HIGH_ENERGY_EXT, 'title': '0.85 GeV < Reco energy < 2.05 GeV', 'dir': 'HiEextmax2'},
     'HiEmax2': {'query': HIGH_ENERGY, 'title': '1.05 GeV < Reco energy < 2.05 GeV', 'dir': 'HiEmax2'},
     'HiE': {'query': HIGH_ENERGY_NOUPBOUND, 'title': 'Reco energy > 1.05 GeV', 'dir': 'HiE'},
+    'NearE': {'query': NEAR_ENERGY_NOUPBOUND, 'title': 'Reco energy > 0.65 GeV', 'dir': 'HiEnear'},
     'HiEext': {'query': HIGH_ENERGY_EXT_NOUPBOUND, 'title': 'Reco energy > 0.85 GeV', 'dir': 'HiEext'},
     'HiEadd': {'query': ADD_ENERGY_BINS, 'title': '0.85 < Reco energy < 1.05 GeV', 'dir': 'HiEadd'},
     'HiEZP': {'query': HIGH_ENERGY_ZP, 'title': 'Reco energy > 0.9 GeV', 'dir': 'HiEZP'},
@@ -352,6 +370,9 @@ selection_categories = {
     'NUMUCRT0P': {'query': NUMUSELCRT0P, 'title': r"$1\mu$0p selection w/ CRT", 'dir': 'NUMUCRT0P'},
     'NUMUNP': {'query': NUMUSELNP, 'title': r"$1\mu$Np selection", 'dir': 'NUMUNP'},
     'NUMU0P': {'query': NUMUSEL0P, 'title': r"$1\mu$0p selection", 'dir': 'NUMU0P'},
+    'ETATWOSHR': {'query': ETATWOSHRQUERY, 'title': r"$\eta$ selection - two-shower cuts",'dir': 'ETATWOSHR' },
+    'ETAPI0': {'query': ETAPI0QUERY, 'title': r"$\eta$ selection - $\pi^0$ cuts",'dir': 'ETAPI0' },
+    'ETA' : {'query': ETAQUERY, 'title': r"$\eta$ selection",'dir': 'ETA' },
 }
 
 stages_queries = {

@@ -603,7 +603,7 @@ def process_uproot_numu(up,df):
 
     df["proton_range_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_energy_proton_v[proton_mask],trk_len_v[proton_mask])])
 
-    '''
+    #'''
     df["trk1_score"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_score_v[trk_mask],trk_len_v[trk_mask])])
     df["trk1_end_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_end_x_v[trk_mask],trk_len_v[trk_mask])])
     df["trk1_end_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_end_y_v[trk_mask],trk_len_v[trk_mask])])
@@ -627,7 +627,7 @@ def process_uproot_numu(up,df):
     df["trk1_backtracked_pdg"] = awkward.fromiter([vec[int(vid)-1] if ( (len(vec) > 0) and (vid >= 0) and (vid < 10000) and (vid != -9999.) ) else -9999. for vec,vid in zip(pfp_pdg_v,trk1_pfp_idx)])
     #df["trk1_backtracked_pdg"] = awkward.fromiter([vec1[vec2[vid.argsort()[-1]]] if ( (len(vid)>0) and (len(vec1) >= len(vec2)) ) else -9999. for vec1,vec2,vid in zip(pfp_pdg_v,trk_pfp_id_v[trk_mask],trk_len_v[trk_mask])])
     #df["trk1_backtracked_pdg"] = get_elm_from_vec_idx(pfp_pdg_v,trk1_pfp_idx)
-
+    '''
     # 2nd longest track
     df["trk2_len"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_len_v[trk_mask],trk_len_v[trk_mask])])
     df["trk2_pid"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_llr_pid_v[trk_mask],trk_len_v[trk_mask])])
@@ -973,6 +973,7 @@ def get_variables():
         "nneutron", "mc_pdg", "slnunhits", "slnhits", "true_e_visible",
         "npi0","npion","pion_e","muon_e","pi0truth_elec_etot",
         "pi0_e", "evnunhits", "nslice", "interaction",
+        "proton_e",
         "slclustfrac", "reco_nu_vtx_x", "reco_nu_vtx_y", "reco_nu_vtx_z",
         #"trk_sce_start_x_v","trk_sce_start_y_v","trk_sce_start_z_v",
         #"trk_sce_end_x_v","trk_sce_end_y_v","trk_sce_end_z_v",
@@ -1073,7 +1074,7 @@ def get_variables():
                "pi0_nshower",
                "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z",
                "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent",
-               #"n_showers_contained"
+               "n_showers_contained"
     ]
 
     VARDICT['PI0VARS'] = PI0VARS
@@ -1230,21 +1231,29 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R123_NP_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1enp_far_sideband_skimmed_extended_v47'
     R123_0P_FAR_SIDEBAND_BNB = 'neutrinoselection_filt_1e0p_far_sideband_skimmed_v47'
     R1_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN1_pi0_reco2'
+    R123_NP_NEAR_SIDEBAND_BNB = 'neutrinoselection_filt_1eNp_near_sideband_skimmed'
+    R123_0P_NEAR_SIDEBAND_BNB = 'neutrinoselection_filt_1e0p_near_sideband_skimmed'
     R2_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN2_pi0_reco2'
     R3_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN3_pi0_reco2'
 
     if (which_sideband == "np_far" or which_sideband == "np_sb_comb"):
-        ur1data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-        ur2data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-        ur3data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        #ur1data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        #ur2data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        #ur3data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur1data_np_far_sidebands = uproot.open(ls.ntuple_path+'nearsidebands/run1_'+R123_NP_NEAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur2data_np_far_sidebands = uproot.open(ls.ntuple_path+'nearsidebands/run2_'+R123_NP_NEAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur3data_np_far_sidebands = uproot.open(ls.ntuple_path+'nearsidebands/run3_'+R123_NP_NEAR_SIDEBAND_BNB+".root")['nuselection'][tree]
     if (which_sideband == "2plus_showers" or which_sideband == "np_sb_comb"):
         ur1data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur2data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur3data_two_showers_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_TWO_SHOWERS_SIDEBAND_BNB+".root")['nuselection'][tree]
     if (which_sideband == "0p_far"):
-        ur1data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-        ur2data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
-        ur3data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        #ur1data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        #ur2data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        #ur3data_0p_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run3_'+R123_0P_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur1data_0p_far_sidebands = uproot.open(ls.ntuple_path+'nearsidebands/run1_'+R123_0P_NEAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur2data_0p_far_sidebands = uproot.open(ls.ntuple_path+'nearsidebands/run2_'+R123_0P_NEAR_SIDEBAND_BNB+".root")['nuselection'][tree]
+        ur3data_0p_far_sidebands = uproot.open(ls.ntuple_path+'nearsidebands/run3_'+R123_0P_NEAR_SIDEBAND_BNB+".root")['nuselection'][tree]
     if (which_sideband == "pi0"):
         ur1data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R1_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur2data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R2_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
@@ -1305,7 +1314,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                "pi0_dir2_x","pi0_dir2_y","pi0_dir2_z","pi0_dir1_x","pi0_dir1_y","pi0_dir1_z",
                "pi0truth_gamma1_etot","pi0truth_gamma2_etot","pi0truth_gammadot","pi0truth_gamma_parent",
                "pi0truth_gamma1_dist", "pi0truth_gamma1_edep", "pi0truth_gamma2_dist", "pi0truth_gamma2_edep",
-               "true_nu_vtx_x", "true_nu_vtx_y", "true_nu_vtx_z","n_showers_contained"
+               "true_nu_vtx_x", "true_nu_vtx_y", "true_nu_vtx_z"#,"n_showers_contained"
     ]
 
     
@@ -1828,6 +1837,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[ df['weightSplineTimesTune'] == np.inf, 'weightSplineTimesTune' ] = 1.
         df.loc[ df['weightSplineTimesTune'] > 100, 'weightSplineTimesTune' ] = 1.
         df.loc[ np.isnan(df['weightSplineTimesTune']) == True, 'weightSplineTimesTune' ] = 1.
+
+        # 0p scaling
+        #df.loc[ (df['nu_pdg']==12)&(df['nproton'] > 0) , 'weightSplineTimesTune'] = df['weightSplineTimesTune'] * 1.00 #0.973
+        #df.loc[ (df['nu_pdg']==12)&(df['nproton'] == 0), 'weightSplineTimesTune'] = df['weightSplineTimesTune'] * 1.30 # 1.30
+        
         # backtracker category
         '''
         df.loc[ ( (df['trk1_backtracked_pdg'] != 2212) & (df['trk1_backtracked_pdg'] != 13) & (df['trk1_backtracked_pdg'] != 11) & (df['trk1_backtracked_pdg'] != 111) & (df['trk1_backtracked_pdg'] != -13) & (df['trk1_backtracked_pdg'] != -11) & (df['trk1_backtracked_pdg'] != 211) & (df['trk1_backtracked_pdg'] != -211) & (df['trk1_backtracked_pdg'] != 2112) & (df['trk1_backtracked_pdg'] != 22) & (df['trk1_backtracked_pdg'] != 321) & (df['trk1_backtracked_pdg'] != -321) ), 'trk1_backtracked_pdg' ] = 0
@@ -1941,6 +1955,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
     if (loadeta == True):
         for i,df in enumerate(df_v):
             df['eta_mass_Y_corr'] = df['pi0_mass_Y_corr'] * 1.054
+            df['minmass'] = df['pi0energyraw_corr'] * np.sqrt( (1 - df['pi0_gammadot']) / 2. )
             df['etaenergy'] = 547.86 * np.sqrt( 2. / ( (1-(df['asymm'])**2) * (1-df['pi0_gammadot']) ) )
             df['etamomentum'] = np.sqrt(df['etaenergy']**2 - 547.86**2)
             df['etabeta'] = df['etamomentum']/df['etaenergy']
@@ -2176,6 +2191,10 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         df.loc[:,"paper_category_numu"] = 0
         if key is 'data': continue
         df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] = 2
+        df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 0), 'paper_category_numu'] = 22
+        df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 1), 'paper_category_numu'] = 23
+        df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 2), 'paper_category_numu'] = 24
+        df.loc[ (df['ccnc'] == 0) & (df['nproton'] >= 3), 'paper_category_numu'] = 25
         df.loc[ (df['ccnc'] == 1), 'paper_category_numu'] = 3
         if key is 'nue':
             df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] = 11
@@ -2277,6 +2296,7 @@ pot_data_unblinded = {
         2: (2.411E+20, 56116016),
         3: (1.971E+20, 47133521), },
     "numu" : {
+        #1: (9.00E+20, 36139233),
         1: (1.62E+20, 36139233),
         2: (2.62E+20, 62045760),
         3: (2.55E+20, 61012955),
