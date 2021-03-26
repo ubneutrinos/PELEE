@@ -232,6 +232,7 @@ ADD_ENERGY_BINS = '(reco_e > 0.85 and reco_e < 1.05)'
 ALL_ENERGY = '(reco_e > 0.)'
 TWOP_SHOWERS = 'n_showers_contained >= 2'
 LOW_PID_ZP = '(0.0 < bkg_score < 0.4)'
+MEDIUM_PID_ZP = '(0.0 < bkg_score < 0.72)'
 
 
 # pi0 selection
@@ -309,6 +310,7 @@ sideband_categories = {
     'LPID': {'query': LOW_PID, 'title': 'Low BDT', 'dir': 'LPID'},
     'MPID': {'query': MEDIUM_PID, 'title': 'Medium BDT', 'dir': 'MPID'},
     'LPIDZP': {'query': LOW_PID_ZP, 'title': 'Low BDT', 'dir': 'LPIDZP'},
+    'MPIDZP': {'query': MEDIUM_PID_ZP, 'title': 'Medium BDT', 'dir': 'MPIDZP'},
     'TwoPShr': {'query': TWOP_SHOWERS, 'title': '2+ showers', 'dir': 'TwoPShr'},
     'TwoPShrHiE': {'query': " and ".join([TWOP_SHOWERS,HIGH_ENERGY_NOUPBOUND]), 'title': '2+ showers,Reco energy > 1.05 GeV', 'dir': 'TwoPShrHiE'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
