@@ -218,7 +218,7 @@ NCPI0SEL += ' and (n_tracks_contained == n_tracks_tot)' # no exiting tracks
 
 # SIDEBANDS CUTS
 LOW_PID = '(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1))'
-MEDIUM_PID = '(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.67) and (nonpi0_score > 0.7))'
+MEDIUM_PID = '(0.1 < pi0_score < 1.0) and (0.1 < nonpi0_score < 1.0) and ~((pi0_score > 0.67) and (nonpi0_score > 0.7))'
 LOW_ENERGY = '(0.05 < reco_e < 0.75)'
 MEDIUM_ENERGY = '(0.75 < reco_e < 1.05)'
 LOW_MEDIUM_ENERGY = '(0.05 < reco_e < 1.05)'
@@ -226,6 +226,7 @@ HIGH_ENERGY = '(1.05 < reco_e < 2.05)'
 HIGH_ENERGY_ZP = '(reco_e > 0.9)'
 HIGH_ENERGY_NOUPBOUND = '(reco_e > 1.05)'
 NEAR_ENERGY_NOUPBOUND = '(reco_e > 0.65)'
+NEAR_ENERGY_ONLY = '(0.65 < reco_e < 0.85)'
 HIGH_ENERGY_EXT = '(0.85 < reco_e < 2.05)'
 HIGH_ENERGY_EXT_NOUPBOUND = '(reco_e > 0.85)'
 ADD_ENERGY_BINS = '(reco_e > 0.85 and reco_e < 1.05)'
@@ -304,6 +305,7 @@ sideband_categories = {
     'HiEmax2': {'query': HIGH_ENERGY, 'title': '1.05 GeV < Reco energy < 2.05 GeV', 'dir': 'HiEmax2'},
     'HiE': {'query': HIGH_ENERGY_NOUPBOUND, 'title': 'Reco energy > 1.05 GeV', 'dir': 'HiE'},
     'NearE': {'query': NEAR_ENERGY_NOUPBOUND, 'title': 'Reco energy > 0.65 GeV', 'dir': 'HiEnear'},
+    'NearEOnly': {'query': NEAR_ENERGY_ONLY, 'title': '0.65 GeV < Reco energy < 0.85 GeV', 'dir': 'HiEnearOnly'},
     'HiEext': {'query': HIGH_ENERGY_EXT_NOUPBOUND, 'title': 'Reco energy > 0.85 GeV', 'dir': 'HiEext'},
     'HiEadd': {'query': ADD_ENERGY_BINS, 'title': '0.85 < Reco energy < 1.05 GeV', 'dir': 'HiEadd'},
     'HiEZP': {'query': HIGH_ENERGY_ZP, 'title': 'Reco energy > 0.9 GeV', 'dir': 'HiEZP'},
@@ -483,6 +485,24 @@ basic_variables = [
         ('reco_e',14,(0.15,1.55),r"Reconstructed Energy [GeV]","note"),
         ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
 ]
+
+loosesel_variables_1eNp = [
+    ('hits_ratio',20,(0,1),"shower hits/all hits"),
+    ('trkfit',20,(0,1.0),"Fraction of Track-fitted points"),
+    ('subcluster',20,(0,40),"N sub-clusters in shower"),
+    ('CosmicIPAll3D',20,(0,200),"CosmicIPAll3D [cm]"),
+    ('shr_tkfit_dedx_max',20,(0,10),"shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    ('tksh_angle',20,(-1,1),"cos(trk-shr angle)"),
+    ('tksh_distance',20,(0,40),"trk-shr distance [cm]"),
+    ('shr_tkfit_nhits_tot',20,(0,20),"shr tkfit nhits (tot, 0-4 cm) [MeV/cm]"),
+    ('trkpid',21,(-1,1),"track LLR PID"),
+    ('shrmoliereavg',20,(0,50),"average Moliere angle [degrees]"),
+    ('shr_trk_len',40,(0,400),"Shower track fit length [cm]"),
+    ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score", "log", True),
+    ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
+    ('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
+    ]
+
 evtsel_variabls = [
         ('hits_ratio',20,(0,1),"shower hits/all hits"),
         ('CosmicIPAll3D',20,(0,200),"CosmicIPAll3D [cm]"),
