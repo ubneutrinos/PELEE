@@ -634,6 +634,8 @@ def process_uproot_numu(up,df):
     trk_score_v = up.array("trk_score_v")
     shr_mask = (trk_score_v<0.5)
     trk_mask = (trk_score_v>0.5)
+    proton_mask = (trk_score_v>0.5)&(trk_llr_pid_v < 0.)
+    df['n_protons_tot'] = proton_mask.sum()
     df['n_muons_tot'] = muon_mask.sum()
     df['n_tracks_tot'] = trk_mask.sum()
     df['n_tracks_contained'] = contained_track_mask.sum()

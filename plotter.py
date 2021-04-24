@@ -41,9 +41,13 @@ from matplotlib import gridspec
 
 category_labels = {
     1: r"$\nu_e$ Other",
+    11110: r"$\nu_e$",
+    11111: r"$\bar\nu_e$",
     10: r"$\nu_e$ CC0$\pi$0p",
+    9: r"$\bar\nu_e$ CC0$\pi$0p",
     12: r"$\bar\nu_e$ CC0$\pi$Np",
     11: r"$\nu_e$ CC0$\pi$Np",
+    11357: r"$\nu_e$ CC $\pi^{0}$",
     111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
     21: r"$\nu_{\mu}$ CC $\pi^{0}$",
@@ -78,6 +82,7 @@ flux_colors = {
     0: "xkcd:cerulean",
     111: "xkcd:goldenrod",
     10: "xkcd:light red",
+    12: "xkcd:light red",
     1: "xkcd:purple",
 }
 
@@ -151,10 +156,15 @@ category_colors = {
     1: "xkcd:moss green",
     10: "xkcd:mint green",
     12: "xkcd:green",
+    9 : "xkcd:green",
     11: "xkcd:lime green",
     111: "xkcd:goldenrod",
     6: "xkcd:grey",
     0: "xkcd:black",
+    11110:"xkcd:lime green",
+    11111:"xkcd:green",
+    11357:"xkcd:pink",
+
     # eta categories
     803: "xkcd:cerulean",
     804: "xkcd:blue",
@@ -642,7 +652,7 @@ class Plotter:
             if (colvals.sum() != 0):
                 print ('name : ',colname)
                 print ('nan entries : ',colvals.sum())
-        '''
+        '''  
         df = sample.query(sel_query)
         #if (track_cuts != None):
         #    df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
@@ -655,7 +665,6 @@ class Plotter:
         else:
             vars = df[variable]
         #vars is now a Series object that passes all the cuts
-
         #select longest of the cut passing tracks
         #assuming all track-level variables end in _v
         if variable[-2:] == "_v" and select_longest:
@@ -743,7 +752,7 @@ class Plotter:
             "interaction", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
-
+        return category, plotted_variable
 
     def _categorize_entries_flux(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
@@ -1149,10 +1158,9 @@ class Plotter:
         if ("ncnopi" in self.samples):
             nu_pdg = nu_pdg+" & ~(mcf_pass_ncnopi==1 & (nslice==0 | (slnunhits/slnhits)>0.1))"
 
-
+        print(query,"\n", self.nu_pdg,"\n",track_cuts,"\n",select_longest)
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
-
 
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
