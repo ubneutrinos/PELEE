@@ -1236,6 +1236,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R2_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN2_pi0_reco2'
     R3_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN3_pi0_reco2'
 
+    R1_FULLDATA = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
+    R2_FULLDATA = 'run2_data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+    R3_FULLDATA = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+
     if (which_sideband == "np_far" or which_sideband == "np_sb_comb"):
         #ur1data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
         #ur2data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run2_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
@@ -1258,7 +1262,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         ur1data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R1_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur2data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R2_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur3data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R3_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
-
+    if(which_sideband == "fulldata"):
+        ur1data_fulldata = uproot.open(ls.ntuple_path+'fullbnb/'+R1_FULLDATA+".root")['nuselection'][tree]
+        ur2data_fulldata = uproot.open(ls.ntuple_path+'fullbnb/'+R2_FULLDATA+".root")['nuselection'][tree]
+        ur3data_fulldata = uproot.open(ls.ntuple_path+'fullbnb/'+R3_FULLDATA+".root")['nuselection'][tree]
+        
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         R123_NUMU_SIDEBAND_BNB = 'neutrinoselection_filt_numu_ALL'
         if (loadeta == False):
@@ -1360,6 +1368,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r3data_0p_far_sidebands = ur3data_0p_far_sidebands.pandas.df(VARIABLES, flatten=False)
     if (which_sideband == "pi0"):
         r3data_pi0_sidebands = ur3data_pi0_sidebands.pandas.df(VARIABLES, flatten=False)
+    if (which_sideband == "fulldata"):
+        r3data_fulldata = ur3data_fulldata.pandas.df(VARIABLES, flatten=False)
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r3data_numu_sidebands   = ur3data_numu_sidebands.pandas.df(VARIABLES + R3VARS, flatten=False)
         
@@ -1392,6 +1402,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r3data_0p_far_sidebands["is_signal"] = r3data_0p_far_sidebands["category"] == 11
     if (which_sideband == "pi0"):
         r3data_pi0_sidebands["is_signal"] = r3data_pi0_sidebands["category"] == 11
+    if (which_sideband == "fulldata"):
+        r3data_fulldata["is_signal"] = r3data_fulldata["category"] == 11
     #if (loadshowervariables == False):
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r3data_numu_sidebands["is_signal"]   = r3data_numu_sidebands["category"] == 11
@@ -1409,6 +1421,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r3_datasets += [r3ncpi0, r3ccpi0, r3eta]        
     if (loadtruthfilters == True):
         r3_datasets += [r3ncpi0, r3ccpi0, r3ccnopi, r3cccpi, r3ncnopi, r3nccpi]
+    if (which_sideband == "fulldata"):
+        r3_datasets += [r3data_fulldata]
     #if (loadshowervariables == False):
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r3_datasets += [r3data_numu_sidebands]
@@ -1429,6 +1443,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         uproot_v += [ur3data_0p_far_sidebands]
     if (which_sideband == "pi0"):
         uproot_v += [ur3data_pi0_sidebands]
+    if (which_sideband == "fulldata"):
+        uproot_v += [ur3data_fulldata]
     if (loadpi0filters == True):
         uproot_v += [ur3ncpi0,ur3ccpi0,ur3eta]        
     if (loadtruthfilters == True):
@@ -1446,6 +1462,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df_v += [r3data_0p_far_sidebands]
     if (which_sideband == "pi0"):
         df_v += [r3data_pi0_sidebands]
+    if (which_sideband == "fulldata"):
+        df_v += [r3data_fulldata]
     if (loadpi0filters == True):
         df_v += [r3ncpi0,r3ccpi0,r3eta]        
     if (loadtruthfilters == True):
@@ -1506,6 +1524,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r1data_0p_far_sidebands = ur1data_0p_far_sidebands.pandas.df(VARIABLES, flatten=False)
     if (which_sideband == "pi0"):
         r1data_pi0_sidebands = ur1data_pi0_sidebands.pandas.df(VARIABLES, flatten=False)
+    if (which_sideband == "fulldata"):
+        r1data_fulldata = ur1data_fulldata.pandas.df(VARIABLES, flatten=False)
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r1data_numu_sidebands = ur1data_numu_sidebands.pandas.df(VARIABLES, flatten=False)
 
@@ -1537,7 +1557,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r1data_0p_far_sidebands["is_signal"] = r1data_0p_far_sidebands["category"] == 11
     if (which_sideband == "pi0"):
         r1data_pi0_sidebands["is_signal"] = r1data_pi0_sidebands["category"] == 11
-
+    if (which_sideband == "fulldata"):
+        r1data_fulldata["is_signal"] = r1data_fulldata["category"] == 11
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r1data_numu_sidebands["is_signal"]   = r1data_numu_sidebands["category"] == 11
     
@@ -1551,6 +1572,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r1_datasets += [r1data_0p_far_sidebands]
     if (which_sideband == "pi0"):
         r1_datasets += [r1data_pi0_sidebands]
+    if (which_sideband == "fulldata"):
+        r1_datasets += [r1data_fulldata]
     if (loadpi0filters == True):
         r1_datasets += [r1ncpi0, r1ccpi0]        
     if (loadtruthfilters == True):
@@ -1580,6 +1603,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         uproot_v += [ur1data_0p_far_sidebands]
     if (which_sideband == "pi0"):
         uproot_v += [ur1data_pi0_sidebands]
+    if (which_sideband == "fulldata"):
+        uproot_v += [ur1data_fulldata]
     if (loadpi0filters == True):
         uproot_v += [ur1ncpi0,ur1ccpi0]        
     if (loadtruthfilters == True):
@@ -1597,6 +1622,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df_v += [r1data_0p_far_sidebands]
     if (which_sideband == "pi0"):
         df_v += [r1data_pi0_sidebands]
+    if (which_sideband == "fulldata"):
+        df_v += [r1data_fulldata]
     if (loadpi0filters == True):
         df_v += [r1ncpi0,r1ccpi0]        
     if (loadtruthfilters == True):
@@ -1634,6 +1661,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2data_0p_far_sidebands = ur2data_0p_far_sidebands.pandas.df(VARIABLES, flatten=False)
     if (which_sideband == "pi0"):
         r2data_pi0_sidebands = ur2data_pi0_sidebands.pandas.df(VARIABLES, flatten=False)
+    if (which_sideband == "fulldata"):
+        r2data_fulldata = ur2data_fulldata.pandas.df(VARIABLES, flatten=False)
+        print ('r2data has shape : ',r2data_fulldata.shape)
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2data_numu_sidebands = ur2data_numu_sidebands.pandas.df(VARIABLES, flatten=False)
         
@@ -1653,6 +1683,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2data_0p_far_sidebands["is_signal"] = r2data_0p_far_sidebands["category"] == 11
     if (which_sideband == "pi0"):
         r2data_pi0_sidebands["is_signal"] = r2data_pi0_sidebands["category"] == 11
+    if (which_sideband == "fulldata"):
+        r2data_fulldata["is_signal"] = r2data_fulldata["category"] == 11
+        r2data_fulldata["run"] = r2data_fulldata["run"] + 1
     #if (loadshowervariables == False):
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2data_numu_sidebands["is_signal"] = r2data_numu_sidebands["category"] == 11
@@ -1666,6 +1699,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2_datasets += [r2data_0p_far_sidebands]
     if (which_sideband == "pi0"):
         r2_datasets += [r2data_pi0_sidebands]
+    if (which_sideband == "fulldata"):
+        r2_datasets += [r2data_fulldata]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2_datasets += [r2data_numu_sidebands]
         
@@ -1701,6 +1736,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         uproot_v += [ur2data_0p_far_sidebands]
     if (which_sideband == "pi0"):
         uproot_v += [ur2data_pi0_sidebands]
+    if (which_sideband == "fulldata"):
+        uproot_v += [ur2data_fulldata]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         uproot_v += [ur2data_numu_sidebands]
 
@@ -1713,6 +1750,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df_v += [r2data_0p_far_sidebands]
     if (which_sideband == "pi0"):
         df_v += [r2data_pi0_sidebands]
+    if (which_sideband == "fulldata"):
+        df_v += [r2data_fulldata]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         df_v += [r2data_numu_sidebands]
 
@@ -1780,6 +1819,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         data = pd.concat([r1data_numu_sidebands, r2data_numu_sidebands, r3data_numu_sidebands],ignore_index=True)
     elif which_sideband == "opendata":
         data = pd.concat([r1data, r3data],ignore_index=True) # 5e19 and 1e19
+    elif which_sideband == "fulldata":
+        data = pd.concat([r1data_fulldata, r2data_fulldata, r3data_fulldata],ignore_index=True) # full dataset
         print ('opendata dataset has shape : ',data.shape)
     ext = pd.concat([r3ext, r2ext, r1ext],ignore_index=True)
     dirt = pd.concat([r3dirt,r2drt,r1dirt],ignore_index=True)
@@ -2133,7 +2174,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
     
     Npre = float(data.shape[0])
     if (loadfakedata == 0):
-        data = data.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end
+       data = data.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end
     Npos = float(data.shape[0])
     print ('fraction of data surviving duplicate removal : %.02f'%(Npos/Npre))
 
@@ -2287,6 +2328,13 @@ pot_data_unblinded = {
 #        2: (1.00E+01, 1),
 #        3: (7.63E+18, 1838700), },
 # 0628 samples
+    "fulldata" : {
+       # 1: (BLIND*1.67E+20, BLIND*37094101),
+       # 2: (BLIND*2.62E+20, BLIND*62168648),
+       # 3: (BLIND*2.57E+20, BLIND*61381194),
+        1: (4.54E+19, 10080350),
+	2: (9.43E+18, 2271036),
+	3: (9.43E+18, 2271036),},
     "opendata" : {
         1: (4.54E+19, 10080350),
         2: (1.00E+01, 1),
