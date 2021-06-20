@@ -18,6 +18,10 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
   TFile BLINDfile(fBLIND);
   TTree *BLINDtree;
   BLINDfile.GetObject("nuselection/NeutrinoSelectionFilter", BLINDtree);
+
+  // number of entries passing in both files
+  int far_sideband_SIDEBAND = 0;
+  int far_sideband_BLIND = 0;
   
   
   const auto nentriesSIDEBAND = SIDEBANDtree->GetEntries();
@@ -59,9 +63,9 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
   SIDEBANDtree->SetBranchAddress("reco_e", &reco_e);
   SIDEBANDtree->SetBranchAddress("n_showers", &n_showers);
   
-  std::cout << "Start loop with entries " << nentries << std::endl;
+  std::cout << "Start loop with " << nentriesSIDEBAND << " of SIDEBAND file." << std::endl;
   
-  for (auto i : ROOT::TSeqI(nentries)) {
+  for (auto i : ROOT::TSeqI(nentriesSIDEBAND)) {
 
     if (i % 10000 == 0)
       std::cout << "Entry num  " << i << std::endl;
@@ -76,6 +80,8 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
     bool far_sideband = (low_bkg_score || high_energy);
     
     if (presel1e0p && far_sideband) {
+
+      far_sideband_SIDEBAND += 1;
       
       if (SIDEBAND_FAR_MAP.find(run) == SIDEBAND_FAR_MAP.end()) {
 	std::vector<int> evt_v = {evt};
@@ -97,7 +103,6 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
       std::cout << "high_energy ++ " << std::endl;
     if (far_sideband)
       std::cout << "far_sideband ++ " << std::endl;
-    */
 
     if (presel1e0p && !far_sideband)
     {
@@ -105,6 +110,8 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
       std::cout << "at entry i=" << i << " reco_e=" << reco_e << " bdt_bkg_0p=" << bdt_bkg_0p << std::endl;
       exit(1);
     }// if cuts pass
+
+    */
     
   }// for all entries of SIDEBAND tree
   
@@ -125,10 +132,11 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
   BLINDtree->SetBranchAddress("bdt_bkg_0p", &bdt_bkg_0p);
   BLINDtree->SetBranchAddress("reco_e", &reco_e);
   BLINDtree->SetBranchAddress("n_showers", &n_showers);
+
+
+  std::cout << "Start loop with " << nentriesBLIND << " of BLIND file." << std::endl;
   
-  std::cout << "Start loop with entries " << nentries << std::endl;
-  
-  for (auto i : ROOT::TSeqI(nentries)) {
+  for (auto i : ROOT::TSeqI(nentriesBLIND)) {
 
     if (i % 10000 == 0)
       std::cout << "Entry num  " << i << std::endl;
@@ -143,6 +151,8 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
     bool far_sideband = (low_bkg_score || high_energy);
     
     if (presel1e0p && far_sideband) {
+
+      far_sideband_BLIND += 1;
       
       if (BLIND_FAR_MAP.find(run) == BLIND_FAR_MAP.end()) {
 	std::vector<int> evt_v = {evt};
@@ -164,7 +174,6 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
       std::cout << "high_energy ++ " << std::endl;
     if (far_sideband)
       std::cout << "far_sideband ++ " << std::endl;
-    */
 
     if (presel1e0p && !far_sideband)
     {
@@ -172,25 +181,38 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
       std::cout << "at entry i=" << i << " reco_e=" << reco_e << " bdt_bkg_0p=" << bdt_bkg_0p << std::endl;
       exit(1);
     }// if cuts pass
+
+    */
     
   }// for all entries of BLIND tree
 
 
-  // are there the same number of entries in the far-sideband?
+  // (1) are there the same number of entries in the far-sideband?
+
+  std::cout << "Test (1): same number of events passing?" <<std::endl;
+
   if (far_sideband_BLIND != far_sideband_SIDEBAND) {
-    std::cout << "FAIL -> did not find the sane number of far-sideband events";
-    exit(1);
+    std::cout << "FAIL -> did not find the sane number of far-sideband events. SIDEBAND file: " << far_sideband_SIDEBAND << ", and BLIND file: " << far_sideband_BLIND << std::endl;
+    //exit(1);
+  }
+  else{
+    std::cout << "PASS -> same number of events passing. SIDEBAND file: " << far_sideband_SIDEBAND << ", and BLIND file: " << far_sideband_BLIND << std::endl;
   }
 
-  int nfail = 0;
+  // (2) does every BLIND event have a match in the SIDEBAND file?
+
+  std::cout << "Test (2): does every BLIND event have a match in the SIDEBAND file?" << std::endl;
+
+  int nfailB = 0;
   
-  // now check that the SIDEBAND and BLIND files have the same entries
-  for (itB = BLIND_FAR_MAP.begin(); itB != BLIND_FAR_MAP.end(); itB++) {
+  for (auto itB = BLIND_FAR_MAP.begin(); itB != BLIND_FAR_MAP.end(); itB++) {
 
     int runBLIND = itB->first;
     std::vector<int> evtBLIND_v = itB->second;
+
+    bool MATCHRUN = false;
     
-    for (itS = SIDENBAND_FAR_MAP.begin(); itS != SIDEBAND_FAR_MAP.end(); itS++) {
+    for (auto itS = SIDEBAND_FAR_MAP.begin(); itS != SIDEBAND_FAR_MAP.end(); itS++) {
 
       int runSIDEBAND = itS->first;
       std::vector<int> evtSIDEBAND_v = itS->second;
@@ -198,39 +220,117 @@ void tester_1e0p_unblinding(TString fSIDEBAND, TString fBLIND)
       if (runSIDEBAND != runBLIND) continue;
 
       // if made it this far the runs match, check event-by-event
+      MATCHRUN = true;
       
       for (size_t iB=0; iB < evtBLIND_v.size(); iB++) {
 
 	int evtBLIND = evtBLIND_v[iB];
 	
-	bool MATCH = false;
+	bool MATCHEVT = false;
 	
 	for (size_t iS=0; iS < evtSIDEBAND_v.size(); iS++) {
 
 	  int evtSIDEBAND = evtSIDEBAND_v[iS];
 
 	  if (evtSIDEBAND == evtBLIND){
-	    MATCH = true;
+	    MATCHEVT = true;
 	    break;
 	  }
 
-	  // if not matched this is an error!
-	  if (MATCH == false) {
-	    std::cout << "FAIL -> [run,event] " << runBLIND << ", " << evtSIDEBAND << "] not fund in SIDEBAND file." << std::endl;
-	    nfail += 1;
-	  }
+	}// for all blind-file events matched to this run in the SIDEBAND file
 
-	}// for all blind-file events matched to this run
+	// if not matched this is an error!
+	if (MATCHEVT == false) {
+	  std::cout << "FAIL -> [run,event] [" << runBLIND << ", " << evtBLIND << "] not fund in SIDEBAND file." << std::endl;
+	  nfailB += 1;
+	}
 	
-      }// for all sideband-file events matched to this run
-
+      }// for all sideband-file events matched to this run in the BLIND file
+      
     }// for all run vectors in SIDEBAND-file.
-  }// for all vectors in BLIND-file.
 
-  if (nfail == 0){
+    if (MATCHRUN == false){
+      std::cout << "FAIL -> run" << runBLIND << " fund in BLIND file." << std::endl;
+    }
+    
+  }// for all vectors in SIDEBAND-file.
+  
+  if (nfailB != 0){
     std::cout << "FAIL -> not all events that pass the far-sideband cuts match one-to-one." << std::endl;
-    exit(1);
+  }
+  else{
+    std::cout << "PASS -> all events that pass the far-sideband cuts match one-to-one!" << std::endl;
   }
 
-  std::cout << "test passed!" << std::endl;
+
+  // (3) flip the order: does every SIDEBAND event have a match in the BLIND file?
+  int nfailS = 0;
+
+  std::cout << "Test (3): does every SIDEBAND event have a match in the BLIND file?" <<std::endl;
+  
+  for (auto itS = SIDEBAND_FAR_MAP.begin(); itS != SIDEBAND_FAR_MAP.end(); itS++) {
+
+    int runSIDEBAND = itS->first;
+    std::vector<int> evtSIDEBAND_v = itS->second;
+
+    bool MATCHRUN = false;
+    
+    for (auto itB = BLIND_FAR_MAP.begin(); itB != BLIND_FAR_MAP.end(); itB++) {
+
+      int runBLIND = itB->first;
+      std::vector<int> evtBLIND_v = itB->second;
+
+      if (runSIDEBAND != runBLIND) continue;
+
+      // if made it this far the runs match, check event-by-event
+      MATCHRUN = true;
+      
+      for (size_t iS=0; iS < evtSIDEBAND_v.size(); iS++) {
+
+	int evtSIDEBAND = evtSIDEBAND_v[iS];
+	
+	bool MATCHEVT = false;
+	
+	for (size_t iB=0; iB < evtBLIND_v.size(); iB++) {
+
+	  int evtBLIND = evtBLIND_v[iB];
+
+	  if (evtBLIND == evtSIDEBAND){
+	    MATCHEVT = true;
+	    break;
+	  }
+
+	}// for all blind-file events matched to this run in the BLIND file
+
+	// if not matched this is an error!
+	if (MATCHEVT == false) {
+	  std::cout << "FAIL -> [run,event] [" << runSIDEBAND << ", " << evtSIDEBAND << "] not fund in BLIND file." << std::endl;
+	  nfailS += 1;
+	}
+	
+      }// for all sideband-file events matched to this run in the SIDEBAND file
+      
+    }// for all run vectors in BLIND-file.
+
+    if (MATCHRUN == false){
+      std::cout << "FAIL -> run" << runSIDEBAND << " not fund in BLIND file." << std::endl;
+    }
+    
+  }// for all vectors in SIDEBAND-file.
+  
+  if (nfailS != 0){
+    std::cout << "FAIL -> not all events that pass the far-sideband cuts match one-to-one." << std::endl;
+    //exit(1);
+  }
+  else{
+    std::cout << "PASS -> all events that pass the far-sideband cuts match one-to-one!" << std::endl;
+  }
+
+  if ( (nfailB==0) && (nfailS==0) && (far_sideband_BLIND == far_sideband_SIDEBAND)) {
+    std::cout << "SUMMARY: TEST PASSED!" << std::endl;
+  }
+  else{
+    std::cout << "SUMMARY: TEST FAILED..." << std::endl;
+  }
+
 }
