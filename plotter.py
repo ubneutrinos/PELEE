@@ -67,7 +67,8 @@ category_labels = {
     805: r'$\nu$ other',
     806: r'out of FV',
     6: r"other",
-    0: r"No slice"
+    0: r"No slice",
+    17:r"1e2p0pi"
 }
 
 
@@ -164,7 +165,7 @@ category_colors = {
     11110:"xkcd:lime green",
     11111:"xkcd:green",
     11357:"xkcd:pink",
-
+    17: "xkcd:cerulean",
     # eta categories
     803: "xkcd:cerulean",
     804: "xkcd:blue",
@@ -1577,9 +1578,10 @@ class Plotter:
         if draw_sys:
             if (COVMATRIX == ""):
                 print("IN COVMATRIX_XS_PPFX")
-                self.cov = (self.sys_err("weightsPPFX",variable,query,plot_options["range"],plot_options["bins"],genieweight)+
-                            self.sys_err("weightsGenie",variable,query,plot_options["range"],plot_options["bins"],genieweight)+
-                            self.sys_err("weightsReint",variable,query, plot_options["range"],plot_options["bins"],genieweight))
+                self.cov = (self.sys_err("weightsPPFX",variable,query,plot_options["range"],plot_options["bins"],genieweight))#+
+                            #self.sys_err("weightsGenie",variable,query,plot_options["range"],plot_options["bins"],genieweight)+
+                            #self.sys_err("weightsReint",variable,query, plot_options["range"],plot_options["bins"],genieweight))
+                print("PPFXonly")
                 if draw_geoSys :
                     print("Add Drawing Geo Sys")
                     self.cov += self.sys_err_NuMIGeo("weightsNuMIGeo",variable,query,plot_options["range"],plot_options["bins"],genieweight)
