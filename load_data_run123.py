@@ -1338,7 +1338,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     #make the list unique
     VARIABLES = list(set(VARIABLES))
 
-    print (VARIABLES)
+    #print (VARIABLES)
 
     print("Loading Run3 dataframes")
     r3nue = ur3nue.pandas.df(VARIABLES + WEIGHTS + R3VARS, flatten=False)
@@ -1494,7 +1494,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             Npre = float(r3ccpi0.shape[0])
             r3ccpi0 = pd.merge(r3ccpi0, dfcsv, how='inner', on=['identifier'],suffixes=('', '_VAR'))
             Npost = float(r3ccpi0.shape[0])
-            print ('fraction of R3 CCpi0 sample after split : %.02f'%(Npost/Npre))
+            #print ('fraction of R3 CCpi0 sample after split : %.02f'%(Npost/Npre))
         #train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
 
     print("Loading Run1 dataframes")
@@ -2170,18 +2170,18 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         Npre = float(ncpi0.shape[0])
         ncpi0 = ncpi0.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end                                  
         Npos = float(ncpi0.shape[0])
-        print ('fraction of ncpi0 surviving duplicate removal : %.02f'%(Npos/Npre))
+        #print ('fraction of ncpi0 surviving duplicate removal : %.02f'%(Npos/Npre))
     
     Npre = float(data.shape[0])
     if (loadfakedata == 0):
        data = data.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end
     Npos = float(data.shape[0])
-    print ('fraction of data surviving duplicate removal : %.02f'%(Npos/Npre))
+    #print ('fraction of data surviving duplicate removal : %.02f'%(Npos/Npre))
 
     Npre = float(ext.shape[0])
     ext = ext.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end
     Npos = float(ext.shape[0])
-    print ('fraction of ext surviving duplicate removal : %.02f'%(Npos/Npre))
+    #print ('fraction of ext surviving duplicate removal : %.02f'%(Npos/Npre))
 
     samples = {
     "mc": mc,
@@ -2297,8 +2297,8 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         return my_plotter
     else:
 
-        print ('number of data entries returned is : ',data.shape)
-        print ('number of data entries returned is : ',samples['data'].shape)
+        #print ('number of data entries returned is : ',data.shape)
+        #print ('number of data entries returned is : ',samples['data'].shape)
         return samples
 
 BLIND = 1.00
