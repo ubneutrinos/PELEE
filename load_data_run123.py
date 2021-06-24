@@ -1236,9 +1236,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     R2_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN2_pi0_reco2'
     R3_PI0_SIDEBAND_BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_RUN3_pi0_reco2'
 
-    R1_FULLDATA = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
-    R2_FULLDATA = 'run2_data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
-    R3_FULLDATA = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+    R1_FULLDATA = 'run1_nuepresel' # '#'run1_neutrinoselection_filt_1e0p_near_sideband_skimmed' #data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
+    R2_FULLDATA = 'run2_nuepresel' # 'run2_neutrinoselection_filt_1e0p_near_sideband_skimmed' #run2_data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+    R3_FULLDATA = 'run3_nuepresel' #'run3_neutrinoselection_filt_1e0p_near_sideband_skimmed' #data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
 
     if (which_sideband == "np_far" or which_sideband == "np_sb_comb"):
         #ur1data_np_far_sidebands = uproot.open(ls.ntuple_path+'farsidebands/run1_'+R123_NP_FAR_SIDEBAND_BNB+".root")['nuselection'][tree]
@@ -1685,7 +1685,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2data_pi0_sidebands["is_signal"] = r2data_pi0_sidebands["category"] == 11
     if (which_sideband == "fulldata"):
         r2data_fulldata["is_signal"] = r2data_fulldata["category"] == 11
-        r2data_fulldata["run"] = r2data_fulldata["run"] + 1
+        #r2data_fulldata["run"] = r2data_fulldata["run"] + 1
     #if (loadshowervariables == False):
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2data_numu_sidebands["is_signal"] = r2data_numu_sidebands["category"] == 11
@@ -2329,12 +2329,12 @@ pot_data_unblinded = {
 #        3: (7.63E+18, 1838700), },
 # 0628 samples
     "fulldata" : {
-       # 1: (BLIND*1.67E+20, BLIND*37094101),
-       # 2: (BLIND*2.62E+20, BLIND*62168648),
-       # 3: (BLIND*2.57E+20, BLIND*61381194),
-        1: (4.54E+19, 10080350),
-	2: (9.43E+18, 2271036),
-	3: (9.43E+18, 2271036),},
+        1: (1.67E+20, 37094101),
+        2: (2.62E+20, 62168648),
+        3: (2.57E+20, 61381194),},
+        #1: (4.54E+19, 10080350),
+	#2: (9.43E+18, 2271036),
+	#3: (9.43E+18, 2271036),},
     "opendata" : {
         1: (4.54E+19, 10080350),
         2: (1.00E+01, 1),
