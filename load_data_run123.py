@@ -960,6 +960,7 @@ def get_variables():
     VARIABLES = [
         "nu_pdg", "slpdg", "backtracked_pdg", #"trk_score_v", 
         "category", "ccnc",
+        "endmuonmichel",
         #"NeutrinoEnergy0","NeutrinoEnergy1","NeutrinoEnergy2",
         "run","sub","evt",
         "CosmicIP","CosmicDirAll3D","CosmicIPAll3D",
@@ -1109,7 +1110,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     VARDICT = get_variables()
     
     # sample list
-    R1BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
+    #R1BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
+    R1BNB = 'run1_nuepresel'
     R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C_all_reco2'
     #R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C1_C2_D1_D2_E1_E2_all_reco2' #Run1 + Run2
     R1NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2' # OFFICIA
@@ -1143,7 +1145,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         R2DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
         R2EXT  = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     
-    R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+    #R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+    R3BNB = 'run3_nuepresel'
     R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2'
     if (loadnumucrtonly):
         R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
@@ -1891,6 +1894,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[ ( df['trk1_backtracked_pdg'] == -211), 'trk1_backtracked_pdg' ] = 211
         df.loc[ ( df['trk1_backtracked_pdg'] == -321), 'trk1_backtracked_pdg' ] = 321
         '''
+
+        # Michel tag
+        #df.loc[ (df['endmuonmichel'] > 0), 'category' ] = 222
+        
         # flux parentage
         df['flux'] = np.zeros_like(df['nslice'])
         df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] < 11)) , 'flux'] = 10
@@ -1972,7 +1979,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df["phi1MinusPhi2"] = df["shr_phi"]-df["trk_phi"]
             df["theta1PlusTheta2"] = df["shr_theta"]+df["trk_theta"]
             df['cos_shr_theta'] = np.cos(df['shr_theta'])
-            
+            df['cos_trk_theta'] = np.cos(df['trk_theta'])
 
     if (loadpi0variables == True):
         for i,df in enumerate(df_v):
@@ -2015,6 +2022,10 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df.loc[:,'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_Y']
             df.loc[(df['shr_tkfit_nhits_U']>df['shr_tkfit_nhits_Y']),'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_U']
             df.loc[(df['shr_tkfit_nhits_V']>df['shr_tkfit_nhits_Y']) & (df['shr_tkfit_nhits_V']>df['shr_tkfit_nhits_U']),'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_V']
+
+            df.loc[:,'shr_tkfit_2cm_dedx_max'] = df['shr_tkfit_2cm_dedx_Y']
+            df.loc[(df['shr_tkfit_2cm_nhits_U']>df['shr_tkfit_2cm_nhits_Y']),'shr_tkfit_2cm_dedx_max'] = df['shr_tkfit_2cm_dedx_U']
+            df.loc[(df['shr_tkfit_2cm_nhits_V']>df['shr_tkfit_2cm_nhits_Y']) & (df['shr_tkfit_2cm_nhits_V']>df['shr_tkfit_2cm_nhits_U']),'shr_tkfit_2cm_dedx_max'] = df['shr_tkfit_2cm_dedx_V']
             
     
         INTERCEPT = 0.0
