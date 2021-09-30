@@ -56,7 +56,7 @@ paper_labels = {
     111: r"MiniBooNE LEE",
     2: r"$\nu$ other",
     31: r"$\nu$ with $\pi^{0}$",
-    5: r"dirt",
+    5: r"Dirt",
 }
 
 
@@ -1316,7 +1316,8 @@ class Plotter:
                       detsysdict=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
                       fullcov=False,
                       predictedevents=True, # add number of predicted events for MC contributions to legend labels.
-                      figtitle="MicroBooNE Preliminary", # title for figure
+                      legendloc="best",
+                      figtitle="MicroBooNE Preliminary", # title for legend
                       drawsystematics=True, # draw systematics error bar around MC
                       labeldecimals=2, # number of decimal places for y-axis label
                       ncol=2,
@@ -1531,7 +1532,7 @@ class Plotter:
                 var_dict[100] = ext_plotted_variable
                 ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
                 weight_dict[100] = ext_weight
-                cat_labels[100] = "EXT"
+                cat_labels[100] = "Cosmics"
                 #category_colors[100] = "xkcd:cerulean"
                 category_colors[100] = "xkcd:greyish blue"
                 n_ext, dummy = np.histogram(ext_plotted_variable,bins=plot_options["bins"],
@@ -1971,7 +1972,7 @@ class Plotter:
         #       edgecolor='none', width=0, yerr=exp_err)
         # DC0721
         if (drawsystematics == True):
-            ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.2,bottom=(n_tot-exp_err))
+            ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.35,bottom=(n_tot-exp_err))
         #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
         '''
         ax1.fill_between(
@@ -1993,6 +1994,12 @@ class Plotter:
 
         self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
 
+        if (predictedevents==True):
+            datalabel = "BNB Data: %i" % len(data_plotted_variable)
+        else:
+            datalabel = "BNB Data"
+            
+
         if sum(n_data) > 0:
             ax1.errorbar(
                 bincenters,
@@ -2000,7 +2007,7 @@ class Plotter:
                 xerr=bin_size,
                 yerr=data_err,
                 fmt='ko',
-                label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
+                label=datalabel if len(data_plotted_variable) else "")
 
         #frac = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], np.array([1,1,1,5,5,5]), np.array([1,1,1,5,5,5]), 70)
         #self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 220)
@@ -2033,17 +2040,17 @@ class Plotter:
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
-        # DC0721
         #'''
         if (ncol > 3):
             leg = ax1.legend(
-                frameon=False, ncol=4, title=r'%s %g POT' % (figtitle,self.pot),
+                frameon=False, ncol=4, title=r'%s %.2f $\times 10^{20}$ POT' % (figtitle,(self.pot/1e20)),
+                fontsize=14,loc=legendloc,
                 prop={'size': fig.get_figwidth()})
         else:
             leg = ax1.legend(
-                frameon=False, ncol=2, title=r'%s %g POT' % (figtitle,self.pot))
-        leg._legend_box.align = "left"
-        plt.setp(leg.get_title(), fontweight='bold')
+                frameon=False, ncol=2, title=r'%s %.2f $\times 10^{20}$ POT' % (figtitle,(self.pot/1e20)),fontsize=14)
+        leg._legend_box.align = "center"
+        plt.setp(leg.get_title(), fontweight='normal',fontsize=14)
         #'''
 
         unit = title[title.find("[") +
@@ -2053,10 +2060,10 @@ class Plotter:
         if (labeldecimals == 0):
             NNN = int(NNN)
         if isinstance(plot_options["bins"], Iterable):
-            ax1.set_ylabel("N. Entries",fontsize=16)
+            ax1.set_ylabel("Entries",fontsize=16)
         else:
             ax1.set_ylabel(
-                "N. Entries / %s %s" % (str(NNN), unit),fontsize=16)
+                "Entries / %s %s" % (str(NNN), unit),fontsize=16)
 
         if (ratio==True):
             ax1.set_xticks([])
