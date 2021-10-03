@@ -601,7 +601,7 @@ def process_uproot_numu(up,df):
     trk_mask = (trk_score_v>0.0)
     proton_mask = ((trk_score_v > 0.5) & (trk_llr_pid_v < 0.))
 
-    df["proton_range_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_energy_proton_v[proton_mask],trk_len_v[proton_mask])])
+    df["proton_range_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else 0. for vec,vid in zip(trk_energy_proton_v[proton_mask],trk_len_v[proton_mask])])
 
     '''
     df["trk1_score"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_score_v[trk_mask],trk_len_v[trk_mask])])
@@ -2055,7 +2055,10 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         # define some energy-related variables
         for i,df in enumerate(df_v):
             df["reco_e"] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE + df["trk_energy_tot"]
+            df["reco_e_overflow"] = df["reco_e"]
+            df.loc[ (df['reco_e'] >= 2.25), 'reco_e_overflow' ] = 2.24
             df["reco_e_mev"] = df["reco_e"] * 1000.
+            df["reco_e_mev_overflow"] = df["reco_e_overflow"] * 1000.
             df['electron_e'] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE
             df['proton_e'] = Mp + df['protonenergy']
             df['proton_p'] = np.sqrt( (df['proton_e'])**2 - Mp**2 )

@@ -56,7 +56,7 @@ paper_labels = {
     111: r"MiniBooNE LEE",
     2: r"$\nu$ other",
     31: r"$\nu$ with $\pi^{0}$",
-    5: r"Dirt",
+    5: r"Dirt (Outside TPC)",
 }
 
 
@@ -2044,11 +2044,11 @@ class Plotter:
         if (ncol > 3):
             leg = ax1.legend(
                 frameon=False, ncol=4, title=r'%s %.2f $\times 10^{20}$ POT' % (figtitle,(self.pot/1e20)),
-                fontsize=14,loc=legendloc,
+                fontsize=11,loc=legendloc,
                 prop={'size': fig.get_figwidth()})
         else:
             leg = ax1.legend(
-                frameon=False, ncol=2, title=r'%s %.2f $\times 10^{20}$ POT' % (figtitle,(self.pot/1e20)),fontsize=14)
+                frameon=False, ncol=2, title=r'%s %.2f $\times 10^{20}$ POT' % (figtitle,(self.pot/1e20)),fontsize=11,loc=legendloc)
         leg._legend_box.align = "center"
         plt.setp(leg.get_title(), fontweight='normal',fontsize=14)
         #'''

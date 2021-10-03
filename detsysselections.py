@@ -47,12 +47,33 @@ def PRESQ(APP):
 
     return q
 
+
+def INTERMEDIATEDEDX(APP):
+    q = PRESQ(APP)
+    q += ' and reco_e_%s > 0.65'%APP
+    q += ' and CosmicIPAll3D_%s > 10.'%APP
+    q += ' and hits_ratio_%s > 0.5'%APP
+    q += ' and shrmoliereavg_%s < 9'%APP
+    q += ' and subcluster_%s > 4'%APP
+    q += ' and trkfit_%s < 0.65'%APP
+    q += ' and shr_trk_len_%s < 300.'%APP # new cut
+    q += ' and n_showers_contained_%s == 1'%APP
+    q += ' and (trkpid_%s < 0.02 or n_tracks_contained_%s == 0)'%(APP,APP)
+
+    return q
+
 def NPPRESQ(APP):
 
     # 1eNp preselection
     q = PRESQ(APP)
     q += ' and n_tracks_contained_%s > 0'%APP
 
+    return q
+
+
+def NPPRESQONESHR(APP):
+    q = NPPRESQ(APP)
+    q += ' and n_showers_contained_%s == 1'%APP
     return q
 
 def NPVLCUTQ_all_showers(APP):
@@ -169,9 +190,13 @@ def ETASEL(APP):
     q = ETAPI0SEL(APP)
     q += ' and pi0_mass_Y_corr_%s > 250'%APP
     q += ' and pfp_1_dir_z_%s > 0'%APP
-    q += ' and pi0_gammadot_%s < 0'%APP
-    q += ' and pi0_energy1_Y_%s > 200'%APP
-    q += ' and pi0_energy2_Y_%s > 100'%APP
+    # old selection
+    #q += ' and pi0_gammadot_%s < 0'%APP
+    #q += ' and pi0_energy1_Y_%s > 200'%APP
+    #q += ' and pi0_energy2_Y_%s > 100'%APP
+    # 2D selection
+    q += ' and pi0_gammadot_%s < 0.5'%APP
+    q += ' and minmass_%s > 400'%APP
     return q
 
 def NUMUPRESEL(APP):
@@ -182,6 +207,13 @@ def NUMUPRESEL(APP):
     q += ' and reco_nu_vtx_sce_z_%s > 20 and reco_nu_vtx_sce_z_%s < 986. '%(APP,APP)
     q += ' and (reco_nu_vtx_sce_z_%s < 675 or reco_nu_vtx_sce_z_%s > 775) '%(APP,APP)
     q += ' and topological_score_%s > 0.06 '%APP
+
+    return q
+
+def NUMUSELNOCRT(APP):
+
+    q = NUMUPRESEL(APP)
+    q += ' and n_muons_tot_%s > 0'%APP
 
     return q
 
