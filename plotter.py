@@ -48,7 +48,7 @@ paper_labels_numu = {
     24: r"$\nu_{\mu}$ CC 2p",
     25: r"$\nu_{\mu}$ CC 3+p",
     3: r"NC $\nu$",
-    5: r"dirt",
+    5: r"Dirt (Outside TPC)",
 }
 
 paper_labels = {
@@ -1972,7 +1972,7 @@ class Plotter:
         #       edgecolor='none', width=0, yerr=exp_err)
         # DC0721
         if (drawsystematics == True):
-            ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.35,bottom=(n_tot-exp_err))
+            ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.35,bottom=(n_tot-exp_err),label='Uncertainty')
         #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
         '''
         ax1.fill_between(
