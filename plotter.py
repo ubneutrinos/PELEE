@@ -1688,6 +1688,7 @@ class Plotter:
         **plot_options)
 
         #print(n_tot)
+        #print(np.sum(n_tot))
 
         summarydict = {}
         if 0:#kind == "paper_category":
@@ -1889,6 +1890,14 @@ class Plotter:
                 summarydict[11]['err2'] = np.diag(nue_covF).sum() + np.diag(nue_covG).sum() + \
                                           np.diag(nue_covR).sum() + np.diag(nue_covU).sum() + \
                                           np.diag(err_nue).sum() + np.diag(sys_nue**2).sum()
+            if 5 in summarydict.keys():
+                drt_covF = self.sys_err("weightsFlux", variable, query+" and paper_category==5",plot_options["range"], 1,genieweight)
+                drt_covG = self.sys_err("weightsGenie", variable, query+" and paper_category==5",plot_options["range"],1,genieweight)
+                drt_covR = self.sys_err("weightsReint", variable, query+" and paper_category==5",plot_options["range"],1,genieweight)
+                drt_covU = self.sys_err_unisim(variable, query+" and paper_category==5", plot_options["range"], 1, genieweight)
+                summarydict[5]['err2'] = np.diag(drt_covF).sum() + np.diag(drt_covG).sum() + \
+                                          np.diag(drt_covR).sum() + np.diag(drt_covU).sum() + \
+                                          np.diag(err_dirt).sum() + np.diag(sys_dirt**2).sum()
             if 111 in summarydict.keys():
                 lee_covF = self.sys_err("weightsFlux", variable, query+" and paper_category==111",plot_options["range"], 1,genieweight,islee=True)
                 lee_covG = self.sys_err("weightsGenie", variable, query+" and paper_category==111",plot_options["range"],1,genieweight,islee=True)
@@ -2084,6 +2093,7 @@ class Plotter:
             ax1.set_title(query)
         #     fig.suptitle(query)
         # fig.savefig("plots/%s_cat.pdf" % variable.replace("/", "_"))
+        #print(n_data)
 
         if ratio and draw_data:
             return fig, ax1, ax2, stacked, labels, n_ext

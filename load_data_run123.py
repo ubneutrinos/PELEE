@@ -227,6 +227,9 @@ def process_uproot(up,df):
     trk_len_v = up.array("trk_len_v")
     df["n_trks_gt10cm"] = (trk_len_v[trk_mask>=0.5]>10).sum()
     df["n_trks_gt25cm"] = (trk_len_v[trk_mask>=0.5]>25).sum()
+    trk_distance_v = up.array("trk_distance_v")
+    df["n_tracks_attach"] = (trk_distance_v[trk_mask>=0.5]<3).sum()
+    df["n_protons_attach"] = ((trk_distance_v[trk_mask>=0.5]<3)&(trk_llr_pid_v[trk_mask>=0.5]<0.02)).sum()
     #
     pfnhits_v = up.array("pfnhits")
     trk_id_all = get_idx_from_vec_sort(-1,pfnhits_v,trk_mask) # this includes also uncontained tracks
@@ -1494,7 +1497,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             Npre = float(r3ccpi0.shape[0])
             r3ccpi0 = pd.merge(r3ccpi0, dfcsv, how='inner', on=['identifier'],suffixes=('', '_VAR'))
             Npost = float(r3ccpi0.shape[0])
-            #print ('fraction of R3 CCpi0 sample after split : %.02f'%(Npost/Npre))
+            print ('fraction of R3 CCpi0 sample after split : %.02f'%(Npost/Npre))
         #train_r3ccpi0, r3ccpi0 = train_test_split(r3ccpi0, test_size=0.5, random_state=1990)
 
     print("Loading Run1 dataframes")
@@ -1878,6 +1881,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[ df['weightSplineTimesTune'] == np.inf, 'weightSplineTimesTune' ] = 1.
         df.loc[ df['weightSplineTimesTune'] > 100, 'weightSplineTimesTune' ] = 1.
         df.loc[ np.isnan(df['weightSplineTimesTune']) == True, 'weightSplineTimesTune' ] = 1.
+        # code below matches the usage of weights in SBNfit:
+        #df.loc[ df['weightSplineTimesTune'] == np.inf, 'weightSplineTimesTune' ] = 1.
+        #df.loc[ df['weightSplineTimesTune'] > 1000, 'weightSplineTimesTune' ] = 1.
+        #df.loc[ np.isnan(df['weightSplineTimesTune']) == True, 'weightSplineTimesTune' ] = 1.
 
         # 0p scaling
         #df.loc[ (df['nu_pdg']==12)&(df['nproton'] > 0) , 'weightSplineTimesTune'] = df['weightSplineTimesTune'] * 1.00 #0.973
@@ -1972,6 +1979,9 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df["phi1MinusPhi2"] = df["shr_phi"]-df["trk_phi"]
             df["theta1PlusTheta2"] = df["shr_theta"]+df["trk_theta"]
             df['cos_shr_theta'] = np.cos(df['shr_theta'])
+            df['cos_trk_theta'] = np.cos(df['trk_theta'])
+            df['n_tracks_cont_attach'] = df['n_tracks_contained']
+            df.loc[((df['tk2sh1_distance']>3)&(df['tk2sh1_distance']<9999)),'n_tracks_cont_attach'] = df['n_tracks_contained']-1
             
 
     if (loadpi0variables == True):
@@ -2015,8 +2025,16 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df.loc[:,'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_Y']
             df.loc[(df['shr_tkfit_nhits_U']>df['shr_tkfit_nhits_Y']),'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_U']
             df.loc[(df['shr_tkfit_nhits_V']>df['shr_tkfit_nhits_Y']) & (df['shr_tkfit_nhits_V']>df['shr_tkfit_nhits_U']),'shr_tkfit_dedx_max'] = df['shr_tkfit_dedx_V']
-            
-    
+
+            df.loc[:,'shr_tkfit_2cm_dedx_max'] = df['shr_tkfit_2cm_dedx_Y']
+            df.loc[(df['shr_tkfit_2cm_nhits_U']>df['shr_tkfit_2cm_nhits_Y']),'shr_tkfit_2cm_dedx_max'] = df['shr_tkfit_2cm_dedx_U']
+            df.loc[(df['shr_tkfit_2cm_nhits_V']>df['shr_tkfit_2cm_nhits_Y']) & (df['shr_tkfit_2cm_nhits_V']>df['shr_tkfit_2cm_nhits_U']),'shr_tkfit_2cm_dedx_max'] = df['shr_tkfit_2cm_dedx_V']
+
+            df.loc[:,'shr_tkfit_gap10_dedx_max'] = df['shr_tkfit_gap10_dedx_Y']
+            df.loc[(df['shr_tkfit_gap10_nhits_U']>df['shr_tkfit_gap10_nhits_Y']),'shr_tkfit_gap10_dedx_max'] = df['shr_tkfit_gap10_dedx_U']
+            df.loc[(df['shr_tkfit_gap10_nhits_V']>df['shr_tkfit_gap10_nhits_Y']) & (df['shr_tkfit_gap10_nhits_V']>df['shr_tkfit_gap10_nhits_U']),'shr_tkfit_gap10_dedx_max'] = df['shr_tkfit_gap10_dedx_V']
+
+
         INTERCEPT = 0.0
         SLOPE = 0.83
 

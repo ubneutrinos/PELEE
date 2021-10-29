@@ -44,11 +44,9 @@ NPLCUTQ_all_showers += ' and subcluster > 4'
 NPLCUTQ_all_showers += ' and trkfit < 0.65'
 NPLCUTQ_all_showers += ' and tksh_distance < 6.0'
 NPLCUTQ_all_showers += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5)' 
-#NPLCUTQ_all_showers += ' and secondshower_Y_nhit < 50' # old cut, no longer in selection
 NPLCUTQ_all_showers += ' and tksh_angle > -0.9'
 NPLCUTQ_all_showers += ' and shr_trk_len < 300.' # new cut
 NPLCUTQ = NPLCUTQ_all_showers + ' and n_showers_contained == 1'
-#NPLCUTQ = NPLCUTQ_all_showers + ' and (n_showers_contained == 1 or (n_showers_contained>1 and shr12_cos_p1_dstart>0.99))'
 
 # tight box cuts
 NPTCUTQ_all_showers = NPVLCUTQ_all_showers
@@ -141,6 +139,17 @@ ZPLOOSESEL_all_tracks += ' and shr_trk_len < 300.'
 ZPLOOSESEL_onep_track = ZPLOOSESEL_all_tracks + ' and n_tracks_contained > 0'
 ZPLOOSESEL = ZPLOOSESEL_all_tracks + ' and n_tracks_contained == 0'
 
+ZPONEGAMMA = ZPLOOSESEL
+ZPONEGAMMA += ' and (CosmicDirAll3D<0.8 and CosmicDirAll3D>-0.8)'
+ZPONEGAMMA += ' and (shr_phi<-2.2 or shr_phi>-0.8)'
+ZPONEGAMMA += ' and shr_tkfit_dedx_max>3.5'
+ZPONEGAMMA += ' and shr_score<0.2'
+ZPONEGAMMA += ' and (secondshower_Y_nhit<=8 or secondshower_Y_dot<=0.8 or anglediff_Y<=40 or secondshower_Y_vtxdist>=100)'
+ZPONEGAMMA += ' and shr_trk_len < 300.'
+ZPONEGAMMA += ' and n_tracks_tot==0'
+ZPONEGAMMA += ' and subcluster > 6'
+
+
 ZPBDTVLOOSE_all_tracks = ZPLOOSESEL_all_tracks
 ZPBDTVLOOSE_all_tracks += ' and bkg_score >0.5'
 ZPBDTVLOOSE_onep_track = ZPBDTVLOOSE_all_tracks + ' and n_tracks_contained > 0'
@@ -219,7 +228,7 @@ NCPI0SEL += ' and (n_tracks_contained == n_tracks_tot)' # no exiting tracks
 # SIDEBANDS CUTS
 LOW_PID = '(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1))'
 MEDIUM_PID = '(0.1 < pi0_score < 1.0) and (0.1 < nonpi0_score < 1.0) and ~((pi0_score > 0.67) and (nonpi0_score > 0.7))'
-LOW_ENERGY = '(0.05 < reco_e < 0.75)'
+LOW_ENERGY = '(0.15 < reco_e < 0.65)'
 MEDIUM_ENERGY = '(0.75 < reco_e < 1.05)'
 LOW_MEDIUM_ENERGY = '(0.05 < reco_e < 1.05)'
 HIGH_ENERGY = '(1.05 < reco_e < 2.05)'
@@ -306,6 +315,7 @@ sideband_categories = {
     'HiE': {'query': HIGH_ENERGY_NOUPBOUND, 'title': 'Reco energy > 1.05 GeV', 'dir': 'HiE'},
     'NearE': {'query': NEAR_ENERGY_NOUPBOUND, 'title': 'Reco energy > 0.65 GeV', 'dir': 'HiEnear'},
     'NearEOnly': {'query': NEAR_ENERGY_ONLY, 'title': '0.65 GeV < Reco energy < 0.85 GeV', 'dir': 'HiEnearOnly'},
+    'LowE': {'query': LOW_ENERGY, 'title': '0.15 < Reco energy < 0.65 GeV', 'dir': 'LowE'},
     'HiEext': {'query': HIGH_ENERGY_EXT_NOUPBOUND, 'title': 'Reco energy > 0.85 GeV', 'dir': 'HiEext'},
     'HiEadd': {'query': ADD_ENERGY_BINS, 'title': '0.85 < Reco energy < 1.05 GeV', 'dir': 'HiEadd'},
     'HiEZP': {'query': HIGH_ENERGY_ZP, 'title': 'Reco energy > 0.9 GeV', 'dir': 'HiEZP'},
@@ -357,8 +367,11 @@ selection_categories = {
     'TESTBDT02AllShr': {'query': TESTBDT02CQ_all_showers, 'title': '1eNp BDT > 0.2, 0+ showers', 'dir': 'TESTBDT02AllShr'},
     'None': {'query': None, 'title': 'NoCuts', 'dir': 'None'},
     'ZPBDT': {'query': ZPBDTLOOSE, 'title': '1e0p BDT sel.', 'dir': 'ZPBDT'},
+    'ZPBDTTIGHT': {'query': ZPBDT, 'title': '1e0p BDT Tighter sel.', 'dir': 'ZPBDTTIGHT'},
+    'ZPT': {'query': ZPBOXCUTS, 'title': '1e0p Tight Cuts sel.', 'dir': 'ZPT'},
     'ZPBDTAllTrk': {'query': ZPBDTLOOSE_all_tracks, 'title': '1e0p BDT sel.', 'dir': 'ZPBDTAllTrk'},
     'ZPLOOSESEL': {'query': ZPLOOSESEL, 'title': '1e0p Loose sel.', 'dir': 'ZPLOOSESEL'},
+    'ZPONEGAMMA': {'query': ZPONEGAMMA, 'title': '1g1p sel.', 'dir': 'ZPONEGAMMA'},
     'ZPLAllTrk': {'query': ZPLOOSESEL_all_tracks, 'title': '1e0p Loose sel.', 'dir': 'ZPLAllTrk'},
     'ZPLOOSETWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
     'ZPBDTTWOSHR': {'query': ZPBDTLOOSE_two_shower, 'title': '1e0p BDT sel. 2+shr', 'dir': 'ZPBDT_two_shower'},
@@ -473,17 +486,17 @@ stages_titles_two_plus_showers_no_high_en_cut = {
 bdt_scan = [0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7]
 
 basic_variables = [
-        ('n_showers_contained',1,(-0.5, 9.5),"normalization","onebin"),
-        ('n_showers_contained',10,(-0.5, 9.5),"n showers contained"),
+        ('n_showers_contained',1,(0.5, 1.5),"normalization","onebin"),
+        #('n_showers_contained',10,(-0.5, 9.5),"n showers contained"),
         ('n_tracks_contained',6,(-0.5, 5.5),"n tracks contained"),
-        ('n_tracks_tot',6,(-0.5, 5.5),"n tracks total"),
+        #('n_tracks_tot',6,(-0.5, 5.5),"n tracks total"),
         #('reco_e',21,(0.05,2.15),r"Reconstructed Energy [GeV]"),
         #('reco_e',20,(0.05,3.05),r"Reconstructed Energy [GeV]","extended"),
         #('reco_e',7,(0.05,2.85),r"Reconstructed Energy [GeV]","coarse"),
-        ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
-        ('reco_e',21,(-0.05,4.15),r"Reconstructed Energy [GeV]","extended"),
-        ('reco_e',14,(0.15,1.55),r"Reconstructed Energy [GeV]","note"),
-        ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
+        #('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
+        #('reco_e',21,(-0.05,4.15),r"Reconstructed Energy [GeV]","extended"),
+        ('reco_e',20,(0.15,2.95),r"Reconstructed Energy [GeV]","note"),
+        #('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
 ]
 
 loosesel_variables_1eNp = [
@@ -557,18 +570,18 @@ shr2sel_variables = [
 bdtscore_variables = [
         #('nonpi0_score',10,(0.,0.5),"BDT non-$\pi^0$ score", "low_bdt"),
         ('nonpi0_score',10,(0.5,1.0),"BDT non-$\pi^0$ score", "high_bdt"),
-        #('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score"),
-        ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score", "log", True),
+        ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score"),
+        #('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score", "log", True),
         #('pi0_score',10,(0.,0.5),"BDT $\pi^0$ score", "low_bdt"),
         ('pi0_score',10,(0.5,1.0),"BDT $\pi^0$ score", "high_bdt"),
-        #('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
-        ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
+        ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score"),
+        #('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
         #('bkg_score',10,(0,1.0),"1e0p BDT score"),
         #('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
         ('bkg_score',10,(0,1.0),"1e0p BDT score"),
-        ('bkg_score',5,(0,0.5),"1e0p BDT score","low_bdt"),
+        #('bkg_score',5,(0,0.5),"1e0p BDT score","low_bdt"),
         ('bkg_score',5,(0.5,1.0),"1e0p BDT score","high_bdt"),
-        ('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
+        #('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
 ]
 energy_variables = [
         ('trk_energy_tot',10,(0,2),"trk energy (range, P) [GeV]"),
@@ -705,7 +718,7 @@ numusel_variables = [
 
 bdt_common_variables_1eNp = [
     ('shr_score',10,(0,0.5),"shr score"), 
-    ('trkfit',10,(0,0.65),"Fraction of Track-fitted points"),
+    ('trkfit',10,(0,0.65),"Fraction of Track-fitted points","zoomed"),
     ('subcluster',10,(4,44),"N sub-clusters in shower"),
     ('shrmoliereavg',9,(0,9),"average Moliere angle [degrees]"),
     ('CosmicIPAll3D',10,(10,200),"CosmicIPAll3D [cm]"),
