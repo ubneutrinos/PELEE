@@ -604,9 +604,9 @@ def process_uproot_numu(up,df):
     trk_mask = (trk_score_v>0.0)
     proton_mask = ((trk_score_v > 0.5) & (trk_llr_pid_v < 0.))
 
-    df["proton_range_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_energy_proton_v[proton_mask],trk_len_v[proton_mask])])
+    df["proton_range_energy"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else 0. for vec,vid in zip(trk_energy_proton_v[proton_mask],trk_len_v[proton_mask])])
 
-    #'''
+    '''
     df["trk1_score"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_score_v[trk_mask],trk_len_v[trk_mask])])
     df["trk1_end_x"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_end_x_v[trk_mask],trk_len_v[trk_mask])])
     df["trk1_end_y"] = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(trk_end_y_v[trk_mask],trk_len_v[trk_mask])])
@@ -630,6 +630,8 @@ def process_uproot_numu(up,df):
     df["trk1_backtracked_pdg"] = awkward.fromiter([vec[int(vid)-1] if ( (len(vec) > 0) and (vid >= 0) and (vid < 10000) and (vid != -9999.) ) else -9999. for vec,vid in zip(pfp_pdg_v,trk1_pfp_idx)])
     #df["trk1_backtracked_pdg"] = awkward.fromiter([vec1[vec2[vid.argsort()[-1]]] if ( (len(vid)>0) and (len(vec1) >= len(vec2)) ) else -9999. for vec1,vec2,vid in zip(pfp_pdg_v,trk_pfp_id_v[trk_mask],trk_len_v[trk_mask])])
     #df["trk1_backtracked_pdg"] = get_elm_from_vec_idx(pfp_pdg_v,trk1_pfp_idx)
+    '''
+
     '''
     # 2nd longest track
     df["trk2_len"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(trk_len_v[trk_mask],trk_len_v[trk_mask])])
@@ -659,7 +661,8 @@ def process_uproot_numu(up,df):
     trk_mask = (trk_score_v>0.5)
     
     muon_candidate_idx = get_idx_from_vec_sort(-1,trk_len_v,trk_mask)
-    
+
+    '''
     df["muon_candidate_length"]  = get_elm_from_vec_idx(trk_len_v,muon_candidate_idx)
     df["muon_candidate_score"]   = get_elm_from_vec_idx(trk_score_v,muon_candidate_idx)
     df["muon_candidate_pid"]     = get_elm_from_vec_idx(trk_llr_pid_v,muon_candidate_idx)
@@ -672,11 +675,14 @@ def process_uproot_numu(up,df):
     df["muon_candidate_end_x"]   = get_elm_from_vec_idx(trk_end_x_v,muon_candidate_idx)
     df["muon_candidate_end_y"]   = get_elm_from_vec_idx(trk_end_y_v,muon_candidate_idx)
     df["muon_candidate_end_z"]   = get_elm_from_vec_idx(trk_end_z_v,muon_candidate_idx)
-    
+    '''
+
+    '''
     df["trk1_muon_mcs_consistency"]    = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(muon_mcs_consistency_v[trk_mask] ,trk_len_v[trk_mask])])
     df["trk1_muon_calo_consistency"]   = awkward.fromiter([vec[vid.argsort()[-1]] if len(vid)>0 else -9999. for vec,vid in zip(muon_calo_consistency_v[trk_mask],trk_len_v[trk_mask])])
     df["trk2_proton_calo_consistency"] = awkward.fromiter([vec[vid.argsort()[-2]] if len(vid)>1 else -9999. for vec,vid in zip(proton_calo_consistency_v[trk_mask],trk_len_v[trk_mask])])
-    
+    '''
+
     # apply numu selection as defined by Ryan
     trk_score_v = up.array("trk_score_v")
     #'''
@@ -695,10 +701,12 @@ def process_uproot_numu(up,df):
                 & (trk_len_v > 10) & (trk_distance_v < 4.) & (pfp_generation_v == 2)
     '''
 
+    '''
     contained_track_mask = (trk_start_x_v > 5.) & (trk_start_x_v < 251.) & (trk_end_x_v > 5.) & (trk_end_x_v < 251.) \
                            & (trk_start_y_v > -110.) & (trk_start_y_v < 110.) & (trk_end_y_v > -110.) & (trk_end_y_v < 110.) \
                            & (trk_start_z_v > 20.) & (trk_start_z_v < 986.) & (trk_end_z_v > 20.) & (trk_end_z_v < 986.) \
                            & (trk_score_v>0.5)
+    '''
 
     #p_v = up.array("pfnhits")
     muon_idx = get_idx_from_vec_sort(-1,trk_len_v,muon_mask)
@@ -716,7 +724,7 @@ def process_uproot_numu(up,df):
     trk_score_v = up.array("trk_score_v")
     df['n_muons_tot'] = muon_mask.sum()
     df['n_tracks_tot'] = trk_mask.sum()
-    df['n_tracks_contained'] = contained_track_mask.sum()
+    #df['n_tracks_contained'] = contained_track_mask.sum()
     df['n_protons_tot'] = proton_mask.sum()
     df['n_showers_tot'] = shr_mask.sum()    
     
@@ -963,6 +971,7 @@ def get_variables():
     VARIABLES = [
         "nu_pdg", "slpdg", "backtracked_pdg", #"trk_score_v", 
         "category", "ccnc",
+        "endmuonmichel",
         #"NeutrinoEnergy0","NeutrinoEnergy1","NeutrinoEnergy2",
         "run","sub","evt",
         "CosmicIP","CosmicDirAll3D","CosmicIPAll3D",
@@ -1052,6 +1061,10 @@ def get_variables():
                "shr_px","shr_py","shr_pz","p", "pt", "hits_y",
                "shr_start_x","shr_start_x","shr_start_x",
                "elec_pz","elec_e","truthFiducial"
+               'pi0truth_gamma1_edep','shr_bkt_E','pi0truth_gamma1_etot',
+               'pi0truth_gamma1_zpos','shr_start_z',
+               'pi0truth_gamma1_ypos','shr_start_y',
+               'pi0truth_gamma1_xpos','shr_start_x'
     ]
 
     VARDICT['NUEVARS'] = NUEVARS
@@ -1114,7 +1127,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     VARDICT = get_variables()
     
     # sample list
-    R1BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
+    #R1BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
+    R1BNB = 'run1_nuepresel' # unblinded eLEE
     R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C_all_reco2'
     #R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C1_C2_D1_D2_E1_E2_all_reco2' #Run1 + Run2
     R1NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2' # OFFICIA
@@ -1148,7 +1162,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         R2DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
         R2EXT  = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     
-    R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+    #R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+    R3BNB = 'run3_nuepresel' # unblinded eLEE
     R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2'
     if (loadnumucrtonly):
         R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
@@ -1900,6 +1915,10 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df.loc[ ( df['trk1_backtracked_pdg'] == -211), 'trk1_backtracked_pdg' ] = 211
         df.loc[ ( df['trk1_backtracked_pdg'] == -321), 'trk1_backtracked_pdg' ] = 321
         '''
+
+        # Michel tag
+        #df.loc[ (df['endmuonmichel'] > 0), 'category' ] = 222
+        
         # flux parentage
         df['flux'] = np.zeros_like(df['nslice'])
         df.loc[ (((df['nu_pdg'] == 12) | (df['nu_pdg'] == -12)) & (df['nu_decay_mode'] < 11)) , 'flux'] = 10
@@ -1994,7 +2013,10 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df['cos_trk_theta'] = np.cos(df['trk_theta'])
             df['n_tracks_cont_attach'] = df['n_tracks_contained']
             df.loc[((df['tk2sh1_distance']>3)&(df['tk2sh1_distance']<9999)),'n_tracks_cont_attach'] = df['n_tracks_contained']-1
-            
+            df['showergammadist'] = np.sqrt( (df['pi0truth_gamma1_zpos'] - df['shr_start_z'])**2 +
+                                             (df['pi0truth_gamma1_ypos'] - df['shr_start_y'])**2 +
+                                             (df['pi0truth_gamma1_xpos'] - df['shr_start_x'] + 1.08)**2 )
+            df['bktrgammaenergydiff'] = np.abs(df['shr_bkt_E'] * 1000 - df['pi0truth_gamma1_etot'])
 
     if (loadpi0variables == True):
         for i,df in enumerate(df_v):
@@ -2046,7 +2068,6 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df.loc[(df['shr_tkfit_gap10_nhits_U']>df['shr_tkfit_gap10_nhits_Y']),'shr_tkfit_gap10_dedx_max'] = df['shr_tkfit_gap10_dedx_U']
             df.loc[(df['shr_tkfit_gap10_nhits_V']>df['shr_tkfit_gap10_nhits_Y']) & (df['shr_tkfit_gap10_nhits_V']>df['shr_tkfit_gap10_nhits_U']),'shr_tkfit_gap10_dedx_max'] = df['shr_tkfit_gap10_dedx_V']
 
-
         INTERCEPT = 0.0
         SLOPE = 0.83
 
@@ -2058,6 +2079,10 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         # define some energy-related variables
         for i,df in enumerate(df_v):
             df["reco_e"] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE + df["trk_energy_tot"]
+            df["reco_e_overflow"] = df["reco_e"]
+            df.loc[ (df['reco_e'] >= 2.25), 'reco_e_overflow' ] = 2.24
+            df["reco_e_mev"] = df["reco_e"] * 1000.
+            df["reco_e_mev_overflow"] = df["reco_e_overflow"] * 1000.
             df['electron_e'] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE
             df['proton_e'] = Mp + df['protonenergy']
             df['proton_p'] = np.sqrt( (df['proton_e'])**2 - Mp**2 )
@@ -2262,10 +2287,10 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         df.loc[:,"paper_category_numu"] = 0
         if key is 'data': continue
         df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] = 2
-        df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 0), 'paper_category_numu'] = 22
-        df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 1), 'paper_category_numu'] = 23
-        df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 2), 'paper_category_numu'] = 24
-        df.loc[ (df['ccnc'] == 0) & (df['nproton'] >= 3), 'paper_category_numu'] = 25
+        #df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 0), 'paper_category_numu'] = 22
+        #df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 1), 'paper_category_numu'] = 23
+        #df.loc[ (df['ccnc'] == 0) & (df['nproton'] == 2), 'paper_category_numu'] = 24
+        #df.loc[ (df['ccnc'] == 0) & (df['nproton'] >= 3), 'paper_category_numu'] = 25
         df.loc[ (df['ccnc'] == 1), 'paper_category_numu'] = 3
         if key is 'nue':
             df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] = 11
@@ -2275,6 +2300,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             continue
         if key is 'dirt':
             df['paper_category'] = 5
+            df['paper_category_numu'] = 5
             continue
 
     for key, df in samples.items():

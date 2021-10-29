@@ -43,8 +43,12 @@ paper_labels_numu = {
     11: r"$\nu_e$ CC",
     111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
+    22: r"$\nu_{\mu}$ CC 0p",
+    23: r"$\nu_{\mu}$ CC 1p",
+    24: r"$\nu_{\mu}$ CC 2p",
+    25: r"$\nu_{\mu}$ CC 3+p",
     3: r"NC $\nu$",
-    5: r"dirt",
+    5: r"Dirt (Outside TPC)",
 }
 
 paper_labels = {
@@ -52,7 +56,7 @@ paper_labels = {
     111: r"MiniBooNE LEE",
     2: r"$\nu$ other",
     31: r"$\nu$ with $\pi^{0}$",
-    5: r"dirt",
+    5: r"Dirt (Outside TPC)",
 }
 
 
@@ -62,11 +66,12 @@ category_labels = {
     11: r"$\nu_e$ CC0$\pi$Np",
     111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
+    222: r"$\nu_{\mu}$ CC w/ Michel",
     21: r"$\nu_{\mu}$ CC $\pi^{0}$",
-    22: r"$\nu_{\mu}$ CC 0p$^+$",
-    23: r"$\nu_{\mu}$ CC 1p$^+$",
-    24: r"$\nu_{\mu}$ CC 2p$^+$",
-    25: r"$\nu_{\mu}$ CC Np$^+$",
+    22: r"$\nu_{\mu}$ CC 0p",
+    23: r"$\nu_{\mu}$ CC 1p",
+    24: r"$\nu_{\mu}$ CC 2p",
+    25: r"$\nu_{\mu}$ CC 3+p",
     3: r"$\nu$ NC",
     31: r"$\nu$ NC $\pi^{0}$",
     4: r"Cosmic",
@@ -176,10 +181,11 @@ category_colors = {
     8: "xkcd:cerulean",
     2: "xkcd:cyan",
     21: "xkcd:cerulean",
-    22: "xkcd:lightblue",
-    23: "xkcd:cyan",
-    24: "steelblue",
-    25: "blue",
+    222: "pink",
+    22: "xkcd:khaki",# "xkcd:lightblue",
+    23: "xkcd:maroon",# "xkcd:cyan",
+    24: "xkcd:teal",# "steelblue",
+    25: "xkcd:coral",# "blue",
     3: "xkcd:cobalt",
     31: "xkcd:sky blue",
     1: "xkcd:green",
@@ -238,13 +244,18 @@ class Plotter:
         self.stats = {}
         self.cov = None # covariance matrix from systematics
         self.cov_mc_stat = None
+        self.cov_mc_detsys = None
+        self.cov_stat = None
         self.cov_data_stat = None
         self.cov_full = None
         self._ratio_vals = None
         self._ratio_errs = None
         self.data = None # data binned events
+        self.ext = None  # EXT binned events
+        self.ext_err = None # EXT error (stat only)
         self.prediction = None # EXT + MC binned events
 
+        #self.nu_pdg = nu_pdg = " nu_pdg != 100"
         self.nu_pdg = nu_pdg = "~(abs(nu_pdg) == 12 & ccnc == 0)" # query to avoid double-counting events in MC sample with other MC samples
 
         if ("ccpi0" in self.samples):
@@ -457,14 +468,14 @@ class Plotter:
             
             
 
-    def _chisq_full_covariance(self,data, mc,CNP=True,STATONLY=False):
+    def _chisq_full_covariance(self,data, mc,CNP=True,STATONLY=False,verbose=False):
 
         np.set_printoptions(precision=3)
 
         dof = len(data)
         
         COV = self.cov + self.cov_mc_stat + self.cov_mc_detsys
-            
+
         # remove rows/columns with zero data and MC
         remove_indices_v = []
         for i,d in enumerate(data):
@@ -493,9 +504,11 @@ class Plotter:
 
         if (CNP == False):
             ERR_STAT = data + mc
-        
+
 
         COV_STAT[np.diag_indices_from(COV_STAT)] = ERR_STAT
+
+        self.cov_stat = COV_STAT
 
         COV += COV_STAT
 
@@ -1114,8 +1127,8 @@ class Plotter:
         detsys_frac_cov = detsys_frac_cov.astype(float)
         detsys_frac = np.zeros(len(binedges)-1)
 
-        #DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","R2","SCE","LYD","LYR","LYA"]
-        DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","dEdX","SCE","LYD","LYR","LYA"]
+        DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","R2","SCE","LYD","LYR","LYA"]
+        #DETSAMPLES = ["X", "YZ", 'aYZ', "aXZ","dEdX","SCE","LYD","LYR","LYA"]
 
         #if (os.path.isdir(path) == False):
         #    #print ('DETSYS. path %s is not valid'%path)
@@ -1253,7 +1266,7 @@ class Plotter:
         
             
         #print (sample,': frac. detsys matrix is : \n', detsys_frac_cov)
-        #print (sample,': frac. detsys matrix is : \n', np.diag(detsys_frac_cov))
+        print (sample,': frac. detsys matrix is : \n', np.sqrt(np.diag(detsys_frac_cov)))
         return detsys_frac_cov
 
     def add_detsys_error(self,sample,mc_entries_v,weight):
@@ -1302,6 +1315,11 @@ class Plotter:
                       draw_sys=False, stacksort=0, track_cuts=None, select_longest=False,
                       detsysdict=None,ratio=True,chisq=False,draw_data=True,asymErrs=False,genieweight="weightSplineTimesTune",
                       fullcov=False,
+                      predictedevents=True, # add number of predicted events for MC contributions to legend labels.
+                      legendloc="best",
+                      figtitle="MicroBooNE Preliminary", # title for legend
+                      drawsystematics=True, # draw systematics error bar around MC
+                      labeldecimals=2, # number of decimal places for y-axis label
                       ncol=2,
                       COVMATRIX='', # path to covariance matrix file
                       DETSYSPATH="", # path where to find detector systematics files
@@ -1514,11 +1532,12 @@ class Plotter:
                 var_dict[100] = ext_plotted_variable
                 ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
                 weight_dict[100] = ext_weight
-                cat_labels[100] = "EXT"
+                cat_labels[100] = "Cosmics"
                 #category_colors[100] = "xkcd:cerulean"
                 category_colors[100] = "xkcd:greyish blue"
                 n_ext, dummy = np.histogram(ext_plotted_variable,bins=plot_options["bins"],
                                    range=plot_options["range"],weights=ext_weight)
+                self.ext = n_ext
 
 
         if ratio:
@@ -1603,11 +1622,18 @@ class Plotter:
         total = sum(sum(order_weight_dict[c]) for c in order_var_dict)
         if draw_data:
             total += sum([self.weights["ext"]] * len(ext_plotted_variable))
-        labels = [
-            "%s: %.1f" % (cat_labels[c], sum(order_weight_dict[c])) \
-            if sum(order_weight_dict[c]) else ""
-            for c in order_var_dict.keys()
-        ]
+        if (predictedevents == True):
+            labels = [
+                "%s: %.1f" % (cat_labels[c], sum(order_weight_dict[c])) \
+                if sum(order_weight_dict[c]) else ""
+                for c in order_var_dict.keys()
+            ]
+        else:
+            labels = [
+                "%s" % (cat_labels[c]) \
+                if sum(order_weight_dict[c]) else ""
+                for c in order_var_dict.keys()
+            ]
 
         if kind == "event_category" or kind == "paper_category" or kind == "paper_category_numu":
             plot_options["color"] = [category_colors[c]
@@ -1665,7 +1691,7 @@ class Plotter:
             total_weight = np.concatenate([total_weight, ext_weight])
 
         #### for paper draw lee as dashed line on top of stack plot
-        #'''
+        '''
         if kind == "paper_category":
             lee_tot_array = np.concatenate([total_array,var_dict[111]])
             lee_tot_weight = np.concatenate([total_weight,weight_dict[111]])
@@ -1678,7 +1704,7 @@ class Plotter:
                 linewidth=2,
                 label="eLEE: %.1f" % sum(weight_dict[111]) if sum(weight_dict[111]) else "",
                 **plot_options)
-        #'''
+        '''
 
         n_tot, bin_edges, patches = ax1.hist(
         total_array,
@@ -1823,6 +1849,7 @@ class Plotter:
         if draw_data:
             err_ext = np.array(
                 [n * self.weights["ext"] for n in n_ext]) #here n is already weighted
+            self.ext_err = np.sqrt(err_ext)
         else:
             err_ext = np.zeros(len(err_mc))
 
@@ -1858,7 +1885,7 @@ class Plotter:
                              self.sys_err("weightsFlux", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                              self.sys_err("weightsReint", variable, query, plot_options["range"], plot_options["bins"], genieweight) + \
                              self.sys_err_unisim(variable, query, plot_options["range"], plot_options["bins"], genieweight)
-                           )
+                            )
 
                 # for calculating the cross-section uncertainty [not needed for PeLEE]
                 #self.xsec_err("weightsFlux",variable, query, plot_options["range"],1,genieweight,ACCEPTANCE)
@@ -1952,7 +1979,9 @@ class Plotter:
         # old error-bar plotting
         #ax1.bar(bincenters, n_tot, facecolor='none',
         #       edgecolor='none', width=0, yerr=exp_err)
-        ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.2,bottom=(n_tot-exp_err))
+        # DC0721
+        if (drawsystematics == True):
+            ax1.bar(bincenters, exp_err*2,width=[n*2 for n in bin_size],facecolor='gray',alpha=0.35,bottom=(n_tot-exp_err),label='Uncertainty')
         #ax1.errorbar(bincenters,n_tot,yerr=exp_err,fmt='k.',lw=35,alpha=0.2)
         '''
         ax1.fill_between(
@@ -1974,6 +2003,12 @@ class Plotter:
 
         self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
 
+        if (predictedevents==True):
+            datalabel = "BNB Data: %i" % len(data_plotted_variable)
+        else:
+            datalabel = "BNB Data"
+            
+
         if sum(n_data) > 0:
             ax1.errorbar(
                 bincenters,
@@ -1981,7 +2016,7 @@ class Plotter:
                 xerr=bin_size,
                 yerr=data_err,
                 fmt='ko',
-                label="BNB: %i" % len(data_plotted_variable) if len(data_plotted_variable) else "")
+                label=datalabel if len(data_plotted_variable) else "")
 
         #frac = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], np.array([1,1,1,5,5,5]), np.array([1,1,1,5,5,5]), 70)
         #self.sigma_shapeonly = self.deltachisqfakedata(plot_options["range"][0], plot_options["range"][-1], n_tot, (n_tot-lee_hist), 220)
@@ -2014,24 +2049,30 @@ class Plotter:
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
+        #'''
         if (ncol > 3):
             leg = ax1.legend(
-                frameon=False, ncol=4, title=r'MicroBooNE Preliminary %g POT' % self.pot,
+                frameon=False, ncol=4, title=r'%s %.2f $\times 10^{20}$ POT' % (figtitle,(self.pot/1e20)),
+                fontsize=11,loc=legendloc,
                 prop={'size': fig.get_figwidth()})
         else:
             leg = ax1.legend(
-                frameon=False, ncol=2, title=r'MicroBooNE Preliminary %g POT' % self.pot)
-        leg._legend_box.align = "left"
-        plt.setp(leg.get_title(), fontweight='bold')
+                frameon=False, ncol=2, title=r'%s %.2f $\times 10^{20}$ POT' % (figtitle,(self.pot/1e20)),fontsize=11,loc=legendloc)
+        leg._legend_box.align = "center"
+        plt.setp(leg.get_title(), fontweight='normal',fontsize=14)
+        #'''
 
         unit = title[title.find("[") +
                      1:title.find("]")] if "[" and "]" in title else ""
         x_range = plot_options["range"][1] - plot_options["range"][0]
+        NNN = round(x_range / plot_options["bins"],labeldecimals)
+        if (labeldecimals == 0):
+            NNN = int(NNN)
         if isinstance(plot_options["bins"], Iterable):
-            ax1.set_ylabel("N. Entries",fontsize=16)
+            ax1.set_ylabel("Entries",fontsize=16)
         else:
             ax1.set_ylabel(
-                "N. Entries / %.2g %s" % (round(x_range / plot_options["bins"],2), unit),fontsize=16)
+                "Entries / %s %s" % (str(NNN), unit),fontsize=16)
 
         if (ratio==True):
             ax1.set_xticks([])
@@ -2174,10 +2215,10 @@ class Plotter:
             queried_tree = tree.query(query+extra_query)
             variable = queried_tree[var_name]
             if islee:
-                spline_fix_cv  = queried_tree[weightVar] * queried_tree['leeweight'] * self.weights[t]
+                spline_fix_cv  = queried_tree["weightSplineTimesTune"] * queried_tree['leeweight'] * self.weights[t]
                 spline_fix_var = queried_tree["weightSpline"] * queried_tree['leeweight'] * self.weights[t]
             else:
-                spline_fix_cv  = queried_tree[weightVar] * self.weights[t]
+                spline_fix_cv  = queried_tree["weightSplineTimesTune"] * self.weights[t]
                 spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
 
             n_cv, bins = np.histogram(variable,range=x_range,bins=n_bins,weights=spline_fix_cv)
@@ -2222,6 +2263,7 @@ class Plotter:
 
             if (knob_n[n] == 2):
                 for i in range(len(n_cv)):
+                    #print ('knob %s has CV: %.0f, VAR UP: %.0f, VAR DN: %.0f entries'%(knob,n_cv_tot[i],n_tot_v[n][0][i],n_tot_v[n][1][i]))
                     for j in range(len(n_cv)):
                         this_cov[i][j] += (n_tot_v[n][0][i] - n_cv_tot[i]) * (n_tot_v[n][0][j] - n_cv_tot[j])
                         this_cov[i][j] += (n_tot_v[n][1][i] - n_cv_tot[i]) * (n_tot_v[n][1][j] - n_cv_tot[j])
@@ -2229,6 +2271,7 @@ class Plotter:
 
             if (knob_n[n] == 1):
                 for i in range(len(n_cv)):
+                    #print ('knob %s has CV: %.0f, VAR: %.0f entries'%(knob,n_cv_tot[i],n_tot_v[n][0][i]))
                     for j in range(len(n_cv)):
                         this_cov[i][j] += (n_tot_v[n][0][i] - n_cv_tot[i]) * (n_tot_v[n][0][j] - n_cv_tot[j])
 
