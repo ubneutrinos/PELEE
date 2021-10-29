@@ -978,6 +978,7 @@ def get_variables():
         "pi0_e", "evnunhits", "nslice", "interaction",
         "proton_e",
         "slclustfrac", "reco_nu_vtx_x", "reco_nu_vtx_y", "reco_nu_vtx_z",
+        "true_nu_vtx_sce_x","true_nu_vtx_sce_y","true_nu_vtx_sce_z",
         #"trk_sce_start_x_v","trk_sce_start_y_v","trk_sce_start_z_v",
         #"trk_sce_end_x_v","trk_sce_end_y_v","trk_sce_end_z_v",
         #"trk_start_x_v","trk_start_z_v","trk_start_z_v",
@@ -1049,6 +1050,7 @@ def get_variables():
                "shr_dedx_Y_cali", "trk_energy_tot","shr_id",
                "hits_ratio", "n_tracks_contained",
                "shr_px","shr_py","shr_pz","p", "pt", "hits_y",
+               "shr_start_x","shr_start_x","shr_start_x",
                "elec_pz","elec_e","truthFiducial"
     ]
 
@@ -1945,6 +1947,16 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df.loc[ (df['category']== 111), 'category' ] = 805
             df.loc[ (df['category']== 2 ),  'category' ] = 805
             df.loc[ (df['category']== 3 ),  'category' ] = 805
+
+        df['dx'] = df['reco_nu_vtx_x']-df['true_nu_vtx_sce_x']
+        df['dy'] = df['reco_nu_vtx_y']-df['true_nu_vtx_sce_y']
+        df['dz'] = df['reco_nu_vtx_z']-df['true_nu_vtx_sce_z']
+        df['dr'] = np.sqrt( df['dx']*df['dx'] + df['dy']*df['dy'] + df['dz']*df['dz'] )
+        if (loadshowervariables):
+            df['dx_s'] = df['shr_start_x']-df['true_nu_vtx_sce_x']
+            df['dy_s'] = df['shr_start_y']-df['true_nu_vtx_sce_y']
+            df['dz_s'] = df['shr_start_z']-df['true_nu_vtx_sce_z']
+            df['dr_s'] = np.sqrt( df['dx_s']*df['dx_s'] + df['dy_s']*df['dy_s'] + df['dz_s']*df['dz_s'] )
         
     df_v = [lee,mc,nue,ext,data,dirt]
     if (loadpi0filters == True):
