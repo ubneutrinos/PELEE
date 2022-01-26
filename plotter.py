@@ -2097,10 +2097,10 @@ class Plotter:
 
                 nd = sum(n_data)
                 nm = sum(n_tot)
-                cov1b = self.sys_err("weightsFlux", variable, query, plot_options["range"], 1, genieweight) + \
-                        self.sys_err("weightsGenie", variable, query, plot_options["range"], 1, genieweight) + \
-                        self.sys_err("weightsReint", variable, query, plot_options["range"], 1, genieweight) + \
-                        self.sys_err_unisim(variable, query, plot_options["range"], 1, genieweight)
+                cov1b = self.sys_err("weightsFlux", variable, query, (bin_edges[0], bin_edges[-1]), 1, genieweight) + \
+                        self.sys_err("weightsGenie", variable, query, (bin_edges[0], bin_edges[-1]), 1, genieweight) + \
+                        self.sys_err("weightsReint", variable, query, (bin_edges[0], bin_edges[-1]), 1, genieweight) + \
+                        self.sys_err_unisim(variable, query, (bin_edges[0], bin_edges[-1]), 1, genieweight)
                 mcnormerr2 = np.diag(cov1b).sum() + np.diag(self.cov_mc_stat).sum() + np.diag(self.cov_mc_detsys).sum()
                 datanormerr2 = (0.5*(self._data_err([nd],asymErrs)[0][0]+\
                                      self._data_err([nd],asymErrs)[1][0]))**2
@@ -2128,7 +2128,7 @@ class Plotter:
 
         if (ratio==True):
             ax2.set_xlabel(title,fontsize=18)
-            ax2.set_xlim(plot_options["range"][0], plot_options["range"][1])
+            ax2.set_xlim(bin_edges[0], bin_edges[-1])
         else:
             ax1.set_xlabel(title,fontsize=18)
 
