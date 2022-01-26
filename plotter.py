@@ -1356,7 +1356,7 @@ class Plotter:
             query = "nslice==1"
 
         # pandas bug https://github.com/pandas-dev/pandas/issues/16363
-        if plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
+        if plot_options["range"]!=None and plot_options["range"][0] >= 0 and plot_options["range"][1] >= 0 and variable[-2:] != "_v":
             query += "& %s <= %g & %s >= %g" % (
                 variable, plot_options["range"][1], variable, plot_options["range"][0])
 
@@ -1679,11 +1679,13 @@ class Plotter:
         #### for paper do not draw EXT on top of stack plot
         if draw_data and kind != "paper_category" and kind!= "paper_category_numu":
             ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
+            extlabel = "Cosmic" if sum(ext_weight) else ""
+            if (predictedevents == True): extlabel="EXT: %.1f" % sum(ext_weight) if sum(ext_weight) else ""
             n_ext, ext_bins, patches = ax1.hist(
             ext_plotted_variable,
             weights=ext_weight,
             bottom=total_hist,
-            label="EXT: %.1f" % sum(ext_weight) if sum(ext_weight) else "",
+            label=extlabel,
             hatch="//",
             color="white",
             **plot_options)
@@ -2064,8 +2066,9 @@ class Plotter:
 
         unit = title[title.find("[") +
                      1:title.find("]")] if "[" and "]" in title else ""
-        x_range = plot_options["range"][1] - plot_options["range"][0]
-        NNN = round(x_range / plot_options["bins"],labeldecimals)
+        if plot_options["range"] != None:
+            x_range = plot_options["range"][1] - plot_options["range"][0]
+            NNN = round(x_range / plot_options["bins"],labeldecimals)
         if (labeldecimals == 0):
             NNN = int(NNN)
         if isinstance(plot_options["bins"], Iterable):
@@ -2077,7 +2080,7 @@ class Plotter:
         if (ratio==True):
             ax1.set_xticks([])
 
-        ax1.set_xlim(plot_options["range"][0], plot_options["range"][1])
+        ax1.set_xlim(bin_edges[0], bin_edges[-1])
 
         '''
         ax1.fill_between(
@@ -2180,6 +2183,13 @@ class Plotter:
 
     def sys_err_unisim(self, var_name, query, x_range, n_bins, weightVar, islee=False):
 
+        if x_range == None:
+            bins = n_bins
+        else:
+            bins = np.linspace(x_range[0],x_range[1],n_bins+1)
+
+        n_bins = len(bins)-1
+
         # assume list of knobs is fixed. If not we will get errors
         # knobRPA [up,dn]
         # knobCCMEC [up,dn]
@@ -2221,7 +2231,7 @@ class Plotter:
                 spline_fix_cv  = queried_tree["weightSplineTimesTune"] * self.weights[t]
                 spline_fix_var = queried_tree["weightSpline"] * self.weights[t]
 
-            n_cv, bins = np.histogram(variable,range=x_range,bins=n_bins,weights=spline_fix_cv)
+            n_cv, bins = np.histogram(variable,bins=bins,weights=spline_fix_cv)
             n_cv_tot += n_cv
 
             for n,knob in enumerate(knob_v):
@@ -2239,8 +2249,8 @@ class Plotter:
                 weight_dn[weight_dn < 0] = 1
                 weight_dn[weight_dn == np.inf] = 1
                 
-                n_up, bins = np.histogram(variable, weights=weight_up * spline_fix_var, range=x_range, bins=n_bins)
-                n_dn, bins = np.histogram(variable, weights=weight_dn * spline_fix_var, range=x_range, bins=n_bins)
+                n_up, bins = np.histogram(variable, weights=weight_up * spline_fix_var,bins=bins)
+                n_dn, bins = np.histogram(variable, weights=weight_dn * spline_fix_var,bins=bins)
 
                 if (knob_n[n] == 2):
                     n_tot_v[n][0] += n_up
@@ -2507,10 +2517,17 @@ class Plotter:
         return            
         
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar, islee=False):
+
+        if x_range == None:
+            bins = n_bins
+        else:
+            bins = np.linspace(x_range[0],x_range[1],n_bins+1)
+
         # how many universes?
         Nuniverse = 100 #len(df)
         #if (name == "weightsGenie"):
         #    Nuniverse = 100
+        n_bins = len(bins)-1
 
         n_tot = np.empty([Nuniverse, n_bins])
         n_cv_tot = np.empty(n_bins)
@@ -2572,8 +2589,7 @@ class Plotter:
 
             n_cv, bins = np.histogram(
                 variable,
-                range=x_range,
-                bins=n_bins,
+                bins=bins,
                 weights=spline_fix_cv)
             n_cv_tot += n_cv
 
@@ -2586,7 +2602,7 @@ class Plotter:
                     weight[weight == np.inf] = 1
 
                     n, bins = np.histogram(
-                        variable, weights=weight*spline_fix_var, range=x_range, bins=n_bins)
+                        variable, weights=weight*spline_fix_var,bins=bins)
                     n_tot[i] += n
 
         cov = np.empty([len(n_cv), len(n_cv)])
