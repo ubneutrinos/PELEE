@@ -90,6 +90,23 @@ BDTCQ = BDTCQ_all_showers + ' and n_showers_contained == 1'
 
 BDTCQ_only = 'pi0_score > 0.67 and nonpi0_score > 0.70'
 
+# xsec selection
+NPXSLQ_all_showers = NPPRESQ
+NPXSLQ_all_showers += ' and CosmicIPAll3D > 10.'
+NPXSLQ_all_showers += ' and (trkpid<0.02 or trkpid<(2.7*protonenergy-0.08))'
+NPXSLQ_all_showers += ' and hits_ratio > 0.50'
+NPXSLQ_all_showers += ' and shrmoliereavg < 9'
+NPXSLQ_all_showers += ' and subcluster > 4'
+NPXSLQ_all_showers += ' and trkfit < 0.65'
+NPXSLQ_all_showers += ' and tksh_distance < 10.0'#10 or 18?
+NPXSLQ_all_showers += ' and tksh_angle > -0.9'
+NPXSLQ_all_showers += ' and shr_trk_len < 300.' # new cut
+#NPXSLQ_all_showers += ' and protonenergy_corr > 0.05'
+NPXSLQ = NPXSLQ_all_showers + ' and n_showers_contained == 1'
+NPXSBDTQ_all_showers = NPXSLQ_all_showers
+NPXSBDTQ_all_showers += ' and pi0_score > 0.50 and nonpi0_score > 0.50'
+NPXSBDTQ = NPXSBDTQ_all_showers + ' and n_showers_contained == 1'
+
 # test intermediate BDT cuts
 # 0304 extnumi, pi0 and nonpi0
 TESTINTBDTCQ_all_showers = NPPRESQ
@@ -124,20 +141,6 @@ ZPBOXCUTS_all_tracks += " and shr_tkfit_2cm_dedx_max>1. and shr_tkfit_2cm_dedx_m
 ZPBOXCUTS_all_tracks += ' and shr_trk_len < 300.'
 ZPBOXCUTS_onep_track = ZPBOXCUTS_all_tracks + ' and n_tracks_contained > 0'
 ZPBOXCUTS = ZPBOXCUTS_all_tracks + ' and n_tracks_contained == 0'
-
-ZPLOOSESEL_all_tracks = ZPPRESEL_all_tracks
-ZPLOOSESEL_all_tracks += ' and n_showers_contained == 1'
-ZPLOOSESEL_all_tracks += ' and CosmicIPAll3D > 10.'
-ZPLOOSESEL_all_tracks += ' and CosmicDirAll3D > -0.9 and CosmicDirAll3D < 0.9'
-ZPLOOSESEL_all_tracks += ' and shrmoliereavg < 15'
-ZPLOOSESEL_all_tracks += ' and subcluster > 4'
-ZPLOOSESEL_all_tracks += ' and trkfit < 0.65'
-ZPLOOSESEL_all_tracks += ' and secondshower_Y_nhit < 50'
-ZPLOOSESEL_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 80'
-ZPLOOSESEL_all_tracks += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
-ZPLOOSESEL_all_tracks += ' and shr_trk_len < 300.'
-ZPLOOSESEL_onep_track = ZPLOOSESEL_all_tracks + ' and n_tracks_contained > 0'
-ZPLOOSESEL = ZPLOOSESEL_all_tracks + ' and n_tracks_contained == 0'
 
 ZPONEGAMMA = ZPLOOSESEL
 ZPONEGAMMA += ' and (CosmicDirAll3D<0.8 and CosmicDirAll3D>-0.8)'
@@ -206,6 +209,26 @@ ZPLOOSESEL_two_shower += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_
 ZPLOOSESEL_two_shower += ' and n_tracks_contained == 0'
 ZPBDTLOOSE_two_shower = ZPLOOSESEL_two_shower + ' and bkg_score > 0.72'
 
+ZPXSLQ_all_tracks = ZPPRESEL_all_tracks
+ZPXSLQ_all_tracks += ' and n_showers_contained == 1'
+ZPXSLQ_all_tracks += ' and shrmoliereavg < 10'
+ZPXSLQ_all_tracks += ' and subcluster > 4'
+ZPXSLQ_all_tracks += ' and trkfit < 0.65'
+ZPXSLQ_all_tracks += ' and secondshower_Y_nhit < 50'
+ZPXSLQ_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 90'
+ZPXSLQ_all_tracks += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
+ZPXSLQ_all_tracks += ' and shr_trk_len < 300.'
+ZPXSLQ_all_tracks += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
+ZPXSLQ_onep_track = ZPXSLQ_all_tracks + ' and n_tracks_contained > 0'
+ZPXSLQ = ZPXSLQ_all_tracks + ' and n_tracks_contained == 0'
+ZPXSBDTQ = ZPXSLQ_all_tracks
+ZPXSBDTQ += ' and bkg_score>0.4'
+ZPXSBDTQ += ' and cos_shr_theta>0.6'
+ZPXSBDTQ += ' and electron_e>0.51'
+ZPXSBDTQ += ' and shr_tkfit_dedx_max<4'
+
+XPXSBDTQ = "(("+ZPXSBDTQ+") or ("+NPXSBDTQ+"))"
+
 CCNCPI0SEL = 'CosmicIPAll3D > 30.'
 #CCNCPI0SEL += ' and CosmicDirAll3D > -0.90 and CosmicDirAll3D < 0.90'
 #CCNCPI0SEL += ' and shr_trk_sce_start_y < 100 and shr_trk_sce_end_y < 100 and shr_trk_sce_start_y > -100 and shr_trk_sce_end_y > -100'
@@ -243,6 +266,8 @@ ALL_ENERGY = '(reco_e > 0.)'
 TWOP_SHOWERS = 'n_showers_contained >= 2'
 LOW_PID_ZP = '(0.0 < bkg_score < 0.4)'
 MEDIUM_PID_ZP = '(0.0 < bkg_score < 0.72)'
+BLIND = '(bnbdata == 0)'
+
 
 
 # pi0 selection
@@ -325,6 +350,7 @@ sideband_categories = {
     'MPIDZP': {'query': MEDIUM_PID_ZP, 'title': 'Medium BDT', 'dir': 'MPIDZP'},
     'TwoPShr': {'query': TWOP_SHOWERS, 'title': '2+ showers', 'dir': 'TwoPShr'},
     'TwoPShrHiE': {'query': " and ".join([TWOP_SHOWERS,HIGH_ENERGY_NOUPBOUND]), 'title': '2+ showers,Reco energy > 1.05 GeV', 'dir': 'TwoPShrHiE'},
+    'Blind': {'query': BLIND, 'title': 'Blind', 'dir': 'Blind'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
 }
 
@@ -391,6 +417,13 @@ selection_categories = {
     'ETATWOSHR': {'query': ETATWOSHRQUERY, 'title': r"$\eta$ selection - two-shower cuts",'dir': 'ETATWOSHR' },
     'ETAPI0': {'query': ETAPI0QUERY, 'title': r"$\eta$ selection - $\pi^0$ cuts",'dir': 'ETAPI0' },
     'ETA' : {'query': ETAQUERY, 'title': r"$\eta$ selection",'dir': 'ETA' },
+    'NPXSL': {'query': NPXSLQ, 'title': '1eNp xsec Loose cuts', 'dir': 'NPXSL'},
+    'NPXSLAllShr': {'query': NPXSLQ_all_showers, 'title': '1eNp xsec Loose cuts, 0+ showers', 'dir': 'NPXSLAllShr'},
+    'NPXSBDT': {'query': NPXSBDTQ, 'title': '1eNp xsec BDT sel.', 'dir': 'NPXSBDT'},
+    'NPXSBDTAllShr': {'query': NPXSBDTQ_all_showers, 'title': '1eNp xsec BDT sel., 0+ showers', 'dir': 'NPXSBDTAllShr'},
+    'ZPXSL': {'query': ZPXSLQ, 'title': '1e0p xsec Loose cuts', 'dir': 'ZPXSL'},
+    'ZPXSBDT': {'query': ZPXSBDTQ, 'title': '1e0p xsec BDT sel.', 'dir': 'ZPXSBDT'},
+    'XPXSBDT': {'query': XPXSBDTQ, 'title': '1eXp xsec BDT sel.', 'dir': 'XPXSBDT'},
 }
 
 stages_queries = {
