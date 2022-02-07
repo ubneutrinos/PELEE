@@ -142,33 +142,6 @@ ZPBOXCUTS_all_tracks += ' and shr_trk_len < 300.'
 ZPBOXCUTS_onep_track = ZPBOXCUTS_all_tracks + ' and n_tracks_contained > 0'
 ZPBOXCUTS = ZPBOXCUTS_all_tracks + ' and n_tracks_contained == 0'
 
-ZPONEGAMMA = ZPLOOSESEL
-ZPONEGAMMA += ' and (CosmicDirAll3D<0.8 and CosmicDirAll3D>-0.8)'
-ZPONEGAMMA += ' and (shr_phi<-2.2 or shr_phi>-0.8)'
-ZPONEGAMMA += ' and shr_tkfit_dedx_max>3.5'
-ZPONEGAMMA += ' and shr_score<0.2'
-ZPONEGAMMA += ' and (secondshower_Y_nhit<=8 or secondshower_Y_dot<=0.8 or anglediff_Y<=40 or secondshower_Y_vtxdist>=100)'
-ZPONEGAMMA += ' and shr_trk_len < 300.'
-ZPONEGAMMA += ' and n_tracks_tot==0'
-ZPONEGAMMA += ' and subcluster > 6'
-
-
-ZPBDTVLOOSE_all_tracks = ZPLOOSESEL_all_tracks
-ZPBDTVLOOSE_all_tracks += ' and bkg_score >0.5'
-ZPBDTVLOOSE_onep_track = ZPBDTVLOOSE_all_tracks + ' and n_tracks_contained > 0'
-ZPBDTVLOOSE = ZPBDTVLOOSE_all_tracks + ' and n_tracks_contained == 0'
-
-ZPBDTLOOSE_all_tracks = ZPLOOSESEL_all_tracks
-ZPBDTLOOSE_all_tracks += ' and bkg_score >0.72'
-ZPBDTLOOSE_onep_track = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained > 0'
-ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
-
-ZPBDT_all_tracks = ZPLOOSESEL_all_tracks
-ZPBDT_all_tracks += ' and bkg_score >0.85'
-ZPBDT_onep_track = ZPBDT_all_tracks + ' and n_tracks_contained > 0'
-ZPBDT = ZPBDT_all_tracks + ' and n_tracks_contained == 0'
-
-
 ZPPRESEL_all_tracks = PRESQ
 ZPPRESEL_onep_track = ZPPRESEL_all_tracks + ' and n_tracks_contained > 0'
 ZPPRESEL = ZPPRESEL_all_tracks + ' and n_tracks_contained == 0'
@@ -193,6 +166,16 @@ ZPBDTLOOSE_onep_track = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained > 0'
 
 ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
 ZPBDTLOOSE += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
+
+ZPBDTVLOOSE_all_tracks = ZPLOOSESEL_all_tracks
+ZPBDTVLOOSE_all_tracks += ' and bkg_score >0.5'
+ZPBDTVLOOSE_onep_track = ZPBDTVLOOSE_all_tracks + ' and n_tracks_contained > 0'
+ZPBDTVLOOSE = ZPBDTVLOOSE_all_tracks + ' and n_tracks_contained == 0'
+
+ZPBDT_all_tracks = ZPLOOSESEL_all_tracks
+ZPBDT_all_tracks += ' and bkg_score >0.85'
+ZPBDT_onep_track = ZPBDT_all_tracks + ' and n_tracks_contained > 0'
+ZPBDT = ZPBDT_all_tracks + ' and n_tracks_contained == 0'
 
 ZPPRESEL_two_shower = ZPPRESEL + ' and n_showers_contained > 1'
 ZPLOOSESEL_two_shower = ZPPRESEL_two_shower
@@ -228,6 +211,16 @@ ZPXSBDTQ += ' and electron_e>0.51'
 ZPXSBDTQ += ' and shr_tkfit_dedx_max<4'
 
 XPXSBDTQ = "(("+ZPXSBDTQ+") or ("+NPXSBDTQ+"))"
+
+ZPONEGAMMA = ZPLOOSESEL
+ZPONEGAMMA += ' and (CosmicDirAll3D<0.8 and CosmicDirAll3D>-0.8)'
+ZPONEGAMMA += ' and (shr_phi<-2.2 or shr_phi>-0.8)'
+ZPONEGAMMA += ' and shr_tkfit_dedx_max>3.5'
+ZPONEGAMMA += ' and shr_score<0.2'
+ZPONEGAMMA += ' and (secondshower_Y_nhit<=8 or secondshower_Y_dot<=0.8 or anglediff_Y<=40 or secondshower_Y_vtxdist>=100)'
+ZPONEGAMMA += ' and shr_trk_len < 300.'
+ZPONEGAMMA += ' and n_tracks_tot==0'
+ZPONEGAMMA += ' and subcluster > 6'
 
 CCNCPI0SEL = 'CosmicIPAll3D > 30.'
 #CCNCPI0SEL += ' and CosmicDirAll3D > -0.90 and CosmicDirAll3D < 0.90'
