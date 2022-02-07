@@ -1893,7 +1893,7 @@ class Plotter:
                 #self.xsec_err("weightsFlux",variable, query, plot_options["range"],1,genieweight,ACCEPTANCE)
                 #self.xsec_err("weightsGenie",variable, query, plot_options["range"],1,genieweight,ACCEPTANCE)
                 #self.xsec_err("weightsReint",variable, query, plot_options["range"],1,genieweight,ACCEPTANCE)
-                                      
+
             else:
                 self.cov = self.get_SBNFit_cov_matrix(COVMATRIX,len(bin_edges)-1)
             exp_err = np.sqrt( np.diag((self.cov + self.cov_mc_stat + self.cov_mc_detsys))) # + exp_err*exp_err)
@@ -2581,6 +2581,7 @@ class Plotter:
             
             df = pd.DataFrame(s.values.tolist())
             #print (df)
+            #print(t,name,np.shape(df))
             #continue
 
             if var_name[-2:] == "_v":
@@ -2617,6 +2618,301 @@ class Plotter:
 
         return cov
 
+    def ResponseMatrix(self,sample,acceptance,fullsel,vart,varr,bin_edges,wlab,potw,univ=-1,wvar=''):
+        #get number of signal events at true level before selection
+        truevals = sample.query(acceptance)[vart]
+        tweights = sample.query(acceptance)[wlab]*potw
+        if univ>=0:
+            vweights = sample.query(acceptance)[wvar]
+            if (np.stack(vweights).ndim>1):
+                #multisim, pick specific universe
+                vweights = np.stack(vweights)[:,univ]/1000.
+            vweights[np.isnan(vweights)] = 1
+            vweights[vweights > 100] = 1
+            vweights[vweights < 0] = 1
+            vweights[vweights == np.inf] = 1
+            tweights = tweights*vweights
+        n, bins = np.histogram(truevals,weights=tweights,bins=bin_edges)
+        #get number of signal events at reco and true level after selection
+        x = sample.query(acceptance+' and '+fullsel)[vart]
+        y = sample.query(acceptance+' and '+fullsel)[varr]
+        w = sample.query(acceptance+' and '+fullsel)[wlab]*potw
+        if univ>=0:
+            vw = sample.query(acceptance+' and '+fullsel)[wvar]
+            if (np.stack(vw).ndim>1):
+                #multisim, pick specific universe
+                vw = np.stack(vw)[:,univ]/1000.
+            vw[np.isnan(vw)] = 1
+            vw[vw > 100] = 1
+            vw[vw < 0] = 1
+            vw[vw == np.inf] = 1
+            w = w*vw
+        H, xb, yb = np.histogram2d(x,y,weights=w,bins=[bin_edges,bin_edges])
+        #get response matrix
+        rm = np.transpose(H)/n
+        return rm, xb, yb
+
+    def sys_err_unisim_with_resp_func(self, signame, var_name, true_var_name, query, acceptance, x_range, n_bins):
+        #this is not done for lee
+
+        if x_range == None:
+            bins = n_bins
+        else:
+            bins = np.linspace(x_range[0],x_range[1],n_bins+1)
+
+        n_bins = len(bins)-1
+
+        weightVarCV = "weightSplineTimesTune"
+        weightVarVar = "weightSpline"
+
+        # assume list of knobs is fixed. If not we will get errors
+        # knobRPA [up,dn]
+        # knobCCMEC [up,dn]
+        # knobAxFFCCQE [up,dn]
+        # knobVecFFCCQE [up,dn]
+        # knobDecayAngMEC [up,dn]
+        # knobThetaDelta2Npi [up,dn]
+        knob_v = ['knobRPA','knobCCMEC','knobAxFFCCQE','knobVecFFCCQE','knobDecayAngMEC','knobThetaDelta2Npi']
+        knob_n = [2,1,1,1,1,1]
+
+        n_tot_v = []
+        for u,knob in enumerate(knob_v):
+            n_tot_v.append( np.empty([ knob_n[u] ,n_bins]) )
+            n_tot_v[-1].fill(0)
+
+        n_cv_tot = np.empty(n_bins)
+        n_cv_tot.fill(0)
+
+        for t in self.samples:
+            if t in ["ext", "data", "data_7e18", "data_1e20","lee"]:
+                continue
+
+            tree = self.samples[t]
+
+            extra_query = ""
+            if t == "mc":
+                extra_query = "& " + self.nu_pdg
+            if t == signame:
+                extra_query = "& ~(" + acceptance +")"
+
+            queried_tree = tree.query(query+extra_query)
+            variable = queried_tree[var_name]
+            spline_fix_cv  = queried_tree[weightVarCV] * self.weights[t]
+            spline_fix_var = queried_tree[weightVarVar] * self.weights[t]
+
+            n_cv, bins = np.histogram(variable,bins=bins,weights=spline_fix_cv)
+            n_cv_tot += n_cv
+
+            for n,knob in enumerate(knob_v):
+
+                weight_up = queried_tree['%sup'%knob].values
+                weight_up[np.isnan(weight_up)] = 1
+                weight_up[weight_up > 100] = 1
+                weight_up[weight_up < 0] = 1
+                weight_up[weight_up == np.inf] = 1
+                n_up, bins = np.histogram(variable, weights=weight_up * spline_fix_var,bins=bins)
+                n_tot_v[n][0] += n_up
+
+                if (knob_n[n] == 2):
+                    weight_dn = queried_tree['%sdn'%knob].values
+                    weight_dn[np.isnan(weight_dn)] = 1
+                    weight_dn[weight_dn > 100] = 1
+                    weight_dn[weight_dn < 0] = 1
+                    weight_dn[weight_dn == np.inf] = 1
+                    n_dn, bins = np.histogram(variable, weights=weight_dn * spline_fix_var,bins=bins)
+                    n_tot_v[n][1] += n_dn
+
+        # do stuff for signal sample
+        tree = self.samples[signame]
+
+        extra_query = ""
+        if signame == "mc":
+            extra_query += "& " + self.nu_pdg
+
+        queried_tree = tree.query(query+"& (" + acceptance +")"+extra_query)
+        variable = queried_tree[var_name]
+        #print ('N universes is :',len(syst_weights))
+        spline_fix_cv  = queried_tree[weightVarCV] * self.weights[signame]
+        spline_fix_var = queried_tree[weightVarVar] * self.weights[signame]
+
+        n_cv, bins = np.histogram(variable,bins=bins,weights=spline_fix_cv)
+        n_cv_tot += n_cv
+
+        true_variable = tree.query(acceptance)[true_var_name]
+        spline_fix_cv  = tree.query(acceptance)[weightVarCV] * self.weights[signame]
+        t_cv, bins = np.histogram(true_variable,bins=bins,weights=spline_fix_cv)
+
+        for n,knob in enumerate(knob_v):
+
+                rmv_up, xb, yb = self.ResponseMatrix(tree,acceptance,query,true_var_name,var_name,\
+                                                     bins,weightVarVar,self.weights[signame],0,'%sup'%knob)
+                rp_up = rmv_up.dot(t_cv)
+                n_tot_v[n][0] += rp_up
+                if (knob_n[n] == 2):
+                    rmv_dn, xb, yb = self.ResponseMatrix(tree,acceptance,query,true_var_name,var_name,\
+                                                         bins,weightVarVar,self.weights[signame],0,'%sdn'%knob)
+                    rp_dn = rmv_dn.dot(t_cv)
+                    n_tot_v[n][1] += rp_dn
+
+        cov = np.empty([len(n_cv), len(n_cv)])
+        cov.fill(0)
+
+        for n,knob in enumerate(knob_v):
+
+            this_cov = np.empty([len(n_cv), len(n_cv)])
+            this_cov.fill(0)
+
+            #print ('knob : %s has :'%knob)
+            #print ('n_cv : ',n_cv_tot)
+            #print ('n_up : ',n_tot_v[n][0])
+            #print ('n_dn : ',n_tot_v[n][1])
+
+            if (knob_n[n] == 2):
+                for i in range(len(n_cv)):
+                    #print ('knob %s has CV: %.0f, VAR UP: %.0f, VAR DN: %.0f entries'%(knob,n_cv_tot[i],n_tot_v[n][0][i],n_tot_v[n][1][i]))
+                    for j in range(len(n_cv)):
+                        this_cov[i][j] += (n_tot_v[n][0][i] - n_cv_tot[i]) * (n_tot_v[n][0][j] - n_cv_tot[j])
+                        this_cov[i][j] += (n_tot_v[n][1][i] - n_cv_tot[i]) * (n_tot_v[n][1][j] - n_cv_tot[j])
+                this_cov /= 2.
+
+            if (knob_n[n] == 1):
+                for i in range(len(n_cv)):
+                    #print ('knob %s has CV: %.0f, VAR: %.0f entries'%(knob,n_cv_tot[i],n_tot_v[n][0][i]))
+                    for j in range(len(n_cv)):
+                        this_cov[i][j] += (n_tot_v[n][0][i] - n_cv_tot[i]) * (n_tot_v[n][0][j] - n_cv_tot[j])
+
+            cov += this_cov
+
+        return cov
+
+    def sys_err_with_resp_func(self, wname, signame, var_name, true_var_name, query, acceptance, x_range, n_bins, weightVar):
+        #this is not done for lee
+
+        if x_range == None:
+            bins = n_bins
+        else:
+            bins = np.linspace(x_range[0],x_range[1],n_bins+1)
+
+        weightVarCV = weightVar
+        #need special case since genie tune changed at some point
+        weightVarVar = weightVar
+        if (wname == "weightsGenie"): weightVarVar = "weightSpline"
+
+        # how many universes?
+        Nuniverse = 100 #len(df)
+        #if (name == "weightsGenie"):
+        #    Nuniverse = 100
+        n_bins = len(bins)-1
+
+        n_tot = np.empty([Nuniverse, n_bins])
+        n_cv_tot = np.empty(n_bins)
+        n_tot.fill(0)
+        n_cv_tot.fill(0)
+
+        for t in self.samples:
+            if t in ["ext", "data", "data_7e18", "data_1e20","lee"]:
+                continue
+
+            tree = self.samples[t]
+
+            extra_query = ""
+            if t == "mc":
+                extra_query = "& " + self.nu_pdg # "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
+            if t == signame:
+                extra_query = "& ~(" + acceptance +")"
+
+            queried_tree = tree.query(query+extra_query)
+            variable = queried_tree[var_name]
+            syst_weights = queried_tree[wname]
+            #print ('N universes is :',len(syst_weights))
+            spline_fix_cv  = queried_tree[weightVarCV] * self.weights[t]
+            spline_fix_var = queried_tree[weightVarVar] * self.weights[t]
+
+            s = syst_weights
+
+            df = pd.DataFrame(s.values.tolist())
+            #print (df)
+            #print(t,wname,np.shape(df))
+            #continue
+
+            n_cv, bins = np.histogram(
+                variable,
+                bins=bins,
+                weights=spline_fix_cv)
+            n_cv_tot += n_cv
+
+            if not df.empty:
+                for i in range(Nuniverse):
+                    weight = df[i].values / 1000.
+                    weight[np.isnan(weight)] = 1
+                    weight[weight > 100] = 1
+                    weight[weight < 0] = 1
+                    weight[weight == np.inf] = 1
+
+                    n, bins = np.histogram(
+                        variable, weights=weight*spline_fix_var,bins=bins)
+                    n_tot[i] += n
+
+        # do stuff for signal sample
+        tree = self.samples[signame]
+
+        extra_query = ""
+        if signame == "mc":
+            extra_query += "& " + self.nu_pdg
+
+        queried_tree = tree.query(query+"& (" + acceptance +")"+extra_query)
+        variable = queried_tree[var_name]
+        syst_weights = queried_tree[wname]
+        #print ('N universes is :',len(syst_weights))
+        spline_fix_cv  = queried_tree[weightVarCV] * self.weights[signame]
+        spline_fix_var = queried_tree[weightVarVar] * self.weights[signame]
+
+        s = syst_weights
+
+        df = pd.DataFrame(s.values.tolist())
+        #print (df)
+        #print(t,wname,np.shape(df))
+        #continue
+
+        #print(bins)
+        #print(variable)
+        #print(spline_fix_cv)
+        n_cv, bins = np.histogram(
+            variable,
+            bins=bins,
+            weights=spline_fix_cv)
+        n_cv_tot += n_cv
+        #print('n_cv',n_cv)
+
+        true_variable = tree.query(acceptance)[true_var_name]
+        spline_fix_cv  = tree.query(acceptance)[weightVarCV] * self.weights[signame]
+        t_cv, bins = np.histogram(
+            true_variable,
+            bins=bins,
+            weights=spline_fix_cv)
+        #print('t_cv',t_cv)
+
+        if not df.empty:
+            for i in range(Nuniverse):
+                rmv, xb, yb = self.ResponseMatrix(tree,acceptance,query,true_var_name,var_name,\
+                                                  bins,weightVarVar,self.weights[signame],i,wname)
+                #print(rmv)
+                rp = rmv.dot(t_cv)
+                #print("variation: ",rp)
+                n_tot[i] += rp
+
+        # now compute the covariance
+        cov = np.empty([len(n_cv), len(n_cv)])
+        cov.fill(0)
+
+        for n in n_tot:
+            for i in range(len(n_cv)):
+                for j in range(len(n_cv)):
+                    cov[i][j] += (n[i] - n_cv_tot[i]) * (n[j] - n_cv_tot[j])
+
+        cov /= Nuniverse
+
+        return cov
 
     def get_SBNFit_cov_matrix(self,COVMATRIX,NBINS):
 
