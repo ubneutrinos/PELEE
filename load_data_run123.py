@@ -261,7 +261,7 @@ def process_uproot(up,df):
     df["tk1sh1_angle_alltk"] = np.where(df['n_tracks_tot']==0,99999,
                                   cosAngleTwoVecs(df["trk1_dir_x_alltk"],df["trk1_dir_y_alltk"],df["trk1_dir_z_alltk"],\
                                                   df["shr_px"],          df["shr_py"],          df["shr_pz"]))
-
+    #
     df['shr_ptot'] = np.sqrt( df['shr_px']**2 + df['shr_py']**2 + df['shr_pz']**2)
     df['shr_px_unit'] = df['shr_px'] / df['shr_ptot']
     df['shr_py_unit'] = df['shr_py'] / df['shr_ptot']
@@ -302,10 +302,10 @@ def process_uproot(up,df):
                                      df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z']),\
                                      9999.)
     #
-    df['sh1sh2_distance'] = np.where(df['n_showers_contained']>1,\
-                                     distance(df['shr2_start_x'], df['shr2_start_y'], df['shr2_start_z'],\
-                                     df['shr_start_x'],df['shr_start_y'],df['shr_start_z']),\
-                                     9999.)
+    #df['sh1sh2_distance'] = np.where(df['n_showers_contained']>1,\
+    #                                 distance(df['shr2_start_x'], df['shr2_start_y'], df['shr2_start_z'],\
+    #                                 df['shr_start_x'],df['shr_start_y'],df['shr_start_z']),\
+    #                                 9999.)
     #
     df['shr2pid'] = get_elm_from_vec_idx(trk_llr_pid_v,shr2_id,9999.)
     df['shr2_score'] = get_elm_from_vec_idx(trk_score_v,shr2_id,9999.)
@@ -318,6 +318,30 @@ def process_uproot(up,df):
     #df.drop(columns=['shr2subclusters0', 'shr2subclusters1', 'shr2subclusters2'])
     #
     #pick_closest_shower(up,df)
+    #
+
+    # fix elec_pz for positrons
+    nu_pdg = up.array('nu_pdg')
+    ccnc = up.array('ccnc')
+    mc_pdg = up.array('mc_pdg')
+    mc_E = up.array('mc_E')
+    mc_px = up.array('mc_px')
+    mc_py = up.array('mc_py')
+    mc_pz = up.array('mc_pz')
+    elec_pz = up.array('elec_pz')
+    positr_mask = (mc_pdg==-11)
+    mostEpositrIdx = get_idx_from_vec_sort(-1,mc_E,positr_mask)
+    mc_E_prot = get_elm_from_vec_idx(mc_E,mostEpositrIdx,-9999.)
+    mc_px_prot = get_elm_from_vec_idx(mc_px,mostEpositrIdx,-9999.)
+    mc_py_prot = get_elm_from_vec_idx(mc_py,mostEpositrIdx,-9999.)
+    mc_pz_prot = get_elm_from_vec_idx(mc_pz,mostEpositrIdx,-9999.)
+    mc_p_prot = np.sqrt(mc_px_prot*mc_px_prot + mc_py_prot*mc_py_prot + mc_pz_prot*mc_pz_prot)
+    df['positr_px'] = np.where((mc_E_prot>0),mc_px_prot/mc_p_prot,-9999.)
+    df['positr_py'] = np.where((mc_E_prot>0),mc_py_prot/mc_p_prot,-9999.)
+    df['positr_pz'] = np.where((mc_E_prot>0),mc_pz_prot/mc_p_prot,-9999.)
+    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_px' ] = df['positr_px']
+    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_py' ] = df['positr_py']
+    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_pz' ] = df['positr_pz']
     #
     return
 
@@ -988,6 +1012,7 @@ def get_variables():
         "proton_e",
         "slclustfrac", "reco_nu_vtx_x", "reco_nu_vtx_y", "reco_nu_vtx_z",
         "true_nu_vtx_sce_x","true_nu_vtx_sce_y","true_nu_vtx_sce_z",
+        "true_nu_vtx_x","true_nu_vtx_y","true_nu_vtx_z",
         #"trk_sce_start_x_v","trk_sce_start_y_v","trk_sce_start_z_v",
         #"trk_sce_end_x_v","trk_sce_end_y_v","trk_sce_end_z_v",
         #"trk_start_x_v","trk_start_z_v","trk_start_z_v",
@@ -1060,7 +1085,7 @@ def get_variables():
                "hits_ratio", "n_tracks_contained",
                "shr_px","shr_py","shr_pz","p", "pt", "hits_y",
                "shr_start_x","shr_start_x","shr_start_x",
-               "elec_pz","elec_e","truthFiducial"
+               "elec_pz","elec_e","truthFiducial",
                'pi0truth_gamma1_edep','shr_bkt_E','pi0truth_gamma1_etot',
                'pi0truth_gamma1_zpos','shr_start_z',
                'pi0truth_gamma1_ypos','shr_start_y',
@@ -1118,7 +1143,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                      loadeta=False,
                      loadsystematics=True,
                      loadrecoveryvars=False,
-                     loadccncpi0vars=False):
+                     loadccncpi0vars=False,
+                     updatedProtThresh=-1):
 
     fold = ls.fold
     tree = "NeutrinoSelectionFilter"
@@ -1127,8 +1153,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     VARDICT = get_variables()
     
     # sample list
-    #R1BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
-    R1BNB = 'run1_nuepresel' # unblinded eLEE
+    if which_sideband=='opendata': R1BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19'
+    else: R1BNB = 'run1_nuepresel' # unblinded eLEE
     R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C_all_reco2'
     #R1EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_C1_C2_D1_D2_E1_E2_all_reco2' #Run1 + Run2
     R1NU  = 'prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2' # OFFICIA
@@ -1162,8 +1188,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         R2DRT = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
         R2EXT  = 'prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2'
     
-    #R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
-    R3BNB = 'run3_nuepresel' # unblinded eLEE
+    if which_sideband=='opendata': R3BNB = 'data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19'
+    else: R3BNB = 'run3_nuepresel' # unblinded eLEE
     R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2'
     if (loadnumucrtonly):
         R3EXT = 'data_extbnb_mcc9.1_v08_00_00_25_reco2_G_all_reco2'
@@ -2011,8 +2037,9 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df["theta1PlusTheta2"] = df["shr_theta"]+df["trk_theta"]
             df['cos_shr_theta'] = np.cos(df['shr_theta'])
             df['cos_trk_theta'] = np.cos(df['trk_theta'])
-            df['n_tracks_cont_attach'] = df['n_tracks_contained']
-            df.loc[((df['tk2sh1_distance']>3)&(df['tk2sh1_distance']<9999)),'n_tracks_cont_attach'] = df['n_tracks_contained']-1
+            if (loadrecoveryvars == True):
+                df['n_tracks_cont_attach'] = df['n_tracks_contained']
+                df.loc[((df['tk2sh1_distance']>3)&(df['tk2sh1_distance']<9999)),'n_tracks_cont_attach'] = df['n_tracks_contained']-1
             df['showergammadist'] = np.sqrt( (df['pi0truth_gamma1_zpos'] - df['shr_start_z'])**2 +
                                              (df['pi0truth_gamma1_ypos'] - df['shr_start_y'])**2 +
                                              (df['pi0truth_gamma1_xpos'] - df['shr_start_x'] + 1.08)**2 )
@@ -2084,10 +2111,14 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df["reco_e_mev"] = df["reco_e"] * 1000.
             df["reco_e_mev_overflow"] = df["reco_e_overflow"] * 1000.
             df['electron_e'] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE
-            df['proton_e'] = Mp + df['protonenergy']
-            df['proton_p'] = np.sqrt( (df['proton_e'])**2 - Mp**2 )
+            df['proton_ke'] = df['proton_e']-Mp
+            df.loc[(df['proton_ke']<0), 'proton_ke'] = 0
+            df['protonenergy_corr'] = df['protonenergy']+0.0004/df['protonenergy']-0.0014
+            df.loc[(df['protonenergy_corr']>9998.), 'protonenergy_corr'] = 0
+            df['reco_proton_e'] = Mp + df['protonenergy']
+            df['reco_proton_p'] = np.sqrt( (df['reco_proton_e'])**2 - Mp**2 )
             df['reco_e_qe_l'] = ( df['electron_e'] * (Mn-Eb) + 0.5 * ( Mp**2 - (Mn - Eb)**2 - Me**2 ) ) / ( (Mn - Eb) - df['electron_e'] * (1 - np.cos(df['shr_theta'])) )
-            df['reco_e_qe_p'] = ( df['proton_e']   * (Mn-Eb) + 0.5 * ( Me**2 - (Mn - Eb)**2 - Mp**2 ) ) / ( (Mn - Eb) + df['proton_p'] * np.cos(df['trk_theta']) - df['proton_e'] )
+            df['reco_e_qe_p'] = ( df['reco_proton_e']   * (Mn-Eb) + 0.5 * ( Me**2 - (Mn - Eb)**2 - Mp**2 ) ) / ( (Mn - Eb) + df['reco_proton_p'] * np.cos(df['trk_theta']) - df['reco_proton_e'] )
             df["reco_e_qe"] = 0.938*((df["shr_energy"]+INTERCEPT)/SLOPE)/(0.938 - ((df["shr_energy"]+INTERCEPT)/SLOPE)*(1-np.cos(df["shr_theta"])))
             df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
 
@@ -2116,6 +2147,12 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         df.loc[(df['category']!=1)&(df['category']!=10)&(df['category']!=11)&(df['category']!=111)&(df['slnunhits']/df['slnhits']<0.2), 'category'] = 4
         if (loadeta == True):
             df.loc[ (df['category']== 4), 'category' ] = 806
+
+    # change proton threshold (50 MeV for xsec)
+    if updatedProtThresh>0:
+        for i,df in enumerate(df_v):
+            df.loc[(df['category']==11)&(df['proton_ke']<updatedProtThresh), 'category'] = 10
+
     # category switch
     '''
     for i,df in enumerate([nue]):
