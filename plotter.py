@@ -1727,35 +1727,34 @@ class Plotter:
             #print(summarydict)
 
         bincenters = 0.5 * (bin_edges[1:] + bin_edges[:-1])
-        mc_uncertainties, bins = np.histogram(
-            mc_plotted_variable, **plot_options)
-        err_mc = np.array(
-            [n * self.weights["mc"] * self.weights["mc"] for n in mc_uncertainties])
+        mcw2 = mc_genie_weights * mc_genie_weights * self.weights["mc"] * self.weights["mc"]
+        err_mc, bins = np.histogram(mc_plotted_variable, weights=mcw2, **plot_options)
         if ("mc" in detsysdict.keys() and detsysdict["mc"]==True):
             self.detsys["mc"] = self.load_detsys_errors("mc",variable,DETSYSPATH,bin_edges,fullcov)
-        sys_mc = self.add_detsys_error("mc",mc_uncertainties,self.weights["mc"])
+        mc_pred_nopotw, bins = np.histogram(mc_plotted_variable, weights=mc_genie_weights, **plot_options)
+        sys_mc = self.add_detsys_error("mc",mc_pred_nopotw,self.weights["mc"])
 
-        nue_uncertainties, bins = np.histogram(
-            nue_plotted_variable, **plot_options)
-        err_nue = np.array(
-            [n * self.weights["nue"] * self.weights["nue"] for n in nue_uncertainties])
+        nuew2 = nue_genie_weights * nue_genie_weights * self.weights["nue"] * self.weights["nue"]
+        err_nue, bins = np.histogram(nue_plotted_variable, weights=nuew2, **plot_options)
         if ("nue" in detsysdict.keys() and detsysdict["nue"]==True):
             self.detsys["nue"] = self.load_detsys_errors("nue",variable,DETSYSPATH,bin_edges,fullcov)
-        sys_nue = self.add_detsys_error("nue",nue_uncertainties,self.weights["nue"])
+        nue_pred_nopotw, bins = np.histogram(nue_plotted_variable, weights=nue_genie_weights, **plot_options)
+        sys_nue = self.add_detsys_error("nue",nue_pred_nopotw,self.weights["nue"])
 
-        err_dirt = np.array([0 for n in mc_uncertainties])
+        err_dirt = np.array([0 for n in err_mc])
+        sys_dirt = np.array([0 for n in err_mc])
         if "dirt" in self.samples:
-            dirt_uncertainties, bins = np.histogram(
-                dirt_plotted_variable, **plot_options)
-            err_dirt = np.array(
-                [n * self.weights["dirt"] * self.weights["dirt"] for n in dirt_uncertainties])
-        if ("dirt" in detsysdict.keys() and detsysdict["dirt"]==True):
-            self.detsys["dirt"] = self.load_detsys_errors("dirt",variable,DETSYSPATH,bin_edges,fullcov)
-        sys_dirt = self.add_detsys_error("dirt",dirt_uncertainties,self.weights["dirt"])
+            dirtw2 = dirt_genie_weights * dirt_genie_weights * self.weights["dirt"] * self.weights["dirt"]
+            err_dirt, bins = np.histogram(dirt_plotted_variable, weights=dirtw2, **plot_options)
+            if ("dirt" in detsysdict.keys() and detsysdict["dirt"]==True):
+                self.detsys["dirt"] = self.load_detsys_errors("dirt",variable,DETSYSPATH,bin_edges,fullcov)
+            dirt_pred_nopotw, bins = np.histogram(dirt_plotted_variable, weights=dirt_genie_weights, **plot_options)
+            sys_dirt = self.add_detsys_error("dirt",dirt_pred_nopotw,self.weights["dirt"])
 
-        err_lee = np.array([0 for n in mc_uncertainties])
-        sys_lee = np.array([0 for n in mc_uncertainties])
+        err_lee = np.array([0 for n in err_mc])
+        sys_lee = np.array([0 for n in err_mc])
         if "lee" in self.samples:
+            #fixme?
             lee_uncertainties, bins = np.histogram(lee_plotted_variable, weights=leeweight, **plot_options)
             if isinstance(plot_options["bins"], Iterable):
                 lee_bins = plot_options["bins"]
@@ -1771,86 +1770,80 @@ class Plotter:
                 self.detsys["lee"] = self.load_detsys_errors("lee",variable,DETSYSPATH,bin_edges,fullcov)
             sys_lee = self.add_detsys_error("lee",lee_uncertainties,self.weights["lee"])
 
-        err_ncpi0 = np.array([0 for n in mc_uncertainties])
-        sys_ncpi0 = np.array([0 for n in mc_uncertainties])
+        err_ncpi0 = np.array([0 for n in err_mc])
+        sys_ncpi0 = np.array([0 for n in err_mc])
         if "ncpi0" in self.samples:
-            ncpi0_uncertainties, bins = np.histogram(
-                ncpi0_plotted_variable, **plot_options)
-            err_ncpi0 = np.array(
-                [n * self.weights["ncpi0"] * self.weights["ncpi0"] for n in ncpi0_uncertainties])
+            ncpi0w2 = ncpi0_genie_weights * ncpi0_genie_weights * self.weights["ncpi0"] * self.weights["ncpi0"]
+            err_ncpi0, bins = np.histogram(ncpi0_plotted_variable, weights=ncpi0w2, **plot_options)
             if ("ncpi0" in detsysdict.keys() and detsysdict["ncpi0"]==True):
                 self.detsys["ncpi0"] = self.load_detsys_errors("ncpi0",variable,DETSYSPATH,bin_edges,fullcov)
-            sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_uncertainties,self.weights["ncpi0"])
+            ncpi0_pred_nopotw, bins = np.histogram(ncpi0_plotted_variable, weights=ncpi0_genie_weights, **plot_options)
+            sys_ncpi0 = self.add_detsys_error("ncpi0",ncpi0_pred_nopotw,self.weights["ncpi0"])
 
-        err_ccpi0 = np.array([0 for n in mc_uncertainties])
-        sys_ccpi0 = np.array([0 for n in mc_uncertainties])
+        err_ccpi0 = np.array([0 for n in err_mc])
+        sys_ccpi0 = np.array([0 for n in err_mc])
         if "ccpi0" in self.samples:
-            ccpi0_uncertainties, bins = np.histogram(
-                ccpi0_plotted_variable, **plot_options)
-            err_ccpi0 = np.array(
-                [n * self.weights["ccpi0"] * self.weights["ccpi0"] for n in ccpi0_uncertainties])
+            ccpi0w2 = ccpi0_genie_weights * ccpi0_genie_weights * self.weights["ccpi0"] * self.weights["ccpi0"]
+            err_ccpi0, bins = np.histogram(ccpi0_plotted_variable, weights=ccpi0w2, **plot_options)
             if ("ccpi0" in detsysdict.keys() and detsysdict["ccpi0"]==True):
                 self.detsys["ccpi0"] = self.load_detsys_errors("ccpi0",variable,DETSYSPATH,bin_edges,fullcov)
-            sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_uncertainties,self.weights["ccpi0"])
+            ccpi0_pred_nopotw, bins = np.histogram(ccpi0_plotted_variable, weights=ccpi0_genie_weights, **plot_options)
+            sys_ccpi0 = self.add_detsys_error("ccpi0",ccpi0_pred_nopotw,self.weights["ccpi0"])
 
-        err_eta = np.array([0 for n in mc_uncertainties])
-        sys_eta = np.array([0 for n in mc_uncertainties])
+        err_eta = np.array([0 for n in err_mc])
+        sys_eta = np.array([0 for n in err_mc])
         if "eta" in self.samples:
-            eta_uncertainties, bins = np.histogram(
-                eta_plotted_variable, **plot_options)
-            err_eta = np.array(
-                [n * self.weights["eta"] * self.weights["eta"] for n in eta_uncertainties])
+            eta0w2 = eta_genie_weights * eta_genie_weights * self.weights["eta"] * self.weights["eta"]
+            err_eta, bins = np.histogram(eta_plotted_variable, weights=etaw2, **plot_options)
             if ("eta" in detsysdict.keys() and detsysdict["eta"]==True):
                 self.detsys["eta"] = self.load_detsys_errors("eta",variable,DETSYSPATH,bin_edges,fullcov)
+            eta_pred_nopotw, bins = np.histogram(eta_plotted_variable, weights=eta_genie_weights, **plot_options)
             sys_eta = self.add_detsys_error("eta",eta_uncertainties,self.weights["eta"])
 
-        err_ccnopi = np.array([0 for n in mc_uncertainties])
-        sys_ccnopi = np.array([0 for n in mc_uncertainties])
+        err_ccnopi = np.array([0 for n in err_mc])
+        sys_ccnopi = np.array([0 for n in err_mc])
         if "ccnopi" in self.samples:
-            ccnopi_uncertainties, bins = np.histogram(
-                ccnopi_plotted_variable, **plot_options)
-            err_ccnopi = np.array(
-                [n * self.weights["ccnopi"] * self.weights["ccnopi"] for n in ccnopi_uncertainties])
+            ccnopiw2 = ccnopi_genie_weights * ccnopi_genie_weights * self.weights["ccnopi"] * self.weights["ccnopi"]
+            err_ccnopi, bins = np.histogram(ccnopi_plotted_variable, weights=ccnopiw2, **plot_options)
             if ("ccnopi" in detsysdict.keys() and detsysdict["ccnopi"]==True):
                 self.detsys["ccnopi"] = self.load_detsys_errors("ccnopi",variable,DETSYSPATH,bin_edges,fullcov)
-            sys_ccnopi = self.add_detsys_error("ccnopi",ccnopi_uncertainties,self.weights["ccnopi"])
+            ccnopi_pred_nopotw, bins = np.histogram(ccnopi_plotted_variable, weights=ccnopi_genie_weights, **plot_options)
+            sys_ccnopi = self.add_detsys_error("ccnopi",ccnopi_pred_nopotw,self.weights["ccnopi"])
 
-        err_cccpi = np.array([0 for n in mc_uncertainties])
-        sys_cccpi = np.array([0 for n in mc_uncertainties])
+        err_cccpi = np.array([0 for n in err_mc])
+        sys_cccpi = np.array([0 for n in err_mc])
         if "cccpi" in self.samples:
-            cccpi_uncertainties, bins = np.histogram(
-                cccpi_plotted_variable, **plot_options)
-            err_cccpi = np.array(
-                [n * self.weights["cccpi"] * self.weights["cccpi"] for n in cccpi_uncertainties])
+            cccpiw2 = cccpi_genie_weights * cccpi_genie_weights * self.weights["cccpi"] * self.weights["cccpi"]
+            err_cccpi, bins = np.histogram(cccpi_plotted_variable, weights=cccpiw2, **plot_options)
             if ("cccpi" in detsysdict.keys() and detsysdict["cccpi"]==True):
                 self.detsys["cccpi"] = self.load_detsys_errors("cccpi",variable,DETSYSPATH,bin_edges,fullcov)
-            sys_cccpi = self.add_detsys_error("cccpi",cccpi_uncertainties,self.weights["cccpi"])
+            cccpi_pred_nopotw, bins = np.histogram(cccpi_plotted_variable, weights=cccpi_genie_weights, **plot_options)
+            sys_cccpi = self.add_detsys_error("cccpi",cccpi_pred_nopotw,self.weights["cccpi"])
 
-        err_nccpi = np.array([0 for n in mc_uncertainties])
-        sys_nccpi = np.array([0 for n in mc_uncertainties])
+        err_nccpi = np.array([0 for n in err_mc])
+        sys_nccpi = np.array([0 for n in err_mc])
         if "nccpi" in self.samples:
-            nccpi_uncertainties, bins = np.histogram(
-                nccpi_plotted_variable, **plot_options)
-            err_nccpi = np.array(
-                [n * self.weights["nccpi"] * self.weights["nccpi"] for n in nccpi_uncertainties])
+            nccpiw2 = nccpi_genie_weights * nccpi_genie_weights * self.weights["nccpi"] * self.weights["nccpi"]
+            err_nccpi, bins = np.histogram(nccpi_plotted_variable, weights=nccpiw2, **plot_options)
             if ("nccpi" in detsysdict.keys() and detsysdict["nccpi"]==True):
                 self.detsys["nccpi"] = self.load_detsys_errors("nccpi",variable,DETSYSPATH,bin_edges,fullcov)
-            sys_nccpi = self.add_detsys_error("nccpi",nccpi_uncertainties,self.weights["nccpi"])
+            nccpi_pred_nopotw, bins = np.histogram(nccpi_plotted_variable, weights=nccpi_genie_weights, **plot_options)
+            sys_nccpi = self.add_detsys_error("nccpi",nccpi_pred_nopotw,self.weights["nccpi"])
 
-        err_ncnopi = np.array([0 for n in mc_uncertainties])
-        sys_ncnopi = np.array([0 for n in mc_uncertainties])
+        err_ncnopi = np.array([0 for n in err_mc])
+        sys_ncnopi = np.array([0 for n in err_mc])
         if "ncnopi" in self.samples:
-            ncnopi_uncertainties, bins = np.histogram(
-                ncnopi_plotted_variable, **plot_options)
-            err_ncnopi = np.array(
-                [n * self.weights["ncnopi"] * self.weights["ncnopi"] for n in ncnopi_uncertainties])
+            ncnopiw2 = ncnopi_genie_weights * ncnopi_genie_weights * self.weights["ncnopi"] * self.weights["ncnopi"]
+            err_ncnopi, bins = np.histogram(ncnopi_plotted_variable, weights=ncnopiw2, **plot_options)
             if ("ncnopi" in detsysdict.keys() and detsysdict["ncnopi"]==True):
                 self.detsys["ncnopi"] = self.load_detsys_errors("ncnopi",variable,DETSYSPATH,bin_edges,fullcov)
-            sys_ncnopi = self.add_detsys_error("ncnopi",ncnopi_uncertainties,self.weights["ncnopi"])
+            ncnopi_pred_nopotw, bins = np.histogram(ncnopi_plotted_variable, weights=ncnopi_genie_weights, **plot_options)
+            sys_ncnopi = self.add_detsys_error("ncnopi",ncnopi_pred_nopotw,self.weights["ncnopi"])
 
         if draw_data:
             err_ext = np.array(
                 [n * self.weights["ext"] for n in n_ext]) #here n is already weighted
+            err_ext[err_ext==0] = (1.4*self.weights["ext"])**2
             self.ext_err = np.sqrt(err_ext)
         else:
             err_ext = np.zeros(len(err_mc))
@@ -1995,10 +1988,10 @@ class Plotter:
             alpha=0.5)
         '''
 
+        self.prediction = n_tot
         if draw_data:
             n_data, bins = np.histogram(data_plotted_variable, **plot_options)
             self.data = n_data
-            self.prediction = n_tot
             data_err = self._data_err(n_data,asymErrs)
 
             self.cov_data_stat[np.diag_indices_from(self.cov_data_stat)] = n_data
