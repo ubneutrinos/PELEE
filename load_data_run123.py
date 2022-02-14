@@ -219,6 +219,29 @@ def process_uproot(up,df):
     df["slclnhits"] = up.array("pfnhits").sum()
     df["slclnunhits"] = up.array("pfnunhits").sum()
     #
+    # fix elec_pz for positrons
+    nu_pdg = up.array('nu_pdg')
+    ccnc = up.array('ccnc')
+    mc_pdg = up.array('mc_pdg')
+    mc_E = up.array('mc_E')
+    mc_px = up.array('mc_px')
+    mc_py = up.array('mc_py')
+    mc_pz = up.array('mc_pz')
+    elec_pz = up.array('elec_pz')
+    positr_mask = (mc_pdg==-11)
+    mostEpositrIdx = get_idx_from_vec_sort(-1,mc_E,positr_mask)
+    mc_E_prot = get_elm_from_vec_idx(mc_E,mostEpositrIdx,-9999.)
+    mc_px_prot = get_elm_from_vec_idx(mc_px,mostEpositrIdx,-9999.)
+    mc_py_prot = get_elm_from_vec_idx(mc_py,mostEpositrIdx,-9999.)
+    mc_pz_prot = get_elm_from_vec_idx(mc_pz,mostEpositrIdx,-9999.)
+    mc_p_prot = np.sqrt(mc_px_prot*mc_px_prot + mc_py_prot*mc_py_prot + mc_pz_prot*mc_pz_prot)
+    df['positr_px'] = np.where((mc_E_prot>0),mc_px_prot/mc_p_prot,-9999.)
+    df['positr_py'] = np.where((mc_E_prot>0),mc_py_prot/mc_p_prot,-9999.)
+    df['positr_pz'] = np.where((mc_E_prot>0),mc_pz_prot/mc_p_prot,-9999.)
+    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_px' ] = df['positr_px']
+    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_py' ] = df['positr_py']
+    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_pz' ] = df['positr_pz']
+    #
     trk_score_v = up.array("trk_score_v")
     shr_mask = (trk_score_v<0.5)
     trk_mask = (trk_score_v>0.5)
@@ -256,8 +279,8 @@ def process_uproot(up,df):
     # tksh_distance and tksh_angle for track with most hits, regardless of containment
     #
     df['tk1sh1_distance_alltk'] = np.where(df['n_tracks_tot']==0,99999,
-                                     distance(df['shr_start_x'],       df['shr_start_y'],       df['shr_start_z'],\
-                                              df['trk1_start_x_alltk'],df['trk1_start_y_alltk'],df['trk1_start_z_alltk']))
+                                           distance(df['shr_start_x'],       df['shr_start_y'],       df['shr_start_z'],\
+                                                    df['trk1_start_x_alltk'],df['trk1_start_y_alltk'],df['trk1_start_z_alltk']))
     df["tk1sh1_angle_alltk"] = np.where(df['n_tracks_tot']==0,99999,
                                   cosAngleTwoVecs(df["trk1_dir_x_alltk"],df["trk1_dir_y_alltk"],df["trk1_dir_z_alltk"],\
                                                   df["shr_px"],          df["shr_py"],          df["shr_pz"]))
@@ -319,29 +342,6 @@ def process_uproot(up,df):
     #
     #pick_closest_shower(up,df)
     #
-
-    # fix elec_pz for positrons
-    nu_pdg = up.array('nu_pdg')
-    ccnc = up.array('ccnc')
-    mc_pdg = up.array('mc_pdg')
-    mc_E = up.array('mc_E')
-    mc_px = up.array('mc_px')
-    mc_py = up.array('mc_py')
-    mc_pz = up.array('mc_pz')
-    elec_pz = up.array('elec_pz')
-    positr_mask = (mc_pdg==-11)
-    mostEpositrIdx = get_idx_from_vec_sort(-1,mc_E,positr_mask)
-    mc_E_prot = get_elm_from_vec_idx(mc_E,mostEpositrIdx,-9999.)
-    mc_px_prot = get_elm_from_vec_idx(mc_px,mostEpositrIdx,-9999.)
-    mc_py_prot = get_elm_from_vec_idx(mc_py,mostEpositrIdx,-9999.)
-    mc_pz_prot = get_elm_from_vec_idx(mc_pz,mostEpositrIdx,-9999.)
-    mc_p_prot = np.sqrt(mc_px_prot*mc_px_prot + mc_py_prot*mc_py_prot + mc_pz_prot*mc_pz_prot)
-    df['positr_px'] = np.where((mc_E_prot>0),mc_px_prot/mc_p_prot,-9999.)
-    df['positr_py'] = np.where((mc_E_prot>0),mc_py_prot/mc_p_prot,-9999.)
-    df['positr_pz'] = np.where((mc_E_prot>0),mc_pz_prot/mc_p_prot,-9999.)
-    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_px' ] = df['positr_px']
-    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_py' ] = df['positr_py']
-    df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_pz' ] = df['positr_pz']
     #
     return
 
