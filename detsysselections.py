@@ -127,20 +127,6 @@ def BDTCQ(APP):
     q = BDTCQ_all_showers(APP) + ' and n_showers_contained_%s == 1'%APP
     return q
 
-def BDTXSQ(APP):
-    q = NPPRESQONESHR(APP)
-    q += ' and CosmicIPAll3D_%s > 10.'%APP
-    q += ' and (trkpid_%s<0.02 or trkpid_%s<(2.7*protonenergy_%s-0.08)) '%(APP,APP,APP)
-    q += ' and hits_ratio_%s > 0.50'%APP
-    q += ' and shrmoliereavg_%s < 9'%APP
-    q += ' and subcluster_%s > 4'%APP
-    q += ' and trkfit_%s < 0.65'%APP
-    q += ' and tksh_distance_%s < 10.0'%APP
-    q += ' and tksh_angle_%s > -0.9'%APP
-    q += ' and shr_trk_len_%s < 300.'%APP # new cut
-    q += ' and pi0_score_%s > 0.5 and nonpi0_score_%s > 0.5'%(APP,APP)
-    return q
-
 def NPPRESQ_2pshowers(APP):
     q = NPPRESQ(APP) + ' and n_showers_contained_%s > 1'%APP
     return q
@@ -185,6 +171,42 @@ def ZPLCUTQ_2pshowers(APP):
 def ZPBDTCQ(APP):
     q = ZPLCUTQ(APP)
     q += ' and bkg_score_%s >0.72'%APP
+    return q
+
+def NPBDTXSQ(APP):
+    q = NPPRESQONESHR(APP)
+    q += ' and CosmicIPAll3D_%s > 10.'%APP
+    q += ' and trkpid_%s<(0.015*trk_len_%s+0.02) '%(APP,APP)
+    q += ' and hits_ratio_%s > 0.50'%APP
+    q += ' and shrmoliereavg_%s < 9'%APP
+    q += ' and subcluster_%s > 4'%APP
+    q += ' and trkfit_%s < 0.65'%APP
+    q += ' and tksh_distance_%s < 10.0'%APP
+    q += ' and tksh_angle_%s > -0.9'%APP
+    q += ' and shr_trk_len_%s < 300.'%APP # new cut
+    q += ' and pi0_score_%s > 0.5 and nonpi0_score_%s > 0.5'%(APP,APP)
+    return q
+
+def ZPBDTXSQ(APP):
+    q = ZPPRESQ(APP)
+    q += ' and n_showers_contained_%s == 1'%APP
+    q += ' and n_tracks_contained_%s == 1'%APP
+    q += ' and shrmoliereavg_%s < 10'%APP
+    q += ' and subcluster_%s > 4'%APP
+    q += ' and trkfit_%s < 0.65'%APP
+    q += ' and secondshower_Y_nhit_%s < 50'%APP
+    q += ' and shr_trk_sce_start_y_%s > -100 and shr_trk_sce_start_y_%s < 90'%(APP,APP)
+    q += ' and shr_trk_sce_end_y_%s > -100 and shr_trk_sce_end_y_%s < 100 '%(APP,APP)
+    q += ' and shr_trk_len_%s < 300.'%APP
+    q += ' and n_tracks_tot_%s == 0'%APP
+    q += ' and bkg_score_%s>0.4'%APP
+    q += ' and cos_shr_theta_%s>0.6'%APP
+    q += ' and electron_e_%s>0.51'%APP
+    q += ' and shr_tkfit_dedx_max_%s<4'%APP
+    return q
+
+def XPBDTXSQ(APP):
+    q = "(("+NPBDTXSQ(APP)+") or ("+ZPBDTXSQ(APP)+"))"
     return q
 
 def ETAPI0SEL(APP):
