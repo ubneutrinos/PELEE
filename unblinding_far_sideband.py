@@ -93,7 +93,8 @@ BDTCQ_only = 'pi0_score > 0.67 and nonpi0_score > 0.70'
 # xsec selection
 NPXSLQ_all_showers = NPPRESQ
 NPXSLQ_all_showers += ' and CosmicIPAll3D > 10.'
-NPXSLQ_all_showers += ' and (trkpid<0.02 or trkpid<(2.7*protonenergy-0.08))'
+#NPXSLQ_all_showers += ' and (trkpid<0.02 or trkpid<(2.7*protonenergy-0.08))'
+NPXSLQ_all_showers += ' and trkpid<(0.015*trk_len+0.02)'
 NPXSLQ_all_showers += ' and hits_ratio > 0.50'
 NPXSLQ_all_showers += ' and shrmoliereavg < 9'
 NPXSLQ_all_showers += ' and subcluster > 4'
