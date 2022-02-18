@@ -219,6 +219,16 @@ def process_uproot(up,df):
     df["slclnhits"] = up.array("pfnhits").sum()
     df["slclnunhits"] = up.array("pfnunhits").sum()
     #
+    pfp_pdg_v = up.array('backtracked_pdg')
+    trk_pdg = get_elm_from_vec_idx(pfp_pdg_v,trk_id)
+    df['trk_pdg'] = trk_pdg
+    pfp_pur_v = up.array('backtracked_purity')
+    trk_pur = get_elm_from_vec_idx(pfp_pur_v,trk_id)
+    df['trk_pur'] = trk_pur
+    pfp_cmp_v = up.array('backtracked_completeness')
+    trk_cmp = get_elm_from_vec_idx(pfp_cmp_v,trk_id)
+    df['trk_cmp'] = trk_cmp
+    #
     # fix elec_pz for positrons
     nu_pdg = up.array('nu_pdg')
     ccnc = up.array('ccnc')
@@ -230,17 +240,27 @@ def process_uproot(up,df):
     elec_pz = up.array('elec_pz')
     positr_mask = (mc_pdg==-11)
     mostEpositrIdx = get_idx_from_vec_sort(-1,mc_E,positr_mask)
-    mc_E_prot = get_elm_from_vec_idx(mc_E,mostEpositrIdx,-9999.)
-    mc_px_prot = get_elm_from_vec_idx(mc_px,mostEpositrIdx,-9999.)
-    mc_py_prot = get_elm_from_vec_idx(mc_py,mostEpositrIdx,-9999.)
-    mc_pz_prot = get_elm_from_vec_idx(mc_pz,mostEpositrIdx,-9999.)
-    mc_p_prot = np.sqrt(mc_px_prot*mc_px_prot + mc_py_prot*mc_py_prot + mc_pz_prot*mc_pz_prot)
-    df['positr_px'] = np.where((mc_E_prot>0),mc_px_prot/mc_p_prot,-9999.)
-    df['positr_py'] = np.where((mc_E_prot>0),mc_py_prot/mc_p_prot,-9999.)
-    df['positr_pz'] = np.where((mc_E_prot>0),mc_pz_prot/mc_p_prot,-9999.)
+    mc_E_posi = get_elm_from_vec_idx(mc_E,mostEpositrIdx,-9999.)
+    mc_px_posi = get_elm_from_vec_idx(mc_px,mostEpositrIdx,-9999.)
+    mc_py_posi = get_elm_from_vec_idx(mc_py,mostEpositrIdx,-9999.)
+    mc_pz_posi = get_elm_from_vec_idx(mc_pz,mostEpositrIdx,-9999.)
+    mc_p_posi = np.sqrt(mc_px_posi*mc_px_posi + mc_py_posi*mc_py_posi + mc_pz_posi*mc_pz_posi)
+    df['positr_px'] = np.where((mc_E_posi>0),mc_px_posi/mc_p_posi,-9999.)
+    df['positr_py'] = np.where((mc_E_posi>0),mc_py_posi/mc_p_posi,-9999.)
+    df['positr_pz'] = np.where((mc_E_posi>0),mc_pz_posi/mc_p_posi,-9999.)
     df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_px' ] = df['positr_px']
     df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_py' ] = df['positr_py']
     df.loc[(nu_pdg==-12)&(ccnc==0)&(elec_pz<-2), 'elec_pz' ] = df['positr_pz']
+    #
+    #get true proton angle
+    prot_mask = (mc_pdg==2212)
+    mostEprotIdx = get_idx_from_vec_sort(-1,mc_E,prot_mask)
+    mc_E_prot = get_elm_from_vec_idx(mc_E,mostEprotIdx,-9999.)
+    mc_px_prot = get_elm_from_vec_idx(mc_px,mostEprotIdx,-9999.)
+    mc_py_prot = get_elm_from_vec_idx(mc_py,mostEprotIdx,-9999.)
+    mc_pz_prot = get_elm_from_vec_idx(mc_pz,mostEprotIdx,-9999.)
+    mc_p_prot = np.sqrt(mc_px_prot*mc_px_prot + mc_py_prot*mc_py_prot + mc_pz_prot*mc_pz_prot)
+    df['proton_pz'] = np.where((mc_E_prot>0),mc_pz_prot/mc_p_prot,-9999.)
     #
     trk_score_v = up.array("trk_score_v")
     shr_mask = (trk_score_v<0.5)
@@ -278,6 +298,7 @@ def process_uproot(up,df):
     #
     # tksh_distance and tksh_angle for track with most hits, regardless of containment
     #
+    if np.shape(df['shr_start_x']) != np.shape(df['trk1_start_x_alltk']): return
     df['tk1sh1_distance_alltk'] = np.where(df['n_tracks_tot']==0,99999,
                                            distance(df['shr_start_x'],       df['shr_start_y'],       df['shr_start_z'],\
                                                     df['trk1_start_x_alltk'],df['trk1_start_y_alltk'],df['trk1_start_z_alltk']))
@@ -1222,6 +1243,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         ur3data = uproot.open(ls.ntuple_path+'fakedata/numupresel/prod_uboone_nu2020_fakedata_set4_run3b_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
     elif (loadfakedata == 5):
         ur3data = uproot.open(ls.ntuple_path+'fakedata/numupresel/prod_uboone_nu2020_fakedata_set5_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
+    elif (loadfakedata == 9):
+        ur3data = uproot.open(ls.ntuple_path+'fakedata/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2.root')['nuselection'][tree]
     ur3ext = uproot.open(ls.ntuple_path+ls.RUN3+R3EXT+ls.APPEND+".root")[fold][tree]
     ur3dirt = uproot.open(ls.ntuple_path+ls.RUN3+R3DRT+ls.APPEND+".root")[fold][tree]
     ur3lee = uproot.open(ls.ntuple_path+ls.RUN3+R3NUE+ls.APPEND+".root")[fold][tree]
@@ -1242,6 +1265,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     ur2drt = uproot.open(ls.ntuple_path+ls.RUN2+R2DRT+ls.APPEND+".root")[fold][tree]
     ur2lee = uproot.open(ls.ntuple_path+ls.RUN2+R2NUE+ls.APPEND+".root")[fold][tree]
     ur2ext = uproot.open(ls.ntuple_path+ls.RUN2+R2EXT+ls.APPEND+".root")[fold][tree]
+    if (loadfakedata == 9):
+        ur2data = uproot.open(ls.ntuple_path+'fakedata/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run2_NuWro_reco2_reco2.root')['nuselection'][tree]
 
     ur1mc = uproot.open(ls.ntuple_path+ls.RUN1+R1NU+ls.APPEND+".root")[fold][tree]
     ur1nue = uproot.open(ls.ntuple_path+ls.RUN1+R1NUE+ls.APPEND+".root")[fold][tree]
@@ -1259,6 +1284,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         ur1data = uproot.open(ls.ntuple_path+'fakedata/numupresel/prod_uboone_nu2020_fakedata_set4_run1_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
     elif (loadfakedata == 5):
         ur1data = uproot.open(ls.ntuple_path+'fakedata/numupresel/prod_uboone_nu2020_fakedata_set5_reco2_v08_00_00_41_reco2.root')['nuselection'][tree]
+    elif (loadfakedata == 9):
+        ur1data = uproot.open(ls.ntuple_path+'fakedata/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2.root')['nuselection'][tree]
     ur1ext = uproot.open(ls.ntuple_path+ls.RUN1+R1EXT+ls.APPEND+".root")[fold][tree]
     ur1dirt = uproot.open(ls.ntuple_path+ls.RUN1+R1DRT+ls.APPEND+".root")[fold][tree]
     ur1lee = uproot.open(ls.ntuple_path+ls.RUN1+R1NUE+ls.APPEND+".root")[fold][tree]
@@ -1698,6 +1725,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     r2mc  = ur2mc.pandas.df(VARIABLES + WEIGHTS + MCFVARS, flatten=False)
     r2ext = ur2ext.pandas.df(VARIABLES, flatten=False)
     r2lee = ur2lee.pandas.df(VARIABLES + WEIGHTSLEE, flatten=False)
+    if (loadfakedata == 9):
+        r2data = ur2data.pandas.df(VARIABLES, flatten=False)
+        print ('r2data has shape : ',r2data.shape)
 
     if (which_sideband == "np_far" or which_sideband == "np_sb_comb"):
         r2data_np_far_sidebands = ur2data_np_far_sidebands.pandas.df(VARIABLES, flatten=False)
@@ -1709,7 +1739,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2data_pi0_sidebands = ur2data_pi0_sidebands.pandas.df(VARIABLES, flatten=False)
     if (which_sideband == "fulldata"):
         r2data_fulldata = ur2data_fulldata.pandas.df(VARIABLES, flatten=False)
-        print ('r2data has shape : ',r2data_fulldata.shape)
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2data_numu_sidebands = ur2data_numu_sidebands.pandas.df(VARIABLES, flatten=False)
         
@@ -1749,6 +1778,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         r2_datasets += [r2data_fulldata]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r2_datasets += [r2data_numu_sidebands]
+    if (loadfakedata == 9):
+        r2_datasets += [r2data]
         
     for r2_dataset in r2_datasets:
         r2_dataset['run1'] = np.zeros(len(r2_dataset), dtype=bool)
@@ -1786,6 +1817,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         uproot_v += [ur2data_fulldata]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         uproot_v += [ur2data_numu_sidebands]
+    if (loadfakedata == 9):
+        uproot_v += [ur2data]
 
     df_v = [r2lee,r2mc,r2nue, r2drt, r2ext]#, r2data_two_showers_sidebands, r2data_np_far_sidebands, r2data_0p_far_sidebands]
     if (which_sideband == "2plus_showers" or which_sideband == "np_sb_comb"):
@@ -1800,6 +1833,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         df_v += [r2data_fulldata]
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         df_v += [r2data_numu_sidebands]
+    if (loadfakedata == 9):
+        df_v += [r2data]
 
     for i,df in enumerate(df_v):
         up = uproot_v[i]
@@ -1865,6 +1900,8 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         data = pd.concat([r1data_numu_sidebands, r2data_numu_sidebands, r3data_numu_sidebands],ignore_index=True)
     elif which_sideband == "opendata":
         data = pd.concat([r1data, r3data],ignore_index=True) # 5e19 and 1e19
+        if (loadfakedata == 9):
+            data = pd.concat([r1data, r2data, r3data],ignore_index=True) # NuWro
     elif which_sideband == "fulldata":
         data = pd.concat([r1data_fulldata, r2data_fulldata, r3data_fulldata],ignore_index=True) # full dataset
         print ('opendata dataset has shape : ',data.shape)
@@ -2113,7 +2150,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df['electron_e'] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE
             df['proton_ke'] = df['proton_e']-Mp
             df.loc[(df['proton_ke']<0), 'proton_ke'] = 0
-            df['protonenergy_corr'] = df['protonenergy']+0.0004/df['protonenergy']-0.0014
+            df['protonenergy_corr'] = df['protonenergy']+0.000620/df['protonenergy']-0.001792
             df.loc[(df['protonenergy_corr']>9998.), 'protonenergy_corr'] = 0
             df['reco_proton_e'] = Mp + df['protonenergy']
             df['reco_proton_p'] = np.sqrt( (df['reco_proton_e'])**2 - Mp**2 )
@@ -2462,6 +2499,10 @@ pot_data_unblinded = {
         1: (9.00E+20, 32139256),
         2: (1.00E+01, 1),
         3: (1.00E+01, 1), },
+    "fakeset9" : {
+        1: (3.10E+20, 68857313),#N triggers approx based on fulldata and POT
+        2: (3.10E+20, 73558324),
+        3: (2.90E+20, 69262826), },
 }
 
 pot_mc_samples = {}
