@@ -93,16 +93,15 @@ BDTCQ_only = 'pi0_score > 0.67 and nonpi0_score > 0.70'
 # xsec selection
 NPXSLQ_all_showers = NPPRESQ
 NPXSLQ_all_showers += ' and CosmicIPAll3D > 10.'
-#NPXSLQ_all_showers += ' and (trkpid<0.02 or trkpid<(2.7*protonenergy-0.08))'
 NPXSLQ_all_showers += ' and trkpid<(0.015*trk_len+0.02)'
 NPXSLQ_all_showers += ' and hits_ratio > 0.50'
 NPXSLQ_all_showers += ' and shrmoliereavg < 9'
 NPXSLQ_all_showers += ' and subcluster > 4'
 NPXSLQ_all_showers += ' and trkfit < 0.65'
-NPXSLQ_all_showers += ' and tksh_distance < 10.0'#10 or 18?
+NPXSLQ_all_showers += ' and tksh_distance < 10.0'
 NPXSLQ_all_showers += ' and tksh_angle > -0.9'
-NPXSLQ_all_showers += ' and shr_trk_len < 300.' # new cut
-#NPXSLQ_all_showers += ' and protonenergy_corr > 0.05'
+NPXSLQ_all_showers += ' and shr_trk_len < 300.'
+NPXSLQ_all_showers += ' and protonenergy_corr > 0.05'
 NPXSLQ = NPXSLQ_all_showers + ' and n_showers_contained == 1'
 NPXSBDTQ_all_showers = NPXSLQ_all_showers
 NPXSBDTQ_all_showers += ' and pi0_score > 0.50 and nonpi0_score > 0.50'
@@ -202,10 +201,9 @@ ZPXSLQ_all_tracks += ' and secondshower_Y_nhit < 50'
 ZPXSLQ_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 90'
 ZPXSLQ_all_tracks += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
 ZPXSLQ_all_tracks += ' and shr_trk_len < 300.'
-ZPXSLQ_all_tracks += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 ZPXSLQ_onep_track = ZPXSLQ_all_tracks + ' and n_tracks_contained > 0'
-ZPXSLQ = ZPXSLQ_all_tracks + ' and n_tracks_contained == 0'
-ZPXSBDTQ = ZPXSLQ_all_tracks
+ZPXSLQ = ZPXSLQ_all_tracks + ' and n_tracks_tot == 0'
+ZPXSBDTQ = ZPXSLQ
 ZPXSBDTQ += ' and bkg_score>0.4'
 ZPXSBDTQ += ' and cos_shr_theta>0.6'
 ZPXSBDTQ += ' and electron_e>0.51'
