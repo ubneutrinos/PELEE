@@ -183,14 +183,14 @@ def NPBDTXSQ(APP):
     q += ' and trkfit_%s < 0.65'%APP
     q += ' and tksh_distance_%s < 10.0'%APP
     q += ' and tksh_angle_%s > -0.9'%APP
-    q += ' and shr_trk_len_%s < 300.'%APP # new cut
+    q += ' and shr_trk_len_%s < 300.'%APP
+    q += ' and protonenergy_corr_%s > 0.05'%APP
     q += ' and pi0_score_%s > 0.5 and nonpi0_score_%s > 0.5'%(APP,APP)
     return q
 
 def ZPBDTXSQ(APP):
     q = ZPPRESQ(APP)
     q += ' and n_showers_contained_%s == 1'%APP
-    q += ' and n_tracks_contained_%s == 1'%APP
     q += ' and shrmoliereavg_%s < 10'%APP
     q += ' and subcluster_%s > 4'%APP
     q += ' and trkfit_%s < 0.65'%APP
