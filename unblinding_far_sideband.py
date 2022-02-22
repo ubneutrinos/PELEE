@@ -207,7 +207,7 @@ ZPXSBDTQ = ZPXSLQ
 ZPXSBDTQ += ' and bkg_score>0.4'
 ZPXSBDTQ += ' and cos_shr_theta>0.6'
 ZPXSBDTQ += ' and electron_e>0.51'
-ZPXSBDTQ += ' and shr_tkfit_dedx_max<4'
+ZPXSBDTQ += ' and shr_tkfit_gap10_dedx_max<4'
 
 XPXSBDTQ = "(("+ZPXSBDTQ+") or ("+NPXSBDTQ+"))"
 
