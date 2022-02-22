@@ -202,7 +202,7 @@ def ZPBDTXSQ(APP):
     q += ' and bkg_score_%s>0.4'%APP
     q += ' and cos_shr_theta_%s>0.6'%APP
     q += ' and electron_e_%s>0.51'%APP
-    q += ' and shr_tkfit_dedx_max_%s<4'%APP
+    q += ' and shr_tkfit_gap10_dedx_max_%s<4'%APP
     return q
 
 def XPBDTXSQ(APP):
