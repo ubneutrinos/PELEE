@@ -2027,7 +2027,7 @@ class Plotter:
             chistatonly, aab, aac = self._chisq_full_covariance(n_data,n_tot,CNP=True,STATONLY=True)
             #chiarea, aab, aac = self._chisq_full_covariance(n_tot-lee_hist,n_tot,CNP=True,STATONLY=True,AREANORMED=True)
             chicov, chinocov,dof = self._chisq_full_covariance(n_data,n_tot,CNP=True)#,USEFULLCOV=True)
-            chilee, chileenocov,dof = self._chisq_full_covariance(n_tot-lee_hist,n_tot,CNP=True)
+            if "lee" in self.samples: chilee, chileenocov,dof = self._chisq_full_covariance(n_tot-lee_hist,n_tot,CNP=True)
             #self.stats['chisq full covariance'] = chicov
             #self.stats['chisq full covariance (diagonal only)'] = chinocov
             self.stats['dof']            = dof
@@ -2040,7 +2040,7 @@ class Plotter:
             self.stats['chisq']          = chicov
             #self.stats['chilee']          = chilee
             self.stats['pvalue']         = (1 - scipy.stats.chi2.cdf(chicov,dof))
-            self.stats['pvaluelee']         = (1 - scipy.stats.chi2.cdf(chilee,dof))
+            if "lee" in self.samples: self.stats['pvaluelee']         = (1 - scipy.stats.chi2.cdf(chilee,dof))
             #print ('chisq for data/mc agreement with full covariance is : %.02f. without cov : %.02f'%(chicov,chinocov))
 
             #self.print_stats()
