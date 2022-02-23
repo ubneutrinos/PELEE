@@ -1481,7 +1481,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r3data_numu_sidebands["is_signal"]   = r3data_numu_sidebands["category"] == 11
     
-    r3_datasets = [r3lee, r3data, r3nue, r3mc, r3dirt, r3ext, r3lee, r3lee, r3lee]#, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_0p_far_sidebands]
+    r3_datasets = [r3lee, r3data, r3nue, r3mc, r3dirt, r3ext]#, r3data_two_showers_sidebands, r3data_np_far_sidebands, r3data_0p_far_sidebands]
     if (which_sideband == "2plus_showers" or which_sideband == "np_sb_comb"):
         r3_datasets += [r3data_two_showers_sidebands]
     if (which_sideband == "np_far" or which_sideband == "np_sb_comb"):
@@ -1635,7 +1635,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         r1data_numu_sidebands["is_signal"]   = r1data_numu_sidebands["category"] == 11
     
-    r1_datasets = [r1lee, r1data, r1nue, r1mc, r1dirt, r1ext, r1lee] #, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_0p_far_sidebands]
+    r1_datasets = [r1lee, r1data, r1nue, r1mc, r1dirt, r1ext] #, r1data_two_showers_sidebands, r1data_np_far_sidebands, r1data_0p_far_sidebands]
     
     if (which_sideband == "2plus_showers" or which_sideband == "np_sb_comb"):
         r1_datasets += [r1data_two_showers_sidebands]
@@ -2189,6 +2189,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
     if updatedProtThresh>0:
         for i,df in enumerate(df_v):
             df.loc[(df['category']==11)&(df['proton_ke']<updatedProtThresh), 'category'] = 10
+            df.loc[(df['nproton']>0)&(df['proton_ke']<updatedProtThresh), 'nproton'] = 0
 
     # category switch
     '''
