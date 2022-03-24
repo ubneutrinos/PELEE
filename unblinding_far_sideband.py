@@ -192,22 +192,22 @@ ZPLOOSESEL_two_shower += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_
 ZPLOOSESEL_two_shower += ' and n_tracks_contained == 0'
 ZPBDTLOOSE_two_shower = ZPLOOSESEL_two_shower + ' and bkg_score > 0.72'
 
-ZPXSLQ_all_tracks = ZPPRESEL_all_tracks
-ZPXSLQ_all_tracks += ' and n_showers_contained == 1'
-ZPXSLQ_all_tracks += ' and shrmoliereavg < 10'
-ZPXSLQ_all_tracks += ' and subcluster > 4'
-ZPXSLQ_all_tracks += ' and trkfit < 0.65'
-ZPXSLQ_all_tracks += ' and secondshower_Y_nhit < 50'
-ZPXSLQ_all_tracks += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 90'
-ZPXSLQ_all_tracks += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
-ZPXSLQ_all_tracks += ' and shr_trk_len < 300.'
-ZPXSLQ_onep_track = ZPXSLQ_all_tracks + ' and n_tracks_contained > 0'
-ZPXSLQ = ZPXSLQ_all_tracks + ' and n_tracks_tot == 0'
-ZPXSBDTQ = ZPXSLQ
-ZPXSBDTQ += ' and bkg_score>0.4'
-ZPXSBDTQ += ' and cos_shr_theta>0.6'
-ZPXSBDTQ += ' and electron_e>0.51'
-ZPXSBDTQ += ' and shr_tkfit_gap10_dedx_max<4'
+ZPXSLQ_all_showers = ZPPRESEL
+ZPXSLQ_all_showers += ' and shrmoliereavg < 10'
+ZPXSLQ_all_showers += ' and subcluster > 4'
+ZPXSLQ_all_showers += ' and trkfit < 0.65'
+ZPXSLQ_all_showers += ' and secondshower_Y_nhit < 50'
+ZPXSLQ_all_showers += ' and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 90'
+ZPXSLQ_all_showers += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100 '
+ZPXSLQ_all_showers += ' and shr_trk_len < 300.'
+ZPXSLQ_all_showers += ' and n_tracks_tot == 0'
+ZPXSLQ_all_showers += ' and shr_tkfit_gap10_dedx_max<4'
+ZPXSLQ = ZPXSLQ_all_showers + ' and n_showers_contained == 1'
+ZPXSBDTQ_all_showers = ZPXSLQ_all_showers
+ZPXSBDTQ_all_showers += ' and bkg_score>0.4'
+ZPXSBDTQ_all_showers += ' and cos_shr_theta>0.6'
+ZPXSBDTQ_all_showers += ' and electron_e>0.51'
+ZPXSBDTQ = ZPXSBDTQ_all_showers + ' and n_showers_contained == 1'
 
 XPXSBDTQ = "(("+ZPXSBDTQ+") or ("+NPXSBDTQ+"))"
 
@@ -414,7 +414,9 @@ selection_categories = {
     'NPXSBDT': {'query': NPXSBDTQ, 'title': '1eNp xsec BDT sel.', 'dir': 'NPXSBDT'},
     'NPXSBDTAllShr': {'query': NPXSBDTQ_all_showers, 'title': '1eNp xsec BDT sel., 0+ showers', 'dir': 'NPXSBDTAllShr'},
     'ZPXSL': {'query': ZPXSLQ, 'title': '1e0p xsec Loose cuts', 'dir': 'ZPXSL'},
+    'ZPXSLAllShr': {'query': ZPXSLQ_all_showers, 'title': '1e0p xsec Loose cuts, 0+ showers', 'dir': 'ZPXSLAllShr'},
     'ZPXSBDT': {'query': ZPXSBDTQ, 'title': '1e0p xsec BDT sel.', 'dir': 'ZPXSBDT'},
+    'ZPXSBDTAllShr': {'query': ZPXSBDTQ_all_showers, 'title': '1e0p xsec BDT sel., 0+ showers', 'dir': 'ZPXSBDTAllShr'},
     'XPXSBDT': {'query': XPXSBDTQ, 'title': '1eXp xsec BDT sel.', 'dir': 'XPXSBDT'},
 }
 
