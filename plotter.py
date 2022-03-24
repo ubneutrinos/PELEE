@@ -48,7 +48,7 @@ paper_labels_numu = {
     24: r"$\nu_{\mu}$ CC 2p",
     25: r"$\nu_{\mu}$ CC 3+p",
     3: r"NC $\nu$",
-    5: r"Dirt (Outside TPC)",
+    5: r"Dirt",# (Outside TPC)
 }
 
 paper_labels = {
@@ -56,7 +56,7 @@ paper_labels = {
     111: r"MiniBooNE LEE",
     2: r"$\nu$ other",
     31: r"$\nu$ with $\pi^{0}$",
-    5: r"Dirt (Outside TPC)",
+    5: r"Dirt",# (Outside TPC)
 }
 
 
@@ -108,7 +108,7 @@ sample_labels = {
     8: r"ncnopi",
     9: r"nccpi",
     10: r"ncpi0",
-    11: r"ncpi0",
+    11: r"ccpi0",
     802: r"eta"
 }
 
@@ -2054,7 +2054,7 @@ class Plotter:
             leg = ax1.legend(
                 frameon=False, ncol=2, title=r'%s %.2f $\times 10^{20}$ POT' % (figtitle,(self.pot/1e20)),fontsize=11,loc=legendloc)
         leg._legend_box.align = "center"
-        plt.setp(leg.get_title(), fontweight='normal',fontsize=14)
+        plt.setp(leg.get_title(), fontweight='normal',fontsize=12)#14
         #'''
 
         unit = title[title.find("[") +
@@ -2098,7 +2098,7 @@ class Plotter:
                 datanormerr2 = (0.5*(self._data_err([nd],asymErrs)[0][0]+\
                                      self._data_err([nd],asymErrs)[1][0]))**2
                 ax1.text(
-                    0.17,
+                    0.19,
                     0.89,
                     r'$\chi^2 /$n.d.f. = %.2f' % (self.stats['chisq']/self.stats['dof']) +
                              #'K.S. prob. = %.2f' % scipy.stats.ks_2samp(n_data, n_tot)[1],
@@ -2108,7 +2108,7 @@ class Plotter:
                     va='center',
                     ha='center',
                     ma='left',
-                    fontsize=12,
+                    fontsize=11,#12
                     transform=ax1.transAxes)
 
         if (ratio==True):
@@ -2518,8 +2518,9 @@ class Plotter:
 
         # how many universes?
         Nuniverse = 100 #len(df)
-        #if (name == "weightsGenie"):
-        #    Nuniverse = 100
+        #if (name == "weightsGenie"): Nuniverse = 500
+        #if (name == "weightsFlux"):  Nuniverse = 1000
+        #if (name == "weightsReint"): Nuniverse = 1000
         n_bins = len(bins)-1
 
         n_tot = np.empty([Nuniverse, n_bins])
@@ -2726,7 +2727,6 @@ class Plotter:
         variable = queried_tree[var_name]
         #print ('N universes is :',len(syst_weights))
         spline_fix_cv  = queried_tree[weightVarCV] * self.weights[signame]
-        spline_fix_var = queried_tree[weightVarVar] * self.weights[signame]
 
         n_cv, bins = np.histogram(variable,bins=bins,weights=spline_fix_cv)
         n_cv_tot += n_cv
@@ -2793,8 +2793,9 @@ class Plotter:
 
         # how many universes?
         Nuniverse = 100 #len(df)
-        #if (name == "weightsGenie"):
-        #    Nuniverse = 100
+        #if (wname == "weightsGenie"): Nuniverse = 500
+        #if (wname == "weightsFlux"):  Nuniverse = 1000
+        #if (wname == "weightsReint"): Nuniverse = 1000
         n_bins = len(bins)-1
 
         n_tot = np.empty([Nuniverse, n_bins])
@@ -2858,7 +2859,6 @@ class Plotter:
         syst_weights = queried_tree[wname]
         #print ('N universes is :',len(syst_weights))
         spline_fix_cv  = queried_tree[weightVarCV] * self.weights[signame]
-        spline_fix_var = queried_tree[weightVarVar] * self.weights[signame]
 
         s = syst_weights
 
