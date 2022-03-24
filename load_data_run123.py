@@ -262,6 +262,21 @@ def process_uproot(up,df):
     mc_p_prot = np.sqrt(mc_px_prot*mc_px_prot + mc_py_prot*mc_py_prot + mc_pz_prot*mc_pz_prot)
     df['proton_pz'] = np.where((mc_E_prot>0),mc_pz_prot/mc_p_prot,-9999.)
     #
+    # true proton length (assuming straight line)
+    mc_vx = up.array('mc_vx')
+    mc_vy = up.array('mc_vy')
+    mc_vz = up.array('mc_vz')
+    mc_endx = up.array('mc_endx')
+    mc_endy = up.array('mc_endy')
+    mc_endz = up.array('mc_endz')
+    p_vx = get_elm_from_vec_idx(mc_vx,mostEprotIdx,-9999.)
+    p_vy = get_elm_from_vec_idx(mc_vy,mostEprotIdx,-9999.)
+    p_vz = get_elm_from_vec_idx(mc_vz,mostEprotIdx,-9999.)
+    p_endx = get_elm_from_vec_idx(mc_endx,mostEprotIdx,-9999.)
+    p_endy = get_elm_from_vec_idx(mc_endy,mostEprotIdx,-9999.)
+    p_endz = get_elm_from_vec_idx(mc_endz,mostEprotIdx,-9999.)
+    df['proton_len'] = np.sqrt( (p_endx-p_vx)*(p_endx-p_vx) + (p_endy-p_vy)*(p_endy-p_vy) + (p_endz-p_vz)*(p_endz-p_vz) )
+    #
     trk_score_v = up.array("trk_score_v")
     shr_mask = (trk_score_v<0.5)
     trk_mask = (trk_score_v>0.5)
@@ -1336,9 +1351,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         ur2data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R2_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur3data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R3_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
     if(which_sideband == "fulldata"):
-        ur1data_fulldata = uproot.open(ls.ntuple_path+'fullbnb/'+R1_FULLDATA+".root")['nuselection'][tree]
-        ur2data_fulldata = uproot.open(ls.ntuple_path+'fullbnb/'+R2_FULLDATA+".root")['nuselection'][tree]
-        ur3data_fulldata = uproot.open(ls.ntuple_path+'fullbnb/'+R3_FULLDATA+".root")['nuselection'][tree]
+        ur1data_fulldata = uproot.open(ls.ntuple_path+R1_FULLDATA+".root")['nuselection'][tree]
+        ur2data_fulldata = uproot.open(ls.ntuple_path+R2_FULLDATA+".root")['nuselection'][tree]
+        ur3data_fulldata = uproot.open(ls.ntuple_path+R3_FULLDATA+".root")['nuselection'][tree]
         
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         R123_NUMU_SIDEBAND_BNB = 'neutrinoselection_filt_numu_ALL'
@@ -2074,6 +2089,8 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df["theta1PlusTheta2"] = df["shr_theta"]+df["trk_theta"]
             df['cos_shr_theta'] = np.cos(df['shr_theta'])
             df['cos_trk_theta'] = np.cos(df['trk_theta'])
+            df.loc[df['n_tracks_tot']==0,'trk_theta'] = -9999
+            df.loc[df['n_tracks_tot']==0,'cos_trk_theta'] = -9999
             if (loadrecoveryvars == True):
                 df['n_tracks_cont_attach'] = df['n_tracks_contained']
                 df.loc[((df['tk2sh1_distance']>3)&(df['tk2sh1_distance']<9999)),'n_tracks_cont_attach'] = df['n_tracks_contained']-1
@@ -2229,6 +2246,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         df.loc[(df['category']==5)&(df['ccnc']==0)&((df['npi0']>1)), 'category'] = 2
         df.loc[(df['category']==5)&(df['ccnc']==0)&((df['npion']>=0)), 'category'] = 2
     '''
+
     print("Add BDT scores")
     # Np BDT
 
