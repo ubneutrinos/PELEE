@@ -2377,6 +2377,31 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         df.loc[(df['npi0']==0), 'paper_category'] = 2
 
     for key, df in samples.items():
+        df.loc[:,"paper_category_xsec"] = df["category"]
+        if key is 'data': continue
+        df.loc[(df['npi0']>0), 'paper_category_xsec'] = 31
+        df.loc[(df['npi0']==0), 'paper_category_xsec'] = 2
+        df.loc[ (df['category']== 1 ),  'paper_category_xsec' ] = 1
+        df.loc[ (df['category']== 10 ),  'paper_category_xsec' ] = 10
+        df.loc[ (df['category']== 11 ),  'paper_category_xsec' ] = 11
+        if key is 'nue':
+            df.loc[(df['category']==5)&(df['ccnc']==1), 'paper_category_xsec'] = 2
+            df.loc[(df['category']==4)&(df['ccnc']==1), 'paper_category_xsec'] = 2
+            df.loc[(df['category']==3), 'paper_category_xsec'] = 2
+            df.loc[(df['category']==5)&(df['ccnc']==0)&(df['npi0']>0), 'paper_category_xsec'] = 1
+            df.loc[(df['category']==5)&(df['ccnc']==0)&(df['npion']>0), 'paper_category_xsec'] = 1
+            df.loc[(df['category']==4)&(df['ccnc']==0)&(df['npi0']>0), 'paper_category_xsec'] = 1
+            df.loc[(df['category']==4)&(df['ccnc']==0)&(df['npion']>0), 'paper_category_xsec'] = 1
+            df.loc[(df['category']==5)&(df['ccnc']==0)&(df['npi0']==0)&(df['npion']==0)&(df['nproton']==0), 'paper_category_xsec'] = 10
+            df.loc[(df['category']==4)&(df['ccnc']==0)&(df['npi0']==0)&(df['npion']==0)&(df['nproton']==0), 'paper_category_xsec'] = 10
+            df.loc[(df['category']==5)&(df['ccnc']==0)&(df['npi0']==0)&(df['npion']==0)&(df['nproton']>0), 'paper_category_xsec'] = 11
+            df.loc[(df['category']==4)&(df['ccnc']==0)&(df['npi0']==0)&(df['npion']==0)&(df['nproton']>0), 'paper_category_xsec'] = 11
+            continue
+        if key is 'dirt':
+            df['paper_category_xsec'] = 2
+            continue
+
+    for key, df in samples.items():
         df.loc[:,"paper_category_numu"] = 0
         if key is 'data': continue
         df.loc[ (df['ccnc'] == 0), 'paper_category_numu'] = 2

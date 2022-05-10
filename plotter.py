@@ -59,6 +59,16 @@ paper_labels = {
     5: r"Dirt",# (Outside TPC)
 }
 
+paper_labels_xsec = {
+    1: r"$\nu_e$ CC with $\pi$",
+    10: r"$\nu_e$ CC 0p0$\pi$",
+    11: r"$\nu_e$ CC Np0$\pi$",
+    111: r"MiniBooNE LEE",
+    2: r"$\nu$ other",
+    31: r"$\nu$ with $\pi^{0}$",
+    5: r"Dirt",# (Outside TPC)
+}
+
 
 category_labels = {
     1: r"$\nu_e$ CC",
@@ -825,6 +835,33 @@ class Plotter:
 
         return category, plotted_variable
 
+    def _categorize_entries_paper_xsec(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+        category = self._selection(
+            "paper_category_xsec", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+        plotted_variable = self._selection(
+            variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+
+        if plotted_variable.size > 0:
+            if isinstance(plotted_variable[0], np.ndarray):
+                if "trk" in variable or select_longest:
+                    score = self._selection(
+                        "trk_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+                    category = np.array([
+                        np.array([c] * len(v[s > 0.5])) for c, v, s in zip(category, plotted_variable, score)
+                    ])
+                else:
+                    score = self._selection(
+                        "shr_score_v", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+                    category = np.array([
+                        np.array([c] * len(v[s < 0.5])) for c, v, s in zip(category, plotted_variable, score)
+                    ])
+                category = np.hstack(category)
+
+            plotted_variable = self._select_showers(
+                plotted_variable, variable, sample, query=query, extra_cut=extra_cut)
+
+        return category, plotted_variable
+
     def _categorize_entries_int(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
         category = self._selection(
             "interaction", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
@@ -1370,6 +1407,9 @@ class Plotter:
         elif kind == "paper_category":
             categorization = self._categorize_entries_paper
             cat_labels = paper_labels
+        elif kind == "paper_category_xsec":
+            categorization = self._categorize_entries_paper_xsec
+            cat_labels = paper_labels_xsec
         elif kind == "paper_category_numu":
             categorization = self._categorize_entries_paper_numu
             cat_labels = paper_labels_numu
@@ -1528,7 +1568,7 @@ class Plotter:
             data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
             #### for paper add EXT to the stacked plot
-            if (kind == "paper_category" or kind == "paper_category_numu"):
+            if (kind == "paper_category" or kind == "paper_category_xsec" or kind == "paper_category_numu"):
                 var_dict[100] = ext_plotted_variable
                 ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
                 weight_dict[100] = ext_weight
@@ -1589,7 +1629,7 @@ class Plotter:
             if has11:
                 order_dict[11] = sum(weight_dict[11])
             #### for paper do not add lee to stack plot
-            if has111 and kind != "paper_category" and kind != "paper_category_numu":
+            if has111 and kind != "paper_category" and kind != "paper_category_xsec" and kind != "paper_category_numu":
                 order_dict[111] = sum(weight_dict[111])
             # now that the order has been sorted out, fill the actual dicts
             for c in order_dict.keys():
@@ -1635,7 +1675,7 @@ class Plotter:
                 for c in order_var_dict.keys()
             ]
 
-        if kind == "event_category" or kind == "paper_category" or kind == "paper_category_numu":
+        if kind == "event_category" or kind == "paper_category" or kind == "paper_category_xsec" or kind == "paper_category_numu":
             plot_options["color"] = [category_colors[c]
                                      for c in order_var_dict.keys()]
         elif kind == "particle_pdg":
@@ -1677,7 +1717,7 @@ class Plotter:
             total_array, weights=total_weight,  **plot_options)
 
         #### for paper do not draw EXT on top of stack plot
-        if draw_data and kind != "paper_category" and kind!= "paper_category_numu":
+        if draw_data and kind != "paper_category" and kind != "paper_category_xsec" and kind!= "paper_category_numu":
             ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
             extlabel = "Cosmic" if sum(ext_weight) else ""
             if (predictedevents == True): extlabel="EXT: %.1f" % sum(ext_weight) if sum(ext_weight) else ""
@@ -2509,7 +2549,7 @@ class Plotter:
 
         return            
         
-    def sys_err(self, name, var_name, query, x_range, n_bins, weightVar, islee=False):
+    def sys_err(self, name, var_name, query, x_range, n_bins, weightVar, islee=False, maxUniv = False):
 
         if x_range == None:
             bins = n_bins
@@ -2518,9 +2558,10 @@ class Plotter:
 
         # how many universes?
         Nuniverse = 100 #len(df)
-        #if (name == "weightsGenie"): Nuniverse = 500
-        #if (name == "weightsFlux"):  Nuniverse = 1000
-        #if (name == "weightsReint"): Nuniverse = 1000
+        if maxUniv:
+            if (name == "weightsGenie"): Nuniverse = 500
+            if (name == "weightsFlux"):  Nuniverse = 1000
+            if (name == "weightsReint"): Nuniverse = 1000
         n_bins = len(bins)-1
 
         n_tot = np.empty([Nuniverse, n_bins])
@@ -2778,7 +2819,7 @@ class Plotter:
 
         return cov
 
-    def sys_err_with_resp_func(self, wname, signame, var_name, true_var_name, query, acceptance, x_range, n_bins, weightVar):
+    def sys_err_with_resp_func(self, wname, signame, var_name, true_var_name, query, acceptance, x_range, n_bins, weightVar, maxUniv = False):
         #this is not done for lee
 
         if x_range == None:
@@ -2793,9 +2834,10 @@ class Plotter:
 
         # how many universes?
         Nuniverse = 100 #len(df)
-        #if (wname == "weightsGenie"): Nuniverse = 500
-        #if (wname == "weightsFlux"):  Nuniverse = 1000
-        #if (wname == "weightsReint"): Nuniverse = 1000
+        if maxUniv:
+            if (wname == "weightsGenie"): Nuniverse = 500
+            if (wname == "weightsFlux"):  Nuniverse = 1000
+            if (wname == "weightsReint"): Nuniverse = 1000
         n_bins = len(bins)-1
 
         n_tot = np.empty([Nuniverse, n_bins])
