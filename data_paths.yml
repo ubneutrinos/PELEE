@@ -1,0 +1,89 @@
+# This file contains the paths to all data files used in the analysis relative to the data directory
+# excluding the ".root" extension.
+# The actual data from the detector is in the "BNB" (beam on) and "EXT" (beam off) datasets. All other 
+# categories of data are MC "overlay" samples. Here, GENIE generated neutrino interactions are superimposed
+# on background data.
+# See also the technote for the definitions and explanations of the datasets.
+runs:
+  - run_id: 1
+    path: run1/nuepresel/
+    opendata_bnb: data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19  # burn sample
+    bnb: run1_nuepresel  # unblinded LEE analysis data
+    ext: data_extbnb_mcc9.1_v08_00_00_25_reco2_C_all_reco2  # off-beam data
+    nu: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2
+    nue: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
+    drt: prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
+    nc_pi0: prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2_extra
+    cc_pi0: prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run1_reco2
+    cc_nopi: prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run1_reco2_reco2
+    cc_cpi: prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2
+    nc_nopi: prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_run1_reco2_reco2
+    nc_cpi: prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2
+  - run_id: 2
+    path: run2/nuepresel/
+    bnb: run2_nuepresel  # there is no burn sample for run2
+    ext: data_extbnb_mcc9.1_v08_00_00_25_reco2_D_E_all_reco2
+    nu: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run2_reco2_D1D2_reco2
+    nue: prodgenie_bnb_intrinsic_nue_overlay_run2_v08_00_00_35_run2a_reco2_reco2
+    drt: prodgenie_dirt_overlay_v08_00_00_35_all_run2_reco2_reco2
+    # apparently there are no detailed background MC sets for run2
+  - run_id: 3
+    path: run3/nuepresel/
+    opendata_bnb: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19
+    bnb: run3_nuepresel
+    ext: data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2
+    nu: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2
+    nue: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2
+    drt: prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2
+    nc_pi0: prodgenie_nc_pi0_uboone_overlay_mcc9.1_v08_00_00_26_run3_G_reco2
+    cc_pi0: prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run3_G_reco2
+    cc_nopi: prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run3_reco2_reco2
+    cc_cpi: prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run3_reco2_reco2
+    nc_nopi: prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_new_run3_reco2_reco2
+    nc_cpi: prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_New_run3_reco2_reco2
+    # eta: eta  # this was defined on some local machine as '/Users/davidc-local/data/searchingfornues/v08_00_00_48/run3/eta.root'
+nearsidebands:
+  - run_id: 1
+    path: nearsidebands/
+    0pi_near_sideband_bnb: run1_neutrinoselection_filt_1e_0pi_near_sideband_skimmed_extended_v47
+    np_near_sideband_bnb: run1_neutrinoselection_filt_1eNp_near_sideband_skimmed
+  - run_id: 2
+    path: nearsidebands/
+    0pi_near_sideband_bnb: run2_neutrinoselection_filt_1e_0pi_near_sideband_skimmed_extended_v47
+    np_near_sideband_bnb: run2_neutrinoselection_filt_1eNp_near_sideband_skimmed
+  - run_id: 3
+    path: nearsidebands/
+    0pi_near_sideband_bnb: run3_neutrinoselection_filt_1e_0pi_near_sideband_skimmed_extended_v47
+    np_near_sideband_bnb: run3_neutrinoselection_filt_1eNp_near_sideband_skimmed
+farsidebands:
+  - run_id: 1
+    path: farsidebands/
+    pi0_sideband_bnb: data_bnb_mcc9.1_v08_00_00_25_reco2_RUN1_pi0_reco2
+    two_shower_sideband_bnb: run1_neutrinoselection_filt_1e_2showers_sideband_skimmed_extended_v47
+  - run_id: 2
+    path: farsidebands/
+    pi0_sideband_bnb: data_bnb_mcc9.1_v08_00_00_25_reco2_RUN2_pi0_reco2
+    two_shower_sideband_bnb: run2_neutrinoselection_filt_1e_2showers_sideband_skimmed_extended_v47
+  - run_id: 3
+    path: farsidebands/
+    pi0_sideband_bnb: data_bnb_mcc9.1_v08_00_00_25_reco2_RUN3_pi0_reco2
+    two_shower_sideband_bnb: run3_neutrinoselection_filt_1e_2showers_sideband_skimmed_extended_v47
+fakedata:
+  - run_id: 1
+    path: fakedata/
+    set_1: numupresel/prod_uboone_nu2020_fakedata_set1_run1_reco2_v08_00_00_41_reco2
+    set_2: numupresel/prod_uboone_nu2020_fakedata_set2_run1_reco2_v08_00_00_41_reco2
+    set_3: numupresel/prod_uboone_nu2020_fakedata_set3_run1_reco2_v08_00_00_41_reco2
+    set_4: numupresel/prod_uboone_nu2020_fakedata_set4_run1_reco2_v08_00_00_41_reco2
+    set_5: numupresel/prod_uboone_nu2020_fakedata_set5_reco2_v08_00_00_41_reco2
+    set_9: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
+  # no fakedata for run 2 available
+  - run_id: 3
+    path: fakedata/
+    set_1: numupresel/prod_uboone_nu2020_fakedata_set1_run3b_reco2_v08_00_00_41_reco2
+    set_2: numupresel/prod_uboone_nu2020_fakedata_set2_run3b_reco2_v08_00_00_41_reco2
+    set_3: numupresel/prod_uboone_nu2020_fakedata_set3_run3b_reco2_v08_00_00_41_reco2
+    set_4: numupresel/prod_uboone_nu2020_fakedata_set4_run3b_reco2_v08_00_00_41_reco2
+    set_5: numupresel/prod_uboone_nu2020_fakedata_set5_reco2_v08_00_00_41_reco2
+    set_9: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2
+

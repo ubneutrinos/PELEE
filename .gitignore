@@ -13,3 +13,4 @@ localSettings.py
 .vscode/
 scripts/
 *~
+.DS_Store
