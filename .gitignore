@@ -1,3 +1,4 @@
+*.pyc
 *.txt
 root_files
 *.root
@@ -8,3 +9,7 @@ Background rejection.ipynb
 Sandbox.ipynb
 __pycache__/
 pickles
+localSettings.py
+.vscode/
+scripts/
+*~

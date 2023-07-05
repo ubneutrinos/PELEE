@@ -11,7 +11,7 @@ from operator import itemgetter
 
 import pandas as pd
 import xgboost as xgb
-import shap
+# import shap
 
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
@@ -19,16 +19,13 @@ from sklearn.metrics import roc_curve, auc, recall_score, precision_score, avera
 
 import localSettings as ls
 
-labels = ["ext", "ncpi0", "cc", "ccpi0", "cosmic"]
+labels = ["bkg", "pi0", "nonpi0"]
 
-titles = [
-    r"EXT", r"$\nu$ NC $\pi^{0}$", r"$\nu_{\mu}$ CC", r"$\nu_{\mu}$ CC $\pi^{0}$",
-    r"Cosmic"
-]
+titles = [r"bkg", r"$\pi^{0}$", "non-$\pi^{0}$"]
 
-bkg_queries = [
-     "category==0", "category==31", "category==2", "category==21", "category==4"
-]
+bkg_queries = ["category!=10 and category!=11",
+               "category!=10 and category!=11 and npi0>0",
+               "category!=10 and category!=11 and npi0==0"]
 
 variables = [
     "shr_dedx_Y", "shr_distance", "trk_chipr", "trk_distance", "pt", "trk_chimu", "hits_y",
@@ -38,7 +35,6 @@ variables = [
     "shr_phi", "trk_theta", "trk_phi", "tksh_angle", "tksh_distance", "CosmicIP", "shr_bragg_p", "shr_chipr",
     "shr_chimu", "trk_bragg_p", "shr_bragg_mu", "trk_bragg_mu", "trk_pida", "shr_pca_2", "shr_pca_1", "shr_pca_0",
     "topological_score", "slpdg","crtveto", "crthitpe", "_closestNuCosmicDist"
-
 ]
 
 class NueBooster:
@@ -62,18 +58,18 @@ class NueBooster:
         self.random_state = random_state
         self.variables = training_vars
         self.preselection = "selected==1"
-        # set all to default values (https://xgboost.readthedocs.io/en/latest/parameter.html)
-        eta = 0.3
-        max_depth = 6
-        gamma = 0
-        subsample = 1
+        # parameters set following https://towardsdatascience.com/fine-tuning-xgboost-in-python-like-a-boss-b4543ed8b1e
+        eta = 0.02
+        max_depth = 3
+        gamma = 1
+        subsample = 0.8
         min_child_weight = 1
         max_delta_step = 0
         colsample_bytree = 1
         self.params = {
             "objective": "binary:logistic",
             "booster": "gbtree",
-            "eval_metric": "auc",
+            "eval_metric": ["error", "logloss", "auc"],
             "eta": eta,
             "tree_method": 'exact',
             "max_depth": max_depth,
@@ -101,6 +97,7 @@ class NueBooster:
             train[features], y_train, weight=train["train_weight"])
         dvalid = xgb.DMatrix(
             test[features], y_valid, weight=test["train_weight"])
+        evals_result = {}
 
         watchlist = [(dtrain, 'train'), (dvalid, 'eval')]
         gbm = xgb.train(
@@ -108,6 +105,7 @@ class NueBooster:
             dtrain,
             num_boost_round,
             evals=watchlist,
+            evals_result=evals_result,
             early_stopping_rounds=early_stopping_rounds,
             verbose_eval=False)
 
@@ -127,8 +125,17 @@ class NueBooster:
         print('recall score: {:.6f}'.format(score))
 
         imp = self.get_importance(gbm, features)
-        # print('Importance array: ', imp)
+        #print('Importance array: ', imp)
+        
+        #print('Importance (gain):',gbm.get_score(importance_type='gain'))
+        #print('Importance (total_gain):',gbm.get_score(importance_type='total_gain'))
+        #print('Importance (weight):',gbm.get_score(importance_type='weight'))
 
+        gain_imp = gbm.get_score(importance_type='total_gain')
+        print('Importance (total_gain):')
+        for w in sorted(gain_imp, key=gain_imp.get, reverse=True):
+              print(w, gain_imp[w])
+        
         ############################################ ROC Curve
 
         # Compute micro-average ROC curve and ROC area
@@ -143,7 +150,7 @@ class NueBooster:
         ax.plot(fpr, tpr, lw=2, label='%s (area = %0.2f)' % (title, roc_auc))
         ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
 
-        return gbm, imp, gbm.best_iteration + 1
+        return gbm, imp, gbm.best_iteration, gain_imp, evals_result
 
     def set_preselection(self, preselection):
         self.preselection = preselection;
@@ -154,7 +161,6 @@ class NueBooster:
         importance = sorted(importance.items(), key=itemgetter(1), reverse=True)
         return importance
 
-
     def train_booster(self, ax, bkg_query=""):
 
         plt_title = 'Global'
@@ -164,35 +170,54 @@ class NueBooster:
             plt_title = r"%s background" % titles[bkg_queries.index(bkg_query)]
             bkg_query = "&" + bkg_query
 
-        test_nue = self.samples["nue"][1].query("%s & category == 11"%self.preselection)[self.variables]
-        train_nue = self.samples["nue"][0].query("%s & category == 11"%self.preselection)[self.variables]
-
-
-        if "nc" in self.samples:
-            test_nc = self.samples["nc"][1].query(self.preselection)[self.variables]
-            train_nc = self.samples["nc"][0].query(self.preselection)[self.variables]
+        test_nue  = self.samples["nue"][1].query("%s & (category == 10 | category == 11)"%self.preselection)[self.variables]
+        train_nue = self.samples["nue"][0].query("%s & (category == 10 | category == 11)"%self.preselection)[self.variables]
 
         test_mc = self.samples["mc"][1].query(self.preselection + bkg_query)[self.variables]
         train_mc = self.samples["mc"][0].query(self.preselection + bkg_query)[self.variables]
 
-        test_ext = self.samples["ext"][1].query(self.preselection + bkg_query)[self.variables]
-        train_ext = self.samples["ext"][0].query(self.preselection + bkg_query)[self.variables]
+        train = pd.concat([train_nue, train_mc])
+        test = pd.concat([test_nue, test_mc])
 
-        if "nc" in self.samples:
-            train = pd.concat([train_nue, train_mc, train_ext, train_nc])
-            test = pd.concat([test_nue, test_mc, test_ext, test_nc])
-        else:
-            train = pd.concat([train_nue, train_mc, train_ext])
-            test = pd.concat([test_nue, test_mc, test_ext])
+        if "ncpi0" in self.samples:
+            test_ncpi0 = self.samples["ncpi0"][1].query(self.preselection)[self.variables]
+            train_ncpi0 = self.samples["ncpi0"][0].query(self.preselection)[self.variables]
+            train = pd.concat([train, train_ncpi0])
+            test = pd.concat([test, test_ncpi0])
+
+        if "ccpi0" in self.samples:
+            test_ccpi0 = self.samples["ccpi0"][1].query(self.preselection)[self.variables]
+            train_ccpi0 = self.samples["ccpi0"][0].query(self.preselection)[self.variables]
+            train = pd.concat([train, train_ccpi0])
+            test = pd.concat([test, test_ccpi0])
+
+        if "ncnopi" in self.samples:
+            test_ncnopi = self.samples["ncnopi"][1].query(self.preselection)[self.variables]
+            train_ncnopi = self.samples["ncnopi"][0].query(self.preselection)[self.variables]
+            train = pd.concat([train, train_ncnopi])
+            test = pd.concat([test, test_ncnopi])
+
+        if "ccnopi" in self.samples:
+            test_ccnopi = self.samples["ccnopi"][1].query(self.preselection)[self.variables]
+            train_ccnopi = self.samples["ccnopi"][0].query(self.preselection)[self.variables]
+            train = pd.concat([train, train_ccnopi])
+            test = pd.concat([test, test_ccnopi])
+
+        if "ext" in self.samples:
+            test_ext = self.samples["ext"][1].query(self.preselection + bkg_query)[self.variables]
+            train_ext = self.samples["ext"][0].query(self.preselection + bkg_query)[self.variables]
+            train = pd.concat([train, train_ext])
+            test = pd.concat([test, test_ext])
 
         features = list(train.columns.values)
         features.remove('is_signal')
         features.remove('nu_e')
         features.remove('train_weight')
+        print(features)
         # features.remove('shr_energy_tot_cali')
         # features.remove('trk_energy_tot')
 
-        preds, imp, num_boost_rounds = self._run_single(
+        preds, imp, num_boost_rounds, gain_imp, evals_result = self._run_single(
             train,
             test,
             features,
@@ -200,7 +225,7 @@ class NueBooster:
             ax,
             title=plt_title)
 
-        return preds
+        return preds, gain_imp, evals_result
 
     @staticmethod
     def get_features(train):
