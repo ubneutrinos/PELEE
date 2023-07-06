@@ -456,7 +456,9 @@ def load_data_run(
     raise NotImplementedError("Full data run loading not implemented yet")
 
 
-def get_elm_from_vec_idx(myvec: ak.JaggedArray, idx: Union[List[int], NDArray[Any]], fillval=np.nan) -> NDArray[np.float64]:
+def get_elm_from_vec_idx(
+    myvec: ak.JaggedArray, idx: Union[List[int], NDArray[Any]], fillval=np.nan
+) -> NDArray[np.float64]:
     """Returns the element of a vector at position idx, where idx is a vector of indices. If idx is out of bounds, returns a filler value"""
 
     return np.array([pidv[tid] if ((tid < len(pidv)) & (tid >= 0)) else fillval for pidv, tid in zip(myvec, idx)])
@@ -826,20 +828,16 @@ def process_uproot_shower_variables(up, df):
     shr_moliere_avg_v = up.array("shr_moliere_avg_v")
     df["shr2_moliereavg"] = get_elm_from_vec_idx(shr_moliere_avg_v, shr2_id)
 
-    # The following code used to be in the main loading function, but was only called when
-    # this function was called as well (i.e. when loadshowervariables == True), so I moved it here
+    return
+
+
+def post_process_shower_vars(up, df):
+    # These shower variables depend on variables that may be subject to recovery
+
     df["dx_s"] = df["shr_start_x"] - df["true_nu_vtx_sce_x"]
     df["dy_s"] = df["shr_start_y"] - df["true_nu_vtx_sce_y"]
     df["dz_s"] = df["shr_start_z"] - df["true_nu_vtx_sce_z"]
     df["dr_s"] = np.sqrt(df["dx_s"] * df["dx_s"] + df["dy_s"] * df["dy_s"] + df["dz_s"] * df["dz_s"])
-
-    df["subcluster"] = df["shrsubclusters0"] + df["shrsubclusters1"] + df["shrsubclusters2"]
-    #
-    df["trkfit"] = df["shr_tkfit_npointsvalid"] / df["shr_tkfit_npoints"]
-    # and the 2d angle difference
-    df["anglediff_Y"] = np.abs(df["secondshower_Y_dir"] - df["shrclusdir2"])
-    df["anglediff_V"] = np.abs(df["secondshower_V_dir"] - df["shrclusdir1"])
-    df["anglediff_U"] = np.abs(df["secondshower_U_dir"] - df["shrclusdir0"])
 
     df["ptOverP"] = df["pt"] / df["p"]
     df["phi1MinusPhi2"] = df["shr_phi"] - df["trk_phi"]
@@ -855,6 +853,13 @@ def process_uproot_shower_variables(up, df):
         + (df["pi0truth_gamma1_xpos"] - df["shr_start_x"] + 1.08) ** 2
     )
     df["bktrgammaenergydiff"] = np.abs(df["shr_bkt_E"] * 1000 - df["pi0truth_gamma1_etot"])
+    df["subcluster"] = df["shrsubclusters0"] + df["shrsubclusters1"] + df["shrsubclusters2"]
+    #
+    df["trkfit"] = df["shr_tkfit_npointsvalid"] / df["shr_tkfit_npoints"]
+    # and the 2d angle difference
+    df["anglediff_Y"] = np.abs(df["secondshower_Y_dir"] - df["shrclusdir2"])
+    df["anglediff_V"] = np.abs(df["secondshower_V_dir"] - df["shrclusdir1"])
+    df["anglediff_U"] = np.abs(df["secondshower_U_dir"] - df["shrclusdir0"])
 
     df["shr_tkfit_nhits_tot"] = df["shr_tkfit_nhits_Y"] + df["shr_tkfit_nhits_U"] + df["shr_tkfit_nhits_V"]
     # df['shr_tkfit_dedx_avg'] = (df['shr_tkfit_nhits_Y']*df['shr_tkfit_dedx_Y'] + df['shr_tkfit_nhits_U']*df['shr_tkfit_dedx_U'] + df['shr_tkfit_nhits_V']*df['shr_tkfit_dedx_V'])/df['shr_tkfit_nhits_tot']
@@ -1417,30 +1422,29 @@ def process_uproot_recoveryvars(up, df):
     df.loc[trk1embd, "is_trk1embd"] = 1
     # Let's save memory by dropping some stuff we just used and won't use anymore
     #
-    df.drop(columns=["shr1_start_x", "shr1_start_y", "shr1_start_z"])
-    df.drop(columns=["shr2_start_x", "shr2_start_y", "shr2_start_z"])
-    df.drop(columns=["shr12_start_dx", "shr12_start_dy", "shr12_start_dz"])
+    df.drop(columns=["shr1_start_x", "shr1_start_y", "shr1_start_z"], inplace=True)
+    df.drop(columns=["shr2_start_x", "shr2_start_y", "shr2_start_z"], inplace=True)
+    df.drop(columns=["shr12_start_dx", "shr12_start_dy", "shr12_start_dz"], inplace=True)
     # df.drop(columns=['shr2_energy'])
-    df.drop(columns=["trk1_len", "trk2_len"])
-    df.drop(columns=["trk1_distance", "trk2_distance"])
-    df.drop(columns=["trk1_llr_pid", "trk2_llr_pid"])
-    df.drop(columns=["trk1_nhits", "trk2_nhits"])
-    df.drop(columns=["trk1_start_x", "trk1_start_y", "trk1_start_z"])
-    df.drop(columns=["trk2_start_x", "trk2_start_y", "trk2_start_z"])
-    df.drop(columns=["trk1_dir_x", "trk1_dir_y", "trk1_dir_z"])
-    df.drop(columns=["trk2_dir_x", "trk2_dir_y", "trk2_dir_z"])
-    df.drop(columns=["shr2subclusters0", "shr2subclusters1", "shr2subclusters2"])
-    df.drop(columns=["trk2_score", "trk2_protonenergy"])
-    df.drop(columns=["trk2_theta", "trk2_phi"])
-    df.drop(columns=["trk2_tkfit_dedx_u", "trk2_tkfit_dedx_v", "trk2_tkfit_dedx_y"])
-    df.drop(columns=["trk2_tkfit_nhits_u", "trk2_tkfit_nhits_v", "trk2_tkfit_nhits_y"])
-    df.drop(columns=["trk2_tkfit_nhits_tot"])
-    df.drop(columns=["trk2subclusters0", "trk2subclusters1", "trk2subclusters2"])
-    df.drop(columns=["trk2_energy", "trk2_energy_cali"])
-    #
+    df.drop(columns=["trk1_len", "trk2_len"], inplace=True)
+    df.drop(columns=["trk1_distance", "trk2_distance"], inplace=True)
+    df.drop(columns=["trk1_llr_pid", "trk2_llr_pid"], inplace=True)
+    df.drop(columns=["trk1_nhits", "trk2_nhits"], inplace=True)
+    df.drop(columns=["trk1_start_x", "trk1_start_y", "trk1_start_z"], inplace=True)
+    df.drop(columns=["trk2_start_x", "trk2_start_y", "trk2_start_z"], inplace=True)
+    df.drop(columns=["trk1_dir_x", "trk1_dir_y", "trk1_dir_z"], inplace=True)
+    df.drop(columns=["trk2_dir_x", "trk2_dir_y", "trk2_dir_z"], inplace=True)
+    df.drop(columns=["shr2subclusters0", "shr2subclusters1", "shr2subclusters2"], inplace=True)
+    df.drop(columns=["trk2_score", "trk2_protonenergy"], inplace=True)
+    df.drop(columns=["trk2_theta", "trk2_phi"], inplace=True)
+    df.drop(columns=["trk2_tkfit_dedx_u", "trk2_tkfit_dedx_v", "trk2_tkfit_dedx_y"], inplace=True)
+    df.drop(columns=["trk2_tkfit_nhits_u", "trk2_tkfit_nhits_v", "trk2_tkfit_nhits_y"], inplace=True)
+    df.drop(columns=["trk2_tkfit_nhits_tot"], inplace=True)
+    df.drop(columns=["trk2subclusters0", "trk2subclusters1", "trk2subclusters2"], inplace=True)
+    df.drop(columns=["trk2_energy", "trk2_energy_cali"], inplace=True)
 
     df["n_tracks_cont_attach"] = df["n_tracks_contained"]
-    df.loc[((df["tk2sh1_distance"] > 3) & (df["tk2sh1_distance"] < 9999)), "n_tracks_cont_attach"] = (
+    df.loc[((df["tk2sh1_distance"] > 3) & (np.isfinite(df["tk2sh1_distance"]))), "n_tracks_cont_attach"] = (
         df["n_tracks_contained"] - 1
     )
     return
@@ -1564,7 +1568,7 @@ def load_sample(
     use_lee_weights=False,
     use_bdt=True,
     pi0scaling=0,
-    load_crt_vars=False
+    load_crt_vars=False,
 ):
     """Load one sample of one run for a particular kind of events."""
 
@@ -1611,7 +1615,7 @@ def load_sample(
         loadrecoveryvars=loadrecoveryvars,
         loadnumuvariables=loadnumuvariables,
         use_lee_weights=use_lee_weights,
-        load_crt_vars=load_crt_vars
+        load_crt_vars=load_crt_vars,
     )
     df = up.pandas.df(variables, flatten=False)
     # For runs before 3, we put zeros for the CRT variables
@@ -1636,7 +1640,7 @@ def load_sample(
         df["pot_scale"] = 1.0
 
     # If needed, load additional variables
-    
+
     if loadnumuvariables:
         process_uproot_numu(up, df)
     if loadshowervariables:
@@ -1645,7 +1649,9 @@ def load_sample(
         process_uproot_recoveryvars(up, df)
     if loadpi0variables:
         process_uproot_ccncpi0vars(up, df)
-
+    if loadshowervariables:
+        # Some variables have to be calculated after the recovery has been done
+        post_process_shower_vars(up, df)
     if use_bdt:
         add_bdt_scores(df)
 
