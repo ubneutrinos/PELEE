@@ -15,7 +15,7 @@ import numpy as np
 import awkward as ak
 import nue_booster
 import xgboost as xgb
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 
 
@@ -456,10 +456,10 @@ def load_data_run(
     raise NotImplementedError("Full data run loading not implemented yet")
 
 
-def get_elm_from_vec_idx(myvec: ak.JaggedArray, idx: List[int]) -> NDArray[np.float64]:
-    """Returns the element of a vector at position idx, where idx is a vector of indices. If idx is out of bounds, returns np.nan"""
+def get_elm_from_vec_idx(myvec: ak.JaggedArray, idx: Union[List[int], NDArray[Any]], fillval=np.nan) -> NDArray[np.float64]:
+    """Returns the element of a vector at position idx, where idx is a vector of indices. If idx is out of bounds, returns a filler value"""
 
-    return np.array([pidv[tid] if ((tid < len(pidv)) & (tid >= 0)) else np.nan for pidv, tid in zip(myvec, idx)])
+    return np.array([pidv[tid] if ((tid < len(pidv)) & (tid >= 0)) else fillval for pidv, tid in zip(myvec, idx)])
 
 
 def get_idx_from_vec_sort(argidx: int, vecsort: NDArray[np.float64], mask: NDArray[np.bool_]) -> List[int]:
@@ -787,9 +787,9 @@ def process_uproot_shower_variables(up, df):
     pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
     pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
     pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
-    df["shrsubclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, shr_id)
-    df["shrsubclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, shr_id)
-    df["shrsubclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, shr_id)
+    df["shrsubclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, shr_id, 0)
+    df["shrsubclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, shr_id, 0)
+    df["shrsubclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, shr_id, 0)
     #
     # do the best we can to get the right shr2_id
     #
@@ -797,9 +797,9 @@ def process_uproot_shower_variables(up, df):
     shr2_id_appr = get_idx_from_vec_sort(-2, pfnhits_v, shr_mask)
     shr2_id = np.where((shr2_id_corr >= 0) & (shr2_id_corr < df["n_showers_tot"]), shr2_id_corr, shr2_id_appr)
     #
-    df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, shr2_id)
-    df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, shr2_id)
-    df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, shr2_id)
+    df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, shr2_id, 0)
+    df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, shr2_id, 0)
+    df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, shr2_id, 0)
     df["subcluster2tmp"] = df["shr2subclusters0"] + df["shr2subclusters1"] + df["shr2subclusters2"]
     #
     df["shr2_start_x"] = get_elm_from_vec_idx(shr_start_x_v, shr2_id)
@@ -1137,8 +1137,8 @@ def process_uproot_recoveryvars(up, df):
     shr2_id = up.array("shr2_id") - 1  # I think we need this -1 to get the right result
     #
     shr_energy_y_v = up.array("shr_energy_y_v")
-    df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id)
-    df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id)
+    df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
+    df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
     #
     shr_start_x_v = up.array("shr_start_x_v")
     shr_start_y_v = up.array("shr_start_y_v")
@@ -1281,12 +1281,14 @@ def process_uproot_recoveryvars(up, df):
     pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
     pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
     pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
-    df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, shr2_id)
-    df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, shr2_id)
-    df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, shr2_id)
+    df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, shr2_id, 0)
+    df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, shr2_id, 0)
+    df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, shr2_id, 0)
     df.loc[shr2splt, "shrsubclusters0"] = df["shrsubclusters0"] + df["shr2subclusters0"]
     df.loc[shr2splt, "shrsubclusters1"] = df["shrsubclusters1"] + df["shr2subclusters1"]
     df.loc[shr2splt, "shrsubclusters2"] = df["shrsubclusters2"] + df["shr2subclusters2"]
+    # We also have to update the subcluster variable
+    df.loc[shr2splt, "subcluster"] = df["shrsubclusters0"] + df["shrsubclusters1"] + df["shrsubclusters2"]
     df.loc[shr2splt & (df["shr1shr2moliereavg"] > 0), "shrmoliereavg"] = df["shr1shr2moliereavg"]
     #
     # try to recover cases where the leading track is spurious (more than 30 cm away from nu vtx)
@@ -1346,9 +1348,9 @@ def process_uproot_recoveryvars(up, df):
     df["trk2_tkfit_nhits_v"] = get_elm_from_vec_idx(shr_tkfit_nhits_v_v, trk2_id)
     df["trk2_tkfit_nhits_y"] = get_elm_from_vec_idx(shr_tkfit_nhits_y_v, trk2_id)
     df["trk2_tkfit_nhits_tot"] = df["trk2_tkfit_nhits_u"] + df["trk2_tkfit_nhits_v"] + df["trk2_tkfit_nhits_y"]
-    df["trk2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, trk2_id)
-    df["trk2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, trk2_id)
-    df["trk2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, trk2_id)
+    df["trk2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, trk2_id, 0)
+    df["trk2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, trk2_id, 0)
+    df["trk2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, trk2_id, 0)
     #
     df.loc[trk2srtshr, "tksh_distance"] = df["tk1tk2_distance"]
     df.loc[trk2srtshr, "tksh_angle"] = df["tk1tk2_angle"]
@@ -1377,6 +1379,8 @@ def process_uproot_recoveryvars(up, df):
     df.loc[trk2srtshr, "shrsubclusters0"] = df["shrsubclusters0"] + df["trk2subclusters0"]
     df.loc[trk2srtshr, "shrsubclusters1"] = df["shrsubclusters1"] + df["trk2subclusters1"]
     df.loc[trk2srtshr, "shrsubclusters2"] = df["shrsubclusters2"] + df["trk2subclusters2"]
+    # If we make this correction, we must also correct the sum of the subclusters
+    df.loc[trk2srtshr, "subcluster"] = df["shrsubclusters0"] + df["shrsubclusters1"] + df["shrsubclusters2"]
     df.loc[trk2srtshr & (df["shr1trk2moliereavg"] > 0), "shrmoliereavg"] = df["shr1trk2moliereavg"]
     df.loc[trk2srtshr, "n_tracks_contained"] = df["n_tracks_contained"] - 1
     df.loc[trk2srtshr, "trk_energy_tot"] = df["trk_energy_tot"] - df["trk2_protonenergy"]
@@ -1560,6 +1564,7 @@ def load_sample(
     use_lee_weights=False,
     use_bdt=True,
     pi0scaling=0,
+    load_crt_vars=False
 ):
     """Load one sample of one run for a particular kind of events."""
 
@@ -1570,6 +1575,9 @@ def load_sample(
 
     if use_lee_weights:
         assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
+
+    if load_crt_vars:
+        assert run_number >= 3, "CRT variables only available for R3 and up"
 
     with open("data_paths.yml", "r") as f:
         pathdefs = yaml.safe_load(f)
@@ -1603,6 +1611,7 @@ def load_sample(
         loadrecoveryvars=loadrecoveryvars,
         loadnumuvariables=loadnumuvariables,
         use_lee_weights=use_lee_weights,
+        load_crt_vars=load_crt_vars
     )
     df = up.pandas.df(variables, flatten=False)
     # For runs before 3, we put zeros for the CRT variables
@@ -1627,14 +1636,15 @@ def load_sample(
         df["pot_scale"] = 1.0
 
     # If needed, load additional variables
-    if loadshowervariables:
-        process_uproot_shower_variables(up, df)
-    if loadpi0variables:
-        process_uproot_ccncpi0vars(up, df)
+    
     if loadnumuvariables:
         process_uproot_numu(up, df)
+    if loadshowervariables:
+        process_uproot_shower_variables(up, df)
     if loadrecoveryvars:
         process_uproot_recoveryvars(up, df)
+    if loadpi0variables:
+        process_uproot_ccncpi0vars(up, df)
 
     if use_bdt:
         add_bdt_scores(df)
@@ -1837,6 +1847,7 @@ def get_run_variables(
     loadrecoveryvars=False,
     loadnumuvariables=False,
     use_lee_weights=False,
+    load_crt_vars=False,
 ):
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
 
@@ -1873,7 +1884,7 @@ def get_run_variables(
         else:
             ALLVARS += WEIGHTS
     # Starting in Run 3, the CRT veto has been implemented.
-    if run_number >= 3:
+    if load_crt_vars and run_number >= 3:
         ALLVARS += VARDICT["CRTVARS"]
     # There are some additional variables that are only used for baseline "nu"
     # MC runs.
