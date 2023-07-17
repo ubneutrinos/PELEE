@@ -48,6 +48,7 @@ def get_variables():
         "reco_nu_vtx_sce_y",
         "reco_nu_vtx_sce_z",
         "nproton",
+        "nelec",
         "nu_e",
         # "hits_u", "hits_v", "hits_y",
         "nneutron",
