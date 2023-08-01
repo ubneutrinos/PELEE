@@ -1555,6 +1555,31 @@ def apply_bdt_truth_filters(df):
     Npost = float(df.shape[0])
     print("fraction of R3 CCpi0 sample after split : %.02f" % (Npost / Npre))
 
+def get_rundict(run_number, category, dataset):
+    with open("data_paths.yml", "r") as f:
+        pathdefs = yaml.safe_load(f)
+
+    runpaths = pathdefs[category]
+
+    # runpaths is a list of dictionaries that each contain the 'run_id' and 'path' keys
+    # Search for the dictionary where 'run_id' matches the run_number
+    rundict = next((d for d in runpaths if d["run_id"] == run_number), None)
+    if rundict is None:
+        raise ValueError(f"Run {run_number} not found in data_paths.yml for category {category}")
+    # the "dataset" is the name such as "bnb", "ext", "nue", "drt", etc.
+    if dataset not in rundict:
+        raise ValueError(f"Dataset '{dataset}' not found in data_paths.yml for run {run_number}")
+    return rundict
+
+def get_pot_trig(run_number, category, dataset):
+    rundict = get_rundict(run_number, category, dataset)
+    pot = rundict[dataset].pop("pot", None)
+    trig = rundict[dataset].pop("trig", None)
+    if trig is not None: 
+        trig = int(trig)
+    if pot is not None:
+        pot = float(pot)
+    return pot, trig
 
 def load_sample(
     run_number,
@@ -1584,22 +1609,10 @@ def load_sample(
     if load_crt_vars:
         assert run_number >= 3, "CRT variables only available for R3 and up"
 
-    with open("data_paths.yml", "r") as f:
-        pathdefs = yaml.safe_load(f)
-
-    runpaths = pathdefs[category]
-
-    # runpaths is a list of dictionaries that each contain the 'run_id' and 'path' keys
-    # Search for the dictionary where 'run_id' matches the run_number
-    rundict = next((d for d in runpaths if d["run_id"] == run_number), None)
-    if rundict is None:
-        raise ValueError(f"Run {run_number} not found in data_paths.yml for category {category}")
-    # the "dataset" is the name such as "bnb", "ext", "nue", "drt", etc.
-    if dataset not in rundict:
-        raise ValueError(f"Dataset '{dataset}' not found in data_paths.yml for run {run_number}")
+    rundict = get_rundict(run_number, category, dataset)
 
     # The path to the actual ROOT file
-    data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset] + append + ".root")
+    data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
@@ -1690,6 +1703,26 @@ def load_sample(
 
     return df
 
+def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"], **load_sample_kwargs):
+    category = "runs"
+    output = {}
+    # At a minimum, we always need data, ext and nu (mc)
+    data_df = load_sample(run_number, category, data, **load_sample_kwargs)
+    data_pot, data_trig = get_pot_trig(run_number, category, data)
+    data_df["weights"] = 1.0
+    output["data"] = data_df
+    ext_df = load_sample(run_number, category, "ext", **load_sample_kwargs)
+    _, ext_trigger = get_pot_trig(run_number, category, "ext")  # ext has no POT
+    ext_df["weights"] = data_trig / ext_trigger
+    output["ext"] = ext_df
+    mc_sets = ["nu"] + truth_filtered_sets
+    for mc_set in mc_sets:
+        mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
+        mc_df["dataset"] = mc_set
+        mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
+        mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+        output[mc_set] = mc_df
+    return output
 
 def filter_pi0_events(df):
     # This filter was applied in the original code to all truth-filtered pi0 events.
