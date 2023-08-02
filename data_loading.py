@@ -1707,7 +1707,7 @@ def load_sample(
 def load_run(run_number, data="bnb", truth_filtered_sets=[], **load_sample_kwargs):
     category = "runs"
     output = {}
-    # At a minimum, we always need data, ext and nu (mc)
+    # At a minimum, we always need data, ext, drt and nu (mc)
     data_df = load_sample(run_number, category, data, **load_sample_kwargs)
     data_pot, data_trig = get_pot_trig(run_number, category, data)
     data_df["weights"] = 1.0
@@ -1716,7 +1716,7 @@ def load_run(run_number, data="bnb", truth_filtered_sets=[], **load_sample_kwarg
     _, ext_trigger = get_pot_trig(run_number, category, "ext")  # ext has no POT
     ext_df["weights"] = data_trig / ext_trigger
     output["ext"] = ext_df
-    mc_sets = ["nu"] + truth_filtered_sets
+    mc_sets = ["nu", "drt"] + truth_filtered_sets
     for mc_set in mc_sets:
         mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
         mc_df["dataset"] = mc_set
