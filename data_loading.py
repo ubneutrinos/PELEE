@@ -1556,7 +1556,8 @@ def apply_bdt_truth_filters(df):
     print("fraction of R3 CCpi0 sample after split : %.02f" % (Npost / Npre))
 
 def get_rundict(run_number, category, dataset):
-    with open("data_paths.yml", "r") as f:
+    thisfile_path = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
         pathdefs = yaml.safe_load(f)
 
     runpaths = pathdefs[category]
