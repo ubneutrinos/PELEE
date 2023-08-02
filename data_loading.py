@@ -1704,7 +1704,7 @@ def load_sample(
 
     return df
 
-def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"], **load_sample_kwargs):
+def load_run(run_number, data="bnb", truth_filtered_sets=[], **load_sample_kwargs):
     category = "runs"
     output = {}
     # At a minimum, we always need data, ext and nu (mc)
