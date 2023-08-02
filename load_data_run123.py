@@ -194,7 +194,7 @@ def process_uproot(up,df):
     trk_calo_energy_y_v = up.array('trk_calo_energy_y_v')
     trk_energy_proton_v = up.array('trk_energy_proton_v')
     #
-    trk_llr_pid_v_sel = get_elm_from_vec_idx(trk_llr_pid_v,trk_id)
+    trk_llr_pid_v_sel = get_elm_from_vec_idx(trk_llr_pid_v,trk_id, np.nan)
     trk_calo_energy_y_sel = get_elm_from_vec_idx(trk_calo_energy_y_v,trk_id)
     trk_energy_proton_sel = get_elm_from_vec_idx(trk_energy_proton_v,trk_id)
     df['trkpid'] = trk_llr_pid_v_sel
@@ -421,8 +421,8 @@ def process_uproot_recoveryvars(up,df):
     df["trk2_distance"] = get_elm_from_vec_idx(trk_distance_v,trk2_id,-9999.)
     #
     trk_llr_pid_v = up.array('trk_llr_pid_score_v')
-    df["trk1_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk_id,-9999.)
-    df["trk2_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk2_id,-9999.)
+    df["trk1_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk_id,np.nan)
+    df["trk2_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk2_id,np.nan)
     #
     pfnhits_v = up.array("pfnhits")
     df["trk1_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk_id,-9999.)
@@ -576,7 +576,7 @@ def process_uproot_recoveryvars(up,df):
     df.loc[trk2srtshr & (df["shr1trk2moliereavg"]>0), 'shrmoliereavg' ] = df["shr1trk2moliereavg"]
     df.loc[trk2srtshr, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
     df.loc[trk2srtshr, 'trk_energy_tot'] = df["trk_energy_tot"]-df["trk2_protonenergy"]
-    df.loc[trk2srtshr & (df["trk2_energy"]<0.), "trk2_energy"] = 0.
+    df.loc[df["trk2_energy"]<0., "trk2_energy"] = 0.
     df["trk2_energy_cali"] = 0.001 * df["trk2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
     df.loc[trk2srtshr, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]+df["trk2_energy_cali"]
     #
@@ -589,7 +589,7 @@ def process_uproot_recoveryvars(up,df):
     df.loc[shr2prtn, 'n_tracks_contained' ] = df["n_tracks_contained"]+1
     df["shr2_protonenergy"] = get_elm_from_vec_idx(trk_energy_proton_v,shr2_id,-9999.)
     df.loc[shr2prtn, 'trk_energy_tot'] = df["trk_energy_tot"]+df["shr2_protonenergy"]
-    df.loc[shr2prtn & (df["shr2_energy"]<0.), "shr2_energy"] = 0.
+    df.loc[df["shr2_energy"]<0., "shr2_energy"] = 0.
     df["shr2_energy_cali"] = 0.001 * df["shr2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
     df.loc[shr2prtn, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]-df["trk2_energy_cali"]
     #
@@ -1351,9 +1351,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         ur2data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R2_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
         ur3data_pi0_sidebands = uproot.open(ls.ntuple_path+'farsidebands/'+R3_PI0_SIDEBAND_BNB+".root")['nuselection'][tree]
     if(which_sideband == "fulldata"):
-        ur1data_fulldata = uproot.open(ls.ntuple_path+R1_FULLDATA+".root")['nuselection'][tree]
-        ur2data_fulldata = uproot.open(ls.ntuple_path+R2_FULLDATA+".root")['nuselection'][tree]
-        ur3data_fulldata = uproot.open(ls.ntuple_path+R3_FULLDATA+".root")['nuselection'][tree]
+        ur1data_fulldata = uproot.open(ls.ntuple_path+ls.RUN1+R1_FULLDATA+".root")['nuselection'][tree]
+        ur2data_fulldata = uproot.open(ls.ntuple_path+ls.RUN2+R2_FULLDATA+".root")['nuselection'][tree]
+        ur3data_fulldata = uproot.open(ls.ntuple_path+ls.RUN3+R3_FULLDATA+".root")['nuselection'][tree]
         
     if ( (loadshowervariables == False) and (loadnumuntuples == True)):
         R123_NUMU_SIDEBAND_BNB = 'neutrinoselection_filt_numu_ALL'
