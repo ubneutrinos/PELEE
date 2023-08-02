@@ -1145,10 +1145,6 @@ def process_uproot_recoveryvars(up, df):
     shr_energy_y_v = up.array("shr_energy_y_v")
     df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
     df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
-    # Testing out the old calculation - see if this explains the discrepancy
-    #df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, -9999)
-    #df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, -9999)
-      
     #
     shr_start_x_v = up.array("shr_start_x_v")
     shr_start_y_v = up.array("shr_start_y_v")
@@ -1637,8 +1633,6 @@ def load_sample(
         load_crt_vars=load_crt_vars,
     )
     df = up.pandas.df(variables, flatten=False)
-
-
     # For runs before 3, we put zeros for the CRT variables
     if run_number < 3:
         vardict = get_variables()
@@ -1697,7 +1691,6 @@ def load_sample(
             df["nslice"] = 0
 
     # add back the cosmic category, for background only
-    # TODO: This is being applied to numu events - is this correct (causing crash in plotter.py atm)
     df.loc[
         (df["category"] != 1)
         & (df["category"] != 10)
@@ -1711,26 +1704,38 @@ def load_sample(
 
     return df
 
-def load_run(run_number, data="bnb", truth_filtered_sets=[], **load_sample_kwargs):
+# CT: plotter currently requires the pot weights to be passed in as another dictionary
+# Adding to this function for now, discuss when refactoring plotter.py
+def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee=False,**load_sample_kwargs):
     category = "runs"
     output = {}
-    # At a minimum, we always need data, ext, drt and nu (mc)
+    weights = {}
+    # At a minimum, we always need data, ext and nu (mc)
     data_df = load_sample(run_number, category, data, **load_sample_kwargs)
     data_pot, data_trig = get_pot_trig(run_number, category, data)
     data_df["weights"] = 1.0
+    weights["data"] = 1.0
     output["data"] = data_df
     ext_df = load_sample(run_number, category, "ext", **load_sample_kwargs)
     _, ext_trigger = get_pot_trig(run_number, category, "ext")  # ext has no POT
     ext_df["weights"] = data_trig / ext_trigger
+    weights["ext"] = data_trig / ext_trigger
     output["ext"] = ext_df
-    mc_sets = ["nu", "drt"] + truth_filtered_sets
+    mc_sets = ["mc"] + truth_filtered_sets # CT: The existing plotter.py looks for a sample labelled "mc" mfor the numu component
+    if(load_lee): mc_sets.append("lee")
     for mc_set in mc_sets:
-        mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
+        if(mc_set == "lee"):
+            print("Loading lee sample")
+            mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
+            mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
+        else: 
+            mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
+            mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
         mc_df["dataset"] = mc_set
-        mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+        weights[mc_set] = data_pot / mc_pot 
         output[mc_set] = mc_df
-    return output
+    return output,weights,data_pot # CT: Return the weight dict and data pot
 
 def filter_pi0_events(df):
     # This filter was applied in the original code to all truth-filtered pi0 events.
@@ -1944,3 +1949,36 @@ def get_run_variables(
 
 def remove_duplicates(df):
     return df.drop_duplicates(subset=["run", "evt"], keep="last")
+
+# Adding these functions to use in the filtterig code
+def get_path(
+    run_number,
+    category,
+    dataset,
+    append=""
+):
+    """Load one sample of one run for a particular kind of events."""
+
+    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
+
+    rundict = get_rundict(run_number, category, dataset)
+
+    # The path to the actual ROOT file
+    return os.path.join(ls.ntuple_path, rundict["path"])
+    
+def get_filename(
+    run_number,
+    category,
+    dataset,
+    append=""
+):
+    """Load one sample of one run for a particular kind of events."""
+
+    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
+
+    rundict = get_rundict(run_number, category, dataset)
+
+    # The path to the actual ROOT file
+    return rundict[dataset]["file"] + append + ".root"
+
+
