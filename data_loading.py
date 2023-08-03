@@ -1145,6 +1145,10 @@ def process_uproot_recoveryvars(up, df):
     shr_energy_y_v = up.array("shr_energy_y_v")
     df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
     df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
+    # Testing out the old calculation - see if this explains the discrepancy
+    #df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, -9999)
+    #df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, -9999)
+      
     #
     shr_start_x_v = up.array("shr_start_x_v")
     shr_start_y_v = up.array("shr_start_y_v")
@@ -1633,6 +1637,8 @@ def load_sample(
         load_crt_vars=load_crt_vars,
     )
     df = up.pandas.df(variables, flatten=False)
+
+
     # For runs before 3, we put zeros for the CRT variables
     if run_number < 3:
         vardict = get_variables()
@@ -1691,6 +1697,7 @@ def load_sample(
             df["nslice"] = 0
 
     # add back the cosmic category, for background only
+    # TODO: This is being applied to numu events - is this correct (causing crash in plotter.py atm)
     df.loc[
         (df["category"] != 1)
         & (df["category"] != 10)

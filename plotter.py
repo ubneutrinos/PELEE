@@ -809,6 +809,7 @@ class Plotter:
         return category, plotted_variable
 
     def _categorize_entries_paper(self, sample, variable, query="selected==1", extra_cut=None, track_cuts=None, select_longest=True):
+    # TODO: execturing self._selection("paper_category"... returns an array containing the event type of each even
         category = self._selection(
             "paper_category", sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         plotted_variable = self._selection(
@@ -1436,7 +1437,7 @@ class Plotter:
 
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
-
+       
 
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
@@ -1447,6 +1448,8 @@ class Plotter:
             var_dict[c].append(v)
             weight_dict[c].append(self.weights["mc"] * w)
 
+        # OK SO FAR #
+
         nue_genie_weights = self._get_genie_weight(
             self.samples["nue"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest, weightvar=genieweight)
 
@@ -1456,7 +1459,7 @@ class Plotter:
         for c, v, w in zip(category, nue_plotted_variable, nue_genie_weights):
             var_dict[c].append(v)
             weight_dict[c].append(self.weights["nue"] * w)
-
+       
         if "ncpi0" in self.samples:
             ncpi0_genie_weights = self._get_genie_weight(
                     self.samples["ncpi0"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest, weightvar=genieweight)
@@ -1590,8 +1593,6 @@ class Plotter:
             gs = gridspec.GridSpec(1, 1)#, height_ratios=[2, 1])
             ax1 = plt.subplot(gs[0])
 
-
-
         # order stacked distributions
         order_dict = {}
         order_var_dict    = {}
@@ -1690,13 +1691,6 @@ class Plotter:
         else:
             plot_options["color"] = [int_colors[c]
                                      for c in order_var_dict.keys()]
-
-        #for key in order_var_dict:
-        #    print ('key ',key)
-        #    print ('val ',order_var_dict[key])
-        #for key in order_weight_dict:
-        #    print ('key ',key)
-        #    print ('val ',order_weight_dict[key])
 
         stacked = ax1.hist(
             order_var_dict.values(),
@@ -2550,7 +2544,6 @@ class Plotter:
         return            
         
     def sys_err(self, name, var_name, query, x_range, n_bins, weightVar, islee=False, maxUniv = False):
-
         if x_range == None:
             bins = n_bins
         else:
