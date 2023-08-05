@@ -24,27 +24,34 @@ runs:
     nue:
       file: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
       pot: 5.25e22
+      filter: abs(nu_pdg)==12
     drt:
       file: prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
       pot: 3.23e20
     nc_pi0:
       file: prodgenie_nc_pi0_uboone_overlay-v08_00_00_26_run1_reco2_reco2_extra
       pot: 1.16e22
+      filter: ccnc==1 and npi0==1 and npion>=0 and (category==31 or category==5) and (abs(nu_pdg)==12 or abs(nu_pdg)==14)
     cc_pi0:
       file: prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run1_reco2
       pot: 3.48e21
+      filter: ccnc==0 and npi0==1 and npion>=0 and (category==21 or category==31 or category==5) and nu_pdg==14
     cc_nopi:
       file: prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run1_reco2_reco2
       pot: 1.14e22
+      filter: ccnc==0 and npi0==0 and npion==0 and (category==2 or category==3 or category==5) and nu_pdg==14
     cc_cpi:
       file: prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2
       pot: 1.55e22
+      filter: ccnc==0 and npi0==0 and npion>=0 and (category==2 or category==3 or category==5) and nu_pdg==14
     nc_nopi:
       file: prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_run1_reco2_reco2
       pot: 1.31e22
+      filter: ccnc==1 and npi0==0 and npion==0 and (category==3 or category==5) and (nu_pdg==12 or nu_pdg==14)
     nc_cpi:
       file: prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_run1_reco2_reco2
       pot: 1.55e22
+      filter: ccnc==1 and npi0==0 and npion>=0 and (category==3 or category==5) and (nu_pdg==12 or nu_pdg==14)
   - run_id: 2
     path:
       file: run2/nuepresel/

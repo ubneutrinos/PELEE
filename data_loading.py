@@ -1723,6 +1723,12 @@ def load_run(run_number, data="bnb", truth_filtered_sets=[], **load_sample_kwarg
         mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
         output[mc_set] = mc_df
+    # Remove the truth filtered events from "nu" to avoid double-counting
+    for truth_set in truth_filtered_sets:
+        rundict = get_rundict(run_number, category, truth_set)
+        df_temp = output["nu"].query(rundict[truth_set]["filter"])
+        output["nu"].drop(index=df_temp.index, inplace=True)
+    
     return output
 
 def filter_pi0_events(df):
