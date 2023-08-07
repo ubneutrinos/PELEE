@@ -451,13 +451,23 @@ class Histogram:
         """
         Compute the result of element-wise division of x1 by x2 and the associated covariance matrix.
 
-        Parameters:
-        - x1, x2: numpy arrays of the same length representing the vectors.
-        - C1, C2: numpy 2D arrays representing the covariance matrices for x1 and x2 respectively.
+        Parameters
+        ----------
+        x1 : array_like
+            First array to be divided.
+        x2 : array_like
+            Second array to divide by.
+        C1 : array_like
+            Covariance matrix of x1.
+        C2 : array_like
+            Covariance matrix of x2.
 
-        Returns:
-        - y: numpy array resulting from element-wise division of x1 by x2.
-        - Cy: covariance matrix for y.
+        Returns
+        -------
+        y : array_like
+            Result of element-wise division of x1 by x2.
+        Cy : array_like
+            Covariance matrix of y.
         """
 
         # Element-wise division to get y
