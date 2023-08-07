@@ -18,7 +18,7 @@ runs:
     ext:
       file: data_extbnb_mcc9.1_v08_00_00_25_reco2_C_all_reco2  # off-beam data
       trig: 65473410  # no POT info for EXT
-    nu:
+    mc:
       file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2
       pot: 1.31e21  # for MC files we only have POT info
     nue:
@@ -59,7 +59,7 @@ runs:
       file: run2_nuepresel  # there is no burn sample for run2
     ext:
       file: data_extbnb_mcc9.1_v08_00_00_25_reco2_D_E_all_reco2
-    nu:
+    mc:
       file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run2_reco2_D1D2_reco2
     nue:
       file: prodgenie_bnb_intrinsic_nue_overlay_run2_v08_00_00_35_run2a_reco2_reco2
@@ -74,7 +74,7 @@ runs:
       file: run3_nuepresel
     ext:
       file: data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2
-    nu:
+    mc:
       file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2
     nue:
       file: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2
