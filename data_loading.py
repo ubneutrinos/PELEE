@@ -1736,11 +1736,14 @@ def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee
         weights[mc_set] = data_pot / mc_pot 
         output[mc_set] = mc_df
 
-    # Remove the truth filtered events from "nu" to avoid double-counting
+    # Remove the truth filtered events from "mc" to avoid double-counting
     for truth_set in truth_filtered_sets:
-        rundict = get_rundict(run_number, category, truth_set)
-        df_temp = output["mc"].query(rundict[truth_set]["filter"])
-        output["mc"].drop(index=df_temp.index, inplace=True)
+        if truth_set == "drt":
+            continue
+        else:
+            rundict = get_rundict(run_number, category, truth_set)
+            df_temp = output["mc"].query(rundict[truth_set]["filter"])
+            output["mc"].drop(index=df_temp.index, inplace=True)
 
     return output,weights,data_pot # CT: Return the weight dict and data pot
 
