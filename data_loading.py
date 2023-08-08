@@ -1733,6 +1733,9 @@ def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee
             mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
         mc_df["dataset"] = mc_set
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+        # For some calculations, specifically the multisim error calculations for GENIE, we need the
+        # weights without the tune. We add this as a separate column here.
+        mc_df["weights_no_tune"] = mc_df["weightSpline"] * data_pot / mc_pot
         weights[mc_set] = data_pot / mc_pot 
         output[mc_set] = mc_df
 
