@@ -195,7 +195,12 @@ class RunHistGenerator(HistGenMixin):
 
             if include_multisim_errors:
                 for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
-                    cov_mat = hist_generator.calculate_multisim_uncertainties(ms_column)
+                    # The GENIE variations are applied instead of the central value tuning, so we need to use the
+                    # weights_no_tune column instead of the weights column.
+                    weight_column = "weights_no_tune" if ms_column == "weightsGenie" else "weights"
+                    cov_mat = hist_generator.calculate_multisim_uncertainties(
+                        ms_column, central_value_hist=hist, weight_column=weight_column
+                    )
                     hist.add_covariance(cov_mat)
 
             if category_column == "dataset_name":
@@ -269,13 +274,60 @@ class HistogramGenerator(HistGenMixin):
             variances[variances == 0] = 1.4**2
         return Histogram(bin_edges, bin_counts, uncertainties=np.sqrt(variances))
 
-    def calculate_multisim_uncertainties(self, multisim_weight_column, weight_rescale=1 / 1000):
+    def _cov(self, observations, central_value=None):
+        """Calculate the covariance matrix of the given observations.
+
+        Optionally, a central value can be given that will be used instead of the mean of the
+        observations. This is useful for calculating the covariance matrix of the multisim
+        uncertainties where the central value is the nominal MC prediction. Note that the
+        calculation of the covariance matrix has to be normalized by (N - 1) if there
+        is no central value given, which is done internally by numpy.cov.
+
+        Parameters
+        ----------
+        observations : array_like
+            Array of observations.
+        central_value : array_like, optional
+            Central value of the observations.
+
+        Returns
+        -------
+        covariance_matrix : array_like
+            Covariance matrix of the observations.
+        """
+
+        # Make sure that the observations and the central value are both ndarray
+        observations = np.asarray(observations)
+        if central_value is not None:
+            central_value = np.asarray(central_value)
+        # make sure the central value, if given, has the right length
+        if central_value is not None:
+            if central_value.shape[0] != observations.shape[1]:
+                raise ValueError("Central value has wrong length.")
+        # calculate covariance matrix
+        if central_value is None:
+            return np.cov(observations, rowvar=False)
+        else:
+            cov = np.zeros((observations.shape[1], observations.shape[1]))
+            for i in range(observations.shape[1]):
+                for j in range(observations.shape[1]):
+                    cov[i, j] = np.sum(
+                        (observations[:, i] - central_value[i]) * (observations[:, j] - central_value[j])
+                    )
+            # Here, we normalize by 1 / N, rather than 1 / (N - 1) as done by numpy.cov, because we
+            # used the given central value rather than calculating it from the observations.
+            return cov / observations.shape[0]
+
+    def calculate_multisim_uncertainties(
+        self, multisim_weight_column, weight_rescale=1 / 1000, weight_column=None, central_value_hist=None
+    ):
         """Calculate multisim uncertainties.
 
         Each of the given multisim weight columns is expected to contain a list of weights
         for every row that correspond to the weights of the fluctuated "universes". The
         histogram is regenerated for every universe and the covariance matrix is calculated
-        from the resulting histograms.
+        from the resulting histograms. Optionally, a central value histogram can be given
+        that is used to calculate the covariance matrix.
 
         Parameters
         ----------
@@ -284,6 +336,12 @@ class HistogramGenerator(HistGenMixin):
         weight_rescale : float, optional
             Rescale factor for the weights. Typically, multisim weights are stored as ints
             that are multiplied by a factor of 1000.
+        weight_column : str, optional
+            Name of the column containing the baseline weights of the events. If not given,
+            the baseline weight that this histogram generator was initialized with is used.
+        central_value_hist : Histogram, optional
+            Histogram containing the central value of the multisim weights. If not given,
+            the covariance is calculated from the mean of the histograms.
 
         Returns
         -------
@@ -310,15 +368,30 @@ class HistogramGenerator(HistGenMixin):
         df = pd.DataFrame(multisim_weights.tolist())
         # every column in df now contains the weights for one universe
         universe_histograms = []
-        base_weights = dataframe[self.weight_column].values
+        weight_column = weight_column if weight_column is not None else self.weight_column
+        base_weights = dataframe[weight_column].values
         for column in df.columns:
             # create a histogram for each universe
             bincounts, _ = np.histogram(
                 dataframe[self.variable], bins=self.binning, weights=base_weights * df[column].values * weight_rescale
             )
             universe_histograms.append(bincounts)
+        universe_histograms = np.array(universe_histograms)
         # calculate the covariance matrix from the histograms
-        return np.cov(np.array(universe_histograms), rowvar=False)
+        return self._cov(
+            universe_histograms, central_value_hist.nominal_values if central_value_hist is not None else None
+        )
+
+    def calculate_unisim_uncertainties(self):
+        """Calculate unisim uncertainties.
+
+        Unisim means that a single variation of a given analysis input parameter is performed according to its uncertainty.
+        The difference in the number of selected events between this variation and the central value is taken as the
+        uncertainty in that number of events.
+        """
+
+        knob_v = ["knobRPA", "knobCCMEC", "knobAxFFCCQE", "knobVecFFCCQE", "knobDecayAngMEC", "knobThetaDelta2Npi"]
+        raise NotImplementedError("Unisim uncertainties are not implemented yet.")
 
 
 class Histogram:
@@ -377,7 +450,7 @@ class Histogram:
         # We let the plotter handle the case when this is None, in which case
         # it will assign a color automatically.
         return self._plot_color
-        
+
     @color.setter
     def color(self, value):
         self._plot_color = value
@@ -388,7 +461,7 @@ class Histogram:
             return ""
         else:
             return self._label
-    
+
     @label.setter
     def label(self, value):
         self._label = value
@@ -400,7 +473,7 @@ class Histogram:
             return self.label
         else:
             return self._tex_string
-    
+
     @tex_string.setter
     def tex_string(self, value):
         self._tex_string = value
@@ -502,7 +575,7 @@ class Histogram:
             label=label,
             tex_string=self.tex_string,
         )
-    
+
     def __radd__(self, other):
         # This function adds support for sum() to work with histograms. sum() starts with 0, so we need to handle that case.
         if other == 0:
@@ -643,7 +716,9 @@ class TestHistogram(unittest.TestCase):
         # get expectation histogram
         expected_div_hist = hist1 / hist2
         # check nominal values
-        np.testing.assert_array_almost_equal(fluctuated_divisions.mean(axis=0), expected_div_hist.nominal_values, decimal=3)
+        np.testing.assert_array_almost_equal(
+            fluctuated_divisions.mean(axis=0), expected_div_hist.nominal_values, decimal=3
+        )
         # check covariance matrix
         np.testing.assert_array_almost_equal(cov_matrix, expected_div_hist.cov_matrix, decimal=4)
 
