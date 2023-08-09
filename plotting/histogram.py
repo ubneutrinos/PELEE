@@ -160,7 +160,7 @@ class RunHistGenerator(HistGenMixin):
         self.df_ext = rundata_dict["ext"]
         self.df_data = rundata_dict["data"]
 
-    def get_data_hist(self, type="data"):
+    def get_data_hist(self, type="data", add_error_floor=False):
         """Get the histogram for the data (or EXT).
 
         Returns
@@ -176,7 +176,7 @@ class RunHistGenerator(HistGenMixin):
         hist_generator = HistogramGenerator(
             dataframe, weight_column="weights", variable=self.variable, binning=self.binning, query=self.query
         )
-        data_hist = hist_generator.generate(add_error_floor=type == "ext")
+        data_hist = hist_generator.generate(add_error_floor=add_error_floor)
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
         data_hist.color = {"data": "k", "ext": "yellow"}[type]
         return data_hist
@@ -202,26 +202,8 @@ class RunHistGenerator(HistGenMixin):
         mc_hists = {}
         other_categories = []
         for category in self.df_mc[category_column].unique():
-            if self.query is not None:
-                query = f"{category_column} == '{category}' & {self.query}"
-            else:
-                query = f"{category_column} == '{category}'"
-            hist_generator = HistogramGenerator(
-                self.df_mc, weight_column=self.weight_column, variable=self.variable, binning=self.binning, query=query
-            )
-            hist = hist_generator.generate()
-
-            if include_multisim_errors:
-                for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
-                    # The GENIE variations are applied instead of the central value tuning, so we need to use the
-                    # weights_no_tune column instead of the weights column.
-                    weight_column = "weights_no_tune" if ms_column == "weightsGenie" else "weights"
-                    cov_mat = hist_generator.calculate_multisim_uncertainties(
-                        ms_column, central_value_hist=hist, weight_column=weight_column, query=query
-                    )
-                    hist.add_covariance(cov_mat)
-                cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist, query=query)
-                hist.add_covariance(cov_mat)
+            extra_query = f"{category_column} == '{category}'"
+            hist = self.get_mc_hist(include_multisim_errors=include_multisim_errors, extra_query=extra_query)
             if category_column == "dataset_name":
                 hist.label = str(category)
             else:
@@ -237,6 +219,42 @@ class RunHistGenerator(HistGenMixin):
             mc_hists["Other"].label = "Other"
             mc_hists["Other"].color = "gray"
         return mc_hists
+    
+    def get_mc_hist(self, include_multisim_errors=False, extra_query=None):
+        """Produce a histogram from the MC dataframe.
+        
+        Parameters
+        ----------
+        include_multisim_errors : bool, optional
+            Whether to include the systematic uncertainties from the multisim 'universes' for
+            GENIE, flux and reintegration.
+        extra_query : str, optional
+            Additional query to apply to the dataframe before generating the histogram.
+        """
+
+        query = self.query
+        if extra_query is not None:
+            if query is None:
+                query = extra_query
+            else:
+                query = f"{query} & {extra_query}"
+        hist_generator = HistogramGenerator(
+            self.df_mc, weight_column=self.weight_column, variable=self.variable, binning=self.binning, query=query
+        )
+        hist = hist_generator.generate()
+
+        if include_multisim_errors:
+            for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
+                # The GENIE variations are applied instead of the central value tuning, so we need to use the
+                # weights_no_tune column instead of the weights column.
+                weight_column = "weights_no_tune" if ms_column == "weightsGenie" else "weights"
+                cov_mat = hist_generator.calculate_multisim_uncertainties(
+                    ms_column, central_value_hist=hist, weight_column=weight_column, query=query
+                )
+                hist.add_covariance(cov_mat)
+            cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist, query=query)
+            hist.add_covariance(cov_mat)
+        return hist
 
 
 class HistogramGenerator(HistGenMixin):

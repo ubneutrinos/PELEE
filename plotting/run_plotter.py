@@ -65,21 +65,30 @@ class Plotter(RunHistGenerator):
         uncertainty_label="Uncertainty",
         category_column="dataset_name",
         include_multisim_errors=False,
+        add_ext_error_floor=True,
         **kwargs,
     ):
         data_hist = self.get_data_hist()
-        ext_hist = self.get_data_hist(type="ext")
+        ext_hist = self.get_data_hist(type="ext", add_error_floor=add_ext_error_floor)
         ext_hist.tex_string = "EXT"
-        mc_hists = self.get_mc_hists(category_column=category_column, include_multisim_errors=include_multisim_errors)
+        mc_hists = self.get_mc_hists(category_column=category_column, include_multisim_errors=False)
         background_hists = list(mc_hists.values()) + [ext_hist]
-        print(kwargs)
         ax = self.plot_stacked_hists(
             background_hists,
+            ax=ax,
+            show_errorband=False,
+            **kwargs,
+        )
+        total_mc_hist = self.get_mc_hist(include_multisim_errors=include_multisim_errors)
+        total_pred_hist = total_mc_hist + ext_hist
+        ax = self.plot_hist(
+            total_pred_hist,
             ax=ax,
             show_errorband=show_errorband,
             uncertainty_color=uncertainty_color,
             uncertainty_label=uncertainty_label,
-            **kwargs,
+            color="k",
+            lw=0.5
         )
         ax = self.plot_hist(data_hist, ax=ax, label="Data", color="black", as_errorbars=True,  **kwargs)
         ax.set_xlabel(self.xtit)
