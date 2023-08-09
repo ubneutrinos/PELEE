@@ -176,7 +176,7 @@ class RunHistGenerator(HistGenMixin):
         hist_generator = HistogramGenerator(
             dataframe, weight_column="weights", variable=self.variable, binning=self.binning, query=self.query
         )
-        data_hist = hist_generator.generate()
+        data_hist = hist_generator.generate(add_error_floor=type == "ext")
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
         data_hist.color = {"data": "k", "ext": "yellow"}[type]
         return data_hist
@@ -220,8 +220,8 @@ class RunHistGenerator(HistGenMixin):
                         ms_column, central_value_hist=hist, weight_column=weight_column
                     )
                     hist.add_covariance(cov_mat)
-                # cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist)
-                # hist.add_covariance(cov_mat)
+                cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist)
+                hist.add_covariance(cov_mat)
             if category_column == "dataset_name":
                 hist.label = str(category)
             else:
@@ -463,17 +463,19 @@ class HistogramGenerator(HistGenMixin):
         # When we have two universes, then there are two weight variations, knobXXXup and knobXXXdown. Otherwise, there
         # is only one weight variation, knobXXXup.
         total_cov = np.zeros((len(self.binning) - 1, len(self.binning) - 1))
-        import pdb; pdb.set_trace()
+        base_weights = self.get_weights(weight_column=base_weight)
+        dataframe = self.dataframe.query(self.query)
         for knob, n_universes in zip(knob_v, knob_n_universes):
             observations = []
             for universe in range(n_universes):
                 # get the weight column for this universe
                 weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
+                universe_weights = self.get_weights(weight_column=weight_column_knob)
                 # calculate the histogram for this universe
                 bincounts, _ = np.histogram(
-                    self.dataframe[self.variable],
+                    dataframe[self.variable],
                     bins=self.binning,
-                    weights=self.dataframe[base_weight].values * self.dataframe[weight_column_knob].values,
+                    weights=base_weights * universe_weights,
                 )
                 observations.append(bincounts)
             observations = np.array(observations)

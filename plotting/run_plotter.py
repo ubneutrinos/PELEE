@@ -130,7 +130,7 @@ class Plotter(RunHistGenerator):
 
         ax.fill_between(
             bin_edges,
-            bin_counts - uncertainties,
+            np.clip(bin_counts - uncertainties, 0, None),
             bin_counts + uncertainties,
             alpha=0.5,
             step="post",
@@ -182,7 +182,7 @@ class Plotter(RunHistGenerator):
             kwargs["color"] = uncertainty_color
         ax.fill_between(
             summed_hist.bin_edges,
-            repeated_nom_values(summed_hist) - uncertainties,
+            np.clip(repeated_nom_values(summed_hist) - uncertainties, 0, None),
             repeated_nom_values(summed_hist) + uncertainties,
             alpha=0.6,
             step="post",
