@@ -24,7 +24,7 @@ variables = [
 
 
 class Plotter(RunHistGenerator):
-    def __init__(self, rundata_dict, selection, preselection, weight_column=None, variable=None):
+    def __init__(self, rundata_dict, selection, preselection, weight_column="weights", variable=None):
         query, title = self.get_query_and_title(selection, preselection)
         VARIABLE, BINS, RANGE, XTIT = self.get_variable_definitions(variable)
         self.title = title
