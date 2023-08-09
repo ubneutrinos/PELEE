@@ -612,6 +612,13 @@ class Histogram:
     def std_devs(self):
         return unumpy.std_devs(self.bin_counts)
 
+    @property
+    def corr_matrix(self):
+        # convert the covariance matrix into a correlation matrix
+        # ignore division by zero error
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return self.cov_matrix / np.outer(self.std_devs, self.std_devs)
+
     def sum(self):
         return np.sum(self.nominal_values)
 
@@ -641,6 +648,12 @@ class Histogram:
         rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.multivariate_normal(unumpy.nominal_values(self.bin_counts), self.cov_matrix)
         return Histogram(self.bin_edges, fluctuated_bin_counts, covariance_matrix=self.cov_matrix)
+    
+    def fluctuate_poisson(self, seed=None):
+        """Fluctuate bin counts according to Poisson uncertainties and return a new histogram with the fluctuated counts."""
+        rng = np.random.default_rng(seed)
+        fluctuated_bin_counts = rng.poisson(unumpy.nominal_values(self.bin_counts))
+        return Histogram(self.bin_edges, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts))
 
     def _error_propagation_division(self, x1, x2, C1, C2):
         """
