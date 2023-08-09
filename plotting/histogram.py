@@ -41,8 +41,16 @@ class HistGenMixin:
 
     @weight_column.setter
     def weight_column(self, weight_column):
-        if weight_column is not None and weight_column not in self.data_columns:
-            raise ValueError(f"Weight column {weight_column} is not in the dataframe.")
+        if weight_column is not None:
+            # it is possible to pass either the name of one single column or a list of 
+            # column names (where the weights are multiplied)
+            if isinstance(weight_column, str):
+                if weight_column not in self.data_columns:
+                    raise ValueError(f"Weight column {weight_column} is not in the dataframe.")
+            elif isinstance(weight_column, list):
+                for col in weight_column:
+                    if col not in self.data_columns:
+                        raise ValueError(f"Weight column {col} is not in the dataframe.")
         self._weight_column = weight_column
 
     @property
@@ -61,8 +69,18 @@ class HistGenMixin:
             raise ValueError(f"Variable {self.variable} is not in the dataframe.")
         if self.binning is not None and not isinstance(self.binning, np.ndarray):
             raise ValueError("binning must be a numpy array.")
-        if self.weight_column is not None and self.weight_column not in self.data_columns:
-            raise ValueError(f"Weight column {self.weight_column} is not in the dataframe.")
+        if self.weight_column is not None:
+            # it is possible to pass either the name of one single column or a list of 
+            # column names (where the weights are multiplied)
+            if isinstance(self.weight_column, str):
+                if self.weight_column not in self.data_columns:
+                    raise ValueError(f"Weight column {self.weight_column} is not in the dataframe.")
+            elif isinstance(self.weight_column, list):
+                for col in self.weight_column:
+                    if col not in self.data_columns:
+                        raise ValueError(f"Weight column {col} is not in the dataframe.")
+            else:
+                raise ValueError("weight_column must be a string or a list of strings.")
         if self.query is not None and not isinstance(self.query, str):
             raise ValueError("query must be a string.")
 
@@ -229,8 +247,9 @@ class HistogramGenerator(HistGenMixin):
         ----------
         dataframe : pandas.DataFrame
             Dataframe containing the data to be binned.
-        weight_column : str, optional
-            Name of the column containing the weights of the data points.
+        weight_column : str or list of str, optional
+            Name of the column containing the weights of the data points. If more than one
+            weight column is given, the weights are multiplied in sequence.
         """
         self.dataframe = dataframe
         data_columns = dataframe.columns
@@ -265,10 +284,7 @@ class HistogramGenerator(HistGenMixin):
         if self.query is not None:
             dataframe = self.dataframe.query(self.query)
 
-        if self.weight_column is None:
-            weights = np.ones(len(dataframe))
-        else:
-            weights = dataframe[self.weight_column]
+        weights = self.get_weights(weight_column=weight_column)
         bin_counts, bin_edges = np.histogram(dataframe[self.variable], bins=self.binning, weights=weights)
         variances, _ = np.histogram(dataframe[self.variable], bins=self.binning, weights=weights**2)
         if add_error_floor:
@@ -318,6 +334,36 @@ class HistogramGenerator(HistGenMixin):
             # Here, we normalize by 1 / N, rather than 1 / (N - 1) as done by numpy.cov, because we
             # used the given central value rather than calculating it from the observations.
             return cov / observations.shape[0]
+
+    def get_weights(self, weight_column=None, limit_weight=True):
+        """Get the weights of the dataframe.
+
+        Parameters
+        ----------
+        weight_column : str or list of str, optional
+            Override the weight column given at initialization.
+        limit_weight : bool, optional
+            Reset invalid weights to one.
+
+        Returns
+        -------
+        weights : array_like
+            Array of weights.
+        """
+
+        dataframe = self.dataframe.query(self.query)
+        if weight_column is None:
+            weight_column = self.weight_column
+        if weight_column is None:
+            return np.ones(len(dataframe))
+        # the weight column might be a list of columns that need to be multiplied
+        if isinstance(weight_column, list):
+            weights = np.ones(len(dataframe))
+            for col in weight_column:
+                weights *= dataframe[col]
+        else:
+            weights = self._limit_weights(dataframe[weight_column])
+        return weights
 
     def _limit_weights(self, weights):
         weights = np.asarray(weights)
@@ -376,8 +422,7 @@ class HistogramGenerator(HistGenMixin):
         df = pd.DataFrame(multisim_weights.tolist())
         # every column in df now contains the weights for one universe
         universe_histograms = []
-        weight_column = weight_column if weight_column is not None else self.weight_column
-        base_weights = dataframe[weight_column].values
+        base_weights = self.get_weights(weight_column=weight_column)
         for column in df.columns:
             # create a histogram for each universe
             bincounts, _ = np.histogram(
