@@ -1736,6 +1736,9 @@ def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
         # weights without the tune. We add this as a separate column here.
         mc_df["weights_no_tune"] = mc_df["weightSpline"] * data_pot / mc_pot
+        if mc_set == "lee":
+            mc_df["weights"] *= mc_df["leeweight"]
+            mc_df["weights_no_tune"] *= mc_df["leeweight"]
         weights[mc_set] = data_pot / mc_pot 
         output[mc_set] = mc_df
 
