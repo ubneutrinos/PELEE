@@ -217,10 +217,10 @@ class RunHistGenerator(HistGenMixin):
                     # weights_no_tune column instead of the weights column.
                     weight_column = "weights_no_tune" if ms_column == "weightsGenie" else "weights"
                     cov_mat = hist_generator.calculate_multisim_uncertainties(
-                        ms_column, central_value_hist=hist, weight_column=weight_column
+                        ms_column, central_value_hist=hist, weight_column=weight_column, query=query
                     )
                     hist.add_covariance(cov_mat)
-                cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist)
+                cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist, query=query)
                 hist.add_covariance(cov_mat)
             if category_column == "dataset_name":
                 hist.label = str(category)
@@ -335,7 +335,7 @@ class HistogramGenerator(HistGenMixin):
             # used the given central value rather than calculating it from the observations.
             return cov / observations.shape[0]
 
-    def get_weights(self, weight_column=None, limit_weight=True):
+    def get_weights(self, weight_column=None, limit_weight=True, query=None):
         """Get the weights of the dataframe.
 
         Parameters
@@ -350,8 +350,9 @@ class HistogramGenerator(HistGenMixin):
         weights : array_like
             Array of weights.
         """
-
-        dataframe = self.dataframe.query(self.query)
+        if query is None:
+            query = self.query
+        dataframe = self.dataframe.query(query)
         if weight_column is None:
             weight_column = self.weight_column
         if weight_column is None:
@@ -373,7 +374,7 @@ class HistogramGenerator(HistGenMixin):
         return weights
 
     def calculate_multisim_uncertainties(
-        self, multisim_weight_column, weight_rescale=1 / 1000, weight_column=None, central_value_hist=None
+        self, multisim_weight_column, weight_rescale=1 / 1000, weight_column=None, central_value_hist=None, query=None
     ):
         """Calculate multisim uncertainties.
 
@@ -396,6 +397,9 @@ class HistogramGenerator(HistGenMixin):
         central_value_hist : Histogram, optional
             Histogram containing the central value of the multisim weights. If not given,
             the covariance is calculated from the mean of the histograms.
+        query : str, optional
+            Query to apply to the dataframe before calculating the covariance matrix. Overrides
+            the query given at initialization.
 
         Returns
         -------
@@ -407,7 +411,8 @@ class HistogramGenerator(HistGenMixin):
 
         if multisim_weight_column not in self.dataframe.columns:
             raise ValueError(f"Weight column {multisim_weight_column} is not in the dataframe.")
-        dataframe = self.dataframe.query(self.query)
+        query = self.query if query is None else query
+        dataframe = self.dataframe.query(query)
         multisim_weights = dataframe[multisim_weight_column].values
         # We have to make sure that there are no NaNs in the weights. Every row should contain
         # a list or np.ndarray of values of the same length. If there are NaNs, this indicates that the
@@ -422,7 +427,7 @@ class HistogramGenerator(HistGenMixin):
         df = pd.DataFrame(multisim_weights.tolist())
         # every column in df now contains the weights for one universe
         universe_histograms = []
-        base_weights = self.get_weights(weight_column=weight_column)
+        base_weights = self.get_weights(weight_column=weight_column, query=query)
         for column in df.columns:
             # create a histogram for each universe
             bincounts, _ = np.histogram(
@@ -435,7 +440,7 @@ class HistogramGenerator(HistGenMixin):
             universe_histograms, central_value_hist.nominal_values if central_value_hist is not None else None
         )
 
-    def calculate_unisim_uncertainties(self, central_value_hist):
+    def calculate_unisim_uncertainties(self, central_value_hist, query=None):
         """Calculate unisim uncertainties.
 
         Unisim means that a single variation of a given analysis input parameter is performed according to its uncertainty.
@@ -447,6 +452,9 @@ class HistogramGenerator(HistGenMixin):
         ----------
         central_value_hist : Histogram
             Central value histogram.
+        query : str, optional
+            Query to apply to the dataframe before calculating the covariance matrix. Overrides the query given at
+            initialization.
 
         Returns
         -------
@@ -454,6 +462,8 @@ class HistogramGenerator(HistGenMixin):
             Covariance matrix of the bin counts.
         """
 
+
+        query = self.query if query is None else query
         knob_v = ["knobRPA", "knobCCMEC", "knobAxFFCCQE", "knobVecFFCCQE", "knobDecayAngMEC", "knobThetaDelta2Npi"]
         # see table 23 from the technote
         knob_n_universes = [2, 1, 1, 1, 1, 1]
@@ -464,13 +474,13 @@ class HistogramGenerator(HistGenMixin):
         # is only one weight variation, knobXXXup.
         total_cov = np.zeros((len(self.binning) - 1, len(self.binning) - 1))
         base_weights = self.get_weights(weight_column=base_weight)
-        dataframe = self.dataframe.query(self.query)
+        dataframe = self.dataframe.query(query)
         for knob, n_universes in zip(knob_v, knob_n_universes):
             observations = []
             for universe in range(n_universes):
                 # get the weight column for this universe
                 weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
-                universe_weights = self.get_weights(weight_column=weight_column_knob)
+                universe_weights = self.get_weights(weight_column=weight_column_knob, query=query)
                 # calculate the histogram for this universe
                 bincounts, _ = np.histogram(
                     dataframe[self.variable],
