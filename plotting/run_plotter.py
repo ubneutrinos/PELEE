@@ -141,7 +141,7 @@ class Plotter(RunHistGenerator):
         return ax
 
     def plot_stacked_hists(
-        self, hists, ax=None, show_errorband=True, uncertainty_color=None, uncertainty_label=None, **kwargs
+        self, hists, ax=None, show_errorband=True, uncertainty_color=None, uncertainty_label=None, show_counts=True, **kwargs
     ):
         """Plot a stack of histograms."""
         if ax is None:
@@ -158,6 +158,8 @@ class Plotter(RunHistGenerator):
         # to use plt.stackplot,  we need y to be a 2D array of shape (N, len(x))
         y = np.array([repeated_nom_values(hist) for hist in hists])
         labels = [hist.tex_string for hist in hists]
+        if show_counts:
+            labels = [f"{label}: {hist.sum():.1f}" for label, hist in zip(labels, hists)]
         colors = None
         # If all hist.color are not None, we can pass them to stackplot
         if all([hist.color is not None for hist in hists]):

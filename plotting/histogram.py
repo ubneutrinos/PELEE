@@ -202,7 +202,8 @@ class RunHistGenerator(HistGenMixin):
                         ms_column, central_value_hist=hist, weight_column=weight_column
                     )
                     hist.add_covariance(cov_mat)
-
+                # cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist)
+                # hist.add_covariance(cov_mat)
             if category_column == "dataset_name":
                 hist.label = str(category)
             else:
@@ -318,6 +319,13 @@ class HistogramGenerator(HistGenMixin):
             # used the given central value rather than calculating it from the observations.
             return cov / observations.shape[0]
 
+    def _limit_weights(self, weights):
+        weights = np.asarray(weights)
+        weights[weights > 100] = 1.0
+        weights[weights < 0] = 1.0
+        weights[~np.isfinite(weights)] = 1.0
+        return weights
+
     def calculate_multisim_uncertainties(
         self, multisim_weight_column, weight_rescale=1 / 1000, weight_column=None, central_value_hist=None
     ):
@@ -382,17 +390,53 @@ class HistogramGenerator(HistGenMixin):
             universe_histograms, central_value_hist.nominal_values if central_value_hist is not None else None
         )
 
-    def calculate_unisim_uncertainties(self):
+    def calculate_unisim_uncertainties(self, central_value_hist):
         """Calculate unisim uncertainties.
 
         Unisim means that a single variation of a given analysis input parameter is performed according to its uncertainty.
         The difference in the number of selected events between this variation and the central value is taken as the
-        uncertainty in that number of events.
+        uncertainty in that number of events. Mathematically, this is the same as the 'multisim' method, but with only
+        one or two universes. The central value is in this case not optional.
+
+        Parameters
+        ----------
+        central_value_hist : Histogram
+            Central value histogram.
+
+        Returns
+        -------
+        covariance_matrix : array_like
+            Covariance matrix of the bin counts.
         """
 
         knob_v = ["knobRPA", "knobCCMEC", "knobAxFFCCQE", "knobVecFFCCQE", "knobDecayAngMEC", "knobThetaDelta2Npi"]
-        raise NotImplementedError("Unisim uncertainties are not implemented yet.")
-
+        # see table 23 from the technote
+        knob_n_universes = [2, 1, 1, 1, 1, 1]
+        # because all of these are GENIE knobs, we need to use the weights without the GENIE tune just as 
+        # for the GENIE multisim
+        base_weight = "weights_no_tune"
+        # When we have two universes, then there are two weight variations, knobXXXup and knobXXXdown. Otherwise, there
+        # is only one weight variation, knobXXXup.
+        total_cov = np.zeros((len(self.binning) - 1, len(self.binning) - 1))
+        import pdb; pdb.set_trace()
+        for knob, n_universes in zip(knob_v, knob_n_universes):
+            observations = []
+            for universe in range(n_universes):
+                # get the weight column for this universe
+                weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
+                # calculate the histogram for this universe
+                bincounts, _ = np.histogram(
+                    self.dataframe[self.variable],
+                    bins=self.binning,
+                    weights=self.dataframe[base_weight].values * self.dataframe[weight_column_knob].values,
+                )
+                observations.append(bincounts)
+            observations = np.array(observations)
+            # calculate the covariance matrix from the histograms
+            cov = self._cov(observations, central_value_hist.nominal_values)
+            # add it to the total covariance matrix
+            total_cov += cov
+        return total_cov
 
 class Histogram:
     def __init__(
@@ -492,6 +536,9 @@ class Histogram:
     @property
     def std_devs(self):
         return unumpy.std_devs(self.bin_counts)
+
+    def sum(self):
+        return np.sum(self.nominal_values)
 
     def add_covariance(self, cov_mat):
         """Add a covariance matrix to the uncertainties of the histogram.
