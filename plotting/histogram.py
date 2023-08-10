@@ -114,12 +114,13 @@ class HistGenMixin:
 class RunHistGenerator(HistGenMixin):
     """Histogram generator for data and simulation runs."""
 
-    def __init__(self, rundata_dict, weight_column=None, variable=None, binning=None, query=None):
+    def __init__(self, rundata_dict, weight_column=None, variable=None, binning=None, query=None, data_pot=None):
         """Create a histogram generator for data and simulation runs.
 
         This combines data and MC appropriately for the given run. It assumes also that,
         if truth-filtered samples are present, that the corresponding event types have
-        already been removed from the 'mc' dataframe.
+        already been removed from the 'mc' dataframe. It also assumes that the background sets
+        have been scaled to the same POT as the data.
 
         Parameters
         ----------
@@ -135,8 +136,11 @@ class RunHistGenerator(HistGenMixin):
             Bin edges of the histogram.
         query : str, optional
             Query to be applied to the dataframe before generating the histogram.
+        data_pot : float, optional
+            POT of the data sample. Required to reweight to a different target POT.
         """
         self.rundata_dict = rundata_dict
+        self.data_pot = data_pot
         data_columns = rundata_dict["data"].columns
         if weight_column is None:
             weight_column = "weights"
@@ -160,8 +164,17 @@ class RunHistGenerator(HistGenMixin):
         self.df_ext = rundata_dict["ext"]
         self.df_data = rundata_dict["data"]
 
-    def get_data_hist(self, type="data"):
+    def get_data_hist(self, type="data", add_error_floor=False, scale_to_pot=None):
         """Get the histogram for the data (or EXT).
+
+        Parameters
+        ----------
+        type : str, optional
+            Type of data to return. Can be "data" or "ext".
+        add_error_floor : bool, optional
+            Whether to add an error floor to the histogram in bins with zero entries.
+        scale_to_pot : float, optional
+            POT to scale the data to. Only applicable to EXT data.
 
         Returns
         -------
@@ -170,18 +183,25 @@ class RunHistGenerator(HistGenMixin):
         """
 
         assert type in ["data", "ext"]
+        scale_factor = 1.0
+        if scale_to_pot is not None:
+            if type == "data":
+                raise ValueError("Cannot scale data to POT.")
+            assert self.data_pot is not None, "Must provide data POT to scale EXT data."
+            scale_factor = scale_to_pot / self.data_pot
         dataframe = self.df_data if type == "data" else self.df_ext
         # The weights here are all 1.0 for data, but may be scaled for EXT
         # to match the total number of triggers.
         hist_generator = HistogramGenerator(
             dataframe, weight_column="weights", variable=self.variable, binning=self.binning, query=self.query
         )
-        data_hist = hist_generator.generate(add_error_floor=type == "ext")
+        data_hist = hist_generator.generate(add_error_floor=add_error_floor)
+        data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
         data_hist.color = {"data": "k", "ext": "yellow"}[type]
         return data_hist
 
-    def get_mc_hists(self, category_column="dataset_name", include_multisim_errors=False):
+    def get_mc_hists(self, category_column="dataset_name", include_multisim_errors=False, scale_to_pot=None):
         """Get MC histograms that are split by event category.
 
         Parameters
@@ -191,6 +211,8 @@ class RunHistGenerator(HistGenMixin):
         include_multisim_errors : bool, optional
             Whether to include the systematic uncertainties from the multisim 'universes' for
             GENIE, flux and reintegration.
+        scale_to_pot : float, optional
+            POT to scale the MC histograms to. If None, no scaling is performed.
 
         Returns
         -------
@@ -199,29 +221,13 @@ class RunHistGenerator(HistGenMixin):
             category names and values are the histograms.
         """
 
+        if scale_to_pot is not None:
+            assert self.data_pot is not None, "data_pot must be set to scale to a different POT."
         mc_hists = {}
         other_categories = []
         for category in self.df_mc[category_column].unique():
-            if self.query is not None:
-                query = f"{category_column} == '{category}' & {self.query}"
-            else:
-                query = f"{category_column} == '{category}'"
-            hist_generator = HistogramGenerator(
-                self.df_mc, weight_column=self.weight_column, variable=self.variable, binning=self.binning, query=query
-            )
-            hist = hist_generator.generate()
-
-            if include_multisim_errors:
-                for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
-                    # The GENIE variations are applied instead of the central value tuning, so we need to use the
-                    # weights_no_tune column instead of the weights column.
-                    weight_column = "weights_no_tune" if ms_column == "weightsGenie" else "weights"
-                    cov_mat = hist_generator.calculate_multisim_uncertainties(
-                        ms_column, central_value_hist=hist, weight_column=weight_column, query=query
-                    )
-                    hist.add_covariance(cov_mat)
-                cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist, query=query)
-                hist.add_covariance(cov_mat)
+            extra_query = f"{category_column} == '{category}'"
+            hist = self.get_mc_hist(include_multisim_errors=include_multisim_errors, extra_query=extra_query, scale_to_pot=scale_to_pot)
             if category_column == "dataset_name":
                 hist.label = str(category)
             else:
@@ -237,6 +243,50 @@ class RunHistGenerator(HistGenMixin):
             mc_hists["Other"].label = "Other"
             mc_hists["Other"].color = "gray"
         return mc_hists
+    
+    def get_mc_hist(self, include_multisim_errors=False, extra_query=None, scale_to_pot=None):
+        """Produce a histogram from the MC dataframe.
+        
+        Parameters
+        ----------
+        include_multisim_errors : bool, optional
+            Whether to include the systematic uncertainties from the multisim 'universes' for
+            GENIE, flux and reintegration.
+        extra_query : str, optional
+            Additional query to apply to the dataframe before generating the histogram.
+        scale_to_pot : float, optional
+            POT to scale the MC histograms to. If None, no scaling is performed.
+        """
+
+        scale_factor = 1.0
+        if scale_to_pot is not None:
+            assert self.data_pot is not None, "data_pot must be set to scale to a different POT."
+            scale_factor = scale_to_pot / self.data_pot
+        query = self.query
+        if extra_query is not None:
+            if query is None:
+                query = extra_query
+            else:
+                query = f"{query} & {extra_query}"
+        hist_generator = HistogramGenerator(
+            self.df_mc, weight_column=self.weight_column, variable=self.variable, binning=self.binning, query=query
+        )
+        hist = hist_generator.generate()
+
+        if include_multisim_errors:
+            for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
+                # The GENIE variations are applied instead of the central value tuning, so we need to use the
+                # weights_no_tune column instead of the weights column.
+                weight_column = "weights_no_tune" if ms_column == "weightsGenie" else "weights"
+                cov_mat = hist_generator.calculate_multisim_uncertainties(
+                    ms_column, central_value_hist=hist, weight_column=weight_column, query=query
+                )
+                hist.add_covariance(cov_mat)
+            cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist, query=query)
+            hist.add_covariance(cov_mat)
+        
+        hist *= scale_factor
+        return hist
 
 
 class HistogramGenerator(HistGenMixin):
@@ -594,6 +644,13 @@ class Histogram:
     def std_devs(self):
         return unumpy.std_devs(self.bin_counts)
 
+    @property
+    def corr_matrix(self):
+        # convert the covariance matrix into a correlation matrix
+        # ignore division by zero error
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return self.cov_matrix / np.outer(self.std_devs, self.std_devs)
+
     def sum(self):
         return np.sum(self.nominal_values)
 
@@ -623,6 +680,12 @@ class Histogram:
         rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.multivariate_normal(unumpy.nominal_values(self.bin_counts), self.cov_matrix)
         return Histogram(self.bin_edges, fluctuated_bin_counts, covariance_matrix=self.cov_matrix)
+    
+    def fluctuate_poisson(self, seed=None):
+        """Fluctuate bin counts according to Poisson uncertainties and return a new histogram with the fluctuated counts."""
+        rng = np.random.default_rng(seed)
+        fluctuated_bin_counts = rng.poisson(unumpy.nominal_values(self.bin_counts))
+        return Histogram(self.bin_edges, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts))
 
     def _error_propagation_division(self, x1, x2, C1, C2):
         """
@@ -713,6 +776,23 @@ class Histogram:
             label=label,
             tex_string=self.tex_string,
         )
+
+
+    def __mul__(self, other):
+        # we only support multiplication by floats that scale the entire histogram
+        if isinstance(other, float):
+            new_bin_counts = self.nominal_values * other
+            new_cov_matrix = self.cov_matrix * other ** 2
+            return Histogram(
+                self.bin_edges,
+                new_bin_counts,
+                covariance_matrix=new_cov_matrix,
+                label=self.label,
+                # need to bypass the getter method to do this correctly
+                tex_string=self._tex_string,
+            )
+        else:
+            raise NotImplementedError("Histogram multiplication is only supported for floats.")
 
 
 class TestHistogram(unittest.TestCase):

@@ -24,13 +24,13 @@ variables = [
 
 
 class Plotter(RunHistGenerator):
-    def __init__(self, rundata_dict, selection, preselection, weight_column="weights", variable=None):
+    def __init__(self, rundata_dict, selection, preselection, weight_column="weights", variable=None, data_pot=None):
         query, title = self.get_query_and_title(selection, preselection)
         VARIABLE, BINS, RANGE, XTIT = self.get_variable_definitions(variable)
         self.title = title
         self.xtit = XTIT
         bin_edges = np.linspace(*RANGE, BINS + 1)
-        super().__init__(rundata_dict, weight_column, variable=VARIABLE, query=query, binning=bin_edges)
+        super().__init__(rundata_dict, weight_column, variable=VARIABLE, query=query, binning=bin_edges, data_pot=data_pot)
 
     def get_variable_definitions(self, variable):
         for var_tuple in variables:
@@ -57,6 +57,14 @@ class Plotter(RunHistGenerator):
         title = f"{presel_title} and {sel_title}"
         return query, title
 
+    def get_pot_label(self, scale_to_pot):
+        if self.data_pot is None:
+            return ""
+        if scale_to_pot is None:
+            return f"Data POT: {self.data_pot:.1e}"
+        else:
+            return f"MC Scaled to {scale_to_pot:.1e} POT"
+
     def plot(
         self,
         ax=None,
@@ -65,23 +73,48 @@ class Plotter(RunHistGenerator):
         uncertainty_label="Uncertainty",
         category_column="dataset_name",
         include_multisim_errors=False,
+        add_ext_error_floor=True,
+        scale_to_pot=None,
         **kwargs,
     ):
-        data_hist = self.get_data_hist()
-        ext_hist = self.get_data_hist(type="ext")
+        ext_hist = self.get_data_hist(type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot)
         ext_hist.tex_string = "EXT"
-        mc_hists = self.get_mc_hists(category_column=category_column, include_multisim_errors=include_multisim_errors)
+        mc_hists = self.get_mc_hists(category_column=category_column, include_multisim_errors=False, scale_to_pot=scale_to_pot)
         background_hists = list(mc_hists.values()) + [ext_hist]
-        print(kwargs)
         ax = self.plot_stacked_hists(
             background_hists,
+            ax=ax,
+            show_errorband=False,
+            **kwargs,
+        )
+        total_mc_hist = self.get_mc_hist(include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot)
+        total_pred_hist = total_mc_hist + ext_hist
+        ax = self.plot_hist(
+            total_pred_hist,
             ax=ax,
             show_errorband=show_errorband,
             uncertainty_color=uncertainty_color,
             uncertainty_label=uncertainty_label,
-            **kwargs,
+            color="k",
+            lw=0.5,
         )
-        ax = self.plot_hist(data_hist, ax=ax, label="Data", color="black", as_errorbars=True,  **kwargs)
+        if scale_to_pot is None:
+            data_hist = self.get_data_hist()
+            # rescaling data to a different POT doesn't make sense
+            data_label = f"Data: {data_hist.sum():.1f}"
+            ax = self.plot_hist(data_hist, ax=ax, label=data_label, color="black", as_errorbars=True, **kwargs)
+        # make text label for the POT
+        pot_label = self.get_pot_label(scale_to_pot)
+        ax.text(
+            0.05,
+            0.95,
+            pot_label,
+            ha="left",
+            va="top",
+            transform=ax.transAxes,
+            fontsize=10,
+            bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
+        )
         ax.set_xlabel(self.xtit)
         ax.set_ylabel("Events")
         ax.set_title(self.title)
@@ -141,7 +174,14 @@ class Plotter(RunHistGenerator):
         return ax
 
     def plot_stacked_hists(
-        self, hists, ax=None, show_errorband=True, uncertainty_color=None, uncertainty_label=None, show_counts=True, **kwargs
+        self,
+        hists,
+        ax=None,
+        show_errorband=True,
+        uncertainty_color=None,
+        uncertainty_label=None,
+        show_counts=True,
+        **kwargs,
     ):
         """Plot a stack of histograms."""
         if ax is None:
