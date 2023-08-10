@@ -788,7 +788,8 @@ class Histogram:
                 new_bin_counts,
                 covariance_matrix=new_cov_matrix,
                 label=self.label,
-                tex_string=self.tex_string,
+                # need to bypass the getter method to do this correctly
+                tex_string=self._tex_string,
             )
         else:
             raise NotImplementedError("Histogram multiplication is only supported for floats.")
