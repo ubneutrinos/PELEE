@@ -1734,11 +1734,29 @@ def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee
     for mc_set in mc_sets:
         if(mc_set == "lee"):
             print("Loading lee sample")
-            mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
-            mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
-        else: 
-            mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
-            mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
+            
+            if run_number == 2:
+                mc_df1 = load_sample(1, category, "nue", **load_sample_kwargs, use_lee_weights=True)
+                mc_df3 = load_sample(3, category, "nue", **load_sample_kwargs, use_lee_weights=True)
+                mc_df = pd.concat([mc_df1, mc_df3])
+                mc_pot1, _ = get_pot_trig(1, category, "nue")  # nu has no trigger number
+                mc_pot3, _ = get_pot_trig(3, category, "nue")  # nu has no trigger number
+                mc_pot = mc_pot1 + mc_pot3
+            else:
+                mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
+                mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
+        else:
+            
+            if run_number == 2:
+                mc_df1 = load_sample(1, category, mc_set, **load_sample_kwargs)
+                mc_df3 = load_sample(3, category, mc_set, **load_sample_kwargs)
+                mc_df = pd.concat([mc_df1, mc_df3])
+                mc_pot1, _ = get_pot_trig(1, category, mc_set)  # nu has no trigger number
+                mc_pot3, _ = get_pot_trig(3, category, mc_set)  # nu has no trigger number
+                mc_pot = mc_pot1 + mc_pot3
+            else:
+                mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
+                mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
         mc_df["dataset"] = mc_set
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
         # For some calculations, specifically the multisim error calculations for GENIE, we need the

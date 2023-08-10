@@ -53,18 +53,24 @@ runs:
       pot: 1.55e22
       filter: ccnc==1 and npi0==0 and npion>=0 and (category==3 or category==5) and (nu_pdg==12 or nu_pdg==14)
   - run_id: 2
-    path:
-      file: run2/nuepresel/
+    path: run2/nuepresel/
     bnb:
       file: run2_nuepresel  # there is no burn sample for run2
+      pot: 2.62e20
+      trig: 62168648
     ext:
       file: data_extbnb_mcc9.1_v08_00_00_25_reco2_D_E_all_reco2
+      trig: 153236385
     mc:
       file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run2_reco2_D1D2_reco2
+      pot: 1.02e21
     nue:
       file: prodgenie_bnb_intrinsic_nue_overlay_run2_v08_00_00_35_run2a_reco2_reco2
+      pot: 6.32e22
+      filter: abs(nu_pdg)==12
     drt:
       file: prodgenie_dirt_overlay_v08_00_00_35_all_run2_reco2_reco2
+      pot: 9.50e20
     # apparently there are no detailed background MC sets for run2
   - run_id: 3
     path: run3/nuepresel/
@@ -72,26 +78,45 @@ runs:
       file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19
     bnb:
       file: run3_nuepresel
+      pot: 2.57e20
+      trig: 61381194
     ext:
       file: data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2
+      trig: 198642758
     mc:
       file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2
+      pot: 1.34e21
     nue:
       file: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2
+      pot: 7.75e22
+      filter: abs(nu_pdg)==12
     drt:
       file: prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2
+      pot: 3.28e20
     nc_pi0:
       file: prodgenie_nc_pi0_uboone_overlay_mcc9.1_v08_00_00_26_run3_G_reco2
+      pot: 2.31e21
+      filter: ccnc==1 and npi0==1 and npion>=0 and (category==31 or category==5) and (abs(nu_pdg)==12 or abs(nu_pdg)==14)
     cc_pi0:
       file: prodgenie_cc_pi0_uboone_overlay_v08_00_00_26_run3_G_reco2
+      pot: 6.43e21
+      filter: ccnc==0 and npi0==1 and npion>=0 and (category==21 or category==31 or category==5) and nu_pdg==14
     cc_nopi:
       file: prodgenie_CCmuNoPi_overlay_mcc9_v08_00_00_33_all_run3_reco2_reco2
+      pot: 5.51e21
+      filter: ccnc==0 and npi0==0 and npion==0 and (category==2 or category==3 or category==5) and nu_pdg==14
     cc_cpi:
       file: prodgenie_filter_CCmuCPiNoPi0_overlay_mcc9_v08_00_00_33_run3_reco2_reco2
+      pot: 5.18e21
+      filter: ccnc==0 and npi0==0 and npion>=0 and (category==2 or category==3 or category==5) and nu_pdg==14
     nc_nopi:
       file: prodgenie_ncnopi_overlay_mcc9_v08_00_00_33_new_run3_reco2_reco2
+      pot: 7.14e21
+      filter: ccnc==1 and npi0==0 and npion==0 and (category==3 or category==5) and (nu_pdg==12 or nu_pdg==14)
     nc_cpi:
       file: prodgenie_NCcPiNoPi0_overlay_mcc9_v08_00_00_33_New_run3_reco2_reco2
+      pot: 1.82e22
+      filter: ccnc==1 and npi0==0 and npion>=0 and (category==3 or category==5) and (nu_pdg==12 or nu_pdg==14)
     # eta: eta  # this was defined on some local machine as '/Users/davidc-local/data/searchingfornues/v08_00_00_48/run3/eta.root'
 nearsidebands:
   - run_id: 1
