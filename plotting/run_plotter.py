@@ -90,7 +90,8 @@ class Plotter(RunHistGenerator):
             color="k",
             lw=0.5
         )
-        ax = self.plot_hist(data_hist, ax=ax, label="Data", color="black", as_errorbars=True,  **kwargs)
+        data_label = f"Data: {data_hist.sum():.1f}"
+        ax = self.plot_hist(data_hist, ax=ax, label=data_label, color="black", as_errorbars=True,  **kwargs)
         ax.set_xlabel(self.xtit)
         ax.set_ylabel("Events")
         ax.set_title(self.title)
