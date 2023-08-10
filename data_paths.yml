@@ -186,4 +186,23 @@ fakedata:
       file: numupresel/prod_uboone_nu2020_fakedata_set5_reco2_v08_00_00_41_reco2
     set_9:
       file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2
-
+numupresel:
+  - run_id: 1
+    path: run1/numupresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19  # burn sample
+      pot: 4.54e19  # Particle On Target
+      trig: 10080350  # number of triggers
+    ext:
+      file: data_extbnb_mcc9.1_v08_00_00_25_reco2_C_all_reco2  # off-beam data
+      trig: 65473410  # no POT info for EXT
+    drt:
+      file: prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
+      pot: 3.23e20
+    nue:
+      file: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
+      pot: 5.25e22
+      filter: abs(nu_pdg)==12
+    mc:
+      file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2
+      pot: 1.31e21  # for MC files we only have POT info

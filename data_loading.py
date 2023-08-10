@@ -1607,7 +1607,7 @@ def load_sample(
 ):
     """Load one sample of one run for a particular kind of events."""
 
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
+    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel"]
 
     if use_bdt:
         assert loadshowervariables, "BDT requires shower variables"
@@ -1714,8 +1714,8 @@ def load_sample(
 
 # CT: plotter currently requires the pot weights to be passed in as another dictionary
 # Adding to this function for now, discuss when refactoring plotter.py
-def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee=False,**load_sample_kwargs):
-    category = "runs"
+def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee=False, numupresel=False, **load_sample_kwargs):
+    category = "numupresel" if numupresel else "runs"
     output = {}
     weights = {}
     # At a minimum, we always need data, ext and nu (mc)
@@ -1944,7 +1944,7 @@ def get_run_variables(
     use_lee_weights=False,
     load_crt_vars=False,
 ):
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
+    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel"]
 
     VARDICT = get_variables()
     VARIABLES = VARDICT["VARIABLES"]
@@ -1972,7 +1972,7 @@ def get_run_variables(
     ALLVARS = VARIABLES
 
     # Weights are only available in MC runs.
-    if category == "runs" and dataset not in ["bnb", "ext", "opendata_bnb"]:
+    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb"]:
         if use_lee_weights:
             assert dataset == "nue", "LEE weights are only available for nue runs"
             ALLVARS += WEIGHTSLEE
