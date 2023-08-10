@@ -373,6 +373,13 @@ def add_paper_category(df, key):
         return
     df.loc[(df["npi0"] > 0), "paper_category"] = 31
     df.loc[(df["npi0"] == 0), "paper_category"] = 2
+    
+def add_paper_category_1e1p(df, key):
+    df.loc[:, "category_1e1p"] = df["category"] # makes a new column called 'category_1e1p' in df which copies the 'category'
+    if key in ["data"]:
+        return
+    df.loc[(df["nproton"] == 1), "category_1e1p"] = 12
+    df.loc[(df["nproton"] > 1), "category_1e1p"] = 13
 
 
 def add_paper_xsec_category(df, key):
@@ -432,6 +439,7 @@ def add_paper_categories(df, key):
     add_paper_category(df, key)
     add_paper_xsec_category(df, key)
     add_paper_numu_category(df, key)
+    add_paper_category_1e1p(df, key)
 
 
 def load_data_run(

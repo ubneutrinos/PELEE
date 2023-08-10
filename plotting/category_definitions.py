@@ -10,6 +10,8 @@ def get_category_label(category_column, category):
         return paper_labels.get(category, "Other")
     elif category_column == "paper_category_xsec":
         return paper_labels_xsec.get(category, "Other")
+    elif category_column == "category_1e1p":
+        return category_labels_1e1p.get(category, "Other")
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
@@ -56,6 +58,37 @@ category_labels = {
     1: r"$\nu_e$ CC",
     10: r"$\nu_e$ CC0$\pi$0p",
     11: r"$\nu_e$ CC0$\pi$Np",
+    111: r"MiniBooNE LEE",
+    2: r"$\nu_{\mu}$ CC",
+    222: r"$\nu_{\mu}$ CC w/ Michel",
+    21: r"$\nu_{\mu}$ CC $\pi^{0}$",
+    22: r"$\nu_{\mu}$ CC 0p",
+    23: r"$\nu_{\mu}$ CC 1p",
+    24: r"$\nu_{\mu}$ CC 2p",
+    25: r"$\nu_{\mu}$ CC 3+p",
+    3: r"$\nu$ NC",
+    31: r"$\nu$ NC $\pi^{0}$",
+    4: r"Cosmic",
+    5: r"Out. fid. vol.",
+    # eta categories start with 80XX
+    801: r"$\eta \rightarrow$ other",
+    802: r"$\nu_{\mu} \eta \rightarrow \gamma\gamma$",
+    803: r"1 $\pi^0$",
+    804: r"2 $\pi^0$",
+    807: r"3+ $\pi^0$",
+    805: r"$\nu$ other",
+    806: r"out of FV",
+    6: r"other",
+    0: r"No slice",
+}
+
+# These labels are pretty much the same as category_labels except for a couple of edits that are required for the 1e1p study
+category_labels_1e1p = {
+    1: r"$\nu_e$ CC",
+    10: r"$\nu_e$ CC0$\pi$0p",
+    #11: r"$\nu_e$ CC0$\pi$Np",
+    12: r"$\nu_e$ CC0$\pi$1p",
+    13: r"$\nu_e$ CC0$\pi$2+p",
     111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
     222: r"$\nu_{\mu}$ CC w/ Michel",
@@ -178,6 +211,8 @@ category_colors = {
     1: "xkcd:green",
     10: "xkcd:mint green",
     11: "xkcd:lime green",
+    12: "xkcd:soft green",
+    13: "xkcd:bright lime",
     111: "xkcd:goldenrod",
     6: "xkcd:grey",
     0: "xkcd:black",
