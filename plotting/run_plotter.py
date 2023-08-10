@@ -20,6 +20,9 @@ variables = [
     # ('reco_e',20,(0.15,2.95),r"Reconstructed Energy [GeV]","note"),
     # ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
     ("reco_e", 17, (0.01, 2.39), r"Reconstructed Energy [ GeV ]"),
+    ("muon_energy", 14, (0.15, 1.55), "muon candidate reconstructed energy [GeV]"),
+    ("neutrino_energy", 14, (0.15, 1.55), "neutrino reconstructed energy [GeV]"),
+    ("muon_theta", 28, (-1, 1), r"muon candidate $\cos(\theta)$"),
 ]
 
 
@@ -30,7 +33,9 @@ class Plotter(RunHistGenerator):
         self.title = title
         self.xtit = XTIT
         bin_edges = np.linspace(*RANGE, BINS + 1)
-        super().__init__(rundata_dict, weight_column, variable=VARIABLE, query=query, binning=bin_edges, data_pot=data_pot)
+        super().__init__(
+            rundata_dict, weight_column, variable=VARIABLE, query=query, binning=bin_edges, data_pot=data_pot
+        )
 
     def get_variable_definitions(self, variable):
         for var_tuple in variables:
@@ -79,7 +84,9 @@ class Plotter(RunHistGenerator):
     ):
         ext_hist = self.get_data_hist(type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot)
         ext_hist.tex_string = "EXT"
-        mc_hists = self.get_mc_hists(category_column=category_column, include_multisim_errors=False, scale_to_pot=scale_to_pot)
+        mc_hists = self.get_mc_hists(
+            category_column=category_column, include_multisim_errors=False, scale_to_pot=scale_to_pot
+        )
         background_hists = list(mc_hists.values()) + [ext_hist]
         ax = self.plot_stacked_hists(
             background_hists,
