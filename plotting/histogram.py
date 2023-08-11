@@ -3,6 +3,7 @@ import unittest
 import pandas as pd
 from uncertainties import correlated_values, unumpy
 from .category_definitions import get_category_label, get_category_color
+from .statistics import covariance, constrained_covariance, error_propagation_division
 
 
 class HistGenMixin:
@@ -42,7 +43,7 @@ class HistGenMixin:
     @weight_column.setter
     def weight_column(self, weight_column):
         if weight_column is not None:
-            # it is possible to pass either the name of one single column or a list of 
+            # it is possible to pass either the name of one single column or a list of
             # column names (where the weights are multiplied)
             if isinstance(weight_column, str):
                 if weight_column not in self.data_columns:
@@ -63,6 +64,15 @@ class HistGenMixin:
             raise ValueError("query must be a string.")
         self._query = query
 
+    def _get_query(self, extra_query=None):
+        query = self.query
+        if extra_query is not None:
+            if query is None:
+                query = extra_query
+            else:
+                query = f"{query} & {extra_query}"
+        return query
+
     def check_settings(self):
         """Check that the settings are valid."""
         if self.variable is not None and self.variable not in self.data_columns:
@@ -70,7 +80,7 @@ class HistGenMixin:
         if self.binning is not None and not isinstance(self.binning, np.ndarray):
             raise ValueError("binning must be a numpy array.")
         if self.weight_column is not None:
-            # it is possible to pass either the name of one single column or a list of 
+            # it is possible to pass either the name of one single column or a list of
             # column names (where the weights are multiplied)
             if isinstance(self.weight_column, str):
                 if self.weight_column not in self.data_columns:
@@ -114,7 +124,16 @@ class HistGenMixin:
 class RunHistGenerator(HistGenMixin):
     """Histogram generator for data and simulation runs."""
 
-    def __init__(self, rundata_dict, weight_column=None, variable=None, binning=None, query=None, data_pot=None):
+    def __init__(
+        self,
+        rundata_dict,
+        weight_column=None,
+        variable=None,
+        binning=None,
+        query=None,
+        data_pot=None,
+        sideband_generator=None,
+    ):
         """Create a histogram generator for data and simulation runs.
 
         This combines data and MC appropriately for the given run. It assumes also that,
@@ -138,6 +157,9 @@ class RunHistGenerator(HistGenMixin):
             Query to be applied to the dataframe before generating the histogram.
         data_pot : float, optional
             POT of the data sample. Required to reweight to a different target POT.
+        sideband_generator : RunHistGenerator, optional
+            Histogram generator for the sideband data. If provided, the sideband data will be
+            used to constrain multisim uncertainties.
         """
         self.rundata_dict = rundata_dict
         self.data_pot = data_pot
@@ -163,6 +185,7 @@ class RunHistGenerator(HistGenMixin):
         self.df_mc = pd.concat([df for k, df in rundata_dict.items() if k not in ["data", "ext"]])
         self.df_ext = rundata_dict["ext"]
         self.df_data = rundata_dict["data"]
+        self.sideband_generator = sideband_generator
 
     def get_data_hist(self, type="data", add_error_floor=False, scale_to_pot=None):
         """Get the histogram for the data (or EXT).
@@ -227,7 +250,9 @@ class RunHistGenerator(HistGenMixin):
         other_categories = []
         for category in self.df_mc[category_column].unique():
             extra_query = f"{category_column} == '{category}'"
-            hist = self.get_mc_hist(include_multisim_errors=include_multisim_errors, extra_query=extra_query, scale_to_pot=scale_to_pot)
+            hist = self.get_mc_hist(
+                include_multisim_errors=include_multisim_errors, extra_query=extra_query, scale_to_pot=scale_to_pot
+            )
             if category_column == "dataset_name":
                 hist.label = str(category)
             else:
@@ -243,10 +268,19 @@ class RunHistGenerator(HistGenMixin):
             mc_hists["Other"].label = "Other"
             mc_hists["Other"].color = "gray"
         return mc_hists
-    
-    def get_mc_hist(self, include_multisim_errors=False, extra_query=None, scale_to_pot=None):
+
+    def get_hist_generator(self, which, extra_query=None):
+        assert which in ["mc", "data", "ext"]
+        query = self._get_query(extra_query)
+        dataframe = {"mc": self.df_mc, "data": self.df_data, "ext": self.df_ext}[which]
+        hist_generator = HistogramGenerator(
+            dataframe, weight_column=self.weight_column, variable=self.variable, binning=self.binning, query=query
+        )
+        return hist_generator
+
+    def get_mc_hist(self, include_multisim_errors=False, extra_query=None, scale_to_pot=None, use_sideband=False):
         """Produce a histogram from the MC dataframe.
-        
+
         Parameters
         ----------
         include_multisim_errors : bool, optional
@@ -256,35 +290,76 @@ class RunHistGenerator(HistGenMixin):
             Additional query to apply to the dataframe before generating the histogram.
         scale_to_pot : float, optional
             POT to scale the MC histograms to. If None, no scaling is performed.
+        use_sideband : bool, optional
+            If True, use the sideband MC and data to constrain multisim uncertainties.
         """
 
         scale_factor = 1.0
         if scale_to_pot is not None:
             assert self.data_pot is not None, "data_pot must be set to scale to a different POT."
             scale_factor = scale_to_pot / self.data_pot
-        query = self.query
-        if extra_query is not None:
-            if query is None:
-                query = extra_query
-            else:
-                query = f"{query} & {extra_query}"
-        hist_generator = HistogramGenerator(
-            self.df_mc, weight_column=self.weight_column, variable=self.variable, binning=self.binning, query=query
-        )
+        hist_generator = self.get_hist_generator(which="mc", extra_query=extra_query)
         hist = hist_generator.generate()
-
+        use_sideband = use_sideband and self.sideband_generator is not None
         if include_multisim_errors:
+            if use_sideband:
+                sideband_hist_generator = self.sideband_generator.get_hist_generator(which="mc")
+                sideband_central_value_hist = sideband_hist_generator.generate()
+                sideband_data_hist_generator = self.sideband_generator.get_hist_generator(which="data")
+                sideband_data_hist = sideband_data_hist_generator.generate()
+                # The extended covariance matrix contains the covariance of the concatenated
+                # central value and sideband data histograms.
+                extended_cov_mat = np.zeros(
+                    (hist.n_bins + sideband_data_hist.n_bins, hist.n_bins + sideband_data_hist.n_bins)
+                )
+                extended_central_value = np.concatenate((hist.nominal_values, sideband_data_hist.nominal_values))
+            else:
+                sideband_hist_generator = None
             for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
                 # The GENIE variations are applied instead of the central value tuning, so we need to use the
                 # weights_no_tune column instead of the weights column.
                 weight_column = "weights_no_tune" if ms_column == "weightsGenie" else "weights"
-                cov_mat = hist_generator.calculate_multisim_uncertainties(
-                    ms_column, central_value_hist=hist, weight_column=weight_column, query=query
+                cov_mat, universe_hists = hist_generator.calculate_multisim_uncertainties(
+                    ms_column,
+                    weight_column=weight_column,
+                    central_value_hist=hist,
+                    extra_query=extra_query,
+                    return_histograms=True,
                 )
-                hist.add_covariance(cov_mat)
-            cov_mat = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist, query=query)
-            hist.add_covariance(cov_mat)
-        
+                if not use_sideband:
+                    hist.add_covariance(cov_mat)
+                    continue
+
+                _, sideband_universe_hists = sideband_hist_generator.calculate_multisim_uncertainties(
+                    ms_column,
+                    weight_column=weight_column,
+                    central_value_hist=sideband_central_value_hist,
+                    return_histograms=True,
+                )
+                concat_observations = np.concatenate([universe_hists, sideband_universe_hists], axis=1)
+                extended_cov_mat += covariance(concat_observations, extended_central_value)
+            
+            # we have to run the unisim calculation before we update the histogram with sideband data
+            cov_mat_unisim = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist, extra_query=extra_query)
+
+            # If we are using a sideband, we can now calculate the correction to the central value 
+            # and the covariance matrix from the sideband data.
+            if use_sideband:
+                constrained_cov_mat, constrained_mu = constrained_covariance(
+                    sideband_measurement=sideband_data_hist.nominal_values,
+                    obs_central_value=hist.nominal_values,
+                    sideband_central_value=sideband_central_value_hist.nominal_values,
+                    concat_cov=extended_cov_mat,
+                )
+                # make a new histogram where we replace the nominal values and the covariance matrix
+                # with the constrained ones.
+                hist_dict = hist.to_dict()
+                hist_dict["bin_counts"] = constrained_mu
+                hist_dict["covariance_matrix"] = constrained_cov_mat
+                hist = Histogram.from_dict(hist_dict)
+
+            # finally, add the unisim covariance matrix to the multisim covariance matrix.
+            hist.add_covariance(cov_mat_unisim)
         hist *= scale_factor
         return hist
 
@@ -341,50 +416,6 @@ class HistogramGenerator(HistGenMixin):
             variances[variances == 0] = 1.4**2
         return Histogram(bin_edges, bin_counts, uncertainties=np.sqrt(variances))
 
-    def _cov(self, observations, central_value=None):
-        """Calculate the covariance matrix of the given observations.
-
-        Optionally, a central value can be given that will be used instead of the mean of the
-        observations. This is useful for calculating the covariance matrix of the multisim
-        uncertainties where the central value is the nominal MC prediction. Note that the
-        calculation of the covariance matrix has to be normalized by (N - 1) if there
-        is no central value given, which is done internally by numpy.cov.
-
-        Parameters
-        ----------
-        observations : array_like
-            Array of observations.
-        central_value : array_like, optional
-            Central value of the observations.
-
-        Returns
-        -------
-        covariance_matrix : array_like
-            Covariance matrix of the observations.
-        """
-
-        # Make sure that the observations and the central value are both ndarray
-        observations = np.asarray(observations)
-        if central_value is not None:
-            central_value = np.asarray(central_value)
-        # make sure the central value, if given, has the right length
-        if central_value is not None:
-            if central_value.shape[0] != observations.shape[1]:
-                raise ValueError("Central value has wrong length.")
-        # calculate covariance matrix
-        if central_value is None:
-            return np.cov(observations, rowvar=False)
-        else:
-            cov = np.zeros((observations.shape[1], observations.shape[1]))
-            for i in range(observations.shape[1]):
-                for j in range(observations.shape[1]):
-                    cov[i, j] = np.sum(
-                        (observations[:, i] - central_value[i]) * (observations[:, j] - central_value[j])
-                    )
-            # Here, we normalize by 1 / N, rather than 1 / (N - 1) as done by numpy.cov, because we
-            # used the given central value rather than calculating it from the observations.
-            return cov / observations.shape[0]
-
     def get_weights(self, weight_column=None, limit_weight=True, query=None):
         """Get the weights of the dataframe.
 
@@ -424,7 +455,13 @@ class HistogramGenerator(HistGenMixin):
         return weights
 
     def calculate_multisim_uncertainties(
-        self, multisim_weight_column, weight_rescale=1 / 1000, weight_column=None, central_value_hist=None, query=None
+        self,
+        multisim_weight_column,
+        weight_rescale=1 / 1000,
+        weight_column=None,
+        central_value_hist=None,
+        extra_query=None,
+        return_histograms=False,
     ):
         """Calculate multisim uncertainties.
 
@@ -447,9 +484,10 @@ class HistogramGenerator(HistGenMixin):
         central_value_hist : Histogram, optional
             Histogram containing the central value of the multisim weights. If not given,
             the covariance is calculated from the mean of the histograms.
-        query : str, optional
-            Query to apply to the dataframe before calculating the covariance matrix. Overrides
-            the query given at initialization.
+        extra_query : str, optional
+            Query to apply to the dataframe before calculating the covariance matrix.
+        return_histograms : bool, optional
+            If True, return the histograms of the universes.
 
         Returns
         -------
@@ -461,7 +499,7 @@ class HistogramGenerator(HistGenMixin):
 
         if multisim_weight_column not in self.dataframe.columns:
             raise ValueError(f"Weight column {multisim_weight_column} is not in the dataframe.")
-        query = self.query if query is None else query
+        query = self._get_query(extra_query)
         dataframe = self.dataframe.query(query)
         multisim_weights = dataframe[multisim_weight_column].values
         # We have to make sure that there are no NaNs in the weights. Every row should contain
@@ -486,11 +524,14 @@ class HistogramGenerator(HistGenMixin):
             universe_histograms.append(bincounts)
         universe_histograms = np.array(universe_histograms)
         # calculate the covariance matrix from the histograms
-        return self._cov(
+        cov = covariance(
             universe_histograms, central_value_hist.nominal_values if central_value_hist is not None else None
         )
+        if return_histograms:
+            return cov, universe_histograms
+        return cov
 
-    def calculate_unisim_uncertainties(self, central_value_hist, query=None):
+    def calculate_unisim_uncertainties(self, central_value_hist, extra_query=None):
         """Calculate unisim uncertainties.
 
         Unisim means that a single variation of a given analysis input parameter is performed according to its uncertainty.
@@ -502,9 +543,8 @@ class HistogramGenerator(HistGenMixin):
         ----------
         central_value_hist : Histogram
             Central value histogram.
-        query : str, optional
-            Query to apply to the dataframe before calculating the covariance matrix. Overrides the query given at
-            initialization.
+        extra_query : str, optional
+            Extra query to apply to the dataframe before calculating the covariance matrix.
 
         Returns
         -------
@@ -512,12 +552,11 @@ class HistogramGenerator(HistGenMixin):
             Covariance matrix of the bin counts.
         """
 
-
-        query = self.query if query is None else query
+        query = self._get_query(extra_query)
         knob_v = ["knobRPA", "knobCCMEC", "knobAxFFCCQE", "knobVecFFCCQE", "knobDecayAngMEC", "knobThetaDelta2Npi"]
         # see table 23 from the technote
         knob_n_universes = [2, 1, 1, 1, 1, 1]
-        # because all of these are GENIE knobs, we need to use the weights without the GENIE tune just as 
+        # because all of these are GENIE knobs, we need to use the weights without the GENIE tune just as
         # for the GENIE multisim
         base_weight = "weights_no_tune"
         # When we have two universes, then there are two weight variations, knobXXXup and knobXXXdown. Otherwise, there
@@ -540,10 +579,11 @@ class HistogramGenerator(HistGenMixin):
                 observations.append(bincounts)
             observations = np.array(observations)
             # calculate the covariance matrix from the histograms
-            cov = self._cov(observations, central_value_hist.nominal_values)
+            cov = covariance(observations, central_value_hist.nominal_values)
             # add it to the total covariance matrix
             total_cov += cov
         return total_cov
+
 
 class Histogram:
     def __init__(
@@ -595,6 +635,66 @@ class Histogram:
             self.bin_counts = unumpy.uarray(bin_counts, uncertainties)
         else:
             raise ValueError("Either uncertainties or covariance_matrix must be provided.")
+
+    def to_dict(self):
+        """Convert the histogram to a dictionary.
+
+        Returns
+        -------
+        dict
+            Dictionary representation of the histogram.
+        """
+
+        return {
+            "bin_edges": self.bin_edges,
+            "bin_counts": self.nominal_values,
+            "covariance_matrix": self.cov_matrix,
+            "label": self._label,
+            "plot_color": self._plot_color,
+            "tex_string": self._tex_string,
+            "log_scale": self.log_scale,
+        }
+
+    @classmethod
+    def from_dict(cls, dictionary):
+        """Create a histogram from a dictionary.
+
+        Parameters
+        ----------
+        dictionary : dict
+            Dictionary representation of the histogram.
+
+        Returns
+        -------
+        Histogram
+            Histogram object.
+        """
+
+        return cls(**dictionary)
+
+    def __eq__(self, other):
+        """Compare two histograms.
+
+        Parameters
+        ----------
+        other : Histogram
+            Other histogram to compare to.
+
+        Returns
+        -------
+        bool
+            Whether the histograms are equal.
+        """
+
+        return (
+            np.all(self.bin_edges == other.bin_edges)
+            and np.all(self.nominal_values == other.nominal_values)
+            and np.all(self.cov_matrix == other.cov_matrix)
+            and self.label == other.label
+            and self.color == other.color
+            and self.tex_string == other.tex_string
+            and self.log_scale == other.log_scale
+        )
 
     @property
     def color(self):
@@ -651,6 +751,10 @@ class Histogram:
         with np.errstate(divide="ignore", invalid="ignore"):
             return self.cov_matrix / np.outer(self.std_devs, self.std_devs)
 
+    @property
+    def n_bins(self):
+        return len(self.bin_counts)
+
     def sum(self):
         return np.sum(self.nominal_values)
 
@@ -680,57 +784,29 @@ class Histogram:
         rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.multivariate_normal(unumpy.nominal_values(self.bin_counts), self.cov_matrix)
         return Histogram(self.bin_edges, fluctuated_bin_counts, covariance_matrix=self.cov_matrix)
-    
+
     def fluctuate_poisson(self, seed=None):
         """Fluctuate bin counts according to Poisson uncertainties and return a new histogram with the fluctuated counts."""
         rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.poisson(unumpy.nominal_values(self.bin_counts))
         return Histogram(self.bin_edges, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts))
 
-    def _error_propagation_division(self, x1, x2, C1, C2):
-        """
-        Compute the result of element-wise division of x1 by x2 and the associated covariance matrix.
-
-        Parameters
-        ----------
-        x1 : array_like
-            First array to be divided.
-        x2 : array_like
-            Second array to divide by.
-        C1 : array_like
-            Covariance matrix of x1.
-        C2 : array_like
-            Covariance matrix of x2.
-
-        Returns
-        -------
-        y : array_like
-            Result of element-wise division of x1 by x2.
-        Cy : array_like
-            Covariance matrix of y.
-        """
-
-        # Element-wise division to get y
-        y = x1 / x2
-
-        n = len(x1)
-        Cy = np.zeros((n, n))
-
-        for i in range(n):
-            for j in range(n):
-                if i == j:
-                    # Diagonal elements (variance)
-                    Cy[i, i] = y[i] ** 2 * (C1[i, i] / x1[i] ** 2 + C2[i, i] / x2[i] ** 2)
-                else:
-                    # Off-diagonal elements (covariance)
-                    Cy[i, j] = y[i] * y[j] * (C1[i, j] / (x1[i] * x1[j]) + C2[i, j] / (x2[i] * x2[j]))
-
-        return y, Cy
-
     def __repr__(self):
         return f"Histogram(\nbin_edges: {self.bin_edges},\nbin_counts: {self.bin_counts},\ncovariance: {self.cov_matrix},\nlabel: {self.label}, tex: {self.tex_string})"
 
     def __add__(self, other):
+        if isinstance(other, np.ndarray):
+            # We can add or subtract an ndarray to a Histogram as long as the length of the ndarray matches the number of bins in the histogram.
+            if len(other) != len(self.bin_counts):
+                raise ValueError("Cannot add ndarray to histogram: ndarray has wrong length.")
+            new_bin_counts = self.bin_counts + other
+            return Histogram(
+                self.bin_edges,
+                unumpy.nominal_values(new_bin_counts),
+                covariance_matrix=self.cov_matrix,
+                label=self.label,
+                tex_string=self.tex_string,
+            )
         self.check_bin_edges(other)
         new_bin_counts = self.bin_counts + other.bin_counts
         label = self.label if self.label == other.label else "+".join([self.label, other.label])
@@ -751,6 +827,23 @@ class Histogram:
             return self.__add__(other)
 
     def __sub__(self, other):
+        # We can add or subtract an ndarray to a Histogram as long as the length of the ndarray is the same as the number of bins
+
+        # if other is an ndarray
+        if isinstance(other, np.ndarray):
+            if len(other) != self.n_bins:
+                raise ValueError(
+                    f"Cannot subtract ndarray of length {len(other)} from histogram with {self.n_bins} bins."
+                )
+            new_bin_counts = self.bin_counts - other
+            return Histogram(
+                self.bin_edges,
+                unumpy.nominal_values(new_bin_counts),
+                covariance_matrix=self.cov_matrix,
+                label=self.label,
+                tex_string=self.tex_string,
+            )
+        # otherwise, if other is also a Histogram
         self.check_bin_edges(other)
         new_bin_counts = self.bin_counts - other.bin_counts
         label = self.label if self.label == other.label else "-".join([self.label, other.label])
@@ -765,7 +858,7 @@ class Histogram:
 
     def __truediv__(self, other):
         self.check_bin_edges(other)
-        new_bin_counts, new_cov_matrix = self._error_propagation_division(
+        new_bin_counts, new_cov_matrix = error_propagation_division(
             self.nominal_values, other.nominal_values, self.cov_matrix, other.cov_matrix
         )
         label = self.label if self.label == other.label else "/".join([self.label, other.label])
@@ -777,12 +870,11 @@ class Histogram:
             tex_string=self.tex_string,
         )
 
-
     def __mul__(self, other):
         # we only support multiplication by floats that scale the entire histogram
         if isinstance(other, float):
             new_bin_counts = self.nominal_values * other
-            new_cov_matrix = self.cov_matrix * other ** 2
+            new_cov_matrix = self.cov_matrix * other**2
             return Histogram(
                 self.bin_edges,
                 new_bin_counts,
@@ -906,6 +998,15 @@ class TestHistogram(unittest.TestCase):
         # check covariance matrix
         np.testing.assert_array_almost_equal(cov_matrix, expected_div_hist.cov_matrix, decimal=4)
 
+    # Test conversion to and from dict 
+    def test_dict_conversion(self):
+        bin_edges = np.array([0, 1, 2, 3])
+        bin_counts = np.array([1, 2, 3])
+        covariance_matrix = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        hist = Histogram(bin_edges, bin_counts, covariance_matrix=covariance_matrix, label="hist", tex_string="hist")
+        hist_dict = hist.to_dict()
+        hist_from_dict = Histogram.from_dict(hist_dict)
+        self.assertEqual(hist, hist_from_dict)
 
 if __name__ == "__main__":
     unittest.main(argv=[""], verbosity=2, exit=False)
