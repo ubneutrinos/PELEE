@@ -27,14 +27,14 @@ variables = [
 
 
 class Plotter(RunHistGenerator):
-    def __init__(self, rundata_dict, selection, preselection, weight_column="weights", variable=None, data_pot=None):
+    def __init__(self, rundata_dict, selection, preselection, weight_column="weights", variable=None, data_pot=None, sideband_generator=None):
         query, title = self.get_query_and_title(selection, preselection)
         VARIABLE, BINS, RANGE, XTIT = self.get_variable_definitions(variable)
         self.title = title
         self.xtit = XTIT
         bin_edges = np.linspace(*RANGE, BINS + 1)
         super().__init__(
-            rundata_dict, weight_column, variable=VARIABLE, query=query, binning=bin_edges, data_pot=data_pot
+            rundata_dict, weight_column, variable=VARIABLE, query=query, binning=bin_edges, data_pot=data_pot, sideband_generator=sideband_generator
         )
 
     def get_variable_definitions(self, variable):
@@ -80,8 +80,11 @@ class Plotter(RunHistGenerator):
         include_multisim_errors=False,
         add_ext_error_floor=True,
         scale_to_pot=None,
+        use_sideband=False,
         **kwargs,
     ):
+        if use_sideband:
+            assert self.sideband_generator is not None
         ext_hist = self.get_data_hist(type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot)
         ext_hist.tex_string = "EXT"
         mc_hists = self.get_mc_hists(
@@ -94,7 +97,7 @@ class Plotter(RunHistGenerator):
             show_errorband=False,
             **kwargs,
         )
-        total_mc_hist = self.get_mc_hist(include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot)
+        total_mc_hist = self.get_mc_hist(include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot, use_sideband=use_sideband)
         total_pred_hist = total_mc_hist + ext_hist
         ax = self.plot_hist(
             total_pred_hist,
