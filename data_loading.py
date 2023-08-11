@@ -1779,6 +1779,18 @@ def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee
 
     return output,weights,data_pot # CT: Return the weight dict and data pot
 
+def load_runs(run_numbers, **load_run_kwargs):
+    runsdata = {}    # dictionary containing each run dictionary
+    output = {}      # same format as load_run output dictionary but with each dataframe concatenated by run
+    for run in run_numbers:
+        runsdata[f"{run}"], *_ = load_run(run, **load_run_kwargs)
+    rundict = runsdata[f"{run_numbers[0]}"]
+    data_sets = rundict.keys() # get the names of the datasets that have been loaded
+    for dataset in data_sets:
+        df = pd.concat([rundata[dataset] for run_key, rundata in runsdata.items()])
+        output[dataset] = df
+    return output
+
 def filter_pi0_events(df):
     # This filter was applied in the original code to all truth-filtered pi0 events.
     # The explanation was to avoid recycling unbiased ext events, i.e. selecting
