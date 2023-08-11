@@ -1714,7 +1714,7 @@ def load_sample(
 
 # CT: plotter currently requires the pot weights to be passed in as another dictionary
 # Adding to this function for now, discuss when refactoring plotter.py
-def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee=False, numupresel=False, **load_sample_kwargs):
+def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee=False, numupresel=False, **load_sample_kwargs):
     category = "numupresel" if numupresel else "runs"
     output = {}
     weights = {}
@@ -1781,15 +1781,26 @@ def load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee
 
 def load_runs(run_numbers, **load_run_kwargs):
     runsdata = {}    # dictionary containing each run dictionary
-    output = {}      # same format as load_run output dictionary but with each dataframe concatenated by run
+    weights = {}    # dictionary containing each weights dictionary
+    data_pots = np.zeros(len(run_numbers))     # array to store the POTs for each run
+    # Output variables:
+    output = {}      # same format as load_run output dictionary but with each dataset dataframe concatenated by run
+    weights_combined = {}   # same format as load_run weights dictionary but with the weights combined for each dataset by run
     for run in run_numbers:
-        runsdata[f"{run}"], *_ = load_run(run, **load_run_kwargs)
+        runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run(run, **load_run_kwargs)
+    pot_sum = np.sum(data_pots)
     rundict = runsdata[f"{run_numbers[0]}"]
     data_sets = rundict.keys() # get the names of the datasets that have been loaded
     for dataset in data_sets:
         df = pd.concat([rundata[dataset] for run_key, rundata in runsdata.items()])
         output[dataset] = df
-    return output
+        weights_arr = np.array([])  # temporary array to store the weights of a particular dataset for each run
+        for run_key, weight_dict in weights.items():
+            weights_arr = np.append(weights_arr, weight_dict[dataset])
+        mc_pots = data_pots/weights_arr  # this is an array
+        weight_sum = pot_sum / np.sum(mc_pots)  # this is a single value of the combined weight over the runs
+        weights_combined[dataset] = weight_sum  # which gets stored in this output weights dictionary
+    return output, weights_combined, pot_sum
 
 def filter_pi0_events(df):
     # This filter was applied in the original code to all truth-filtered pi0 events.
