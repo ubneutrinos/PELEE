@@ -4,7 +4,6 @@ import unittest
 import numpy as np
 
 
-
 def covariance(observations, central_value=None):
     """Calculate the covariance matrix of the given observations.
 
@@ -48,32 +47,99 @@ def covariance(observations, central_value=None):
         return cov / observations.shape[0]
 
 
-def constrained_covariance(
-    sideband_measurement, obs_central_value, sideband_central_value, observations=None, sideband_observations=None, concat_cov=None
+def get_cnp_covariance(expectation, observation):
+    """Get the combined Neyman-Pearson covaraince matrix.
+
+    This matrix may be used to calculate a chi-square between the expectation and observation
+    in a way that gives the optimal compromise between the Neyman and Pearson constructions.
+
+
+    Parameters
+    ----------
+    expectation : array_like
+        Array of expectation values.
+    observation : array_like
+        Array of observations.
+
+    Returns
+    -------
+    cnp_covariance : array_like
+        Combined Neyman-Pearson covariance matrix.
+
+    Notes
+    -----
+    The combined Neyman-Pearson covariance matrix is given by
+
+    .. math::
+        C_{ij} = 3 / \\left( \\frac{2}{\\mu_i} + \\frac{1}{n_i} \\right) \\delta_{ij}
+
+    where :math:`\\mu_i` and :math:`n_i` are the expectation and observation, respectively.
+    For a mathematical derivation see arXiv:1903.07185.
+    In this form, however, we can get division by zero errors when the observation is zero.
+    We rearrange the equation instead to
+
+    .. math::
+        C_{ij} = 3 \\mu_i n_i \\delta_{ij} / \\left( \\mu_i + 2 n_i \\right)
+    """
+
+    expectation = np.asarray(expectation)
+    observation = np.asarray(observation)
+    if expectation.shape != observation.shape:
+        raise ValueError("Expectation and observation must have the same shape.")
+    if expectation.ndim != 1:
+        raise ValueError("Expectation and observation must be 1D arrays.")
+    if np.any(expectation <= 0):
+        raise ValueError("Expectation must be positive.")
+    if np.any(observation < 0):
+        raise ValueError("Observation must be non-negative.")
+    cnp_covariance = np.diag(3 * expectation * observation / (expectation + 2 * observation))
+    return cnp_covariance
+
+
+def sideband_constraint_correction(
+    sideband_measurement,
+    sideband_central_value,
+    obs_central_value=None,
+    observations=None,
+    sideband_observations=None,
+    concat_covariance=None,
+    sideband_covariance=None,
 ):
-    """Calculate the covariance on the observations given the sideband measurement.
+    """Calculate the corrections to the covariance and nominal values given the sideband measurement.
 
     This follows the Block-matrix prescription that can be found in
     https://en.wikipedia.org/wiki/Covariance_matrix#Block_matrices
 
     Parameters
     ----------
-    sideband_measurement : array_like
-        Measurement of the sideband.
-    obs_central_value : array_like
-        Central value of the observations.
     sideband_central_value : array_like
         Central value of the sideband observations.
+    sideband_measurement : array_like
+        Measurement of the sideband.
+    obs_central_value : array_like or None
+        Central value of the observations. Not needed if concat_covariance is given.
     observations : array_like or None
-        Array of observations. If None, the concat_cov must be given.
+        Array of observations. If None, the concat_covariance must be given.
     sideband_observations : array_like or None
-        Array of sideband observations. If None, the concat_cov must be given.
-    concat_cov : array_like, optional
+        Array of sideband observations. If None, the concat_covariance must be given.
+    concat_covariance : array_like, optional
         Covariance matrix of the concatenated observations. If not given, it will be calculated
         from the observations and the central value.
+    sideband_covariance : array_like, optional
+        Covariance matrix of the sideband. If given, this replaces the lower right corner of the
+        concatenated covariance. This is expected to only contain the MC uncertainty of the
+        sideband, as the Neyman-Pearson covariance that takes care of the data uncertainty is
+        added in this function.
+
+    Returns
+    -------
+    mu_offset : array_like
+        Offset of the nominal values.
+    covariance_correction : array_like
+        Correction to the covariance matrix.
     """
 
-    if concat_cov is None:
+    if concat_covariance is None:
         assert observations is not None
         assert sideband_observations is not None
         # First, we concatenate the observations and the sideband observations.
@@ -83,21 +149,30 @@ def constrained_covariance(
         concat_central_value = np.concatenate((obs_central_value, sideband_central_value))
         # calculate the covariance matrix of the concatenated observations
         cov = covariance(concat_observations, concat_central_value)
+        n = len(obs_central_value)
     else:
-        cov = concat_cov
-    n = len(obs_central_value)
+        cov = concat_covariance
+        n = cov.shape[0] - len(sideband_central_value)
     # extract the blocks of the covariance matrix
-    Kxx = cov[: n, : n]
-    Kxy = cov[: n, n :]
-    Kyx = cov[n :, : n]
-    Kyy = cov[n :, n :]
+    Kxx = cov[:n, :n]
+    Kxy = cov[:n, n:]
+    Kyx = cov[n:, :n]
+    Kyy = cov[n:, n:]
+    if sideband_covariance is not None:
+        # check that the size is the same
+        assert sideband_covariance.shape[0] == Kyy.shape[0]
+        assert sideband_covariance.shape[1] == Kyy.shape[1]
+        Kyy = sideband_covariance
+    # We also add the CNP covariance to the sideband
+    Kyy += get_cnp_covariance(sideband_central_value, sideband_measurement)
 
     # now we can calculate the conditional mean
-    mu = obs_central_value + Kxy @ np.linalg.inv(Kyy) @ (sideband_measurement - sideband_central_value)
+    mu_offset = Kxy @ np.linalg.inv(Kyy) @ (sideband_measurement - sideband_central_value)
     # and the conditional covariance
-    cond_cov = Kxx - Kxy @ np.linalg.inv(Kyy) @ Kyx
+    covariance_correction = -Kxy @ np.linalg.inv(Kyy) @ Kyx
 
-    return cond_cov, mu
+    return mu_offset, covariance_correction
+
 
 def error_propagation_division(x1, x2, C1, C2):
     """
