@@ -206,3 +206,22 @@ numupresel:
     mc:
       file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2
       pot: 1.31e21  # for MC files we only have POT info
+  - run_id: 3
+    path: run3/numupresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19  # burn sample
+      pot: 9.43E18  # Particle On Target
+      trig: 2271036  # number of triggers
+    ext:
+      file: data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2  # off-beam data
+      trig: 205802114  # no POT info for EXT
+    drt:
+      file: prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2_newtune
+      pot: 3.28E20
+    nue:
+      file: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2
+      pot: 7.75E22
+      filter: abs(nu_pdg)==12
+    mc:
+      file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2_newtune
+      pot: 1.34E21  # for MC files we only have POT info
