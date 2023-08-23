@@ -1,6 +1,8 @@
 import numpy as np
 import unittest
 import pandas as pd
+
+from numbers import Number
 from uncertainties import correlated_values, unumpy
 from .category_definitions import get_category_label, get_category_color
 from .statistics import covariance, sideband_constraint_correction, error_propagation_division
@@ -646,6 +648,55 @@ class Histogram:
         else:
             raise ValueError("Either uncertainties or covariance_matrix must be provided.")
 
+    def draw(self, ax, **plot_kwargs):
+        """Draw the histogram on a matplotlib axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Axis to draw the histogram on.
+        plot_kwargs : dict, optional
+            Additional keyword arguments passed to the matplotlib step function.
+        """
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            ax = plt.gca()
+        if self.log_scale:
+            ax.set_yscale("log")
+        bin_counts = self.nominal_values
+        bin_edges = self.bin_edges
+        label = plot_kwargs.pop("label", self.tex_string)
+        color = plot_kwargs.pop("color", self.color)
+        errband_alpha = plot_kwargs.pop("alpha", 0.5)
+        # Be sure to repeat the last bin count
+        bin_counts = np.append(bin_counts, bin_counts[-1])
+        p = ax.step(bin_edges, bin_counts, where="post", label=label, color=color, **plot_kwargs)
+
+        # plot uncertainties as a shaded region
+        uncertainties = self.std_devs
+        uncertainties = np.append(uncertainties, uncertainties[-1])
+        # ensure that error band has the same color as the plot we made earlier unless otherwise specified
+        color = p[0].get_color()
+
+        ax.fill_between(
+            bin_edges,
+            np.clip(bin_counts - uncertainties, 0, None),
+            bin_counts + uncertainties,
+            alpha=errband_alpha,
+            step="post",
+            color=color,
+            **plot_kwargs,
+        )
+
+    def _repr_html_(self):
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        self.draw(ax)
+        ax.legend()
+        return fig._repr_html_()
+
     def to_dict(self):
         """Convert the histogram to a dictionary.
 
@@ -793,6 +844,8 @@ class Histogram:
         # take full correlation into account
         rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.multivariate_normal(unumpy.nominal_values(self.bin_counts), self.cov_matrix)
+        # clip bin counts from below
+        fluctuated_bin_counts[fluctuated_bin_counts < 0] = 0
         return Histogram(self.bin_edges, fluctuated_bin_counts, covariance_matrix=self.cov_matrix)
 
     def fluctuate_poisson(self, seed=None):
@@ -802,7 +855,11 @@ class Histogram:
         return Histogram(self.bin_edges, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts))
 
     def __repr__(self):
-        return f"Histogram(\nbin_edges: {self.bin_edges},\nbin_counts: {self.bin_counts},\ncovariance: {self.cov_matrix},\nlabel: {self.label}, tex: {self.tex_string})"
+        try:
+            get_ipython
+            return ""
+        except NameError:
+            return f"Histogram(\nbin_edges: {self.bin_edges},\nbin_counts: {self.bin_counts},\ncovariance: {self.cov_matrix},\nlabel: {self.label}, tex: {self.tex_string})"
 
     def __add__(self, other):
         if isinstance(other, np.ndarray):
@@ -867,6 +924,17 @@ class Histogram:
         )
 
     def __truediv__(self, other):
+        if isinstance(other, Number):
+            new_bin_counts = self.nominal_values / other
+            new_cov_matrix = self.cov_matrix / other**2
+            return Histogram(
+                self.bin_edges,
+                new_bin_counts,
+                covariance_matrix=new_cov_matrix,
+                label=self.label,
+                # need to bypass the getter method to do this correctly
+                tex_string=self._tex_string,
+            )
         self.check_bin_edges(other)
         new_bin_counts, new_cov_matrix = error_propagation_division(
             self.nominal_values, other.nominal_values, self.cov_matrix, other.cov_matrix
@@ -881,8 +949,8 @@ class Histogram:
         )
 
     def __mul__(self, other):
-        # we only support multiplication by floats that scale the entire histogram
-        if isinstance(other, float):
+        # we only support multiplication by numbers that scale the entire histogram
+        if isinstance(other, Number):
             new_bin_counts = self.nominal_values * other
             new_cov_matrix = self.cov_matrix * other**2
             return Histogram(
@@ -894,7 +962,7 @@ class Histogram:
                 tex_string=self._tex_string,
             )
         else:
-            raise NotImplementedError("Histogram multiplication is only supported for floats.")
+            raise NotImplementedError("Histogram multiplication is only supported for numeric types.")
 
 
 class TestHistogram(unittest.TestCase):
