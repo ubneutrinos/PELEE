@@ -1773,7 +1773,8 @@ def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_le
         if truth_set == "drt":
             continue
         else:
-            rundict = get_rundict(run_number, category, truth_set)
+            # The filters are all the same, so we just take them from run 1 here
+            rundict = get_rundict(1, category, truth_set)
             df_temp = output["mc"].query(rundict[truth_set]["filter"])
             output["mc"].drop(index=df_temp.index, inplace=True)
 
