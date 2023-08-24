@@ -1,9 +1,11 @@
 import numpy as np
 import unittest
 import pandas as pd
+
+from numbers import Number
 from uncertainties import correlated_values, unumpy
 from .category_definitions import get_category_label, get_category_color
-from .statistics import covariance, constrained_covariance, error_propagation_division
+from .statistics import covariance, sideband_constraint_correction, error_propagation_division
 
 
 class HistGenMixin:
@@ -303,18 +305,17 @@ class RunHistGenerator(HistGenMixin):
         use_sideband = use_sideband and self.sideband_generator is not None
         if include_multisim_errors:
             if use_sideband:
+                # We need the hist-generator to calculate the universe histograms later
                 sideband_hist_generator = self.sideband_generator.get_hist_generator(which="mc")
-                sideband_central_value_hist = sideband_hist_generator.generate()
-                sideband_data_hist_generator = self.sideband_generator.get_hist_generator(which="data")
-                sideband_data_hist = sideband_data_hist_generator.generate()
+                # We calculate the nominal values and *full* covariance matrix for the sideband data
+                sideband_mc_cv_hist = self.sideband_generator.get_mc_hist(include_multisim_errors=True)
                 # The extended covariance matrix contains the covariance of the concatenated
                 # central value and sideband data histograms.
                 extended_cov_mat = np.zeros(
-                    (hist.n_bins + sideband_data_hist.n_bins, hist.n_bins + sideband_data_hist.n_bins)
+                    (hist.n_bins + sideband_mc_cv_hist.n_bins, hist.n_bins + sideband_mc_cv_hist.n_bins)
                 )
-                extended_central_value = np.concatenate((hist.nominal_values, sideband_data_hist.nominal_values))
-            else:
-                sideband_hist_generator = None
+                extended_central_value = np.concatenate((hist.nominal_values, sideband_mc_cv_hist.nominal_values))
+                sideband_cov_mat = np.zeros((sideband_mc_cv_hist.n_bins, sideband_mc_cv_hist.n_bins))
             for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
                 # The GENIE variations are applied instead of the central value tuning, so we need to use the
                 # weights_no_tune column instead of the weights column.
@@ -326,40 +327,51 @@ class RunHistGenerator(HistGenMixin):
                     extra_query=extra_query,
                     return_histograms=True,
                 )
+                hist.add_covariance(cov_mat)
                 if not use_sideband:
-                    hist.add_covariance(cov_mat)
                     continue
 
-                _, sideband_universe_hists = sideband_hist_generator.calculate_multisim_uncertainties(
+                sb_cov_mat, sideband_universe_hists = sideband_hist_generator.calculate_multisim_uncertainties(
                     ms_column,
                     weight_column=weight_column,
-                    central_value_hist=sideband_central_value_hist,
+                    # when calculating multisim uncertainties, the central value is that of MC alone
+                    central_value_hist=sideband_mc_cv_hist,
                     return_histograms=True,
                 )
                 concat_observations = np.concatenate([universe_hists, sideband_universe_hists], axis=1)
-                extended_cov_mat += covariance(concat_observations, extended_central_value)
-            
-            # we have to run the unisim calculation before we update the histogram with sideband data
-            cov_mat_unisim = hist_generator.calculate_unisim_uncertainties(central_value_hist=hist, extra_query=extra_query)
+                extended_cov_mat_contrib = covariance(concat_observations, extended_central_value)
+                # sanity check: the upper left block of the extended covariance should be the same
+                # as cov_mat, and the lower right block should be the same as sb_cov_mat
+                assert np.all(np.equal(extended_cov_mat_contrib[: hist.n_bins, : hist.n_bins], cov_mat))
+                assert np.all(np.equal(extended_cov_mat_contrib[hist.n_bins :, hist.n_bins :], sb_cov_mat))
+                extended_cov_mat += extended_cov_mat_contrib
+                sideband_cov_mat += sb_cov_mat
 
-            # If we are using a sideband, we can now calculate the correction to the central value 
+            cov_mat_unisim = hist_generator.calculate_unisim_uncertainties(
+                central_value_hist=hist, extra_query=extra_query
+            )
+            hist.add_covariance(cov_mat_unisim)
+            # If we are using a sideband, we can now calculate the correction to the central value
             # and the covariance matrix from the sideband data.
             if use_sideband:
-                constrained_cov_mat, constrained_mu = constrained_covariance(
+                sideband_data_hist = self.sideband_generator.get_data_hist()
+                sideband_ext_hist = self.sideband_generator.get_data_hist(type="ext")
+                sideband_total_prediction = sideband_mc_cv_hist + sideband_ext_hist
+                mu_offset, cov_corr = sideband_constraint_correction(
+                    # The data that was actually observed
                     sideband_measurement=sideband_data_hist.nominal_values,
-                    obs_central_value=hist.nominal_values,
-                    sideband_central_value=sideband_central_value_hist.nominal_values,
-                    concat_cov=extended_cov_mat,
+                    # to calculate the constraint, we want to compare the data to the total prediction
+                    # in the sideband, which is the MC prediction plus the beam-off EXT data
+                    sideband_central_value=sideband_total_prediction.nominal_values,
+                    concat_covariance=extended_cov_mat,
+                    # We also want to use the covariance matrix of the total prediction for the
+                    # sideband, which includes the covariance of the MC and EXT data
+                    sideband_covariance=sideband_total_prediction.cov_matrix,
                 )
-                # make a new histogram where we replace the nominal values and the covariance matrix
-                # with the constrained ones.
-                hist_dict = hist.to_dict()
-                hist_dict["bin_counts"] = constrained_mu
-                hist_dict["covariance_matrix"] = constrained_cov_mat
-                hist = Histogram.from_dict(hist_dict)
+                # finally we add the corrections to the histogram
+                hist += mu_offset
+                hist.add_covariance(cov_corr)
 
-            # finally, add the unisim covariance matrix to the multisim covariance matrix.
-            hist.add_covariance(cov_mat_unisim)
         hist *= scale_factor
         return hist
 
@@ -636,6 +648,55 @@ class Histogram:
         else:
             raise ValueError("Either uncertainties or covariance_matrix must be provided.")
 
+    def draw(self, ax, **plot_kwargs):
+        """Draw the histogram on a matplotlib axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Axis to draw the histogram on.
+        plot_kwargs : dict, optional
+            Additional keyword arguments passed to the matplotlib step function.
+        """
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            ax = plt.gca()
+        if self.log_scale:
+            ax.set_yscale("log")
+        bin_counts = self.nominal_values
+        bin_edges = self.bin_edges
+        label = plot_kwargs.pop("label", self.tex_string)
+        color = plot_kwargs.pop("color", self.color)
+        errband_alpha = plot_kwargs.pop("alpha", 0.5)
+        # Be sure to repeat the last bin count
+        bin_counts = np.append(bin_counts, bin_counts[-1])
+        p = ax.step(bin_edges, bin_counts, where="post", label=label, color=color, **plot_kwargs)
+
+        # plot uncertainties as a shaded region
+        uncertainties = self.std_devs
+        uncertainties = np.append(uncertainties, uncertainties[-1])
+        # ensure that error band has the same color as the plot we made earlier unless otherwise specified
+        color = p[0].get_color()
+
+        ax.fill_between(
+            bin_edges,
+            np.clip(bin_counts - uncertainties, 0, None),
+            bin_counts + uncertainties,
+            alpha=errband_alpha,
+            step="post",
+            color=color,
+            **plot_kwargs,
+        )
+
+    def _repr_html_(self):
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        self.draw(ax)
+        ax.legend()
+        return fig._repr_html_()
+
     def to_dict(self):
         """Convert the histogram to a dictionary.
 
@@ -783,6 +844,8 @@ class Histogram:
         # take full correlation into account
         rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.multivariate_normal(unumpy.nominal_values(self.bin_counts), self.cov_matrix)
+        # clip bin counts from below
+        fluctuated_bin_counts[fluctuated_bin_counts < 0] = 0
         return Histogram(self.bin_edges, fluctuated_bin_counts, covariance_matrix=self.cov_matrix)
 
     def fluctuate_poisson(self, seed=None):
@@ -792,7 +855,11 @@ class Histogram:
         return Histogram(self.bin_edges, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts))
 
     def __repr__(self):
-        return f"Histogram(\nbin_edges: {self.bin_edges},\nbin_counts: {self.bin_counts},\ncovariance: {self.cov_matrix},\nlabel: {self.label}, tex: {self.tex_string})"
+        try:
+            get_ipython
+            return ""
+        except NameError:
+            return f"Histogram(\nbin_edges: {self.bin_edges},\nbin_counts: {self.bin_counts},\ncovariance: {self.cov_matrix},\nlabel: {self.label}, tex: {self.tex_string})"
 
     def __add__(self, other):
         if isinstance(other, np.ndarray):
@@ -857,6 +924,17 @@ class Histogram:
         )
 
     def __truediv__(self, other):
+        if isinstance(other, Number):
+            new_bin_counts = self.nominal_values / other
+            new_cov_matrix = self.cov_matrix / other**2
+            return Histogram(
+                self.bin_edges,
+                new_bin_counts,
+                covariance_matrix=new_cov_matrix,
+                label=self.label,
+                # need to bypass the getter method to do this correctly
+                tex_string=self._tex_string,
+            )
         self.check_bin_edges(other)
         new_bin_counts, new_cov_matrix = error_propagation_division(
             self.nominal_values, other.nominal_values, self.cov_matrix, other.cov_matrix
@@ -871,8 +949,8 @@ class Histogram:
         )
 
     def __mul__(self, other):
-        # we only support multiplication by floats that scale the entire histogram
-        if isinstance(other, float):
+        # we only support multiplication by numbers that scale the entire histogram
+        if isinstance(other, Number):
             new_bin_counts = self.nominal_values * other
             new_cov_matrix = self.cov_matrix * other**2
             return Histogram(
@@ -884,7 +962,7 @@ class Histogram:
                 tex_string=self._tex_string,
             )
         else:
-            raise NotImplementedError("Histogram multiplication is only supported for floats.")
+            raise NotImplementedError("Histogram multiplication is only supported for numeric types.")
 
 
 class TestHistogram(unittest.TestCase):
@@ -998,7 +1076,7 @@ class TestHistogram(unittest.TestCase):
         # check covariance matrix
         np.testing.assert_array_almost_equal(cov_matrix, expected_div_hist.cov_matrix, decimal=4)
 
-    # Test conversion to and from dict 
+    # Test conversion to and from dict
     def test_dict_conversion(self):
         bin_edges = np.array([0, 1, 2, 3])
         bin_counts = np.array([1, 2, 3])
@@ -1007,6 +1085,7 @@ class TestHistogram(unittest.TestCase):
         hist_dict = hist.to_dict()
         hist_from_dict = Histogram.from_dict(hist_dict)
         self.assertEqual(hist, hist_from_dict)
+
 
 if __name__ == "__main__":
     unittest.main(argv=[""], verbosity=2, exit=False)
