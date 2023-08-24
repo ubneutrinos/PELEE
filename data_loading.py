@@ -1714,14 +1714,17 @@ def load_sample(
 
 # CT: plotter currently requires the pot weights to be passed in as another dictionary
 # Adding to this function for now, discuss when refactoring plotter.py
-def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"],load_lee=False, numupresel=False, **load_sample_kwargs):
+def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"], blinded=True, load_lee=False, numupresel=False, **load_sample_kwargs):
     category = "numupresel" if numupresel else "runs"
     output = {}
     weights = {}
     # At a minimum, we always need data, ext and nu (mc)
-    data_df = load_sample(run_number, category, data, **load_sample_kwargs)
+    if blinded:
+        data_df = None
+    else:
+        data_df = load_sample(run_number, category, data, **load_sample_kwargs)
+        data_df["weights"] = 1.0
     data_pot, data_trig = get_pot_trig(run_number, category, data)
-    data_df["weights"] = 1.0
     weights["data"] = 1.0
     output["data"] = data_df
     ext_df = load_sample(run_number, category, "ext", **load_sample_kwargs)
@@ -1792,7 +1795,10 @@ def load_runs(run_numbers, **load_run_kwargs):
     rundict = runsdata[f"{run_numbers[0]}"]
     data_sets = rundict.keys() # get the names of the datasets that have been loaded
     for dataset in data_sets:
-        df = pd.concat([rundata[dataset] for run_key, rundata in runsdata.items()])
+        if np.any([rundata[dataset] is None for rundata in runsdata.values()]):
+            df = None
+        else:
+            df = pd.concat([rundata[dataset] for run_key, rundata in runsdata.items()])
         output[dataset] = df
         weights_arr = np.array([])  # temporary array to store the weights of a particular dataset for each run
         for run_key, weight_dict in weights.items():
