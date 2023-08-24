@@ -1,9 +1,10 @@
+from dataclasses import dataclass, fields
 import numpy as np
-import unittest
 import pandas as pd
 
 from numbers import Number
 from uncertainties import correlated_values, unumpy
+import unblinding_far_sideband as far_sb
 from .category_definitions import get_category_label, get_category_color
 from .statistics import covariance, sideband_constraint_correction, error_propagation_division
 
@@ -11,22 +12,21 @@ from .statistics import covariance, sideband_constraint_correction, error_propag
 class HistGenMixin:
     """Mixin class for histogram generators to store variable, binning, weight_column, and query."""
 
-    def __init__(self, data_columns, weight_column=None, variable=None, binning=None, query=None):
+    def __init__(self, data_columns, binning, weight_column=None, query=None):
         self._weight_column = weight_column
-        self._variable = variable
         self._binning = binning
         self._query = query
         self.data_columns = data_columns
 
     @property
     def variable(self):
-        return self._variable
+        return self._binning.variable
 
     @variable.setter
     def variable(self, variable):
-        if variable is not None and variable not in self.data_columns:
-            raise ValueError(f"Variable {variable} is not in the dataframe.")
-        self._variable = variable
+        if variable not in self.data_columns:
+            raise ValueError(f"Variable {variable} is not in the dataframe, cannot set binning")
+        self._binning.variable = variable
 
     @property
     def binning(self):
@@ -34,8 +34,9 @@ class HistGenMixin:
 
     @binning.setter
     def binning(self, binning):
-        if binning is not None and not isinstance(binning, np.ndarray):
-            raise ValueError("binning must be a numpy array.")
+        variable = binning.variable
+        if variable not in self.data_columns:
+            raise ValueError(f"Variable {variable} is not in the dataframe, cannot set binning")
         self._binning = binning
 
     @property
@@ -77,10 +78,6 @@ class HistGenMixin:
 
     def check_settings(self):
         """Check that the settings are valid."""
-        if self.variable is not None and self.variable not in self.data_columns:
-            raise ValueError(f"Variable {self.variable} is not in the dataframe.")
-        if self.binning is not None and not isinstance(self.binning, np.ndarray):
-            raise ValueError("binning must be a numpy array.")
         if self.weight_column is not None:
             # it is possible to pass either the name of one single column or a list of
             # column names (where the weights are multiplied)
@@ -129,10 +126,10 @@ class RunHistGenerator(HistGenMixin):
     def __init__(
         self,
         rundata_dict,
-        weight_column=None,
-        variable=None,
-        binning=None,
-        query=None,
+        binning,
+        weight_column="weights",
+        selection=None,
+        preselection=None,
         data_pot=None,
         sideband_generator=None,
     ):
@@ -149,12 +146,10 @@ class RunHistGenerator(HistGenMixin):
             Dictionary containing the dataframes for this run. The keys are the names of the
             datasets and the values are the dataframes. This must at least contain the keys
             "data", "mc", and "ext". This dictionary should be returned by the data_loader.
+        binning : Binning
+            Binning object containing the binning of the histogram.
         weight_column : str, optional
             Name of the column containing the weights of the data points.
-        variable : str, optional
-            Name of the column containing the data to be binned.
-        binning : array_like, optional
-            Bin edges of the histogram.
         query : str, optional
             Query to be applied to the dataframe before generating the histogram.
         data_pot : float, optional
@@ -168,7 +163,8 @@ class RunHistGenerator(HistGenMixin):
         data_columns = rundata_dict["data"].columns
         if weight_column is None:
             weight_column = "weights"
-        super().__init__(data_columns, weight_column=weight_column, variable=variable, binning=binning, query=query)
+        query = self.get_selection_query(selection, preselection)
+        super().__init__(data_columns, binning, weight_column=weight_column, query=query)
 
         # ensure that the necessary keys are present
         if "data" not in self.rundata_dict.keys():
@@ -188,6 +184,21 @@ class RunHistGenerator(HistGenMixin):
         self.df_ext = rundata_dict["ext"]
         self.df_data = rundata_dict["data"]
         self.sideband_generator = sideband_generator
+
+    def get_selection_query(self, selection, preselection):
+        if selection is None and preselection is None:
+            return None
+        presel_query = far_sb.preselection_categories[preselection]["query"]
+        sel_query = far_sb.selection_categories[selection]["query"]
+
+        if presel_query is None:
+            query = sel_query
+        elif sel_query is None:
+            query = presel_query
+        else:
+            query = f"{presel_query} and {sel_query}"
+
+        return query
 
     def get_data_hist(self, type="data", add_error_floor=False, scale_to_pot=None):
         """Get the histogram for the data (or EXT).
@@ -217,9 +228,7 @@ class RunHistGenerator(HistGenMixin):
         dataframe = self.df_data if type == "data" else self.df_ext
         # The weights here are all 1.0 for data, but may be scaled for EXT
         # to match the total number of triggers.
-        hist_generator = HistogramGenerator(
-            dataframe, weight_column="weights", variable=self.variable, binning=self.binning, query=self.query
-        )
+        hist_generator = HistogramGenerator(dataframe, self.binning, weight_column="weights", query=self.query)
         data_hist = hist_generator.generate(add_error_floor=add_error_floor)
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
@@ -275,9 +284,7 @@ class RunHistGenerator(HistGenMixin):
         assert which in ["mc", "data", "ext"]
         query = self._get_query(extra_query)
         dataframe = {"mc": self.df_mc, "data": self.df_data, "ext": self.df_ext}[which]
-        hist_generator = HistogramGenerator(
-            dataframe, weight_column=self.weight_column, variable=self.variable, binning=self.binning, query=query
-        )
+        hist_generator = HistogramGenerator(dataframe, self.binning, weight_column=self.weight_column, query=query)
         return hist_generator
 
     def get_mc_hist(self, include_multisim_errors=False, extra_query=None, scale_to_pot=None, use_sideband=False):
@@ -302,6 +309,7 @@ class RunHistGenerator(HistGenMixin):
             scale_factor = scale_to_pot / self.data_pot
         hist_generator = self.get_hist_generator(which="mc", extra_query=extra_query)
         hist = hist_generator.generate()
+        hist.label = "MC"
         use_sideband = use_sideband and self.sideband_generator is not None
         if include_multisim_errors:
             if use_sideband:
@@ -377,7 +385,7 @@ class RunHistGenerator(HistGenMixin):
 
 
 class HistogramGenerator(HistGenMixin):
-    def __init__(self, dataframe, weight_column=None, variable=None, binning=None, query=None):
+    def __init__(self, dataframe, binning, weight_column="weights", query=None):
         """Create a histogram generator for a given dataframe.
 
         Parameters
@@ -390,19 +398,13 @@ class HistogramGenerator(HistGenMixin):
         """
         self.dataframe = dataframe
         data_columns = dataframe.columns
-        super().__init__(data_columns, weight_column=weight_column, variable=variable, binning=binning, query=query)
+        super().__init__(data_columns, binning, weight_column=weight_column, query=query)
 
-    def generate(self, variable=None, binning=None, weight_column=None, query=None, add_error_floor=False):
+    def generate(self, query=None, add_error_floor=False):
         """Generate a histogram from the dataframe.
 
         Parameters
         ----------
-        variable : str, optional
-            Name of the column containing the data to be binned.
-        binning : array_like, optional
-            Bin edges of the histogram.
-        weight_column : str, optional
-            Name of the column containing the weights of the data points.
         query : str, optional
             Query to be applied to the dataframe before generating the histogram.
         add_error_floor : bool, optional
@@ -416,17 +418,19 @@ class HistogramGenerator(HistGenMixin):
         histogram : Histogram
             Histogram object containing the binned data.
         """
-        self.update_settings(variable, binning, weight_column, query)
+        self.update_settings(variable=None, binning=None, weight_column=None, query=query)
 
         if self.query is not None:
             dataframe = self.dataframe.query(self.query)
+        else:
+            dataframe = self.dataframe
 
-        weights = self.get_weights(weight_column=weight_column)
-        bin_counts, bin_edges = np.histogram(dataframe[self.variable], bins=self.binning, weights=weights)
-        variances, _ = np.histogram(dataframe[self.variable], bins=self.binning, weights=weights**2)
+        weights = self.get_weights(weight_column=self.weight_column)
+        bin_counts, bin_edges = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights)
+        variances, _ = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights**2)
         if add_error_floor:
             variances[variances == 0] = 1.4**2
-        return Histogram(bin_edges, bin_counts, uncertainties=np.sqrt(variances))
+        return Histogram(self.binning, bin_counts, uncertainties=np.sqrt(variances))
 
     def get_weights(self, weight_column=None, limit_weight=True, query=None):
         """Get the weights of the dataframe.
@@ -443,9 +447,10 @@ class HistogramGenerator(HistGenMixin):
         weights : array_like
             Array of weights.
         """
-        if query is None:
-            query = self.query
-        dataframe = self.dataframe.query(query)
+        if self.query is not None:
+            dataframe = self.dataframe.query(self.query)
+        else:
+            dataframe = self.dataframe
         if weight_column is None:
             weight_column = self.weight_column
         if weight_column is None:
@@ -531,7 +536,9 @@ class HistogramGenerator(HistGenMixin):
         for column in df.columns:
             # create a histogram for each universe
             bincounts, _ = np.histogram(
-                dataframe[self.variable], bins=self.binning, weights=base_weights * df[column].values * weight_rescale
+                dataframe[self.variable],
+                bins=self.binning.bin_edges,
+                weights=base_weights * df[column].values * weight_rescale,
             )
             universe_histograms.append(bincounts)
         universe_histograms = np.array(universe_histograms)
@@ -573,7 +580,7 @@ class HistogramGenerator(HistGenMixin):
         base_weight = "weights_no_tune"
         # When we have two universes, then there are two weight variations, knobXXXup and knobXXXdown. Otherwise, there
         # is only one weight variation, knobXXXup.
-        total_cov = np.zeros((len(self.binning) - 1, len(self.binning) - 1))
+        total_cov = np.zeros((len(self.binning), len(self.binning)))
         base_weights = self.get_weights(weight_column=base_weight)
         dataframe = self.dataframe.query(query)
         for knob, n_universes in zip(knob_v, knob_n_universes):
@@ -585,7 +592,7 @@ class HistogramGenerator(HistGenMixin):
                 # calculate the histogram for this universe
                 bincounts, _ = np.histogram(
                     dataframe[self.variable],
-                    bins=self.binning,
+                    bins=self.binning.bin_edges,
                     weights=base_weights * universe_weights,
                 )
                 observations.append(bincounts)
@@ -600,21 +607,20 @@ class HistogramGenerator(HistGenMixin):
 class Histogram:
     def __init__(
         self,
-        bin_edges,
+        binning,
         bin_counts,
         uncertainties=None,
         covariance_matrix=None,
         label=None,
         plot_color=None,
         tex_string=None,
-        log_scale=False,
     ):
         """Create a histogram object.
 
         Parameters
         ----------
-        bin_edges : array_like
-            Bin edges of the histogram.
+        binning : Binning
+            Binning of the histogram.
         bin_counts : array_like
             Bin counts of the histogram.
         uncertainties : array_like, optional
@@ -622,22 +628,20 @@ class Histogram:
         covariance_matrix : array_like, optional
             Covariance matrix of the bin counts.
         label : str, optional
-            Label of the histogram.
+            Label of the histogram. This is distinct from the label of the x-axis, which is
+            set in the Binning object that is passed to the constructor.
         plot_color : str, optional
             Color of the histogram, used for plotting.
         tex_string : str, optional
-            TeX string of the histogram.
-        log_scale : bool, optional
-            Whether the histogram is plotted on a logarithmic scale.
+            TeX string used to label the histogram in a plot.
         """
 
-        if len(bin_edges) != len(bin_counts) + 1:
-            raise ValueError("bin_edges must have one more element than bin_counts.")
-        self.bin_edges = np.array(bin_edges)
+        self.binning = binning
+        self.bin_counts = bin_counts
+        assert self.binning.n_bins == len(self.bin_counts), "bin_counts must have the same length as binning."
         self._label = label
         self._plot_color = plot_color
         self._tex_string = tex_string
-        self.log_scale = log_scale
 
         if covariance_matrix is not None:
             self.cov_matrix = np.array(covariance_matrix)
@@ -648,13 +652,15 @@ class Histogram:
         else:
             raise ValueError("Either uncertainties or covariance_matrix must be provided.")
 
-    def draw(self, ax, **plot_kwargs):
+    def draw(self, ax, as_errorbars=False, **plot_kwargs):
         """Draw the histogram on a matplotlib axis.
 
         Parameters
         ----------
         ax : matplotlib.axes.Axes
             Axis to draw the histogram on.
+        as_errorbars : bool, optional
+            Whether to draw the histogram as errorbars.
         plot_kwargs : dict, optional
             Additional keyword arguments passed to the matplotlib step function.
         """
@@ -662,12 +668,26 @@ class Histogram:
 
         if ax is None:
             ax = plt.gca()
-        if self.log_scale:
+        if self.binning.is_log:
             ax.set_yscale("log")
+        ax.set_xlabel(self.binning.label)
+        ax.set_ylabel("Events")
         bin_counts = self.nominal_values
-        bin_edges = self.bin_edges
+        bin_edges = self.binning.bin_edges
         label = plot_kwargs.pop("label", self.tex_string)
         color = plot_kwargs.pop("color", self.color)
+        if as_errorbars:
+            ax.errorbar(
+                self.binning.bin_centers,
+                bin_counts,
+                yerr=self.std_devs,
+                linestyle="none",
+                marker=".",
+                label=label,
+                color=color,
+                **plot_kwargs,
+            )
+            return ax
         errband_alpha = plot_kwargs.pop("alpha", 0.5)
         # Be sure to repeat the last bin count
         bin_counts = np.append(bin_counts, bin_counts[-1])
@@ -707,13 +727,12 @@ class Histogram:
         """
 
         return {
-            "bin_edges": self.bin_edges,
+            "binning": self.binning.__dict__,
             "bin_counts": self.nominal_values,
             "covariance_matrix": self.cov_matrix,
             "label": self._label,
             "plot_color": self._plot_color,
             "tex_string": self._tex_string,
-            "log_scale": self.log_scale,
         }
 
     @classmethod
@@ -731,6 +750,7 @@ class Histogram:
             Histogram object.
         """
 
+        dictionary["binning"] = Binning(**dictionary["binning"])
         return cls(**dictionary)
 
     def __eq__(self, other):
@@ -748,14 +768,21 @@ class Histogram:
         """
 
         return (
-            np.all(self.bin_edges == other.bin_edges)
+            self.binning == other.binning
             and np.all(self.nominal_values == other.nominal_values)
             and np.all(self.cov_matrix == other.cov_matrix)
             and self.label == other.label
             and self.color == other.color
             and self.tex_string == other.tex_string
-            and self.log_scale == other.log_scale
         )
+
+    @property
+    def bin_centers(self):
+        return self.binning.bin_centers
+
+    @property
+    def n_bins(self):
+        return len(self.binning)
 
     @property
     def color(self):
@@ -791,13 +818,6 @@ class Histogram:
         self._tex_string = value
 
     @property
-    def bin_centers(self):
-        if self.log_scale:
-            return np.sqrt(self.bin_edges[1:] * self.bin_edges[:-1])
-        else:
-            return (self.bin_edges[1:] + self.bin_edges[:-1]) / 2
-
-    @property
     def nominal_values(self):
         return unumpy.nominal_values(self.bin_counts)
 
@@ -811,10 +831,6 @@ class Histogram:
         # ignore division by zero error
         with np.errstate(divide="ignore", invalid="ignore"):
             return self.cov_matrix / np.outer(self.std_devs, self.std_devs)
-
-    @property
-    def n_bins(self):
-        return len(self.bin_counts)
 
     def sum(self):
         return np.sum(self.nominal_values)
@@ -835,10 +851,6 @@ class Histogram:
         self.cov_matrix += cov_mat
         self.bin_counts = np.array(correlated_values(self.nominal_values, self.cov_matrix))
 
-    def check_bin_edges(self, other):
-        if not np.array_equal(self.bin_edges, other.bin_edges):
-            raise ValueError("Histograms have different bin edges, cannot perform operation.")
-
     def fluctuate(self, seed=None):
         """Fluctuate bin counts according to uncertainties and return a new histogram with the fluctuated counts."""
         # take full correlation into account
@@ -846,20 +858,16 @@ class Histogram:
         fluctuated_bin_counts = rng.multivariate_normal(unumpy.nominal_values(self.bin_counts), self.cov_matrix)
         # clip bin counts from below
         fluctuated_bin_counts[fluctuated_bin_counts < 0] = 0
-        return Histogram(self.bin_edges, fluctuated_bin_counts, covariance_matrix=self.cov_matrix)
+        return Histogram(self.binning, fluctuated_bin_counts, covariance_matrix=self.cov_matrix)
 
     def fluctuate_poisson(self, seed=None):
         """Fluctuate bin counts according to Poisson uncertainties and return a new histogram with the fluctuated counts."""
         rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.poisson(unumpy.nominal_values(self.bin_counts))
-        return Histogram(self.bin_edges, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts))
+        return Histogram(self.binning, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts))
 
     def __repr__(self):
-        try:
-            get_ipython
-            return ""
-        except NameError:
-            return f"Histogram(\nbin_edges: {self.bin_edges},\nbin_counts: {self.bin_counts},\ncovariance: {self.cov_matrix},\nlabel: {self.label}, tex: {self.tex_string})"
+        return f"Histogram(binning={self.binning}, bin_counts={self.bin_counts}, covariance={self.cov_matrix}, label={self.label}, tex={self.tex_string})"
 
     def __add__(self, other):
         if isinstance(other, np.ndarray):
@@ -868,18 +876,18 @@ class Histogram:
                 raise ValueError("Cannot add ndarray to histogram: ndarray has wrong length.")
             new_bin_counts = self.bin_counts + other
             return Histogram(
-                self.bin_edges,
+                self.binning,
                 unumpy.nominal_values(new_bin_counts),
                 covariance_matrix=self.cov_matrix,
                 label=self.label,
                 tex_string=self.tex_string,
             )
-        self.check_bin_edges(other)
+        assert self.binning == other.binning, "Cannot add histograms with different binning."
         new_bin_counts = self.bin_counts + other.bin_counts
         label = self.label if self.label == other.label else "+".join([self.label, other.label])
         new_cov_matrix = self.cov_matrix + other.cov_matrix
         return Histogram(
-            self.bin_edges,
+            self.binning,
             unumpy.nominal_values(new_bin_counts),
             covariance_matrix=new_cov_matrix,
             label=label,
@@ -898,25 +906,25 @@ class Histogram:
 
         # if other is an ndarray
         if isinstance(other, np.ndarray):
-            if len(other) != self.n_bins:
+            if len(other) != len(self.bin_counts):
                 raise ValueError(
                     f"Cannot subtract ndarray of length {len(other)} from histogram with {self.n_bins} bins."
                 )
             new_bin_counts = self.bin_counts - other
             return Histogram(
-                self.bin_edges,
+                self.binning,
                 unumpy.nominal_values(new_bin_counts),
                 covariance_matrix=self.cov_matrix,
                 label=self.label,
                 tex_string=self.tex_string,
             )
         # otherwise, if other is also a Histogram
-        self.check_bin_edges(other)
+        assert self.binning == other.binning, "Cannot add histograms with different binning."
         new_bin_counts = self.bin_counts - other.bin_counts
         label = self.label if self.label == other.label else "-".join([self.label, other.label])
         new_cov_matrix = self.cov_matrix + other.cov_matrix
         return Histogram(
-            self.bin_edges,
+            self.binning,
             unumpy.nominal_values(new_bin_counts),
             covariance_matrix=new_cov_matrix,
             label=label,
@@ -928,20 +936,20 @@ class Histogram:
             new_bin_counts = self.nominal_values / other
             new_cov_matrix = self.cov_matrix / other**2
             return Histogram(
-                self.bin_edges,
+                self.binning,
                 new_bin_counts,
                 covariance_matrix=new_cov_matrix,
                 label=self.label,
                 # need to bypass the getter method to do this correctly
                 tex_string=self._tex_string,
             )
-        self.check_bin_edges(other)
+        assert self.binning == other.binning, "Cannot divide histograms with different binning."
         new_bin_counts, new_cov_matrix = error_propagation_division(
             self.nominal_values, other.nominal_values, self.cov_matrix, other.cov_matrix
         )
         label = self.label if self.label == other.label else "/".join([self.label, other.label])
         return Histogram(
-            self.bin_edges,
+            self.binning,
             new_bin_counts,
             covariance_matrix=new_cov_matrix,
             label=label,
@@ -954,7 +962,23 @@ class Histogram:
             new_bin_counts = self.nominal_values * other
             new_cov_matrix = self.cov_matrix * other**2
             return Histogram(
-                self.bin_edges,
+                self.binning,
+                new_bin_counts,
+                covariance_matrix=new_cov_matrix,
+                label=self.label,
+                # need to bypass the getter method to do this correctly
+                tex_string=self._tex_string,
+            )
+        else:
+            raise NotImplementedError("Histogram multiplication is only supported for numeric types.")
+
+    def __rmul__(self, other):
+        # we only support multiplication by numbers that scale the entire histogram
+        if isinstance(other, Number):
+            new_bin_counts = self.nominal_values * other
+            new_cov_matrix = self.cov_matrix * other**2
+            return Histogram(
+                self.binning,
                 new_bin_counts,
                 covariance_matrix=new_cov_matrix,
                 label=self.label,
@@ -965,127 +989,88 @@ class Histogram:
             raise NotImplementedError("Histogram multiplication is only supported for numeric types.")
 
 
-class TestHistogram(unittest.TestCase):
-    def test_uncorrelated(self):
-        bin_edges = np.array([0, 1, 2, 3])
-        bin_counts1 = np.array([1, 2, 3])
-        uncertainties1 = np.array([0.1, 0.2, 0.3])
-        bin_counts2 = np.array([4, 5, 6])
-        uncertainties2 = np.array([0.4, 0.5, 0.6])
+@dataclass
+class Binning:
+    """Binning for a variable
 
-        hist1 = Histogram(bin_edges, bin_counts1, uncertainties1, label="hist1", tex_string="hist1")
-        hist2 = Histogram(bin_edges, bin_counts2, uncertainties2, label="hist2", tex_string="hist2")
+    Attributes:
+    -----------
+    variable : str
+        Name of the variable being binned
+    bin_edges : np.ndarray
+        Array of bin edges
+    label : str
+        Label for the binned variable. This will be used to label the x-axis in plots.
+    is_log : bool, optional
+        Whether the binning is logarithmic or not (default is False)
+    """
 
-        hist_sum = hist1 + hist2
-        hist_diff = hist1 - hist2
+    variable: str
+    bin_edges: np.ndarray
+    label: str
+    is_log: bool = False
 
-        np.testing.assert_array_almost_equal(unumpy.nominal_values(hist_sum.bin_counts), np.array([5, 7, 9]))
-        np.testing.assert_array_almost_equal(
-            unumpy.std_devs(hist_sum.bin_counts), np.sqrt(np.array([0.17, 0.29, 0.45]))
-        )
-        np.testing.assert_array_almost_equal(unumpy.nominal_values(hist_diff.bin_counts), np.array([-3, -3, -3]))
-        np.testing.assert_array_almost_equal(
-            unumpy.std_devs(hist_diff.bin_counts), np.sqrt(np.array([0.17, 0.29, 0.45]))
-        )
+    def __eq__(self, other):
+        if isinstance(other, Binning):
+            for field in fields(self):
+                attr_self = getattr(self, field.name)
+                attr_other = getattr(other, field.name)
+                if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
+                    if not np.array_equal(attr_self, attr_other):
+                        return False
+                else:
+                    if attr_self != attr_other:
+                        return False
+            return True
+        return False
 
-    def test_correlated(self):
-        bin_edges = np.array([0, 1, 2, 3])
-        bin_counts1 = np.array([1, 2, 3])
-        covariance_matrix1 = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
-        bin_counts2 = np.array([4, 5, 6])
-        covariance_matrix2 = np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]])
+    def __post_init__(self):
+        if isinstance(self.bin_edges, list):
+            self.bin_edges = np.array(self.bin_edges)
 
-        hist1 = Histogram(
-            bin_edges, bin_counts1, covariance_matrix=covariance_matrix1, label="hist1", tex_string="hist1"
-        )
-        hist2 = Histogram(
-            bin_edges, bin_counts2, covariance_matrix=covariance_matrix2, label="hist2", tex_string="hist2"
-        )
+    def __len__(self):
+        return self.n_bins
 
-        hist_sum = hist1 + hist2
-        hist_diff = hist1 - hist2
+    @classmethod
+    def from_bounds(cls, var, n_bins, bounds, label, is_log=False):
+        """Create a Binning object from bounds
 
-        np.testing.assert_array_almost_equal(unumpy.nominal_values(hist_sum.bin_counts), np.array([5, 7, 9]))
-        np.testing.assert_array_almost_equal(
-            unumpy.std_devs(hist_sum.bin_counts), np.sqrt(np.array([0.17, 0.29, 0.45]))
-        )
-        np.testing.assert_array_almost_equal(unumpy.nominal_values(hist_diff.bin_counts), np.array([-3, -3, -3]))
-        np.testing.assert_array_almost_equal(
-            unumpy.std_devs(hist_diff.bin_counts), np.sqrt(np.array([0.17, 0.29, 0.45]))
-        )
+        Parameters:
+        -----------
+        var : str
+            Name of the variable being binned
+        n_bins : int
+            Number of bins
+        bounds : tuple
+            Tuple of lower and upper bounds
+        label : str
+            Label for the binned variable. This will be used to label the x-axis in plots.
+        is_log : bool, optional
+            Whether the binning is logarithmic or not (default is False)
 
-    def test_fluctuation(self):
-        # Generate a histogram with a covariance matrix
-        bin_edges = np.array([0, 1, 2, 3])
-        bin_counts = np.array([1, 2, 3])
-        covariance_matrix = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
-        hist = Histogram(bin_edges, bin_counts, covariance_matrix=covariance_matrix, label="hist", tex_string="hist")
+        Returns:
+        --------
+        Binning
+            A Binning object with the specified bounds
+        """
+        if is_log:
+            bin_edges = np.geomspace(*bounds, n_bins + 1)
+        else:
+            bin_edges = np.linspace(*bounds, n_bins + 1)
+        return cls(var, bin_edges, label, is_log=is_log)
 
-        # fluctuate the histogram and check that the fluctuated bin counts are distributed according to the covariance matrix
-        fluctuated_counts = []
-        for i in range(10000):
-            fluctuated_hist = hist.fluctuate(seed=i)
-            fluctuated_counts.append(fluctuated_hist.nominal_values)
-        fluctuated_counts = np.array(fluctuated_counts)
+    @property
+    def n_bins(self):
+        """Number of bins"""
+        return len(self.bin_edges) - 1
 
-        # calculate covariance matrix of fluctuated counts with numpy
-        cov_matrix = np.cov(fluctuated_counts, rowvar=False)
-
-        # this should be close to the expectation value
-        np.testing.assert_array_almost_equal(cov_matrix, covariance_matrix, decimal=2)
-
-    def test_division(self):
-        bin_edges = np.array([0, 1, 2, 3])
-        # We want to test the division away from zero to avoid division by zero errors
-        bin_counts1 = np.array([1, 2, 3]) + 10
-        covariance_matrix1 = np.array([[0.1, 0.2, 0.3], [0.2, 0.4, 0.6], [0.3, 0.6, 0.9]])
-        # covariance_matrix1 = np.array([[0.1, 0.0, 0.0], [0.0, 0.4, 0.0], [0.0, 0.0, 0.9]])
-        bin_counts2 = np.array([4, 5, 6]) + 10
-        covariance_matrix2 = np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]])
-        # covariance_matrix2 = np.array([[0.16, 0.0, 0.0], [0.0, 0.25, 0.0], [0.0, 0.0, 0.36]])
-
-        hist1 = Histogram(
-            bin_edges, bin_counts1, covariance_matrix=covariance_matrix1, label="hist1", tex_string="hist1"
-        )
-        hist2 = Histogram(
-            bin_edges, bin_counts2, covariance_matrix=covariance_matrix2, label="hist2", tex_string="hist2"
-        )
-
-        fluctuated_divisions = []
-        # To test error propagation, we fluctuate hist1 and hist2 and divide them. The covariance matrix
-        # of the fluctuated divisions should be close to the expected covariance matrix that we get
-        # from the division function.
-        for i in range(10000):
-            fluctuated_hist1 = hist1.fluctuate(seed=i)
-            # It's important not to repeat seeds here, otherwise the values will be correlated
-            # when they should not be.
-            fluctuated_hist2 = hist2.fluctuate(seed=i + 10000)
-            fluctuated_division = fluctuated_hist1 / fluctuated_hist2
-            fluctuated_divisions.append(fluctuated_division.nominal_values)
-        fluctuated_divisions = np.array(fluctuated_divisions)
-
-        # calculate covariance matrix of fluctuated divisions with numpy
-        cov_matrix = np.cov(fluctuated_divisions, rowvar=False)
-
-        # get expectation histogram
-        expected_div_hist = hist1 / hist2
-        # check nominal values
-        np.testing.assert_array_almost_equal(
-            fluctuated_divisions.mean(axis=0), expected_div_hist.nominal_values, decimal=3
-        )
-        # check covariance matrix
-        np.testing.assert_array_almost_equal(cov_matrix, expected_div_hist.cov_matrix, decimal=4)
-
-    # Test conversion to and from dict
-    def test_dict_conversion(self):
-        bin_edges = np.array([0, 1, 2, 3])
-        bin_counts = np.array([1, 2, 3])
-        covariance_matrix = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
-        hist = Histogram(bin_edges, bin_counts, covariance_matrix=covariance_matrix, label="hist", tex_string="hist")
-        hist_dict = hist.to_dict()
-        hist_from_dict = Histogram.from_dict(hist_dict)
-        self.assertEqual(hist, hist_from_dict)
+    @property
+    def bin_centers(self):
+        """Array of bin centers"""
+        if self.is_log:
+            return np.sqrt(self.bin_edges[1:] * self.bin_edges[:-1])
+        else:
+            return (self.bin_edges[1:] + self.bin_edges[:-1]) / 2
 
 
-if __name__ == "__main__":
-    unittest.main(argv=[""], verbosity=2, exit=False)
+

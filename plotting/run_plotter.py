@@ -2,7 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from .histogram import RunHistGenerator
+from .histogram import RunHistGenerator, Binning
 import unblinding_far_sideband as far_sb
 
 # TODO: add more variables
@@ -27,14 +27,25 @@ variables = [
 
 
 class Plotter(RunHistGenerator):
-    def __init__(self, rundata_dict, selection, preselection, weight_column="weights", variable=None, data_pot=None, sideband_generator=None):
-        query, title = self.get_query_and_title(selection, preselection)
-        VARIABLE, BINS, RANGE, XTIT = self.get_variable_definitions(variable)
-        self.title = title
-        self.xtit = XTIT
-        bin_edges = np.linspace(*RANGE, BINS + 1)
+    def __init__(
+        self,
+        rundata_dict,
+        binning,
+        weight_column="weights",
+        selection=None,
+        preselection=None,
+        data_pot=None,
+        sideband_generator=None,
+    ):
+        self.title = self.get_selection_title(selection, preselection)
         super().__init__(
-            rundata_dict, weight_column, variable=VARIABLE, query=query, binning=bin_edges, data_pot=data_pot, sideband_generator=sideband_generator
+            rundata_dict,
+            binning,
+            weight_column=weight_column,
+            selection=selection,
+            preselection=preselection,
+            data_pot=data_pot,
+            sideband_generator=sideband_generator,
         )
 
     def get_variable_definitions(self, variable):
@@ -43,24 +54,17 @@ class Plotter(RunHistGenerator):
                 return var_tuple
         raise ValueError(f"Variable {variable} not found in variable definitions.")
 
-    def get_query_and_title(self, selection, preselection):
-        presel_query = far_sb.preselection_categories[preselection]["query"]
+    def get_selection_title(self, selection, preselection):
         presel_title = far_sb.preselection_categories[preselection]["title"]
-
-        sel_query = far_sb.selection_categories[selection]["query"]
         sel_title = far_sb.selection_categories[selection]["title"]
 
-        if presel_query is None:
-            query = sel_query
+        if preselection.lower() == "none":
             presel_title = "No Presel."
-        elif sel_query is None:
-            query = presel_query
+        elif selection.lower() == "none":
             sel_title = "No Sel."
-        else:
-            query = f"{presel_query} and {sel_query}"
 
         title = f"{presel_title} and {sel_title}"
-        return query, title
+        return title
 
     def get_pot_label(self, scale_to_pot):
         if self.data_pot is None:
@@ -97,7 +101,9 @@ class Plotter(RunHistGenerator):
             show_errorband=False,
             **kwargs,
         )
-        total_mc_hist = self.get_mc_hist(include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot, use_sideband=use_sideband)
+        total_mc_hist = self.get_mc_hist(
+            include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot, use_sideband=use_sideband
+        )
         total_pred_hist = total_mc_hist + ext_hist
         ax = self.plot_hist(
             total_pred_hist,
@@ -125,7 +131,7 @@ class Plotter(RunHistGenerator):
             fontsize=10,
             bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
         )
-        ax.set_xlabel(self.xtit)
+        ax.set_xlabel(total_pred_hist.binning.label)
         ax.set_ylabel("Events")
         ax.set_title(self.title)
         ax.legend()
@@ -147,14 +153,20 @@ class Plotter(RunHistGenerator):
             ax = plt.gca()
         # make a step plot of the histogram
         bin_counts = hist.nominal_values
-        bin_edges = hist.bin_edges
+        bin_edges = hist.binning.bin_edges
         if "label" in kwargs:
             label = kwargs.pop("label")
         else:
             label = hist.tex_string
         if as_errorbars:
             ax.errorbar(
-                hist.bin_centers, bin_counts, yerr=hist.std_devs, linestyle="none", marker=".", label=label, **kwargs
+                hist.binning.bin_centers,
+                bin_counts,
+                yerr=hist.std_devs,
+                linestyle="none",
+                marker=".",
+                label=label,
+                **kwargs,
             )
             return ax
         # Be sure to repeat the last bin count
@@ -197,7 +209,7 @@ class Plotter(RunHistGenerator):
         if ax is None:
             ax = plt.gca()
 
-        x = hists[0].bin_edges
+        x = hists[0].binning.bin_edges
 
         def repeated_nom_values(hist):
             # repeat the last bin count
@@ -221,7 +233,7 @@ class Plotter(RunHistGenerator):
         # plot uncertainties as a shaded region, but only for the sum of all hists
         summed_hist = sum(hists)
         # show sum as black line
-        p = ax.step(summed_hist.bin_edges, repeated_nom_values(summed_hist), where="post", color="k", lw=0.5)
+        p = ax.step(summed_hist.binning.bin_edges, repeated_nom_values(summed_hist), where="post", color="k", lw=0.5)
         # show uncertainty as shaded region
         uncertainties = summed_hist.std_devs
         uncertainties = np.append(uncertainties, uncertainties[-1])
@@ -231,7 +243,7 @@ class Plotter(RunHistGenerator):
         else:
             kwargs["color"] = uncertainty_color
         ax.fill_between(
-            summed_hist.bin_edges,
+            summed_hist.binning.bin_edges,
             np.clip(repeated_nom_values(summed_hist) - uncertainties, 0, None),
             repeated_nom_values(summed_hist) + uncertainties,
             alpha=0.6,
