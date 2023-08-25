@@ -26,27 +26,14 @@ variables = [
 ]
 
 
-class Plotter(RunHistGenerator):
+class RunHistPlotter():
     def __init__(
         self,
-        rundata_dict,
-        binning,
-        weight_column="weights",
-        selection=None,
-        preselection=None,
-        data_pot=None,
-        sideband_generator=None,
+        run_hist_generator,
+        selection_title=None
     ):
-        self.title = self.get_selection_title(selection, preselection)
-        super().__init__(
-            rundata_dict,
-            binning,
-            weight_column=weight_column,
-            selection=selection,
-            preselection=preselection,
-            data_pot=data_pot,
-            sideband_generator=sideband_generator,
-        )
+        self.title = selection_title
+        self.run_hist_generator = run_hist_generator
 
     def get_variable_definitions(self, variable):
         for var_tuple in variables:
@@ -67,10 +54,10 @@ class Plotter(RunHistGenerator):
         return title
 
     def get_pot_label(self, scale_to_pot):
-        if self.data_pot is None:
+        if self.run_hist_generator.data_pot is None:
             return ""
         if scale_to_pot is None:
-            return f"Data POT: {self.data_pot:.1e}"
+            return f"Data POT: {self.run_hist_generator.data_pot:.1e}"
         else:
             return f"MC Scaled to {scale_to_pot:.1e} POT"
 
@@ -87,11 +74,12 @@ class Plotter(RunHistGenerator):
         use_sideband=False,
         **kwargs,
     ):
+        gen = self.run_hist_generator
         if use_sideband:
-            assert self.sideband_generator is not None
-        ext_hist = self.get_data_hist(type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot)
+            assert gen.sideband_generator is not None
+        ext_hist = gen.get_data_hist(type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot)
         ext_hist.tex_string = "EXT"
-        mc_hists = self.get_mc_hists(
+        mc_hists = gen.get_mc_hists(
             category_column=category_column, include_multisim_errors=False, scale_to_pot=scale_to_pot
         )
         background_hists = list(mc_hists.values()) + [ext_hist]
@@ -101,7 +89,7 @@ class Plotter(RunHistGenerator):
             show_errorband=False,
             **kwargs,
         )
-        total_mc_hist = self.get_mc_hist(
+        total_mc_hist = gen.get_mc_hist(
             include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot, use_sideband=use_sideband
         )
         total_pred_hist = total_mc_hist + ext_hist
@@ -115,10 +103,11 @@ class Plotter(RunHistGenerator):
             lw=0.5,
         )
         if scale_to_pot is None:
-            data_hist = self.get_data_hist()
-            # rescaling data to a different POT doesn't make sense
-            data_label = f"Data: {data_hist.sum():.1f}"
-            ax = self.plot_hist(data_hist, ax=ax, label=data_label, color="black", as_errorbars=True, **kwargs)
+            data_hist = gen.get_data_hist()
+            if data_hist is not None:  # skip if no data (as is the case for blind analysis)
+                # rescaling data to a different POT doesn't make sense
+                data_label = f"Data: {data_hist.sum():.1f}"
+                ax = self.plot_hist(data_hist, ax=ax, label=data_label, color="black", as_errorbars=True, **kwargs)
         # make text label for the POT
         pot_label = self.get_pot_label(scale_to_pot)
         ax.text(

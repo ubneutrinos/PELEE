@@ -132,6 +132,7 @@ class RunHistGenerator(HistGenMixin):
         preselection=None,
         data_pot=None,
         sideband_generator=None,
+        uncertainty_defaults=None,
     ):
         """Create a histogram generator for data and simulation runs.
 
@@ -157,10 +158,13 @@ class RunHistGenerator(HistGenMixin):
         sideband_generator : RunHistGenerator, optional
             Histogram generator for the sideband data. If provided, the sideband data will be
             used to constrain multisim uncertainties.
+        uncertainty_defaults : dict, optional
+            Dictionary containing default configuration of the uncertainty calculation, i.e.
+            whether to use the sideband, include multisim errors etc.
         """
         self.rundata_dict = rundata_dict
         self.data_pot = data_pot
-        data_columns = rundata_dict["data"].columns
+        data_columns = rundata_dict["mc"].columns
         if weight_column is None:
             weight_column = "weights"
         query = self.get_selection_query(selection, preselection)
@@ -175,8 +179,8 @@ class RunHistGenerator(HistGenMixin):
             raise ValueError("ext key is missing from rundata_dict.")
 
         for k, df in rundata_dict.items():
-            # if "dataset_name" in df.columns:
-            #     raise ValueError("dataset_name column already exists in dataframe.")
+            if df is None:
+                continue
             df["dataset_name"] = k
             df["dataset_name"] = df["dataset_name"].astype("category")
         # make one dataframe for all mc events
@@ -184,6 +188,7 @@ class RunHistGenerator(HistGenMixin):
         self.df_ext = rundata_dict["ext"]
         self.df_data = rundata_dict["data"]
         self.sideband_generator = sideband_generator
+        self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
 
     def get_selection_query(self, selection, preselection):
         if selection is None and preselection is None:
@@ -200,7 +205,7 @@ class RunHistGenerator(HistGenMixin):
 
         return query
 
-    def get_data_hist(self, type="data", add_error_floor=False, scale_to_pot=None):
+    def get_data_hist(self, type="data", add_error_floor=None, scale_to_pot=None):
         """Get the histogram for the data (or EXT).
 
         Parameters
@@ -209,6 +214,7 @@ class RunHistGenerator(HistGenMixin):
             Type of data to return. Can be "data" or "ext".
         add_error_floor : bool, optional
             Whether to add an error floor to the histogram in bins with zero entries.
+            Overrides the default setting.
         scale_to_pot : float, optional
             POT to scale the data to. Only applicable to EXT data.
 
@@ -219,6 +225,12 @@ class RunHistGenerator(HistGenMixin):
         """
 
         assert type in ["data", "ext"]
+        add_error_floor = (
+            self.uncertainty_defaults.get("add_ext_error_floor", False) if add_error_floor is None else add_error_floor
+        )
+        # The error floor is only added for EXT, overriding anything else
+        if type == "ext":
+            add_error_floor = False
         scale_factor = 1.0
         if scale_to_pot is not None:
             if type == "data":
@@ -226,6 +238,8 @@ class RunHistGenerator(HistGenMixin):
             assert self.data_pot is not None, "Must provide data POT to scale EXT data."
             scale_factor = scale_to_pot / self.data_pot
         dataframe = self.df_data if type == "data" else self.df_ext
+        if dataframe is None:
+            return None
         # The weights here are all 1.0 for data, but may be scaled for EXT
         # to match the total number of triggers.
         hist_generator = HistogramGenerator(dataframe, self.binning, weight_column="weights", query=self.query)
@@ -235,7 +249,7 @@ class RunHistGenerator(HistGenMixin):
         data_hist.color = {"data": "k", "ext": "yellow"}[type]
         return data_hist
 
-    def get_mc_hists(self, category_column="dataset_name", include_multisim_errors=False, scale_to_pot=None):
+    def get_mc_hists(self, category_column="dataset_name", include_multisim_errors=None, scale_to_pot=None):
         """Get MC histograms that are split by event category.
 
         Parameters
@@ -244,7 +258,7 @@ class RunHistGenerator(HistGenMixin):
             Name of the column containing the event categories.
         include_multisim_errors : bool, optional
             Whether to include the systematic uncertainties from the multisim 'universes' for
-            GENIE, flux and reintegration.
+            GENIE, flux and reintegration. Overrides the default setting.
         scale_to_pot : float, optional
             POT to scale the MC histograms to. If None, no scaling is performed.
 
@@ -257,6 +271,11 @@ class RunHistGenerator(HistGenMixin):
 
         if scale_to_pot is not None:
             assert self.data_pot is not None, "data_pot must be set to scale to a different POT."
+        include_multisim_errors = (
+            self.uncertainty_defaults.get("include_multisim_errors", False)
+            if include_multisim_errors is None
+            else include_multisim_errors
+        )
         mc_hists = {}
         other_categories = []
         for category in self.df_mc[category_column].unique():
@@ -287,26 +306,33 @@ class RunHistGenerator(HistGenMixin):
         hist_generator = HistogramGenerator(dataframe, self.binning, weight_column=self.weight_column, query=query)
         return hist_generator
 
-    def get_mc_hist(self, include_multisim_errors=False, extra_query=None, scale_to_pot=None, use_sideband=False):
+    def get_mc_hist(self, include_multisim_errors=None, extra_query=None, scale_to_pot=None, use_sideband=None):
         """Produce a histogram from the MC dataframe.
 
         Parameters
         ----------
         include_multisim_errors : bool, optional
             Whether to include the systematic uncertainties from the multisim 'universes' for
-            GENIE, flux and reintegration.
+            GENIE, flux and reintegration. Overrides the default setting.
         extra_query : str, optional
             Additional query to apply to the dataframe before generating the histogram.
         scale_to_pot : float, optional
             POT to scale the MC histograms to. If None, no scaling is performed.
         use_sideband : bool, optional
             If True, use the sideband MC and data to constrain multisim uncertainties.
+            Overrides the default setting.
         """
 
         scale_factor = 1.0
         if scale_to_pot is not None:
             assert self.data_pot is not None, "data_pot must be set to scale to a different POT."
             scale_factor = scale_to_pot / self.data_pot
+        include_multisim_errors = (
+            self.uncertainty_defaults.get("include_multisim_errors", False)
+            if include_multisim_errors is None
+            else include_multisim_errors
+        )
+        use_sideband = self.uncertainty_defaults.get("use_sideband", False) if use_sideband is None else use_sideband
         hist_generator = self.get_hist_generator(which="mc", extra_query=extra_query)
         hist = hist_generator.generate()
         hist.label = "MC"
@@ -882,7 +908,11 @@ class Histogram:
                 label=self.label,
                 tex_string=self.tex_string,
             )
-        assert self.binning == other.binning, "Cannot add histograms with different binning."
+        # otherwise, if other is also a Histogram
+        assert self.binning == other.binning, (
+            "Cannot add histograms with different binning. "
+            f"self.binning = {self.binning}, other.binning = {other.binning}"
+        )
         new_bin_counts = self.bin_counts + other.bin_counts
         label = self.label if self.label == other.label else "+".join([self.label, other.label])
         new_cov_matrix = self.cov_matrix + other.cov_matrix
@@ -919,7 +949,10 @@ class Histogram:
                 tex_string=self.tex_string,
             )
         # otherwise, if other is also a Histogram
-        assert self.binning == other.binning, "Cannot add histograms with different binning."
+        assert self.binning == other.binning, (
+            "Cannot subtract histograms with different binning. "
+            f"self.binning = {self.binning}, other.binning = {other.binning}"
+        )
         new_bin_counts = self.bin_counts - other.bin_counts
         label = self.label if self.label == other.label else "-".join([self.label, other.label])
         new_cov_matrix = self.cov_matrix + other.cov_matrix
@@ -1011,18 +1044,16 @@ class Binning:
     is_log: bool = False
 
     def __eq__(self, other):
-        if isinstance(other, Binning):
-            for field in fields(self):
-                attr_self = getattr(self, field.name)
-                attr_other = getattr(other, field.name)
-                if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
-                    if not np.array_equal(attr_self, attr_other):
-                        return False
-                else:
-                    if attr_self != attr_other:
-                        return False
-            return True
-        return False
+        for field in fields(self):
+            attr_self = getattr(self, field.name)
+            attr_other = getattr(other, field.name)
+            if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
+                if not np.array_equal(attr_self, attr_other):
+                    return False
+            else:
+                if attr_self != attr_other:
+                    return False
+        return True
 
     def __post_init__(self):
         if isinstance(self.bin_edges, list):
@@ -1032,17 +1063,17 @@ class Binning:
         return self.n_bins
 
     @classmethod
-    def from_bounds(cls, var, n_bins, bounds, label, is_log=False):
-        """Create a Binning object from bounds
+    def from_config(cls, variable, n_bins, limits, label, is_log=False):
+        """Create a Binning object from a typical binning configuration
 
         Parameters:
         -----------
-        var : str
+        variable : str
             Name of the variable being binned
         n_bins : int
             Number of bins
-        bounds : tuple
-            Tuple of lower and upper bounds
+        limits : tuple
+            Tuple of lower and upper limits
         label : str
             Label for the binned variable. This will be used to label the x-axis in plots.
         is_log : bool, optional
@@ -1054,10 +1085,10 @@ class Binning:
             A Binning object with the specified bounds
         """
         if is_log:
-            bin_edges = np.geomspace(*bounds, n_bins + 1)
+            bin_edges = np.geomspace(*limits, n_bins + 1)
         else:
-            bin_edges = np.linspace(*bounds, n_bins + 1)
-        return cls(var, bin_edges, label, is_log=is_log)
+            bin_edges = np.linspace(*limits, n_bins + 1)
+        return cls(variable, bin_edges, label, is_log=is_log)
 
     @property
     def n_bins(self):
@@ -1071,6 +1102,3 @@ class Binning:
             return np.sqrt(self.bin_edges[1:] * self.bin_edges[:-1])
         else:
             return (self.bin_edges[1:] + self.bin_edges[:-1]) / 2
-
-
-
