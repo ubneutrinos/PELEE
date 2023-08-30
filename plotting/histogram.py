@@ -334,80 +334,66 @@ class RunHistGenerator(HistGenMixin):
         )
         use_sideband = self.uncertainty_defaults.get("use_sideband", False) if use_sideband is None else use_sideband
         hist_generator = self.get_hist_generator(which="mc", extra_query=extra_query)
-        hist = hist_generator.generate()
-        hist.label = "MC"
         use_sideband = use_sideband and self.sideband_generator is not None
-        if include_multisim_errors:
-            if use_sideband:
-                # We need the hist-generator to calculate the universe histograms later
-                sideband_hist_generator = self.sideband_generator.get_hist_generator(which="mc")
-                # We calculate the nominal values and *full* covariance matrix for the sideband data
-                sideband_mc_cv_hist = self.sideband_generator.get_mc_hist(include_multisim_errors=True)
-                # The extended covariance matrix contains the covariance of the concatenated
-                # central value and sideband data histograms.
-                extended_cov_mat = np.zeros(
-                    (hist.n_bins + sideband_mc_cv_hist.n_bins, hist.n_bins + sideband_mc_cv_hist.n_bins)
+        if use_sideband:
+            sideband_generator = self.sideband_generator.get_hist_generator(which="mc")
+            sideband_total_prediction = self.sideband_generator.get_total_prediction(include_multisim_errors=True)
+            sideband_observed_hist = self.sideband_generator.get_data_hist(type="data")
+            if sideband_observed_hist is None:
+                raise RuntimeError(
+                    "The sideband generator contains no data. Make sure to set `blinded=False` when loading the sideband data."
                 )
-                extended_central_value = np.concatenate((hist.nominal_values, sideband_mc_cv_hist.nominal_values))
-                sideband_cov_mat = np.zeros((sideband_mc_cv_hist.n_bins, sideband_mc_cv_hist.n_bins))
-            for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
-                # The GENIE variations are applied instead of the central value tuning, so we need to use the
-                # weights_no_tune column instead of the weights column.
-                weight_column = "weights_no_tune" if ms_column == "weightsGenie" else "weights"
-                cov_mat, universe_hists = hist_generator.calculate_multisim_uncertainties(
-                    ms_column,
-                    weight_column=weight_column,
-                    central_value_hist=hist,
-                    extra_query=extra_query,
-                    return_histograms=True,
-                )
-                hist.add_covariance(cov_mat)
-                if not use_sideband:
-                    continue
-
-                sb_cov_mat, sideband_universe_hists = sideband_hist_generator.calculate_multisim_uncertainties(
-                    ms_column,
-                    weight_column=weight_column,
-                    # when calculating multisim uncertainties, the central value is that of MC alone
-                    central_value_hist=sideband_mc_cv_hist,
-                    return_histograms=True,
-                )
-                concat_observations = np.concatenate([universe_hists, sideband_universe_hists], axis=1)
-                extended_cov_mat_contrib = covariance(concat_observations, extended_central_value)
-                # sanity check: the upper left block of the extended covariance should be the same
-                # as cov_mat, and the lower right block should be the same as sb_cov_mat
-                assert np.all(np.equal(extended_cov_mat_contrib[: hist.n_bins, : hist.n_bins], cov_mat))
-                assert np.all(np.equal(extended_cov_mat_contrib[hist.n_bins :, hist.n_bins :], sb_cov_mat))
-                extended_cov_mat += extended_cov_mat_contrib
-                sideband_cov_mat += sb_cov_mat
-
-            cov_mat_unisim = hist_generator.calculate_unisim_uncertainties(
-                central_value_hist=hist, extra_query=extra_query
-            )
-            hist.add_covariance(cov_mat_unisim)
-            # If we are using a sideband, we can now calculate the correction to the central value
-            # and the covariance matrix from the sideband data.
-            if use_sideband:
-                sideband_data_hist = self.sideband_generator.get_data_hist()
-                sideband_ext_hist = self.sideband_generator.get_data_hist(type="ext")
-                sideband_total_prediction = sideband_mc_cv_hist + sideband_ext_hist
-                mu_offset, cov_corr = sideband_constraint_correction(
-                    # The data that was actually observed
-                    sideband_measurement=sideband_data_hist.nominal_values,
-                    # to calculate the constraint, we want to compare the data to the total prediction
-                    # in the sideband, which is the MC prediction plus the beam-off EXT data
-                    sideband_central_value=sideband_total_prediction.nominal_values,
-                    concat_covariance=extended_cov_mat,
-                    # We also want to use the covariance matrix of the total prediction for the
-                    # sideband, which includes the covariance of the MC and EXT data
-                    sideband_covariance=sideband_total_prediction.cov_matrix,
-                )
-                # finally we add the corrections to the histogram
-                hist += mu_offset
-                hist.add_covariance(cov_corr)
+        else:
+            sideband_generator = None
+            sideband_total_prediction = None
+            sideband_observed_hist = None
+        hist = hist_generator.generate(
+            add_error_floor=False,
+            include_multisim_errors=include_multisim_errors,
+            use_sideband=use_sideband,
+            sideband_generator=sideband_generator,
+            sideband_total_prediction=sideband_total_prediction,
+            sideband_observed_hist=sideband_observed_hist,
+        )
+        hist.label = "MC"
 
         hist *= scale_factor
         return hist
+
+    def get_total_prediction(
+        self,
+        include_multisim_errors=None,
+        extra_query=None,
+        scale_to_pot=None,
+        use_sideband=None,
+        add_ext_error_floor=None,
+    ):
+        """Get the total prediction from MC and EXT.
+
+        Parameters
+        ----------
+        include_multisim_errors : bool, optional
+            Whether to include the systematic uncertainties from the multisim 'universes' for
+            GENIE, flux and reintegration. Overrides the default setting.
+        extra_query : str, optional
+            Additional query to apply to the dataframe before generating the histogram.
+        scale_to_pot : float, optional
+            POT to scale the MC histograms to. If None, no scaling is performed.
+        use_sideband : bool, optional
+            If True, use the sideband MC and data to constrain multisim uncertainties.
+            Overrides the default setting.
+        add_ext_error_floor : bool, optional
+            Whether to add an error floor to the histogram in bins with zero entries.
+        """
+        mc_prediction = self.get_mc_hist(
+            include_multisim_errors=include_multisim_errors,
+            extra_query=extra_query,
+            scale_to_pot=scale_to_pot,
+            use_sideband=use_sideband,
+        )
+        ext_prediction = self.get_data_hist(type="ext", scale_to_pot=scale_to_pot, add_error_floor=add_ext_error_floor)
+        total_prediction = mc_prediction + ext_prediction
+        return total_prediction
 
 
 class HistogramGenerator(HistGenMixin):
@@ -426,7 +412,17 @@ class HistogramGenerator(HistGenMixin):
         data_columns = dataframe.columns
         super().__init__(data_columns, binning, weight_column=weight_column, query=query)
 
-    def generate(self, query=None, add_error_floor=False):
+    def generate(
+        self,
+        query=None,
+        add_error_floor=False,
+        include_multisim_errors=False,
+        use_sideband=False,
+        extra_query=None,
+        sideband_generator=None,
+        sideband_total_prediction=None,
+        sideband_observed_hist=None,
+    ):
         """Generate a histogram from the dataframe.
 
         Parameters
@@ -438,6 +434,23 @@ class HistogramGenerator(HistGenMixin):
             prior of a unit step function as documented in
             https://microboone-docdb.fnal.gov/cgi-bin/sso/RetrieveFile?docid=32714&filename=Monte_Carlo_Uncertainties.pdf&version=1
             and is currently only applied to EXT events.
+        include_multisim_errors : bool, optional
+            Whether to include the systematic uncertainties from the multisim 'universes' for
+            GENIE, flux and reintegration. Overrides the default setting.
+        use_sideband : bool, optional
+            If True, use the sideband MC and data to constrain multisim uncertainties.
+            Overrides the default setting.
+        extra_query : str, optional
+            Additional query to apply to the dataframe before generating the histogram.
+        sideband_generator : HistogramGenerator, optional
+            Histogram generator for the sideband data. If provided, the sideband data will be
+            used to constrain multisim uncertainties.
+        sideband_total_prediction : Histogram, optional
+            Histogram containing the total prediction in the sideband. If provided, the sideband
+            data will be used to constrain multisim uncertainties.
+        sideband_observed_hist : Histogram, optional
+            Histogram containing the observed data in the sideband. If provided, the sideband
+            data will be used to constrain multisim uncertainties.
 
         Returns
         -------
@@ -445,6 +458,11 @@ class HistogramGenerator(HistGenMixin):
             Histogram object containing the binned data.
         """
         self.update_settings(variable=None, binning=None, weight_column=None, query=query)
+
+        if use_sideband:
+            assert sideband_generator is not None
+            assert sideband_total_prediction is not None
+            assert sideband_observed_hist is not None
 
         if self.query is not None:
             dataframe = self.dataframe.query(self.query)
@@ -456,7 +474,76 @@ class HistogramGenerator(HistGenMixin):
         variances, _ = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights**2)
         if add_error_floor:
             variances[variances == 0] = 1.4**2
-        return Histogram(self.binning, bin_counts, uncertainties=np.sqrt(variances))
+        hist = Histogram(self.binning, bin_counts, uncertainties=np.sqrt(variances))
+
+        if include_multisim_errors:
+            if use_sideband:
+                # initialize extended covariance matrix
+                n_bins = hist.n_bins
+                sb_n_bins = sideband_observed_hist.n_bins
+                extended_cov = np.zeros((n_bins + sb_n_bins, n_bins + sb_n_bins))
+
+            # calculate multisim histograms
+            for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
+                cov_mat, universe_hists = self.calculate_multisim_uncertainties(
+                    ms_column,
+                    extra_query=extra_query,
+                    return_histograms=True,
+                )
+                hist.add_covariance(cov_mat)
+
+                if use_sideband:
+                    extended_cov += self.multiband_covariance([self, sideband_generator], ms_column)
+
+            # calculate unisim histograms
+            cov_mat_unisim = self.calculate_unisim_uncertainties(central_value_hist=hist, extra_query=extra_query)
+            hist.add_covariance(cov_mat_unisim)
+
+            if use_sideband:
+                # calculate constraint correction
+                mu_offset, cov_corr = sideband_constraint_correction(
+                    sideband_measurement=sideband_observed_hist.nominal_values,
+                    sideband_central_value=sideband_total_prediction.nominal_values,
+                    concat_covariance=extended_cov,
+                    sideband_covariance=sideband_total_prediction.cov_matrix,
+                )
+                # add corrections to histogram
+                hist += mu_offset
+                hist.add_covariance(cov_corr)
+
+        return hist
+
+    @classmethod
+    def multiband_covariance(cls, hist_generators, ms_column):
+        """Calculate the covariance matrix for multiple histograms.
+
+        Given a list of HistogramGenerator objects, calculate the covariance matrix of the
+        multisim universes for the given multisim weight column. The underlying assumption
+        is that the weights listed in the multisim column are from the same universes
+        in the same order for all histograms.
+
+        Parameters
+        ----------
+        hist_generators : list of HistogramGenerator
+            List of HistogramGenerator objects.
+        ms_column : str
+            Name of the multisim weight column.
+        """
+
+        assert len(hist_generators) > 0, "Must provide at least one histogram generator."
+        assert all(isinstance(hg, cls) for hg in hist_generators), "Must provide a list of HistogramGenerator objects."
+
+        universe_hists = []
+        central_values = []
+        for hg in hist_generators:
+            cov_mat, universe_hist = hg.calculate_multisim_uncertainties(ms_column, return_histograms=True)
+            universe_hists.append(universe_hist)
+            central_values.append(hg.generate().nominal_values)
+
+        concatenated_cv = np.concatenate(central_values)
+        concatenated_universes = np.concatenate(universe_hists, axis=1)
+        cov_mat = covariance(concatenated_universes, concatenated_cv)
+        return cov_mat
 
     def get_weights(self, weight_column=None, limit_weight=True, query=None):
         """Get the weights of the dataframe.
@@ -526,7 +613,7 @@ class HistogramGenerator(HistGenMixin):
             the baseline weight that this histogram generator was initialized with is used.
         central_value_hist : Histogram, optional
             Histogram containing the central value of the multisim weights. If not given,
-            the covariance is calculated from the mean of the histograms.
+            the central value is produced by calling the generate() method.
         extra_query : str, optional
             Query to apply to the dataframe before calculating the covariance matrix.
         return_histograms : bool, optional
@@ -542,6 +629,13 @@ class HistogramGenerator(HistGenMixin):
 
         if multisim_weight_column not in self.dataframe.columns:
             raise ValueError(f"Weight column {multisim_weight_column} is not in the dataframe.")
+        assert multisim_weight_column in [
+            "weightsGenie",
+            "weightsFlux",
+            "weightsReint",
+        ], "Unknown multisim weight column."
+        if weight_column is None:
+            weight_column = "weights_no_tune" if multisim_weight_column == "weightsGenie" else "weights"
         query = self._get_query(extra_query)
         dataframe = self.dataframe.query(query)
         multisim_weights = dataframe[multisim_weight_column].values
@@ -568,10 +662,10 @@ class HistogramGenerator(HistGenMixin):
             )
             universe_histograms.append(bincounts)
         universe_histograms = np.array(universe_histograms)
+        if central_value_hist is None:
+            central_value_hist = self.generate(query=query)
         # calculate the covariance matrix from the histograms
-        cov = covariance(
-            universe_histograms, central_value_hist.nominal_values if central_value_hist is not None else None
-        )
+        cov = covariance(universe_histograms, central_value_hist.nominal_values)
         if return_histograms:
             return cov, universe_histograms
         return cov
