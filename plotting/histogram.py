@@ -6,7 +6,7 @@ from numbers import Number
 from uncertainties import correlated_values, unumpy
 import unblinding_far_sideband as far_sb
 from .category_definitions import get_category_label, get_category_color
-from .statistics import covariance, sideband_constraint_correction, error_propagation_division
+from .statistics import covariance, sideband_constraint_correction, error_propagation_division, error_propagation_multiplication
 
 
 class HistGenMixin:
@@ -190,7 +190,27 @@ class RunHistGenerator(HistGenMixin):
         self.sideband_generator = sideband_generator
         self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
 
-    def get_selection_query(self, selection, preselection):
+    def get_selection_query(self, selection, preselection, extra_queries=None):
+        """Get the query for the given selection and preselection.
+        
+        Optionally, add any extra queries to the selection query. These will
+        be joined with an 'and' operator.
+
+        Parameters
+        ----------
+        selection : str
+            Name of the selection category.
+        preselection : str
+            Name of the preselection category.
+        extra_queries : list of str, optional
+            List of additional queries to apply to the dataframe.
+
+        Returns
+        -------
+        query : str
+            Query to apply to the dataframe.
+        """
+
         if selection is None and preselection is None:
             return None
         presel_query = far_sb.preselection_categories[preselection]["query"]
@@ -203,6 +223,9 @@ class RunHistGenerator(HistGenMixin):
         else:
             query = f"{presel_query} and {sel_query}"
 
+        if extra_queries is not None:
+            for q in extra_queries:
+                query = f"{query} and {q}"
         return query
 
     def get_data_hist(self, type="data", add_error_floor=None, scale_to_pot=None):
@@ -995,28 +1018,23 @@ class Histogram:
             if len(other) != len(self.bin_counts):
                 raise ValueError("Cannot add ndarray to histogram: ndarray has wrong length.")
             new_bin_counts = self.bin_counts + other
-            return Histogram(
-                self.binning,
-                unumpy.nominal_values(new_bin_counts),
-                covariance_matrix=self.cov_matrix,
-                label=self.label,
-                tex_string=self.tex_string,
-            )
+            state = self.to_dict()
+            state["bin_counts"] = new_bin_counts
+            return Histogram.from_dict(state)
+        
         # otherwise, if other is also a Histogram
         assert self.binning == other.binning, (
             "Cannot add histograms with different binning. "
             f"self.binning = {self.binning}, other.binning = {other.binning}"
         )
-        new_bin_counts = self.bin_counts + other.bin_counts
+        new_bin_counts = self.nominal_values + other.nominal_values
         label = self.label if self.label == other.label else "+".join([self.label, other.label])
         new_cov_matrix = self.cov_matrix + other.cov_matrix
-        return Histogram(
-            self.binning,
-            unumpy.nominal_values(new_bin_counts),
-            covariance_matrix=new_cov_matrix,
-            label=label,
-            tex_string=self.tex_string,
-        )
+        state = self.to_dict()
+        state["bin_counts"] = new_bin_counts
+        state["covariance_matrix"] = new_cov_matrix
+        state["label"] = label
+        return Histogram.from_dict(state)
 
     def __radd__(self, other):
         # This function adds support for sum() to work with histograms. sum() starts with 0, so we need to handle that case.
@@ -1034,84 +1052,87 @@ class Histogram:
                 raise ValueError(
                     f"Cannot subtract ndarray of length {len(other)} from histogram with {self.n_bins} bins."
                 )
-            new_bin_counts = self.bin_counts - other
-            return Histogram(
-                self.binning,
-                unumpy.nominal_values(new_bin_counts),
-                covariance_matrix=self.cov_matrix,
-                label=self.label,
-                tex_string=self.tex_string,
-            )
+            new_bin_counts = self.nominal_values - other
+            state = self.to_dict()
+            state["bin_counts"] = new_bin_counts
+            return Histogram.from_dict(state)
         # otherwise, if other is also a Histogram
         assert self.binning == other.binning, (
             "Cannot subtract histograms with different binning. "
             f"self.binning = {self.binning}, other.binning = {other.binning}"
         )
-        new_bin_counts = self.bin_counts - other.bin_counts
+        new_bin_counts = self.nominal_values - other.nominal_values
         label = self.label if self.label == other.label else "-".join([self.label, other.label])
         new_cov_matrix = self.cov_matrix + other.cov_matrix
-        return Histogram(
-            self.binning,
-            unumpy.nominal_values(new_bin_counts),
-            covariance_matrix=new_cov_matrix,
-            label=label,
-            tex_string=self.tex_string,
-        )
+        state = self.to_dict()
+        state["bin_counts"] = new_bin_counts
+        state["covariance_matrix"] = new_cov_matrix
+        state["label"] = label
+        return Histogram.from_dict(state)
 
     def __truediv__(self, other):
         if isinstance(other, Number):
             new_bin_counts = self.nominal_values / other
             new_cov_matrix = self.cov_matrix / other**2
-            return Histogram(
-                self.binning,
-                new_bin_counts,
-                covariance_matrix=new_cov_matrix,
-                label=self.label,
-                # need to bypass the getter method to do this correctly
-                tex_string=self._tex_string,
-            )
+            state = self.to_dict()
+            state["bin_counts"] = new_bin_counts
+            state["covariance_matrix"] = new_cov_matrix
+            return Histogram.from_dict(state)
         assert self.binning == other.binning, "Cannot divide histograms with different binning."
         new_bin_counts, new_cov_matrix = error_propagation_division(
             self.nominal_values, other.nominal_values, self.cov_matrix, other.cov_matrix
         )
         label = self.label if self.label == other.label else "/".join([self.label, other.label])
-        return Histogram(
-            self.binning,
-            new_bin_counts,
-            covariance_matrix=new_cov_matrix,
-            label=label,
-            tex_string=self.tex_string,
-        )
+        state = self.to_dict()
+        state["bin_counts"] = new_bin_counts
+        state["covariance_matrix"] = new_cov_matrix
+        state["label"] = label
+        return Histogram.from_dict(state)
 
     def __mul__(self, other):
-        # we only support multiplication by numbers that scale the entire histogram
-        if isinstance(other, Number):
+        if isinstance(other, np.ndarray):
+            # We can multiply a histogram by an ndarray as long as the length of the ndarray matches the number of bins in the histogram.
+            if len(other) != len(self.bin_counts):
+                raise ValueError("Cannot multiply histogram by ndarray: ndarray has wrong length.")
+            new_bin_counts = self.nominal_values * other
+            # The covariance matrix also needs to be scaled according to
+            # C_{ij}' = C_{ij} * a_i * a_j
+            # where a_i is the ith element of the ndarray
+            new_cov_matrix = self.cov_matrix * np.outer(other, other)
+            state = self.to_dict()
+            state["bin_counts"] = new_bin_counts
+            state["covariance_matrix"] = new_cov_matrix
+            return Histogram.from_dict(state)
+        elif isinstance(other, Number):
             new_bin_counts = self.nominal_values * other
             new_cov_matrix = self.cov_matrix * other**2
-            return Histogram(
-                self.binning,
-                new_bin_counts,
-                covariance_matrix=new_cov_matrix,
-                label=self.label,
-                # need to bypass the getter method to do this correctly
-                tex_string=self._tex_string,
+            state = self.to_dict()
+            state["bin_counts"] = new_bin_counts
+            state["covariance_matrix"] = new_cov_matrix
+            return Histogram.from_dict(state)
+        elif isinstance(other, Histogram):
+            assert self.binning == other.binning, "Cannot multiply histograms with different binning."
+            new_bin_counts, new_cov_matrix = error_propagation_multiplication(
+                self.nominal_values, other.nominal_values, self.cov_matrix, other.cov_matrix
             )
+            label = self.label if self.label == other.label else "*".join([self.label, other.label])
+            state = self.to_dict()
+            state["bin_counts"] = new_bin_counts
+            state["covariance_matrix"] = new_cov_matrix
+            state["label"] = label
+            return Histogram.from_dict(state)
         else:
-            raise NotImplementedError("Histogram multiplication is only supported for numeric types.")
+            raise NotImplementedError(f"Histogram multiplication not supprted for type {type(other)}")
 
     def __rmul__(self, other):
         # we only support multiplication by numbers that scale the entire histogram
         if isinstance(other, Number):
             new_bin_counts = self.nominal_values * other
             new_cov_matrix = self.cov_matrix * other**2
-            return Histogram(
-                self.binning,
-                new_bin_counts,
-                covariance_matrix=new_cov_matrix,
-                label=self.label,
-                # need to bypass the getter method to do this correctly
-                tex_string=self._tex_string,
-            )
+            state = self.to_dict()
+            state["bin_counts"] = new_bin_counts
+            state["covariance_matrix"] = new_cov_matrix
+            return Histogram.from_dict(state)
         else:
             raise NotImplementedError("Histogram multiplication is only supported for numeric types.")
 

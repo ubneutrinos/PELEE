@@ -148,6 +148,50 @@ class TestHistogram(unittest.TestCase):
         hist_from_dict = Histogram.from_dict(hist_dict)
         self.assertEqual(hist, hist_from_dict)
 
+    def test_multiplication(self):
+        bin_edges = np.array([0, 1, 2, 3])
+        binning = Binning("x", bin_edges, "x")
+        bin_counts1 = np.array([1, 2, 3])
+        covariance_matrix1 = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        bin_counts2 = np.array([4, 5, 6])
+        covariance_matrix2 = np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]])
+
+        hist1 = Histogram(
+            binning, bin_counts1, covariance_matrix=covariance_matrix1, label="hist1", tex_string="hist1"
+        )
+        hist2 = Histogram(
+            binning, bin_counts2, covariance_matrix=covariance_matrix2, label="hist2", tex_string="hist2"
+        )
+
+        hist_product = hist1 * hist2
+
+        np.testing.assert_array_almost_equal(unumpy.nominal_values(hist_product.bin_counts), np.array([4, 10, 18]))
+        
+        fluctuated_multiplications = []
+        # To test error propagation, we fluctuate hist1 and hist2 and multiply them. The covariance matrix
+        # of the fluctuated multiplications should be close to the expected covariance matrix that we get
+        # from the multiplication function.
+        for i in range(10000):
+            fluctuated_hist1 = hist1.fluctuate(seed=i)
+            # It's important not to repeat seeds here, otherwise the values will be correlated
+            # when they should not be.
+            fluctuated_hist2 = hist2.fluctuate(seed=i + 10000)
+            fluctuated_multiplication = fluctuated_hist1 * fluctuated_hist2
+            fluctuated_multiplications.append(fluctuated_multiplication.nominal_values)
+        fluctuated_multiplications = np.array(fluctuated_multiplications)
+
+        # calculate covariance matrix of fluctuated multiplications with numpy
+        cov_matrix = np.cov(fluctuated_multiplications, rowvar=False)
+
+        # get expectation histogram
+        expected_mult_hist = hist1 * hist2
+        # check nominal values
+        np.testing.assert_array_almost_equal(
+            fluctuated_multiplications.mean(axis=0), expected_mult_hist.nominal_values, decimal=2
+        )
+        # check covariance matrix
+        np.testing.assert_array_almost_equal(cov_matrix, expected_mult_hist.cov_matrix, decimal=1)
+
 
 class TestHistogramGenerator(unittest.TestCase):
     def test_generate(self):

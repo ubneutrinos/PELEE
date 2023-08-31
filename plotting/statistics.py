@@ -214,6 +214,45 @@ def error_propagation_division(x1, x2, C1, C2):
 
     return y, Cy
 
+def error_propagation_multiplication(x1, x2, C1, C2):
+    """
+    Compute the result of element-wise multiplication of x1 by x2 and the associated covariance matrix.
+
+    Parameters
+    ----------
+    x1 : array_like
+        First array to be multiplied.
+    x2 : array_like
+        Second array to multiply by.
+    C1 : array_like
+        Covariance matrix of x1.
+    C2 : array_like
+        Covariance matrix of x2.
+
+    Returns
+    -------
+    y : array_like
+        Result of element-wise multiplication of x1 by x2.
+    Cy : array_like
+        Covariance matrix of y.
+    """
+
+    # Element-wise multiplication to get y
+    y = x1 * x2
+
+    n = len(x1)
+    Cy = np.zeros((n, n))
+
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                # Diagonal elements (variance)
+                Cy[i, i] = y[i] ** 2 * (C1[i, i] / x1[i] ** 2 + C2[i, i] / x2[i] ** 2)
+            else:
+                # Off-diagonal elements (covariance)
+                Cy[i, j] = y[i] * y[j] * (C1[i, j] / (x1[i] * x1[j]) + C2[i, j] / (x2[i] * x2[j]))
+
+    return y, Cy
 
 class TestConstrainedCovariance(unittest.TestCase):
     def test_conditional_covariance(self):
