@@ -83,13 +83,14 @@ class Parameter:
 
     @classmethod
     def from_dict(cls, d):
+        if "_post_init_finished" in d:
+            d.pop("_post_init_finished")
         # Check if the value is a string with units
-        if isinstance(d["value"], float):
-            if "unit" in d:
-                d["value"] = Quantity(d["value"], Unit(d.pop("unit")))
+        if isinstance(d["value"], dict):
+            if "unit" in d["value"]:
+                d["value"] = Quantity(d["value"]["magnitude"], Unit(d["value"]["unit"]))
             else:
-                d["value"] = Quantity(d["value"], Unit())
-
+                d["value"] = Quantity(d["value"]["magnitude"], Unit())
         return cls(**d)
 
 
@@ -200,6 +201,18 @@ class ParameterSet:
     def __len__(self):
         return len(self.parameters)
 
+    def __eq__(self, other):
+        if not isinstance(other, ParameterSet):
+            return False
+        if len(self) != len(other):
+            return False
+        # parameters might be in different order between the two sets
+        # but that should not be a problem
+        for name in self.names:
+            if self[name] != other[name]:
+                return False
+        return True
+
 
 class TestParameter(unittest.TestCase):
     def test_discrete_parameter(self):
@@ -221,6 +234,23 @@ class TestParameter(unittest.TestCase):
     def test_magnitude(self):
         p = Parameter(name="magnitude", value=Quantity(1.0, Unit("m")))
         self.assertEqual(p.m, 1.0)
+    
+    def test_dict_conversion(self):
+        p = Parameter(name="float", value=3.0)
+        d = p.to_dict()
+        p2 = Parameter.from_dict(d)
+        self.assertEqual(p, p2)
+
+        p = Parameter(name="float_with_unit", value=Quantity(2.0, Unit("m")))
+        d = p.to_dict()
+        p2 = Parameter.from_dict(d)
+        self.assertEqual(p, p2)
+
+        # test bool parameter
+        p = Parameter(name="bool", value=True)
+        d = p.to_dict()
+        p2 = Parameter.from_dict(d)
+        self.assertEqual(p, p2)
 
 
 class TestParameterSet(unittest.TestCase):
@@ -329,7 +359,16 @@ class TestParameterSet(unittest.TestCase):
             except KeyError:
                 pass  # Skip those ParameterUser(s) that don't have "x"
 
+    def test_dict_conversion(self):
+        p1 = Parameter(name="float", value=3.0)
+        p2 = Parameter(name="float_with_unit", value=Quantity(2.0, Unit("m")))
+        p3 = Parameter(name="bool", value=True)
 
+        ps = ParameterSet([p1, p2, p3])
+
+        d = ps.to_dict()
+        ps2 = ParameterSet.from_dict(d)
+        self.assertEqual(ps, ps2)
 
 if __name__ == "__main__":
     unittest.main()
