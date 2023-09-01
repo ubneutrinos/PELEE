@@ -1,4 +1,5 @@
 from dataclasses import dataclass, fields
+from typing import Dict, Optional
 import numpy as np
 import pandas as pd
 
@@ -6,7 +7,95 @@ from numbers import Number
 from uncertainties import correlated_values, unumpy
 import unblinding_far_sideband as far_sb
 from .category_definitions import get_category_label, get_category_color
-from .statistics import covariance, sideband_constraint_correction, error_propagation_division, error_propagation_multiplication
+from .statistics import (
+    covariance,
+    sideband_constraint_correction,
+    error_propagation_division,
+    error_propagation_multiplication,
+)
+from .parameters import Parameter, ParameterSet
+
+
+@dataclass
+class Binning:
+    """Binning for a variable
+
+    Attributes:
+    -----------
+    variable : str
+        Name of the variable being binned
+    bin_edges : np.ndarray
+        Array of bin edges
+    label : str
+        Label for the binned variable. This will be used to label the x-axis in plots.
+    is_log : bool, optional
+        Whether the binning is logarithmic or not (default is False)
+    """
+
+    variable: str
+    bin_edges: np.ndarray
+    label: str
+    is_log: bool = False
+
+    def __eq__(self, other):
+        for field in fields(self):
+            attr_self = getattr(self, field.name)
+            attr_other = getattr(other, field.name)
+            if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
+                if not np.array_equal(attr_self, attr_other):
+                    return False
+            else:
+                if attr_self != attr_other:
+                    return False
+        return True
+
+    def __post_init__(self):
+        if isinstance(self.bin_edges, list):
+            self.bin_edges = np.array(self.bin_edges)
+
+    def __len__(self):
+        return self.n_bins
+
+    @classmethod
+    def from_config(cls, variable, n_bins, limits, label, is_log=False):
+        """Create a Binning object from a typical binning configuration
+
+        Parameters:
+        -----------
+        variable : str
+            Name of the variable being binned
+        n_bins : int
+            Number of bins
+        limits : tuple
+            Tuple of lower and upper limits
+        label : str
+            Label for the binned variable. This will be used to label the x-axis in plots.
+        is_log : bool, optional
+            Whether the binning is logarithmic or not (default is False)
+
+        Returns:
+        --------
+        Binning
+            A Binning object with the specified bounds
+        """
+        if is_log:
+            bin_edges = np.geomspace(*limits, n_bins + 1)
+        else:
+            bin_edges = np.linspace(*limits, n_bins + 1)
+        return cls(variable, bin_edges, label, is_log=is_log)
+
+    @property
+    def n_bins(self):
+        """Number of bins"""
+        return len(self.bin_edges) - 1
+
+    @property
+    def bin_centers(self):
+        """Array of bin centers"""
+        if self.is_log:
+            return np.sqrt(self.bin_edges[1:] * self.bin_edges[:-1])
+        else:
+            return (self.bin_edges[1:] + self.bin_edges[:-1]) / 2
 
 
 class HistGenMixin:
@@ -125,15 +214,17 @@ class RunHistGenerator(HistGenMixin):
 
     def __init__(
         self,
-        rundata_dict,
-        binning,
-        weight_column="weights",
-        selection=None,
-        preselection=None,
-        data_pot=None,
-        sideband_generator=None,
-        uncertainty_defaults=None,
-    ):
+        rundata_dict: Dict[str, pd.DataFrame],
+        binning: Binning,
+        weight_column: Optional[str] = "weights",
+        selection: Optional[str] = None,
+        preselection: Optional[str] = None,
+        data_pot: Optional[float] = None,
+        sideband_generator: Optional["RunHistGenerator"] = None,
+        uncertainty_defaults: Optional[Dict[str, bool]] = None,
+        mc_hist_generator_cls: Optional[type] = None,
+        parameters: Optional[ParameterSet] = None,
+    ) -> None:
         """Create a histogram generator for data and simulation runs.
 
         This combines data and MC appropriately for the given run. It assumes also that,
@@ -143,7 +234,7 @@ class RunHistGenerator(HistGenMixin):
 
         Parameters
         ----------
-        rundata_dict : dict
+        rundata_dict : Dict[str, pd.DataFrame]
             Dictionary containing the dataframes for this run. The keys are the names of the
             datasets and the values are the dataframes. This must at least contain the keys
             "data", "mc", and "ext". This dictionary should be returned by the data_loader.
@@ -151,16 +242,26 @@ class RunHistGenerator(HistGenMixin):
             Binning object containing the binning of the histogram.
         weight_column : str, optional
             Name of the column containing the weights of the data points.
-        query : str, optional
+        selection : str, optional
             Query to be applied to the dataframe before generating the histogram.
+        preselection : str, optional
+            Query to be applied to the dataframe before the selection is applied.
         data_pot : float, optional
             POT of the data sample. Required to reweight to a different target POT.
         sideband_generator : RunHistGenerator, optional
             Histogram generator for the sideband data. If provided, the sideband data will be
             used to constrain multisim uncertainties.
-        uncertainty_defaults : dict, optional
+        uncertainty_defaults : Dict[str, bool], optional
             Dictionary containing default configuration of the uncertainty calculation, i.e.
             whether to use the sideband, include multisim errors etc.
+        mc_hist_generator_cls : type, optional
+            Class to use for the MC histogram generator. If None, the default HistogramGenerator
+            class is used.
+        parameters : ParameterSet, optional
+            Set of parameters for the analysis. These parameters will be passed through to the
+            histogram generator for MC. The default HistogramGenerator ignores all parameters.
+            The parameters are passed through by reference, so any changes to the parameters
+            will be reflected in the histogram generator automatically.
         """
         self.rundata_dict = rundata_dict
         self.data_pot = data_pot
@@ -183,16 +284,25 @@ class RunHistGenerator(HistGenMixin):
                 continue
             df["dataset_name"] = k
             df["dataset_name"] = df["dataset_name"].astype("category")
+        mc_hist_generator_cls = HistogramGenerator if mc_hist_generator_cls is None else mc_hist_generator_cls
         # make one dataframe for all mc events
-        self.df_mc = pd.concat([df for k, df in rundata_dict.items() if k not in ["data", "ext"]])
-        self.df_ext = rundata_dict["ext"]
-        self.df_data = rundata_dict["data"]
+        df_mc = pd.concat([df for k, df in rundata_dict.items() if k not in ["data", "ext"]])
+        df_ext = rundata_dict["ext"]
+        df_data = rundata_dict["data"]
+        self.mc_hist_generator = mc_hist_generator_cls(
+            df_mc, binning, weight_column=weight_column, query=query, parameters=parameters
+        )
+        self.ext_hist_generator = HistogramGenerator(df_ext, binning, weight_column=weight_column, query=query)
+        if df_data is not None:
+            self.data_hist_generator = HistogramGenerator(df_data, binning, weight_column=weight_column, query=query)
+        else:
+            self.data_hist_generator = None
         self.sideband_generator = sideband_generator
         self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
 
     def get_selection_query(self, selection, preselection, extra_queries=None):
         """Get the query for the given selection and preselection.
-        
+
         Optionally, add any extra queries to the selection query. These will
         be joined with an 'and' operator.
 
@@ -251,8 +361,8 @@ class RunHistGenerator(HistGenMixin):
         add_error_floor = (
             self.uncertainty_defaults.get("add_ext_error_floor", False) if add_error_floor is None else add_error_floor
         )
-        # The error floor is only added for EXT, overriding anything else
-        if type == "ext":
+        # The error floor is never added for data, overriding anything else
+        if type == "data":
             add_error_floor = False
         scale_factor = 1.0
         if scale_to_pot is not None:
@@ -260,12 +370,7 @@ class RunHistGenerator(HistGenMixin):
                 raise ValueError("Cannot scale data to POT.")
             assert self.data_pot is not None, "Must provide data POT to scale EXT data."
             scale_factor = scale_to_pot / self.data_pot
-        dataframe = self.df_data if type == "data" else self.df_ext
-        if dataframe is None:
-            return None
-        # The weights here are all 1.0 for data, but may be scaled for EXT
-        # to match the total number of triggers.
-        hist_generator = HistogramGenerator(dataframe, self.binning, weight_column="weights", query=self.query)
+        hist_generator = self.get_hist_generator(which=type)
         data_hist = hist_generator.generate(add_error_floor=add_error_floor)
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
@@ -301,7 +406,7 @@ class RunHistGenerator(HistGenMixin):
         )
         mc_hists = {}
         other_categories = []
-        for category in self.df_mc[category_column].unique():
+        for category in self.mc_hist_generator.dataframe[category_column].unique():
             extra_query = f"{category_column} == '{category}'"
             hist = self.get_mc_hist(
                 include_multisim_errors=include_multisim_errors, extra_query=extra_query, scale_to_pot=scale_to_pot
@@ -322,11 +427,13 @@ class RunHistGenerator(HistGenMixin):
             mc_hists["Other"].color = "gray"
         return mc_hists
 
-    def get_hist_generator(self, which, extra_query=None):
+    def get_hist_generator(self, which):
         assert which in ["mc", "data", "ext"]
-        query = self._get_query(extra_query)
-        dataframe = {"mc": self.df_mc, "data": self.df_data, "ext": self.df_ext}[which]
-        hist_generator = HistogramGenerator(dataframe, self.binning, weight_column=self.weight_column, query=query)
+        hist_generator = {
+            "mc": self.mc_hist_generator,
+            "data": self.data_hist_generator,
+            "ext": self.ext_hist_generator,
+        }[which]
         return hist_generator
 
     def get_mc_hist(self, include_multisim_errors=None, extra_query=None, scale_to_pot=None, use_sideband=None):
@@ -356,7 +463,7 @@ class RunHistGenerator(HistGenMixin):
             else include_multisim_errors
         )
         use_sideband = self.uncertainty_defaults.get("use_sideband", False) if use_sideband is None else use_sideband
-        hist_generator = self.get_hist_generator(which="mc", extra_query=extra_query)
+        hist_generator = self.get_hist_generator(which="mc")
         use_sideband = use_sideband and self.sideband_generator is not None
         if use_sideband:
             sideband_generator = self.sideband_generator.get_hist_generator(which="mc")
@@ -377,6 +484,7 @@ class RunHistGenerator(HistGenMixin):
             sideband_generator=sideband_generator,
             sideband_total_prediction=sideband_total_prediction,
             sideband_observed_hist=sideband_observed_hist,
+            extra_query=extra_query,
         )
         hist.label = "MC"
 
@@ -420,19 +528,38 @@ class RunHistGenerator(HistGenMixin):
 
 
 class HistogramGenerator(HistGenMixin):
-    def __init__(self, dataframe, binning, weight_column="weights", query=None):
+    def __init__(
+        self,
+        dataframe: pd.DataFrame,
+        binning: Binning,
+        weight_column: str = "weights",
+        query: Optional[str] = None,
+        parameters: Optional[ParameterSet] = None,
+    ):
         """Create a histogram generator for a given dataframe.
 
         Parameters
         ----------
         dataframe : pandas.DataFrame
             Dataframe containing the data to be binned.
+        binning : Binning
+            Binning object containing the binning of the histogram.
         weight_column : str or list of str, optional
             Name of the column containing the weights of the data points. If more than one
             weight column is given, the weights are multiplied in sequence.
+        query : str, optional
+            Query to be applied to the dataframe before generating the histogram.
+        parameters : ParameterSet, optional
+            Set of parameters for the analysis that are used to weight or otherwise manipulate
+            the histograms. The default HistogramGenerator ignores all parameters, but
+            sub-classes can override this behavior. When this class is used inside a 
+            RunHistGenerator, the parameters are passed through by reference, so any changes
+            to the parameters of the RunHistGenerator will be reflected in the histogram
+            generator automatically.
         """
         self.dataframe = dataframe
         data_columns = dataframe.columns
+        self.parameters = parameters
         super().__init__(data_columns, binning, weight_column=weight_column, query=query)
 
     def generate(
@@ -487,12 +614,13 @@ class HistogramGenerator(HistGenMixin):
             assert sideband_total_prediction is not None
             assert sideband_observed_hist is not None
 
-        if self.query is not None:
-            dataframe = self.dataframe.query(self.query)
+        query = self._get_query(extra_query=extra_query)
+        if query is not None:
+            dataframe = self.dataframe.query(query)
         else:
             dataframe = self.dataframe
 
-        weights = self.get_weights(weight_column=self.weight_column)
+        weights = self.get_weights(weight_column=self.weight_column, query=query)
         bin_counts, bin_edges = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights)
         variances, _ = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights**2)
         if add_error_floor:
@@ -583,8 +711,8 @@ class HistogramGenerator(HistGenMixin):
         weights : array_like
             Array of weights.
         """
-        if self.query is not None:
-            dataframe = self.dataframe.query(self.query)
+        if query is not None:
+            dataframe = self.dataframe.query(query)
         else:
             dataframe = self.dataframe
         if weight_column is None:
@@ -724,14 +852,16 @@ class HistogramGenerator(HistGenMixin):
         # When we have two universes, then there are two weight variations, knobXXXup and knobXXXdown. Otherwise, there
         # is only one weight variation, knobXXXup.
         total_cov = np.zeros((len(self.binning), len(self.binning)))
-        base_weights = self.get_weights(weight_column=base_weight)
+        base_weights = self.get_weights(weight_column=base_weight, query=query)
         dataframe = self.dataframe.query(query)
         for knob, n_universes in zip(knob_v, knob_n_universes):
             observations = []
             for universe in range(n_universes):
                 # get the weight column for this universe
                 weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
-                universe_weights = self.get_weights(weight_column=weight_column_knob, query=query)
+                # it is important to use the raw weights here that are not manipulated when this
+                # class is sub-classed and the get_weights function does some re-weighting.
+                universe_weights = dataframe.query(query)[weight_column_knob]
                 # calculate the histogram for this universe
                 bincounts, _ = np.histogram(
                     dataframe[self.variable],
@@ -1021,7 +1151,7 @@ class Histogram:
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
             return Histogram.from_dict(state)
-        
+
         # otherwise, if other is also a Histogram
         assert self.binning == other.binning, (
             "Cannot add histograms with different binning. "
@@ -1135,85 +1265,3 @@ class Histogram:
             return Histogram.from_dict(state)
         else:
             raise NotImplementedError("Histogram multiplication is only supported for numeric types.")
-
-
-@dataclass
-class Binning:
-    """Binning for a variable
-
-    Attributes:
-    -----------
-    variable : str
-        Name of the variable being binned
-    bin_edges : np.ndarray
-        Array of bin edges
-    label : str
-        Label for the binned variable. This will be used to label the x-axis in plots.
-    is_log : bool, optional
-        Whether the binning is logarithmic or not (default is False)
-    """
-
-    variable: str
-    bin_edges: np.ndarray
-    label: str
-    is_log: bool = False
-
-    def __eq__(self, other):
-        for field in fields(self):
-            attr_self = getattr(self, field.name)
-            attr_other = getattr(other, field.name)
-            if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
-                if not np.array_equal(attr_self, attr_other):
-                    return False
-            else:
-                if attr_self != attr_other:
-                    return False
-        return True
-
-    def __post_init__(self):
-        if isinstance(self.bin_edges, list):
-            self.bin_edges = np.array(self.bin_edges)
-
-    def __len__(self):
-        return self.n_bins
-
-    @classmethod
-    def from_config(cls, variable, n_bins, limits, label, is_log=False):
-        """Create a Binning object from a typical binning configuration
-
-        Parameters:
-        -----------
-        variable : str
-            Name of the variable being binned
-        n_bins : int
-            Number of bins
-        limits : tuple
-            Tuple of lower and upper limits
-        label : str
-            Label for the binned variable. This will be used to label the x-axis in plots.
-        is_log : bool, optional
-            Whether the binning is logarithmic or not (default is False)
-
-        Returns:
-        --------
-        Binning
-            A Binning object with the specified bounds
-        """
-        if is_log:
-            bin_edges = np.geomspace(*limits, n_bins + 1)
-        else:
-            bin_edges = np.linspace(*limits, n_bins + 1)
-        return cls(variable, bin_edges, label, is_log=is_log)
-
-    @property
-    def n_bins(self):
-        """Number of bins"""
-        return len(self.bin_edges) - 1
-
-    @property
-    def bin_centers(self):
-        """Array of bin centers"""
-        if self.is_log:
-            return np.sqrt(self.bin_edges[1:] * self.bin_edges[:-1])
-        else:
-            return (self.bin_edges[1:] + self.bin_edges[:-1]) / 2
