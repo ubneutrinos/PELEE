@@ -289,8 +289,9 @@ class RunHistGenerator(HistGenMixin):
         df_mc = pd.concat([df for k, df in rundata_dict.items() if k not in ["data", "ext"]])
         df_ext = rundata_dict["ext"]
         df_data = rundata_dict["data"]
+        self.parameters = parameters
         self.mc_hist_generator = mc_hist_generator_cls(
-            df_mc, binning, weight_column=weight_column, query=query, parameters=parameters
+            df_mc, binning, weight_column=weight_column, query=query, parameters=self.parameters
         )
         self.ext_hist_generator = HistogramGenerator(df_ext, binning, weight_column=weight_column, query=query)
         if df_data is not None:
@@ -705,6 +706,8 @@ class HistogramGenerator(HistGenMixin):
             Override the weight column given at initialization.
         limit_weight : bool, optional
             Reset invalid weights to one.
+        query : str, optional
+            Query to apply to the dataframe before calculating the weights.
 
         Returns
         -------
