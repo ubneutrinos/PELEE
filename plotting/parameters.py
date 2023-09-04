@@ -92,6 +92,9 @@ class Parameter:
             else:
                 d["value"] = Quantity(d["value"]["magnitude"], Unit())
         return cls(**d)
+    
+    def copy(self):
+        return Parameter.from_dict(self.to_dict())
 
 
 class ParameterSet:
@@ -166,6 +169,8 @@ class ParameterSet:
             return self.parameters[self.names.index(key)]
         elif isinstance(key, int):
             return self.parameters[key]
+        elif isinstance(key, list):
+            return ParameterSet([self.parameters[self.names.index(k)] for k in key])
         else:
             raise TypeError("Invalid argument type.")
 
@@ -213,6 +218,8 @@ class ParameterSet:
                 return False
         return True
 
+    def copy(self):
+        return ParameterSet([p.copy() for p in self.parameters])
 
 class TestParameter(unittest.TestCase):
     def test_discrete_parameter(self):
@@ -252,6 +259,22 @@ class TestParameter(unittest.TestCase):
         p2 = Parameter.from_dict(d)
         self.assertEqual(p, p2)
 
+    def test_copy(self):
+        p = Parameter(name="float", value=3.0)
+        p2 = p.copy()
+        self.assertEqual(p, p2)
+        self.assertIsNot(p, p2)
+
+        p = Parameter(name="float_with_unit", value=Quantity(2.0, Unit("m")))
+        p2 = p.copy()
+        self.assertEqual(p, p2)
+        self.assertIsNot(p, p2)
+
+        # test bool parameter
+        p = Parameter(name="bool", value=True)
+        p2 = p.copy()
+        self.assertEqual(p, p2)
+        self.assertIsNot(p, p2)
 
 class TestParameterSet(unittest.TestCase):
     def test_insertion(self):
@@ -369,6 +392,28 @@ class TestParameterSet(unittest.TestCase):
         d = ps.to_dict()
         ps2 = ParameterSet.from_dict(d)
         self.assertEqual(ps, ps2)
+
+    def test_copy(self):
+        p1 = Parameter(name="float", value=3.0)
+        p2 = Parameter(name="float_with_unit", value=Quantity(2.0, Unit("m")))
+        p3 = Parameter(name="bool", value=True)
+
+        ps = ParameterSet([p1, p2, p3])
+        ps2 = ps.copy()
+        self.assertEqual(ps, ps2)
+        self.assertIsNot(ps, ps2)
+    
+    def test_get_list(self):
+        # test indexing with a list of names
+        p1 = Parameter(name="float", value=3.0)
+        p2 = Parameter(name="float_with_unit", value=Quantity(2.0, Unit("m")))
+        p3 = Parameter(name="bool", value=True)
+        
+        ps = ParameterSet([p1, p2, p3])
+        ps2 = ps[["float", "bool"]]
+        self.assertEqual(ps2, ParameterSet([p1, p3]))
+        # the objects should still point to the same Parameter objects
+        self.assertIs(ps2.parameters[0], ps.parameters[0])
 
 if __name__ == "__main__":
     unittest.main()
