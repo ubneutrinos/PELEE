@@ -2,6 +2,7 @@ from dataclasses import dataclass, fields
 from typing import Dict, Optional
 import numpy as np
 import pandas as pd
+import logging
 
 from numbers import Number
 from uncertainties import correlated_values, unumpy
@@ -553,7 +554,7 @@ class HistogramGenerator(HistGenMixin):
         parameters : ParameterSet, optional
             Set of parameters for the analysis that are used to weight or otherwise manipulate
             the histograms. The default HistogramGenerator ignores all parameters, but
-            sub-classes can override this behavior. When this class is used inside a 
+            sub-classes can override this behavior. When this class is used inside a
             RunHistGenerator, the parameters are passed through by reference, so any changes
             to the parameters of the RunHistGenerator will be reflected in the histogram
             generator automatically.
@@ -561,6 +562,8 @@ class HistogramGenerator(HistGenMixin):
         self.dataframe = dataframe
         data_columns = dataframe.columns
         self.parameters = parameters
+        self.logger = logging.getLogger(__name__)
+        self.logger.debug(f"Creating histogram generator for with binning: {binning}")
         super().__init__(data_columns, binning, weight_column=weight_column, query=query)
 
     def generate(
@@ -620,15 +623,17 @@ class HistogramGenerator(HistGenMixin):
             dataframe = self.dataframe.query(query)
         else:
             dataframe = self.dataframe
-
+        self.logger.debug(f"Generating histogram with query: {query}")
+        self.logger.debug(f"Total number of events after filtering: {len(dataframe)}")
         weights = self.get_weights(weight_column=self.weight_column, query=query)
         bin_counts, bin_edges = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights)
         variances, _ = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights**2)
         if add_error_floor:
             variances[variances == 0] = 1.4**2
         hist = Histogram(self.binning, bin_counts, uncertainties=np.sqrt(variances))
-
+        self.logger.debug(f"Generated histogram: {hist}")
         if include_multisim_errors:
+            self.logger.debug("Calculating multisim uncertainties")
             if use_sideband:
                 # initialize extended covariance matrix
                 n_bins = hist.n_bins
@@ -648,6 +653,7 @@ class HistogramGenerator(HistGenMixin):
                     extended_cov += self.multiband_covariance([self, sideband_generator], ms_column)
 
             # calculate unisim histograms
+            self.logger.debug("Calculating unisim uncertainties")
             cov_mat_unisim = self.calculate_unisim_uncertainties(central_value_hist=hist, extra_query=extra_query)
             hist.add_covariance(cov_mat_unisim)
 
@@ -736,6 +742,8 @@ class HistogramGenerator(HistGenMixin):
         weights[weights > 100] = 1.0
         weights[weights < 0] = 1.0
         weights[~np.isfinite(weights)] = 1.0
+        if np.sum(~np.isfinite(weights)) > 0:
+            self.logger.debug(f"Found {np.sum(~np.isfinite(weights))} invalid weights (set to one).")
         return weights
 
     def calculate_multisim_uncertainties(
@@ -809,10 +817,11 @@ class HistogramGenerator(HistGenMixin):
         base_weights = self.get_weights(weight_column=weight_column, query=query)
         for column in df.columns:
             # create a histogram for each universe
+            universe_weights = self._limit_weights(df[column].values * weight_rescale)
             bincounts, _ = np.histogram(
                 dataframe[self.variable],
                 bins=self.binning.bin_edges,
-                weights=base_weights * df[column].values * weight_rescale,
+                weights=base_weights * universe_weights,
             )
             universe_histograms.append(bincounts)
         universe_histograms = np.array(universe_histograms)
@@ -820,6 +829,8 @@ class HistogramGenerator(HistGenMixin):
             central_value_hist = self.generate(query=query)
         # calculate the covariance matrix from the histograms
         cov = covariance(universe_histograms, central_value_hist.nominal_values)
+        self.logger.debug(f"Calculated covariance matrix for {multisim_weight_column}.")
+        self.logger.debug(f"Bin-wise error contribution: {np.sqrt(np.diag(cov))}")
         if return_histograms:
             return cov, universe_histograms
         return cov
@@ -864,17 +875,31 @@ class HistogramGenerator(HistGenMixin):
                 weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
                 # it is important to use the raw weights here that are not manipulated when this
                 # class is sub-classed and the get_weights function does some re-weighting.
-                universe_weights = dataframe.query(query)[weight_column_knob]
+                universe_weights = self._limit_weights(dataframe.query(query)[weight_column_knob])
                 # calculate the histogram for this universe
                 bincounts, _ = np.histogram(
                     dataframe[self.variable],
                     bins=self.binning.bin_edges,
                     weights=base_weights * universe_weights,
                 )
+                self.logger.debug(
+                    f"Calculated histogram for {knob}up, universe {universe} with bin counts:\n{bincounts}."
+                )
+                if not np.all(np.isfinite(bincounts)):
+                    raise ValueError(
+                        f"Not all bin counts are finite for {knob}up, universe {universe}. Bin counts are: {bincounts}."
+                    )
                 observations.append(bincounts)
             observations = np.array(observations)
             # calculate the covariance matrix from the histograms
-            cov = covariance(observations, central_value_hist.nominal_values)
+            cov = covariance(
+                observations,
+                central_value_hist.nominal_values,
+                allow_approximation=True,
+                debug_name=knob,
+                tolerance=1e-10,
+            )
+            self.logger.debug(f"Bin-wise error contribution for knob {knob}: {np.sqrt(np.diag(cov))}")
             # add it to the total covariance matrix
             total_cov += cov
         return total_cov
@@ -1143,7 +1168,7 @@ class Histogram:
         return Histogram(self.binning, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts))
 
     def __repr__(self):
-        return f"Histogram(binning={self.binning}, bin_counts={self.bin_counts}, covariance={self.cov_matrix}, label={self.label}, tex={self.tex_string})"
+        return f"Histogram(binning={self.binning}, bin_counts={self.bin_counts}, label={self.label}, tex={self.tex_string})"
 
     def __add__(self, other):
         if isinstance(other, np.ndarray):

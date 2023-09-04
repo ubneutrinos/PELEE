@@ -2,9 +2,121 @@
 
 import unittest
 import numpy as np
+import logging
+import scipy.linalg as lin
+
+logger = logging.getLogger(__name__)
 
 
-def covariance(observations, central_value=None):
+def is_psd(A):
+    """Test whether a matrix is positive semi-definite.
+
+    Test is done via attempted Cholesky decomposition as suggested in [1]_.
+
+    Parameters
+    ----------
+    A : numpy.ndarray
+        Symmetric matrix
+
+    Returns
+    -------
+    bool
+        True if `A` is positive semi-definite, else False
+
+    References
+    ----------
+    ..  [1] N.J. Higham, "Computing a nearest symmetric positive semidefinite
+        matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
+    """
+    # pylint: disable=invalid-name
+    try:
+        _ = np.linalg.cholesky(A)
+        return True
+    except np.linalg.LinAlgError:
+        return False
+
+
+def fronebius_nearest_psd(A, return_distance=False):
+    """Find the positive semi-definite matrix closest to `A`.
+
+    The closeness to `A` is measured by the Fronebius norm. The matrix closest to `A`
+    by that measure is uniquely defined in [3]_.
+
+    Parameters
+    ----------
+    A : numpy.ndarray
+        Symmetric matrix
+    return_distance : bool, optional
+        Return distance of the input matrix to the approximation as given in
+        theorem 2.1 in [3]_.
+        This can be compared to the actual Frobenius norm between the
+        input and output to verify the calculation.
+
+    Returns
+    -------
+    X : numpy.ndarray
+        Positive semi-definite matrix approximating `A`.
+
+    Notes
+    -----
+    This function is a modification of [1]_, which is a Python adaption of [2]_, which
+    credits [3]_.
+
+    References
+    ----------
+    ..  [1] https://gist.github.com/fasiha/fdb5cec2054e6f1c6ae35476045a0bbd
+    ..  [2] https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd
+    ..  [3] N.J. Higham, "Computing a nearest symmetric positive semidefinite
+        matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
+    """
+    # pylint: disable=invalid-name
+    assert A.ndim == 2, "input is not a 2D matrix"
+    B = (A + A.T) / 2.0
+    _, H = lin.polar(B)
+    X = (B + H) / 2.0
+    # small numerical errors can make matrices that are not exactly
+    # symmetric, fix that
+    X = (X + X.T) / 2.0
+    # due to numerics, it's possible that the matrix is _still_ not psd.
+    # We can fix that iteratively by adding small increments of the identity matrix.
+    # This part comes from [1].
+    if not is_psd(X):
+        spacing = np.spacing(lin.norm(X))
+        I = np.eye(X.shape[0])
+        k = 1
+        while not is_psd(X):
+            mineig = np.min(np.real(lin.eigvals(X)))
+            X += I * (-mineig * k**2 + spacing)
+            k += 1
+    if return_distance:
+        C = (A - A.T) / 2.0
+        lam = lin.eigvalsh(B)
+        # pylint doesn't know that numpy.sum takes the "where" argument
+        # pylint: disable=unexpected-keyword-arg
+        dist = np.sqrt(np.sum(lam**2, where=lam < 0.0) + lin.norm(C, ord="fro") ** 2)
+        return X, dist
+    return X
+
+
+def check_frob_psd(A):
+    """Check approximation of Frobenius-closest PSD on given matrix.
+
+    This is not a unit test.
+
+    Parameters
+    ----------
+    A : numpy.ndarray
+        Symmetric matrix
+    """
+    # pylint: disable=invalid-name
+    X, xdist = fronebius_nearest_psd(A, return_distance=True)
+    is_psd_after = is_psd(X)
+    actual_dist = lin.norm(A - X, ord="fro")
+    assert is_psd_after, "did not produce PSD matrix"
+    assert np.isclose(xdist, actual_dist), "actual distance differs from expectation"
+
+
+def covariance(observations, central_value=None, allow_approximation=False, debug_name=None, tolerance=0.0):
     """Calculate the covariance matrix of the given observations.
 
     Optionally, a central value can be given that will be used instead of the mean of the
@@ -36,7 +148,7 @@ def covariance(observations, central_value=None):
             raise ValueError("Central value has wrong length.")
     # calculate covariance matrix
     if central_value is None:
-        return np.cov(observations, rowvar=False)
+        cov = np.cov(observations, rowvar=False)
     else:
         cov = np.zeros((observations.shape[1], observations.shape[1]))
         for i in range(observations.shape[1]):
@@ -44,7 +156,31 @@ def covariance(observations, central_value=None):
                 cov[i, j] = np.sum((observations[:, i] - central_value[i]) * (observations[:, j] - central_value[j]))
         # Here, we normalize by 1 / N, rather than 1 / (N - 1) as done by numpy.cov, because we
         # used the given central value rather than calculating it from the observations.
-        return cov / observations.shape[0]
+        cov = cov / observations.shape[0]
+
+    # check that all is finite
+    if not np.all(np.isfinite(cov)):
+        raise ValueError("Covariance matrix contains NaN or inf.")
+
+    # check if the covariance matrix is positive definite
+    if not is_psd(cov):
+        if allow_approximation:
+            # if not, we try to find the nearest positive semi-definite matrix
+            cov, dist = fronebius_nearest_psd(cov, return_distance=True)
+            name_str = f"for {debug_name}" if debug_name is not None else ""
+            logger.debug(f"Covariance matrix{name_str} is not positive semi-definite. ")
+            logger.debug(
+                "Using nearest positive semi-definite matrix instead. " "Distance to original matrix: %s",
+                dist,
+            )
+            if dist > tolerance:
+                raise ValueError(
+                    f"Nearest positive semi-definite matrix{name_str} is not close enough to original matrix. "
+                    f"Distance: {dist} > {tolerance}"
+                )
+        else:
+            raise ValueError(f"Covariance matrix is not positive semi-definite. Matrix is: {cov}")
+    return cov
 
 
 def get_cnp_covariance(expectation, observation):
@@ -255,6 +391,18 @@ def error_propagation_multiplication(x1, x2, C1, C2):
                 Cy[i, j] = y[i] * y[j] * (C1[i, j] / (x1[i] * x1[j]) + C2[i, j] / (x2[i] * x2[j]))
 
     return y, Cy
+
+
+class TestMatrix(unittest.TestCase):
+    def test_matrix_random(self):
+        """Unit test producing a number of random matrices and checking if the
+        approximated matrix is indeed PSD.
+        """
+        m_test = np.array([[1, -1], [2, 4]])
+        check_frob_psd(m_test)
+        for i in range(100):
+            m_test = np.random.randn(3, 3)
+            check_frob_psd(m_test)
 
 
 class TestConstrainedCovariance(unittest.TestCase):
