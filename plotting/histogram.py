@@ -1,4 +1,5 @@
 from dataclasses import dataclass, fields
+import hashlib
 from typing import Dict, Optional
 import numpy as np
 import pandas as pd
@@ -373,6 +374,8 @@ class RunHistGenerator(HistGenMixin):
             assert self.data_pot is not None, "Must provide data POT to scale EXT data."
             scale_factor = scale_to_pot / self.data_pot
         hist_generator = self.get_hist_generator(which=type)
+        if hist_generator is None:
+            return None
         data_hist = hist_generator.generate(add_error_floor=add_error_floor)
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
@@ -537,6 +540,8 @@ class HistogramGenerator(HistGenMixin):
         weight_column: str = "weights",
         query: Optional[str] = None,
         parameters: Optional[ParameterSet] = None,
+        enable_cache: bool = True,
+        cache_total_covariance: bool = True,
     ):
         """Create a histogram generator for a given dataframe.
 
@@ -558,13 +563,45 @@ class HistogramGenerator(HistGenMixin):
             RunHistGenerator, the parameters are passed through by reference, so any changes
             to the parameters of the RunHistGenerator will be reflected in the histogram
             generator automatically.
+        enable_cache : bool, optional
+            Whether to enable caching of histograms. The cache stores histograms in a dictionary
+            where the keys are the hash of the query and the values are the histograms.
+            The cache is invalidated if the parameters change. The cache also stores
+            the histograms of the different multisim universes and the unisim histograms.
+            Use with caution and do not change the dataframe after creating the histogram.
+        cache_total_covariance : bool, optional
+            If True, the total covariance matrix is cached. This is only used if enable_cache
+            is True. This skips the entire calculation of the sideband correction. Use with
+            caution: This assumes that there are no parameters that affect only the sideband
+            (which is the case for the LEE analysis, hence the default is True).
         """
         self.dataframe = dataframe
         data_columns = dataframe.columns
         self.parameters = parameters
+        if self.parameters is None:
+            self.parameters = ParameterSet([])  # empty parameter set, still needed to check cache
+        self.parameters_last_evaluated = None  # used to invalidate the cache
         self.logger = logging.getLogger(__name__)
         self.logger.debug(f"Creating histogram generator for with binning: {binning}")
+        self.enable_cache = enable_cache
+        self.cache_total_covariance = cache_total_covariance
+        self._invalidate_cache()
         super().__init__(data_columns, binning, weight_column=weight_column, query=query)
+
+    def _invalidate_cache(self):
+        """Invalidate the cache."""
+        self.hist_cache = dict()
+        # we keep caches around for every combination of multisim and sideband (even though 
+        #  the combination of without mulitim and with sideband is kinda nonsense and not used)
+        self.hist_cache["without_multisim"] = {"with_sideband": dict(), "without_sideband": dict()}
+        self.hist_cache["with_multisim"] = {"with_sideband": dict(), "without_sideband": dict()}
+        self.unisim_hist_cache = dict()
+        self.multisim_hist_cache = dict()
+        self.parameters_last_evaluated = self.parameters
+
+    def _return_empty_hist(self):
+        """Return an empty histogram."""
+        return Histogram(self.binning, np.zeros(self.binning.n_bins), np.zeros(self.binning.n_bins))
 
     def generate(
         self,
@@ -621,16 +658,42 @@ class HistogramGenerator(HistGenMixin):
         query = self._get_query(extra_query=extra_query)
         if query is not None:
             dataframe = self.dataframe.query(query)
+            if len(dataframe) == 0:
+                self.logger.debug("Query returned no events, returning empty histogram.")
+                return self._return_empty_hist()
         else:
             dataframe = self.dataframe
         self.logger.debug(f"Generating histogram with query: {query}")
         self.logger.debug(f"Total number of events after filtering: {len(dataframe)}")
-        weights = self.get_weights(weight_column=self.weight_column, query=query)
-        bin_counts, bin_edges = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights)
-        variances, _ = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights**2)
-        if add_error_floor:
-            variances[variances == 0] = 1.4**2
-        hist = Histogram(self.binning, bin_counts, uncertainties=np.sqrt(variances))
+        calculate_hist = True
+        hist_cache = self.hist_cache["with_multisim" if include_multisim_errors else "without_multisim"][
+            "with_sideband" if use_sideband else "without_sideband"
+        ]
+        if self.enable_cache:
+            if self.parameters != self.parameters_last_evaluated:
+                self._invalidate_cache()
+            if query is None:
+                hash = "None"
+            else:
+                hash = hashlib.sha256(query.encode("utf-8")).hexdigest()
+            if hash in hist_cache:
+                self.logger.debug("Histogram found in cache.")
+                if self.cache_total_covariance:
+                    self.logger.debug("Using cached total covariance matrix.")
+                    return hist_cache[hash].copy()
+                hist = hist_cache[hash].copy()
+                calculate_hist = False
+        if calculate_hist:
+            weights = self.get_weights(weight_column=self.weight_column, query=query)
+            bin_counts, bin_edges = np.histogram(
+                dataframe[self.variable], bins=self.binning.bin_edges, weights=weights
+            )
+            variances, _ = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights**2)
+            if add_error_floor:
+                variances[variances == 0] = 1.4**2
+            hist = Histogram(self.binning, bin_counts, uncertainties=np.sqrt(variances))
+            if self.enable_cache:
+                hist_cache[hash] = hist.copy()
         self.logger.debug(f"Generated histogram: {hist}")
         if include_multisim_errors:
             self.logger.debug("Calculating multisim uncertainties")
@@ -665,10 +728,13 @@ class HistogramGenerator(HistGenMixin):
                     concat_covariance=extended_cov,
                     sideband_covariance=sideband_total_prediction.cov_matrix,
                 )
+                self.logger.debug(f"Sideband constraint correction: {mu_offset}")
+                self.logger.debug(f"Sideband constraint covariance correction: {cov_corr}")
                 # add corrections to histogram
                 hist += mu_offset
                 hist.add_covariance(cov_corr)
-
+        if self.cache_total_covariance:
+            hist_cache[hash] = hist.copy()
         return hist
 
     @classmethod
@@ -799,6 +865,19 @@ class HistogramGenerator(HistGenMixin):
         if weight_column is None:
             weight_column = "weights_no_tune" if multisim_weight_column == "weightsGenie" else "weights"
         query = self._get_query(extra_query)
+        if self.enable_cache:
+            if self.parameters != self.parameters_last_evaluated:
+                self._invalidate_cache()
+            if query is None:
+                hash = "None"
+            else:
+                hash = hashlib.sha256(query.encode("utf-8")).hexdigest()
+            if hash in self.multisim_hist_cache:
+                self.logger.debug(f"Multisim histogram found in cache.")
+                if return_histograms:
+                    return self.multisim_hist_cache[hash]
+                else:
+                    return self.multisim_hist_cache[hash][0]
         dataframe = self.dataframe.query(query)
         multisim_weights = dataframe[multisim_weight_column].values
         # We have to make sure that there are no NaNs in the weights. Every row should contain
@@ -831,6 +910,8 @@ class HistogramGenerator(HistGenMixin):
         cov = covariance(universe_histograms, central_value_hist.nominal_values)
         self.logger.debug(f"Calculated covariance matrix for {multisim_weight_column}.")
         self.logger.debug(f"Bin-wise error contribution: {np.sqrt(np.diag(cov))}")
+        if self.enable_cache:
+            self.multisim_hist_cache[hash] = (cov, universe_histograms)
         if return_histograms:
             return cov, universe_histograms
         return cov
@@ -857,6 +938,13 @@ class HistogramGenerator(HistGenMixin):
         """
 
         query = self._get_query(extra_query)
+        if query is None:
+            hash = "None"
+        else:
+            hash = hashlib.sha256(query.encode("utf-8")).hexdigest()
+        if self.enable_cache:
+            if self.parameters != self.parameters_last_evaluated:
+                self._invalidate_cache()
         knob_v = ["knobRPA", "knobCCMEC", "knobAxFFCCQE", "knobVecFFCCQE", "knobDecayAngMEC", "knobThetaDelta2Npi"]
         # see table 23 from the technote
         knob_n_universes = [2, 1, 1, 1, 1, 1]
@@ -870,27 +958,35 @@ class HistogramGenerator(HistGenMixin):
         dataframe = self.dataframe.query(query)
         for knob, n_universes in zip(knob_v, knob_n_universes):
             observations = []
-            for universe in range(n_universes):
-                # get the weight column for this universe
-                weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
-                # it is important to use the raw weights here that are not manipulated when this
-                # class is sub-classed and the get_weights function does some re-weighting.
-                universe_weights = self._limit_weights(dataframe.query(query)[weight_column_knob])
-                # calculate the histogram for this universe
-                bincounts, _ = np.histogram(
-                    dataframe[self.variable],
-                    bins=self.binning.bin_edges,
-                    weights=base_weights * universe_weights,
-                )
-                self.logger.debug(
-                    f"Calculated histogram for {knob}up, universe {universe} with bin counts:\n{bincounts}."
-                )
-                if not np.all(np.isfinite(bincounts)):
-                    raise ValueError(
-                        f"Not all bin counts are finite for {knob}up, universe {universe}. Bin counts are: {bincounts}."
+            if self.enable_cache and (hash not in self.unisim_hist_cache):
+                self.unisim_hist_cache[hash] = dict()
+            if self.enable_cache and knob in self.unisim_hist_cache[hash]:
+                self.logger.debug(f"Unisim histogram for knob {knob} found in cache.")
+                observations = self.unisim_hist_cache[hash][knob]
+            else:
+                for universe in range(n_universes):
+                    # get the weight column for this universe
+                    weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
+                    # it is important to use the raw weights here that are not manipulated when this
+                    # class is sub-classed and the get_weights function does some re-weighting.
+                    universe_weights = self._limit_weights(dataframe.query(query)[weight_column_knob])
+                    # calculate the histogram for this universe
+                    bincounts, _ = np.histogram(
+                        dataframe[self.variable],
+                        bins=self.binning.bin_edges,
+                        weights=base_weights * universe_weights,
                     )
-                observations.append(bincounts)
-            observations = np.array(observations)
+                    self.logger.debug(
+                        f"Calculated histogram for {knob}up, universe {universe} with bin counts:\n{bincounts}."
+                    )
+                    if not np.all(np.isfinite(bincounts)):
+                        raise ValueError(
+                            f"Not all bin counts are finite for {knob}up, universe {universe}. Bin counts are: {bincounts}."
+                        )
+                    observations.append(bincounts)
+                observations = np.array(observations)
+                if self.enable_cache:
+                    self.unisim_hist_cache[hash][knob] = observations
             # calculate the covariance matrix from the histograms
             cov = covariance(
                 observations,
@@ -1036,6 +1132,18 @@ class Histogram:
             "tex_string": self._tex_string,
         }
 
+    def copy(self):
+        """Create a copy of the histogram.
+
+        Returns
+        -------
+        Histogram
+            Copy of the histogram.
+        """
+
+        state = self.to_dict()
+        return Histogram.from_dict(state)
+
     @classmethod
     def from_dict(cls, dictionary):
         """Create a histogram from a dictionary.
@@ -1175,7 +1283,7 @@ class Histogram:
             # We can add or subtract an ndarray to a Histogram as long as the length of the ndarray matches the number of bins in the histogram.
             if len(other) != len(self.bin_counts):
                 raise ValueError("Cannot add ndarray to histogram: ndarray has wrong length.")
-            new_bin_counts = self.bin_counts + other
+            new_bin_counts = self.nominal_values + other
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
             return Histogram.from_dict(state)

@@ -162,11 +162,17 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
     if not np.all(np.isfinite(cov)):
         raise ValueError("Covariance matrix contains NaN or inf.")
 
+    # For the following checks, we want to ignore all entries that are zero.
+    # Delete all rows and columns from cov 
+    # where all entries are zero.
+    ixgrid = np.ix_(np.any(cov != 0, axis=1), np.any(cov != 0, axis=1))
+    cov_non_zero = cov[ixgrid]
+
     # check if the covariance matrix is positive definite
-    if not is_psd(cov):
+    if not is_psd(cov_non_zero):
         if allow_approximation:
             # if not, we try to find the nearest positive semi-definite matrix
-            cov, dist = fronebius_nearest_psd(cov, return_distance=True)
+            cov_non_zero, dist = fronebius_nearest_psd(cov_non_zero, return_distance=True)
             name_str = f"for {debug_name}" if debug_name is not None else ""
             logger.debug(f"Covariance matrix{name_str} is not positive semi-definite. ")
             logger.debug(
@@ -179,7 +185,12 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
                     f"Distance: {dist} > {tolerance}"
                 )
         else:
-            raise ValueError(f"Covariance matrix is not positive semi-definite. Matrix is: {cov}")
+            raise ValueError(f"Non-zero part of covariance matrix is not positive semi-definite. Matrix is: {cov}")
+    
+    # Now we need to add back the rows and columns that we deleted before.
+    # We do this by adding back zero rows and columns.
+    cov = np.zeros((observations.shape[1], observations.shape[1]))
+    cov[ixgrid] = cov_non_zero
     return cov
 
 

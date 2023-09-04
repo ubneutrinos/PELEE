@@ -6,6 +6,17 @@ import pandas as pd
 import uncertainties.unumpy as unumpy
 
 class TestHistogram(unittest.TestCase):
+    def test_copy(self):
+        # make sure that the copy is deep
+        bin_edges = np.array([0, 1, 2, 3])
+        binning = Binning("x", bin_edges, "x-axis label")
+        bin_counts = np.array([1, 2, 3])
+        covariance_matrix = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        hist = Histogram(binning, bin_counts, covariance_matrix=covariance_matrix, label="hist", tex_string="hist")
+        hist_copy = hist.copy()
+        self.assertEqual(hist, hist_copy)
+        self.assertIsNot(hist, hist_copy)
+
     def test_uncorrelated(self):
         bin_edges = np.array([0, 1, 2, 3])
         binning = Binning("x", bin_edges, "x")

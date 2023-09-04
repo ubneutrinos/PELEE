@@ -139,6 +139,10 @@ class ParameterSet:
         return ParameterSet(self.parameters + other.parameters)
 
     @property
+    def is_empty(self):
+        return len(self.parameters) == 0
+
+    @property
     def names(self):
         return [p.name for p in self.parameters]
 
@@ -184,6 +188,8 @@ class ParameterSet:
 
     # the repr should list the parameters as a table of name, value, and unit
     def __repr__(self):
+        if self.is_empty:
+            return "Parameters: None"
         table_header = "Parameters:\n"
         table_header += "Name\tValue\tUnit\tBounds\n"
         table_header += "-------------------------------\n"
@@ -211,6 +217,8 @@ class ParameterSet:
             return False
         if len(self) != len(other):
             return False
+        if len(self) == 0:  # special case: the empty set is equal to itself
+            return True
         # parameters might be in different order between the two sets
         # but that should not be a problem
         for name in self.names:
@@ -414,6 +422,12 @@ class TestParameterSet(unittest.TestCase):
         self.assertEqual(ps2, ParameterSet([p1, p3]))
         # the objects should still point to the same Parameter objects
         self.assertIs(ps2.parameters[0], ps.parameters[0])
+    
+    def test_empty_equality(self):
+        # make sure the empty set is equal to itself
+        ps1 = ParameterSet([])
+        ps2 = ParameterSet([])
+        self.assertEqual(ps1, ps2)
 
 if __name__ == "__main__":
     unittest.main()
