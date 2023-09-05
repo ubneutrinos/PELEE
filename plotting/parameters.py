@@ -86,13 +86,16 @@ class Parameter:
         if "_post_init_finished" in d:
             d.pop("_post_init_finished")
         # Check if the value is a string with units
-        if isinstance(d["value"], dict):
+        if isinstance(d["value"], str):
+            magnitude_str, unit_str = d["value"].split()
+            d["value"] = Quantity(float(magnitude_str), Unit(unit_str))
+        elif isinstance(d["value"], dict):
             if "unit" in d["value"]:
                 d["value"] = Quantity(d["value"]["magnitude"], Unit(d["value"]["unit"]))
             else:
                 d["value"] = Quantity(d["value"]["magnitude"], Unit())
         return cls(**d)
-    
+
     def copy(self):
         return Parameter.from_dict(self.to_dict())
 
@@ -229,6 +232,7 @@ class ParameterSet:
     def copy(self):
         return ParameterSet([p.copy() for p in self.parameters])
 
+
 class TestParameter(unittest.TestCase):
     def test_discrete_parameter(self):
         p = Parameter(name="discrete", value=True)
@@ -249,7 +253,7 @@ class TestParameter(unittest.TestCase):
     def test_magnitude(self):
         p = Parameter(name="magnitude", value=Quantity(1.0, Unit("m")))
         self.assertEqual(p.m, 1.0)
-    
+
     def test_dict_conversion(self):
         p = Parameter(name="float", value=3.0)
         d = p.to_dict()
@@ -283,6 +287,7 @@ class TestParameter(unittest.TestCase):
         p2 = p.copy()
         self.assertEqual(p, p2)
         self.assertIsNot(p, p2)
+
 
 class TestParameterSet(unittest.TestCase):
     def test_insertion(self):
@@ -347,12 +352,11 @@ class TestParameterSet(unittest.TestCase):
         shared_names = list(set(pu1.parameters.names).intersection(set(pu2.parameters.names)))
         self.check_shared_params([pu1.parameters, pu2.parameters], shared_names)
         self.check_shared_params([pu1.parameters, pu2.parameters, puu.parameters], list(shared_names))
-        # When we instantiate a new object and inject it into the parameter set of one of the 
+        # When we instantiate a new object and inject it into the parameter set of one of the
         # parameter users, the objects will no longer be the same and our test should fail.
         pu2.parameters.parameters[0] = Parameter("x", Quantity(0.7, Unit("m")), bounds=(0.0, 2.0))
         with self.assertRaises(AssertionError):
             self.check_shared_params([pu1.parameters, pu2.parameters, puu.parameters], list(shared_names))
-
 
     def test_parameter_sharing_multi_level(self):
         p1 = Parameter("x", Quantity(1.0, Unit("m")), bounds=(0.0, 2.0))
@@ -410,24 +414,25 @@ class TestParameterSet(unittest.TestCase):
         ps2 = ps.copy()
         self.assertEqual(ps, ps2)
         self.assertIsNot(ps, ps2)
-    
+
     def test_get_list(self):
         # test indexing with a list of names
         p1 = Parameter(name="float", value=3.0)
         p2 = Parameter(name="float_with_unit", value=Quantity(2.0, Unit("m")))
         p3 = Parameter(name="bool", value=True)
-        
+
         ps = ParameterSet([p1, p2, p3])
         ps2 = ps[["float", "bool"]]
         self.assertEqual(ps2, ParameterSet([p1, p3]))
         # the objects should still point to the same Parameter objects
         self.assertIs(ps2.parameters[0], ps.parameters[0])
-    
+
     def test_empty_equality(self):
         # make sure the empty set is equal to itself
         ps1 = ParameterSet([])
         ps2 = ParameterSet([])
         self.assertEqual(ps1, ps2)
+
 
 if __name__ == "__main__":
     unittest.main()
