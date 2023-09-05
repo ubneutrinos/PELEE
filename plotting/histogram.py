@@ -292,6 +292,10 @@ class RunHistGenerator(HistGenMixin):
         df_ext = rundata_dict["ext"]
         df_data = rundata_dict["data"]
         self.parameters = parameters
+        if self.parameters is None:
+            self.parameters = ParameterSet([])  # empty parameter set
+        else:
+            assert isinstance(self.parameters, ParameterSet), "parameters must be a ParameterSet."
         self.mc_hist_generator = mc_hist_generator_cls(
             df_mc, binning, weight_column=weight_column, query=query, parameters=self.parameters
         )
