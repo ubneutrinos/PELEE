@@ -552,28 +552,31 @@ class HistogramGenerator(HistGenMixin):
         binning : Binning
             Binning object containing the binning of the histogram.
         weight_column : str or list of str, optional
-            Name of the column containing the weights of the data points. If more than one
-            weight column is given, the weights are multiplied in sequence.
+            Name of the column containing the weights of the data points. If more than one weight
+            column is given, the weights are multiplied in sequence.
         query : str, optional
             Query to be applied to the dataframe before generating the histogram.
         parameters : ParameterSet, optional
-            Set of parameters for the analysis that are used to weight or otherwise manipulate
-            the histograms. The default HistogramGenerator ignores all parameters, but
-            sub-classes can override this behavior. When this class is used inside a
-            RunHistGenerator, the parameters are passed through by reference, so any changes
-            to the parameters of the RunHistGenerator will be reflected in the histogram
-            generator automatically.
+            Set of parameters for the analysis that are used to weight or otherwise manipulate the
+            histograms. The default HistogramGenerator ignores all parameters, but sub-classes can
+            override this behavior. When this class is used inside a RunHistGenerator, the
+            parameters are passed through by reference, so any changes to the parameters of the
+            RunHistGenerator will be reflected in the histogram generator automatically.
         enable_cache : bool, optional
             Whether to enable caching of histograms. The cache stores histograms in a dictionary
-            where the keys are the hash of the query and the values are the histograms.
-            The cache is invalidated if the parameters change. The cache also stores
-            the histograms of the different multisim universes and the unisim histograms.
-            Use with caution and do not change the dataframe after creating the histogram.
+            where the keys are the hash of the query and the values are the histograms. The cache is
+            invalidated if the parameters change. The cache also stores the histograms of the
+            different multisim universes and the unisim histograms. Do not change the dataframe
+            after creating the HistogramGenerator with this setting enabled.
         cache_total_covariance : bool, optional
-            If True, the total covariance matrix is cached. This is only used if enable_cache
-            is True. This skips the entire calculation of the sideband correction. Use with
-            caution: This assumes that there are no parameters that affect only the sideband
-            (which is the case for the LEE analysis, hence the default is True).
+            If True, the total covariance matrix is cached. This is only used if enable_cache is
+            True. This skips the entire calculation of the sideband correction. Use with caution:
+            This assumes that there are no parameters that affect only the sideband (which is the
+            case for the LEE analysis, hence the default is True). If you are using this class in an
+            analysis where you have a parameter that is _only_ affecting the sideband, this needs to
+            be set to False. If the parameter affects both (for instance, an overall spectral index
+            correction), it is fine to leave it as True because a recalculation of the sideband will
+            also trigger a recalculation of this histogram.
         """
         self.dataframe = dataframe
         data_columns = dataframe.columns
@@ -656,15 +659,7 @@ class HistogramGenerator(HistGenMixin):
             assert sideband_observed_hist is not None
 
         query = self._get_query(extra_query=extra_query)
-        if query is not None:
-            dataframe = self.dataframe.query(query)
-            if len(dataframe) == 0:
-                self.logger.debug("Query returned no events, returning empty histogram.")
-                return self._return_empty_hist()
-        else:
-            dataframe = self.dataframe
-        self.logger.debug(f"Generating histogram with query: {query}")
-        self.logger.debug(f"Total number of events after filtering: {len(dataframe)}")
+        
         calculate_hist = True
         hist_cache = self.hist_cache["with_multisim" if include_multisim_errors else "without_multisim"][
             "with_sideband" if use_sideband else "without_sideband"
@@ -684,6 +679,18 @@ class HistogramGenerator(HistGenMixin):
                 hist = hist_cache[hash].copy()
                 calculate_hist = False
         if calculate_hist:
+            if query is not None:
+                dataframe = self.dataframe.query(query)
+                if len(dataframe) == 0:
+                    self.logger.debug("Query returned no events, returning empty histogram.")
+                    hist = self._return_empty_hist()
+                    if self.enable_cache:
+                        hist_cache[hash] = hist.copy()
+                    return hist
+            else:
+                dataframe = self.dataframe
+            self.logger.debug(f"Generating histogram with query: {query}")
+            self.logger.debug(f"Total number of events after filtering: {len(dataframe)}")
             weights = self.get_weights(weight_column=self.weight_column, query=query)
             bin_counts, bin_edges = np.histogram(
                 dataframe[self.variable], bins=self.binning.bin_edges, weights=weights
