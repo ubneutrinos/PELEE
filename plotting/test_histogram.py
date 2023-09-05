@@ -1,9 +1,11 @@
 """Unit Tests for plotting.histogram module"""
 import unittest
 from .histogram import Histogram, HistogramGenerator, Binning, RunHistGenerator
+from .parameters import Parameter, ParameterSet
 import numpy as np
 import pandas as pd
 import uncertainties.unumpy as unumpy
+import logging
 
 class TestHistogram(unittest.TestCase):
     def test_copy(self):
@@ -247,6 +249,112 @@ class TestHistogramGenerator(unittest.TestCase):
         # Verify that the histogram is created correctly
         self.assertEqual(len(histogram.bin_counts), 5)
         self.assertEqual(len(histogram.std_devs), 5)
+    
+    def test_subclass_with_parameters(self):
+        # create example DataFrame with additional columns 'x' and 'y'
+        df = pd.DataFrame(
+            {
+                "x": np.random.rand(100),
+                "y": np.random.randint(0, 2, 100),  # Additional column for querying
+                "energy": np.exp(np.random.rand(100)),  # column that we can use to simulate a parameter
+                "weights": np.random.rand(100),
+            }
+        )
+
+        # Create binning
+        binning = Binning("x", np.array([0, 0.2, 0.4, 0.6, 0.8, 1.0]), "X")
+
+        # Create a subclass of the HistogramGenerator that overrides the
+        # adjust_weights method. We want to simulate a parameter that is the spectral
+        # index, so events should be re-weighted according to $E^{-\Delta\gamma}$, 
+        # where $\Delta\gamma$ is the (variation of the) spectral index.
+
+        class SpectralIndexGenerator(HistogramGenerator):
+            def adjust_weights(self, dataframe, base_weights):
+                delta_gamma = self.parameters["delta_gamma"].m
+                return base_weights * dataframe["energy"] ** delta_gamma
+        
+        # Create a ParameterSet with a single parameter
+        parameters = ParameterSet([Parameter("delta_gamma", 0.5, bounds=(-1, 1))])
+        # Initialize the HistogramGenerator
+        generator = SpectralIndexGenerator(df, binning, weight_column="weights", parameters=parameters)
+        # To cross-check, we create a dataframe where we already apply the re-weighting
+        # and create a histogram from that
+        df_reweighted = df.copy()
+        df_reweighted["weights"] = df_reweighted["weights"] * df_reweighted["energy"] ** 0.5
+        generator_reweighted = HistogramGenerator(df_reweighted, binning, weight_column="weights")
+        # Generate the histogram
+        histogram = generator.generate()
+        crosscheck_histogram = generator_reweighted.generate()
+        self.assertEqual(histogram, crosscheck_histogram)
+
+        # Run the same test, but apply a query as well
+        query = "y == 1"
+        generator = SpectralIndexGenerator(df, binning, weight_column="weights", parameters=parameters, query=query)
+        generator_reweighted = HistogramGenerator(df_reweighted, binning, weight_column="weights", query=query)
+        histogram = generator.generate()
+        crosscheck_histogram = generator_reweighted.generate()
+        self.assertEqual(histogram, crosscheck_histogram)
+
+    def test_caching(self):
+        # The caching mechanism increases speed by avoiding recalculation of the histograms
+        # if none of the parameters change AND the same query has already been used before
+        # with these same paramters.
+        df = pd.DataFrame(
+            {
+                "x": np.random.rand(100),
+                "y": np.random.randint(0, 2, 100),  # Additional column for querying
+                "energy": np.exp(np.random.rand(100)),  # column that we can use to simulate a parameter
+                "weights": np.random.rand(100),
+            }
+        )
+
+        # Create binning
+        binning = Binning("x", np.array([0, 0.2, 0.4, 0.6, 0.8, 1.0]), "X")
+
+        # Create a subclass of the HistogramGenerator that overrides the
+        # adjust_weights method. We want to simulate a parameter that is the spectral
+        # index, so events should be re-weighted according to $E^{-\Delta\gamma}$, 
+        # where $\Delta\gamma$ is the (variation of the) spectral index.
+
+        class SpectralIndexGenerator(HistogramGenerator):
+            def adjust_weights(self, dataframe, base_weights):
+                delta_gamma = self.parameters["delta_gamma"].m
+                return base_weights * dataframe["energy"] ** delta_gamma
+        
+        # Create a ParameterSet with a single parameter
+        parameters = ParameterSet([Parameter("delta_gamma", 0.5, bounds=(-1, 1))])
+        # Initialize the HistogramGenerator
+        generator_cached = SpectralIndexGenerator(df, binning, weight_column="weights", parameters=parameters, enable_cache=True)
+        # To cross-check, we create a histogram generator without caching. The output 
+        # should always be the same.
+        generator_uncached = SpectralIndexGenerator(df, binning, weight_column="weights", parameters=parameters, enable_cache=False)
+        hist_cached = generator_cached.generate()
+        hist_uncached = generator_uncached.generate()
+        self.assertEqual(hist_cached, hist_uncached)
+        # add a query
+        query = "y == 1"
+        hist_cached = generator_cached.generate(query=query)
+        hist_uncached = generator_uncached.generate(query=query)
+        self.assertEqual(hist_cached, hist_uncached)
+        # and remove again
+        hist_cached = generator_cached.generate()
+        hist_uncached = generator_uncached.generate()
+        self.assertEqual(hist_cached, hist_uncached)
+        # change parameter. Note that the parameter is automatically shared between the two generators,
+        # so we only need to change it once.
+        parameters["delta_gamma"].value = 0.0
+        hist_cached = generator_cached.generate()
+        hist_uncached = generator_uncached.generate()
+        self.assertEqual(hist_cached, hist_uncached)
+        # add a query
+        hist_cached = generator_cached.generate(query=query)
+        hist_uncached = generator_uncached.generate(query=query)
+        self.assertEqual(hist_cached, hist_uncached)
+        # and remove again
+        hist_cached = generator_cached.generate()
+        hist_uncached = generator_uncached.generate()
+        self.assertEqual(hist_cached, hist_uncached)
 
 class TestRunHistGenerator(unittest.TestCase):
 

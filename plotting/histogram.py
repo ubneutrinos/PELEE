@@ -600,7 +600,7 @@ class HistogramGenerator(HistGenMixin):
         self.hist_cache["with_multisim"] = {"with_sideband": dict(), "without_sideband": dict()}
         self.unisim_hist_cache = dict()
         self.multisim_hist_cache = dict()
-        self.parameters_last_evaluated = self.parameters
+        self.parameters_last_evaluated = self.parameters.copy()
 
     def _return_empty_hist(self):
         """Return an empty histogram."""
@@ -661,16 +661,18 @@ class HistogramGenerator(HistGenMixin):
         query = self._get_query(extra_query=extra_query)
         
         calculate_hist = True
-        hist_cache = self.hist_cache["with_multisim" if include_multisim_errors else "without_multisim"][
-            "with_sideband" if use_sideband else "without_sideband"
-        ]
+        
         if self.enable_cache:
             if self.parameters != self.parameters_last_evaluated:
+                self.logger.debug("Parameters changed, invalidating cache.")
                 self._invalidate_cache()
             if query is None:
                 hash = "None"
             else:
                 hash = hashlib.sha256(query.encode("utf-8")).hexdigest()
+            hist_cache = self.hist_cache["with_multisim" if include_multisim_errors else "without_multisim"][
+                "with_sideband" if use_sideband else "without_sideband"
+            ]
             if hash in hist_cache:
                 self.logger.debug("Histogram found in cache.")
                 if self.cache_total_covariance:
@@ -740,7 +742,7 @@ class HistogramGenerator(HistGenMixin):
                 # add corrections to histogram
                 hist += mu_offset
                 hist.add_covariance(cov_corr)
-        if self.cache_total_covariance:
+        if self.enable_cache and self.cache_total_covariance:
             hist_cache[hash] = hist.copy()
         return hist
 
@@ -776,8 +778,19 @@ class HistogramGenerator(HistGenMixin):
         cov_mat = covariance(concatenated_universes, concatenated_cv)
         return cov_mat
 
+    def adjust_weights(self, dataframe, base_weights):
+        """Reweight events according to the parameters.
+        
+        This method is intended to be overridden by subclasses. The default implementation
+        does not change the weights. Subclasses may safely assume that the dataframe 
+        has already been filtered for the given query and has the same length as the
+        base_weights array.
+        """
+
+        return base_weights
+
     def get_weights(self, weight_column=None, limit_weight=True, query=None):
-        """Get the weights of the dataframe.
+        """Get the weights of the dataframe after filtering for the given query.
 
         Parameters
         ----------
@@ -791,7 +804,13 @@ class HistogramGenerator(HistGenMixin):
         Returns
         -------
         weights : array_like
-            Array of weights.
+            Array of weights
+        
+        Notes
+        -----
+        This method is _not_ intended to be overridden by subclasses. Instead, subclasses
+        should override the adjust_weights() method if they wish to change the weights
+        according to the parameters.
         """
         if query is not None:
             dataframe = self.dataframe.query(query)
@@ -808,7 +827,7 @@ class HistogramGenerator(HistGenMixin):
                 weights *= dataframe[col]
         else:
             weights = self._limit_weights(dataframe[weight_column])
-        return weights
+        return self.adjust_weights(dataframe, weights)
 
     def _limit_weights(self, weights):
         weights = np.asarray(weights)
