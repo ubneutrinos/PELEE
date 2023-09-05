@@ -350,7 +350,12 @@ class TestHistogramGenerator(unittest.TestCase):
         # add a query
         hist_cached = generator_cached.generate(query=query)
         hist_uncached = generator_uncached.generate(query=query)
+        # just to be sure, make a new HistogramGenerator without parameters 
+        # When delta_gamma == 0, the re-weighting should not change anything
+        default_generator = HistogramGenerator(df, binning, weight_column="weights", query=query, enable_cache=False)
+        hist_default = default_generator.generate()
         self.assertEqual(hist_cached, hist_uncached)
+        self.assertEqual(hist_cached, hist_default)
         # and remove again
         hist_cached = generator_cached.generate()
         hist_uncached = generator_uncached.generate()
