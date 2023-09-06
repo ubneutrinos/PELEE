@@ -28,6 +28,8 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         # the dataframe is needed to find the categories when plotting stacked histograms
         # hope we can get rid of this in the future
         self.dataframe = self.signal_generator.dataframe
+        self._binning = self.signal_generator._binning
+        self.full_generator = self.hist_gen_cls(*args, query=query, parameters=forward_parameters, **kwargs)
     
     def generate(self, *args, **kwargs):
         signal_hist = self.signal_generator.generate(*args, **kwargs)
@@ -38,6 +40,8 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         self.parameters.synchronize(self.signal_generator.parameters)
         self.parameters.synchronize(self.background_generator.parameters)
 
+    def calculate_multisim_uncertainties(self, *args, **kwargs):
+        return self.full_generator.calculate_multisim_uncertainties(*args, **kwargs)
 
 class SpectralIndexGenerator(HistogramGenerator):
     def adjust_weights(self, dataframe, base_weights):

@@ -614,6 +614,9 @@ class HistogramGenerator(HistGenMixin):
         self.hist_cache["with_multisim"] = {"with_sideband": dict(), "without_sideband": dict()}
         self.unisim_hist_cache = dict()
         self.multisim_hist_cache = dict()
+        self.multisim_hist_cache["weightsReint"] = dict()
+        self.multisim_hist_cache["weightsFlux"] = dict()
+        self.multisim_hist_cache["weightsGenie"] = dict()
         self.parameters_last_evaluated = self.parameters.copy()
 
     def _return_empty_hist(self):
@@ -906,12 +909,12 @@ class HistogramGenerator(HistGenMixin):
                 hash = "None"
             else:
                 hash = hashlib.sha256(query.encode("utf-8")).hexdigest()
-            if hash in self.multisim_hist_cache:
+            if hash in self.multisim_hist_cache[multisim_weight_column]:
                 self.logger.debug(f"Multisim histogram found in cache.")
                 if return_histograms:
-                    return self.multisim_hist_cache[hash]
+                    return self.multisim_hist_cache[multisim_weight_column][hash]
                 else:
-                    return self.multisim_hist_cache[hash][0]
+                    return self.multisim_hist_cache[multisim_weight_column][hash][0]
         dataframe = self.dataframe.query(query, engine="python")
         multisim_weights = dataframe[multisim_weight_column].values
         # We have to make sure that there are no NaNs in the weights. Every row should contain
@@ -945,7 +948,7 @@ class HistogramGenerator(HistGenMixin):
         self.logger.debug(f"Calculated covariance matrix for {multisim_weight_column}.")
         self.logger.debug(f"Bin-wise error contribution: {np.sqrt(np.diag(cov))}")
         if self.enable_cache:
-            self.multisim_hist_cache[hash] = (cov, universe_histograms)
+            self.multisim_hist_cache[multisim_weight_column][hash] = (cov, universe_histograms)
         if return_histograms:
             return cov, universe_histograms
         return cov
