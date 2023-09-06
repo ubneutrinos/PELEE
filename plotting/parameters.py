@@ -101,7 +101,7 @@ class Parameter:
 
 
 class ParameterSet:
-    def __init__(self, parameters: List["Parameter"]):
+    def __init__(self, parameters: List["Parameter"], strict_duplicate_checking=False):
         """Class to define a set of parameters of an analysis.
 
         Parameters
@@ -110,9 +110,9 @@ class ParameterSet:
             List of parameters.
         """
         self.parameters = parameters
-        self._check_duplicates()
+        self._check_duplicates(strict=strict_duplicate_checking)
 
-    def _check_duplicates(self):
+    def _check_duplicates(self, strict=True):
         # If a parameter with the same name is defined twice, it must
         # be defined identically. In that case, we remove the duplicate.
         # If there is a contradiction between the two definitions, we
@@ -120,7 +120,8 @@ class ParameterSet:
 
         if len(self.parameters) == len(set(self.names)):
             return
-
+        elif strict:
+            raise ValueError("Duplicate parameter names found (strict checking enabled).")
         names, counts = np.unique(self.names, return_counts=True)
         for name, count in zip(names, counts):
             if count > 1:
@@ -134,12 +135,30 @@ class ParameterSet:
                     self.parameters.pop(i)
 
     def __add__(self, other):
-        return ParameterSet(self.parameters + other.parameters)
+        parameter_list = self.parameters + other.parameters
+        new_parameter_set = ParameterSet(parameter_list, strict_duplicate_checking=False)
+        # before we return, we set the parameter objects in the other set to the 
+        # parameter objects in the new set
+        duplicate_names = list(set(self.names).intersection(other.names))
+        for name in duplicate_names:
+            other._replace_param(name, new_parameter_set[name])
+        return new_parameter_set
 
     def __radd__(self, other):
         if other == 0:
             return self
-        return ParameterSet(self.parameters + other.parameters)
+        return self.__add__(other)
+
+    def _replace_param(self, key, value):
+        """Like setitem, but replaces the actual parameter object instead of setting the value."""
+        if isinstance(key, str):
+            if key not in self.names:
+                raise KeyError(f"Parameter {key} not found.")
+            self.parameters[self.names.index(key)] = value
+        elif isinstance(key, int):
+            self.parameters[key] = value
+        else:
+            raise TypeError("Invalid argument type.")
 
     @property
     def is_empty(self):
@@ -306,7 +325,8 @@ class TestParameterSet(unittest.TestCase):
             p5 = Parameter(name="float", value=4.0)
             ps = ParameterSet([p1, p2, p3, p4, p5])
 
-    def check_shared_params(self, param_sets: List[ParameterSet], shared_names: List[str]):
+    def check_shared_params(self, param_sets: List[ParameterSet]):
+        shared_names = list(set(param_sets[0].names).intersection(*[set(ps.names) for ps in param_sets[1:]]))
         # Reference ParameterSet
         ref_set = param_sets[0]
         for name in shared_names:
@@ -325,7 +345,7 @@ class TestParameterSet(unittest.TestCase):
 
         class ParameterUser:
             def __init__(self, parameters, name=None):
-                self.parameters = parameters
+                self.parameters = parameters.copy()
                 self.name = name
 
         class ParameterUserUser:
@@ -339,6 +359,7 @@ class TestParameterSet(unittest.TestCase):
         puu.parameters["x"] = 0.5
         # Setting the parameter value in the ParameterUserUser should also change the value in
         # each ParameterUser
+        self.check_shared_params([pu1.parameters, pu2.parameters, puu.parameters])
         for pu in [pu1, pu2]:
             assert pu.parameters["x"].m == 0.5
         puu.parameters["w"] = False
@@ -349,14 +370,13 @@ class TestParameterSet(unittest.TestCase):
             pu1.parameters["w"]
         assert pu2.parameters["w"].value == False, pu2.parameters["w"]
 
-        shared_names = list(set(pu1.parameters.names).intersection(set(pu2.parameters.names)))
-        self.check_shared_params([pu1.parameters, pu2.parameters], shared_names)
-        self.check_shared_params([pu1.parameters, pu2.parameters, puu.parameters], list(shared_names))
+        self.check_shared_params([pu1.parameters, pu2.parameters])
+        self.check_shared_params([pu1.parameters, pu2.parameters, puu.parameters])
         # When we instantiate a new object and inject it into the parameter set of one of the
         # parameter users, the objects will no longer be the same and our test should fail.
         pu2.parameters.parameters[0] = Parameter("x", Quantity(0.7, Unit("m")), bounds=(0.0, 2.0))
         with self.assertRaises(AssertionError):
-            self.check_shared_params([pu1.parameters, pu2.parameters, puu.parameters], list(shared_names))
+            self.check_shared_params([pu1.parameters, pu2.parameters, puu.parameters])
 
     def test_parameter_sharing_multi_level(self):
         p1 = Parameter("x", Quantity(1.0, Unit("m")), bounds=(0.0, 2.0))
