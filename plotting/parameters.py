@@ -139,10 +139,13 @@ class ParameterSet:
         new_parameter_set = ParameterSet(parameter_list, strict_duplicate_checking=False)
         # before we return, we set the parameter objects in the other set to the 
         # parameter objects in the new set
+        new_parameter_set.synchronize(other)
+        return new_parameter_set
+    
+    def synchronize(self, other):
         duplicate_names = list(set(self.names).intersection(other.names))
         for name in duplicate_names:
-            other._replace_param(name, new_parameter_set[name])
-        return new_parameter_set
+            other._replace_param(name, self[name])
 
     def __radd__(self, other):
         if other == 0:
@@ -388,8 +391,8 @@ class TestParameterSet(unittest.TestCase):
         ps3 = ParameterSet([p3])
 
         class ParameterUser:
-            def __init__(self, parameters, name=None):
-                self.parameters = parameters
+            def __init__(self, parameters, name=None, copypars=True):
+                self.parameters = parameters.copy() if copypars else parameters
                 self.name = name
 
         class ParameterUserUser:
@@ -413,6 +416,21 @@ class TestParameterSet(unittest.TestCase):
                 assert pu.parameters["x"].m == 0.7
             except KeyError:
                 pass  # Skip those ParameterUser(s) that don't have "x"
+        
+        class ParameterPartialUser:
+            def __init__(self, parameters: ParameterSet, forward_parameters: List[str]):
+                self.parameters = parameters
+                self.pu = ParameterUser(parameters[forward_parameters], copypars=False)
+        
+        ppu = ParameterPartialUser(puu_top.parameters, ["x", "y"])
+        # the puu should now have all parameters, but its internal ParameterUser should only have "x" and "y"
+        assert len(ppu.parameters) == 3
+        assert len(ppu.pu.parameters) == 2
+        # changing the parameter at the top level should propagate to the internal ParameterUser
+        ppu.parameters["x"] = 0.5
+        assert ppu.pu.parameters["x"].m == 0.5
+        # the forwarded parameters should be the same object
+        assert ppu.parameters["x"] is ppu.pu.parameters["x"]
 
     def test_dict_conversion(self):
         p1 = Parameter(name="float", value=3.0)
