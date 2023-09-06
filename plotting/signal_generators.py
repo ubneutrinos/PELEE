@@ -3,6 +3,7 @@ as a signal generator when defining an analysis in a toml file.
 """
 
 
+import numpy as np
 from plotting.histogram import Binning, HistogramGenerator, RunHistGenerator
 from plotting.parameters import ParameterSet
 
@@ -41,7 +42,9 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
 class SpectralIndexGenerator(HistogramGenerator):
     def adjust_weights(self, dataframe, base_weights):
         delta_gamma = self.parameters["delta_gamma"].m
-        return base_weights * dataframe["reco_e"] ** delta_gamma
+        spectral_weight = np.power(dataframe["reco_e"], delta_gamma)
+        spectral_weight[~np.isfinite(spectral_weight)] = 0
+        return base_weights * spectral_weight
 
 class SpectralSoBGenerator(SignalOverBackgroundGenerator):
     hist_gen_cls = SpectralIndexGenerator
