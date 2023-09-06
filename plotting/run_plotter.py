@@ -77,6 +77,8 @@ class RunHistPlotter():
         gen = self.run_hist_generator
         if use_sideband:
             assert gen.sideband_generator is not None
+        if gen.uncertainty_defaults is not None and "add_ext_error_floor" in gen.uncertainty_defaults:
+            add_ext_error_floor = gen.uncertainty_defaults["add_ext_error_floor"]
         ext_hist = gen.get_data_hist(type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot)
         ext_hist.tex_string = "EXT"
         mc_hists = gen.get_mc_hists(
@@ -122,7 +124,12 @@ class RunHistPlotter():
         )
         ax.set_xlabel(total_pred_hist.binning.label)
         ax.set_ylabel("Events")
-        ax.set_title(self.title)
+        if self.title is None:
+            selection, preselection = gen.selection, gen.preselection
+            title = self.get_selection_title(selection, preselection)
+        else:
+            title = self.title
+        ax.set_title(title)
         ax.legend()
         return ax
 
