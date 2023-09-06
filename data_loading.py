@@ -3,6 +3,7 @@
 This is a refactorization of the code that was formerly in "load_data_run123.py".
 """
 
+import hashlib
 import os
 import pickle
 import numpy as np
@@ -18,6 +19,37 @@ import xgboost as xgb
 from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 
+
+def generate_hash(*args, **kwargs):
+    hash_obj = hashlib.md5()
+    data = str(args) + str(kwargs)
+    hash_obj.update(data.encode("utf-8"))
+    return hash_obj.hexdigest()
+
+
+def cache_dataframe(func):
+    def wrapper(*args, enable_cache=False, cache_dir="cached_dataframes", **kwargs):
+
+        if not enable_cache:
+            return func(*args, **kwargs)
+
+        hash_value = generate_hash(*args, **kwargs)
+
+        hdf_filepath = os.path.join(cache_dir, f"{hash_value}.h5")
+
+        if not os.path.exists(cache_dir):
+            os.mkdir(cache_dir)
+
+        if os.path.exists(hdf_filepath):
+            df = pd.read_hdf(hdf_filepath, "data")
+        else:
+            df = func(*args, **kwargs)
+            assert isinstance(df, pd.DataFrame), "Output should be a pandas DataFrame"
+            df.to_hdf(hdf_filepath, key="data", mode="w")
+
+        return df
+
+    return wrapper
 
 def get_variables():
     VARDICT = {}
@@ -373,9 +405,12 @@ def add_paper_category(df, key):
         return
     df.loc[(df["npi0"] > 0), "paper_category"] = 31
     df.loc[(df["npi0"] == 0), "paper_category"] = 2
-    
+
+
 def add_paper_category_1e1p(df, key):
-    df.loc[:, "category_1e1p"] = df["category"] # makes a new column called 'category_1e1p' in df which copies the 'category'
+    df.loc[:, "category_1e1p"] = df[
+        "category"
+    ]  # makes a new column called 'category_1e1p' in df which copies the 'category'
     if key in ["data"]:
         return
     df.loc[(df["nproton"] == 1), "category_1e1p"] = 12
@@ -1550,6 +1585,26 @@ def process_uproot_numu(up, df):
 
     return
 
+def drop_vector_columns(df):
+    drop_columns = [
+            "trk_theta_v",
+            "trk_end_z_v",
+            "trk_len_v",
+            "shr_tkfit_dedx_nhits_v_v",
+            "trk_phi_v",
+            "shr_tkfit_dedx_y_v",
+            "trk_end_y_v",
+            "shr_tkfit_dedx_v_v",
+            "trk_end_x_v",
+            "shr_tkfit_dedx_u_v",
+            "shr_tkfit_dedx_nhits_y_v",
+            "shr_tkfit_dedx_nhits_u_v",
+        ]
+    drop_columns = [col for col in drop_columns if col in df.columns]
+    df.drop(
+        columns=drop_columns,
+        inplace=True,
+    )
 
 # The following function should be aplied to the R3 CCPi0 sample when USEBDT and
 # loadtruthfilters are both set to True.
@@ -1562,6 +1617,7 @@ def apply_bdt_truth_filters(df):
     df = pd.merge(df, dfcsv, how="inner", on=["identifier"], suffixes=("", "_VAR"))
     Npost = float(df.shape[0])
     print("fraction of R3 CCpi0 sample after split : %.02f" % (Npost / Npre))
+
 
 def get_rundict(run_number, category, dataset):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
@@ -1580,16 +1636,19 @@ def get_rundict(run_number, category, dataset):
         raise ValueError(f"Dataset '{dataset}' not found in data_paths.yml for run {run_number}")
     return rundict
 
+
 def get_pot_trig(run_number, category, dataset):
     rundict = get_rundict(run_number, category, dataset)
     pot = rundict[dataset].pop("pot", None)
     trig = rundict[dataset].pop("trig", None)
-    if trig is not None: 
+    if trig is not None:
         trig = int(trig)
     if pot is not None:
         pot = float(pot)
     return pot, trig
 
+
+@cache_dataframe
 def load_sample(
     run_number,
     category,
@@ -1709,12 +1768,21 @@ def load_sample(
     ] = 4
 
     add_paper_categories(df, dataset)
-
+    drop_vector_columns(df)
     return df
+
 
 # CT: plotter currently requires the pot weights to be passed in as another dictionary
 # Adding to this function for now, discuss when refactoring plotter.py
-def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"], blinded=True, load_lee=False, numupresel=False, **load_sample_kwargs):
+def _load_run(
+    run_number,
+    data="bnb",
+    truth_filtered_sets=["nue", "drt"],
+    blinded=True,
+    load_lee=False,
+    numupresel=False,
+    **load_sample_kwargs,
+):
     category = "numupresel" if numupresel else "runs"
     output = {}
     weights = {}
@@ -1732,12 +1800,15 @@ def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"], blinde
     ext_df["weights"] = data_trig / ext_trigger
     weights["ext"] = data_trig / ext_trigger
     output["ext"] = ext_df
-    mc_sets = ["mc"] + truth_filtered_sets # CT: The existing plotter.py looks for a sample labelled "mc" mfor the numu component
-    if(load_lee): mc_sets.append("lee")
+    mc_sets = [
+        "mc"
+    ] + truth_filtered_sets  # CT: The existing plotter.py looks for a sample labelled "mc" mfor the numu component
+    if load_lee:
+        mc_sets.append("lee")
     for mc_set in mc_sets:
-        if(mc_set == "lee"):
+        if mc_set == "lee":
             print("Loading lee sample")
-            
+
             if run_number == 2:
                 mc_df1 = load_sample(1, category, "nue", **load_sample_kwargs, use_lee_weights=True)
                 mc_df3 = load_sample(3, category, "nue", **load_sample_kwargs, use_lee_weights=True)
@@ -1749,7 +1820,6 @@ def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"], blinde
                 mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
                 mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
         else:
-            
             if run_number == 2:
                 mc_df1 = load_sample(1, category, mc_set, **load_sample_kwargs)
                 mc_df3 = load_sample(3, category, mc_set, **load_sample_kwargs)
@@ -1768,7 +1838,7 @@ def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"], blinde
         if mc_set == "lee":
             mc_df["weights"] *= mc_df["leeweight"]
             mc_df["weights_no_tune"] *= mc_df["leeweight"]
-        weights[mc_set] = data_pot / mc_pot 
+        weights[mc_set] = data_pot / mc_pot
         output[mc_set] = mc_df
 
     # Remove the truth filtered events from "mc" to avoid double-counting
@@ -1778,23 +1848,26 @@ def _load_run(run_number, data="bnb", truth_filtered_sets=["nue", "drt"], blinde
         else:
             # The filters are all the same, so we just take them from run 1 here
             rundict = get_rundict(1, category, truth_set)
-            df_temp = output["mc"].query(rundict[truth_set]["filter"])
+            df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
 
-    return output,weights,data_pot # CT: Return the weight dict and data pot
+    return output, weights, data_pot  # CT: Return the weight dict and data pot
+
 
 def load_runs(run_numbers, **load_run_kwargs):
-    runsdata = {}    # dictionary containing each run dictionary
-    weights = {}    # dictionary containing each weights dictionary
-    data_pots = np.zeros(len(run_numbers))     # array to store the POTs for each run
+    runsdata = {}  # dictionary containing each run dictionary
+    weights = {}  # dictionary containing each weights dictionary
+    data_pots = np.zeros(len(run_numbers))  # array to store the POTs for each run
     # Output variables:
-    output = {}      # same format as load_run output dictionary but with each dataset dataframe concatenated by run
-    weights_combined = {}   # same format as load_run weights dictionary but with the weights combined for each dataset by run
+    output = {}  # same format as load_run output dictionary but with each dataset dataframe concatenated by run
+    weights_combined = (
+        {}
+    )  # same format as load_run weights dictionary but with the weights combined for each dataset by run
     for run in run_numbers:
         runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run(run, **load_run_kwargs)
     pot_sum = np.sum(data_pots)
     rundict = runsdata[f"{run_numbers[0]}"]
-    data_sets = rundict.keys() # get the names of the datasets that have been loaded
+    data_sets = rundict.keys()  # get the names of the datasets that have been loaded
     for dataset in data_sets:
         if np.any([rundata[dataset] is None for rundata in runsdata.values()]):
             df = None
@@ -1804,10 +1877,11 @@ def load_runs(run_numbers, **load_run_kwargs):
         weights_arr = np.array([])  # temporary array to store the weights of a particular dataset for each run
         for run_key, weight_dict in weights.items():
             weights_arr = np.append(weights_arr, weight_dict[dataset])
-        mc_pots = data_pots/weights_arr  # this is an array
+        mc_pots = data_pots / weights_arr  # this is an array
         weight_sum = pot_sum / np.sum(mc_pots)  # this is a single value of the combined weight over the runs
         weights_combined[dataset] = weight_sum  # which gets stored in this output weights dictionary
     return output, weights_combined, pot_sum
+
 
 def filter_pi0_events(df):
     # This filter was applied in the original code to all truth-filtered pi0 events.
@@ -2022,13 +2096,9 @@ def get_run_variables(
 def remove_duplicates(df):
     return df.drop_duplicates(subset=["run", "evt"], keep="last")
 
+
 # Adding these functions to use in the filtterig code
-def get_path(
-    run_number,
-    category,
-    dataset,
-    append=""
-):
+def get_path(run_number, category, dataset, append=""):
     """Load one sample of one run for a particular kind of events."""
 
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
@@ -2037,13 +2107,9 @@ def get_path(
 
     # The path to the actual ROOT file
     return os.path.join(ls.ntuple_path, rundict["path"])
-    
-def get_filename(
-    run_number,
-    category,
-    dataset,
-    append=""
-):
+
+
+def get_filename(run_number, category, dataset, append=""):
     """Load one sample of one run for a particular kind of events."""
 
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
@@ -2052,5 +2118,3 @@ def get_filename(
 
     # The path to the actual ROOT file
     return rundict[dataset]["file"] + append + ".root"
-
-
