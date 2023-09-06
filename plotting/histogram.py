@@ -271,6 +271,8 @@ class RunHistGenerator(HistGenMixin):
         if weight_column is None:
             weight_column = "weights"
         query = self.get_selection_query(selection, preselection)
+        self.selection = selection
+        self.preselection= preselection
         super().__init__(data_columns, binning, weight_column=weight_column, query=query)
 
         # ensure that the necessary keys are present
@@ -353,8 +355,10 @@ class RunHistGenerator(HistGenMixin):
         type : str, optional
             Type of data to return. Can be "data" or "ext".
         add_error_floor : bool, optional
-            Whether to add an error floor to the histogram in bins with zero entries.
-            Overrides the default setting.
+            Add a minimum error of 1.4 to empty bins. This is motivated by a Bayesian
+            prior of a unit step function as documented in
+            https://microboone-docdb.fnal.gov/cgi-bin/sso/RetrieveFile?docid=32714&filename=Monte_Carlo_Uncertainties.pdf&version=1
+            and is currently only applied to EXT events.
         scale_to_pot : float, optional
             POT to scale the data to. Only applicable to EXT data.
 
@@ -380,7 +384,11 @@ class RunHistGenerator(HistGenMixin):
         hist_generator = self.get_hist_generator(which=type)
         if hist_generator is None:
             return None
-        data_hist = hist_generator.generate(add_error_floor=add_error_floor)
+        data_hist = hist_generator.generate()
+        if add_error_floor:
+            prior_errors = np.ones(data_hist.n_bins) * 1.4 ** 2
+            prior_errors[data_hist.nominal_values > 0] = 0
+            data_hist.add_covariance(np.diag(prior_errors))
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
         data_hist.color = {"data": "k", "ext": "yellow"}[type]
@@ -487,7 +495,6 @@ class RunHistGenerator(HistGenMixin):
             sideband_total_prediction = None
             sideband_observed_hist = None
         hist = hist_generator.generate(
-            add_error_floor=False,
             include_multisim_errors=include_multisim_errors,
             use_sideband=use_sideband,
             sideband_generator=sideband_generator,
@@ -613,7 +620,6 @@ class HistogramGenerator(HistGenMixin):
     def generate(
         self,
         query=None,
-        add_error_floor=False,
         include_multisim_errors=False,
         use_sideband=False,
         extra_query=None,
@@ -627,11 +633,7 @@ class HistogramGenerator(HistGenMixin):
         ----------
         query : str, optional
             Query to be applied to the dataframe before generating the histogram.
-        add_error_floor : bool, optional
-            Add a minimum error of 1.4 to empty bins. This is motivated by a Bayesian
-            prior of a unit step function as documented in
-            https://microboone-docdb.fnal.gov/cgi-bin/sso/RetrieveFile?docid=32714&filename=Monte_Carlo_Uncertainties.pdf&version=1
-            and is currently only applied to EXT events.
+
         include_multisim_errors : bool, optional
             Whether to include the systematic uncertainties from the multisim 'universes' for
             GENIE, flux and reintegration. Overrides the default setting.
@@ -686,7 +688,7 @@ class HistogramGenerator(HistGenMixin):
                 calculate_hist = False
         if calculate_hist:
             if query is not None:
-                dataframe = self.dataframe.query(query)
+                dataframe = self.dataframe.query(query, engine="python")
                 if len(dataframe) == 0:
                     self.logger.debug("Query returned no events, returning empty histogram.")
                     hist = self._return_empty_hist()
@@ -702,8 +704,6 @@ class HistogramGenerator(HistGenMixin):
                 dataframe[self.variable], bins=self.binning.bin_edges, weights=weights
             )
             variances, _ = np.histogram(dataframe[self.variable], bins=self.binning.bin_edges, weights=weights**2)
-            if add_error_floor:
-                variances[variances == 0] = 1.4**2
             hist = Histogram(self.binning, bin_counts, uncertainties=np.sqrt(variances))
             if self.enable_cache:
                 hist_cache[hash] = hist.copy()
@@ -817,7 +817,7 @@ class HistogramGenerator(HistGenMixin):
         according to the parameters.
         """
         if query is not None:
-            dataframe = self.dataframe.query(query)
+            dataframe = self.dataframe.query(query, engine="python")
         else:
             dataframe = self.dataframe
         if weight_column is None:
@@ -908,7 +908,7 @@ class HistogramGenerator(HistGenMixin):
                     return self.multisim_hist_cache[hash]
                 else:
                     return self.multisim_hist_cache[hash][0]
-        dataframe = self.dataframe.query(query)
+        dataframe = self.dataframe.query(query, engine="python")
         multisim_weights = dataframe[multisim_weight_column].values
         # We have to make sure that there are no NaNs in the weights. Every row should contain
         # a list or np.ndarray of values of the same length. If there are NaNs, this indicates that the
@@ -985,7 +985,7 @@ class HistogramGenerator(HistGenMixin):
         # is only one weight variation, knobXXXup.
         total_cov = np.zeros((len(self.binning), len(self.binning)))
         base_weights = self.get_weights(weight_column=base_weight, query=query)
-        dataframe = self.dataframe.query(query)
+        dataframe = self.dataframe.query(query, engine="python")
         for knob, n_universes in zip(knob_v, knob_n_universes):
             observations = []
             if self.enable_cache and (hash not in self.unisim_hist_cache):
@@ -999,7 +999,7 @@ class HistogramGenerator(HistGenMixin):
                     weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
                     # it is important to use the raw weights here that are not manipulated when this
                     # class is sub-classed and the get_weights function does some re-weighting.
-                    universe_weights = self._limit_weights(dataframe.query(query)[weight_column_knob])
+                    universe_weights = self._limit_weights(dataframe.query(query, engine="python")[weight_column_knob])
                     # calculate the histogram for this universe
                     bincounts, _ = np.histogram(
                         dataframe[self.variable],
