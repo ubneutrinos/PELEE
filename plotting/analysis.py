@@ -9,32 +9,10 @@ from data_loading import load_runs
 from plotting.histogram import Binning, HistogramGenerator, RunHistGenerator
 from plotting.parameters import ParameterSet
 from plotting.run_plotter import RunHistPlotter
+from plotting import signal_generators
 
 
-class LEEHistGenerator(HistogramGenerator):
-
-    def __init__(self, *args, **kwargs):
-        parameters = kwargs.pop("parameters")
-        query = kwargs.pop("query")
-        assert not "category" in query, "category should not be in query"
-        signal_query = query + " and category == 111"
-        background_query = query + " and category != 111"
-        self.parameters = parameters
-        # we only expect one parameter, the signal strength
-        assert len(parameters) == 1
-        self.signal_generator = HistogramGenerator(*args, query=signal_query, **kwargs)
-        self.background_generator = HistogramGenerator(*args, query=background_query, **kwargs)
-        # the dataframe is needed to find the categories when plotting stacked histograms
-        # hope we can get rid of this in the future
-        self.dataframe = self.signal_generator.dataframe
-    
-    def generate(self, *args, **kwargs):
-        signal_hist = self.signal_generator.generate(*args, **kwargs)
-        background_hist = self.background_generator.generate(*args, **kwargs)
-        return self.parameters["signal_strength"].m * signal_hist + background_hist
-
-
-class LEEAnalysis(object):
+class MultibandAnalysis(object):
     def __init__(self, configuration):
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
@@ -45,7 +23,7 @@ class LEEAnalysis(object):
             sideband_configuration = configuration["sideband"]
             sideband_data, sideband_weights, sideband_pot = load_runs(**configuration["sideband_data"])
             self._sideband_generator = self.run_hist_generator_from_config(
-                sideband_data, sideband_weights, sideband_pot, sideband_configuration, is_lee=False
+                sideband_data, sideband_weights, sideband_pot, sideband_configuration, is_signal=False
             )
         else:
             sideband_configuration = None
@@ -60,6 +38,8 @@ class LEEAnalysis(object):
             self.run_hist_generator_from_config(rundata, weights, data_pot, config) for config in signal_configurations
         ]
         self.parameters = sum([g.parameters for g in self._signal_generators])
+        for gen in self._signal_generators:
+            gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._signal_generators])
 
     def _check_shared_params(self, param_sets: List[ParameterSet]):
@@ -74,10 +54,20 @@ class LEEAnalysis(object):
     def _check_config(self, config):
         return True  # TODO: implement
 
-    def run_hist_generator_from_config(self, rundata, weights, data_pot, config, is_lee=True):
+    def run_hist_generator_from_config(self, rundata, weights, data_pot, config, is_signal=True):
         binning = Binning.from_config(**config["binning"])
         print(f"Making generator for selection {config['selection']} and preselection {config['preselection']}")
         parameters = ParameterSet.from_dict(config["parameter"]) if "parameter" in config else None
+        if "mc_hist_generator_cls" in config:
+            try:
+                mc_hist_generator_cls = getattr(signal_generators, config["mc_hist_generator_cls"])
+            except AttributeError:
+                # try globals instead 
+                mc_hist_generator_cls = globals()[config["mc_hist_generator_cls"]]
+            mc_hist_generator_kwargs = config.get("mc_hist_generator_kwargs", {})
+        else:
+            mc_hist_generator_cls = None
+            mc_hist_generator_kwargs = {}
         run_generator = RunHistGenerator(
             rundata,
             binning,
@@ -86,8 +76,9 @@ class LEEAnalysis(object):
             preselection=config["preselection"],
             sideband_generator=self._sideband_generator,
             uncertainty_defaults=config["uncertainties"],
-            mc_hist_generator_cls=LEEHistGenerator if is_lee else None,
+            mc_hist_generator_cls=mc_hist_generator_cls if is_signal else None,
             parameters=parameters,
+            **mc_hist_generator_kwargs,
         )
         return run_generator
 

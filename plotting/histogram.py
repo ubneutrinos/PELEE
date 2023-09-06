@@ -224,8 +224,9 @@ class RunHistGenerator(HistGenMixin):
         data_pot: Optional[float] = None,
         sideband_generator: Optional["RunHistGenerator"] = None,
         uncertainty_defaults: Optional[Dict[str, bool]] = None,
-        mc_hist_generator_cls: Optional[type] = None,
         parameters: Optional[ParameterSet] = None,
+        mc_hist_generator_cls: Optional[type] = None,
+        **mc_hist_generator_kwargs,
     ) -> None:
         """Create a histogram generator for data and simulation runs.
 
@@ -256,14 +257,16 @@ class RunHistGenerator(HistGenMixin):
         uncertainty_defaults : Dict[str, bool], optional
             Dictionary containing default configuration of the uncertainty calculation, i.e.
             whether to use the sideband, include multisim errors etc.
-        mc_hist_generator_cls : type, optional
-            Class to use for the MC histogram generator. If None, the default HistogramGenerator
-            class is used.
         parameters : ParameterSet, optional
             Set of parameters for the analysis. These parameters will be passed through to the
             histogram generator for MC. The default HistogramGenerator ignores all parameters.
             The parameters are passed through by reference, so any changes to the parameters
             will be reflected in the histogram generator automatically.
+        mc_hist_generator_cls : type, optional
+            Class to use for the MC histogram generator. If None, the default HistogramGenerator
+            class is used.
+        **mc_hist_generator_kwargs
+            Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
         self.rundata_dict = rundata_dict
         self.data_pot = data_pot
@@ -299,7 +302,7 @@ class RunHistGenerator(HistGenMixin):
         else:
             assert isinstance(self.parameters, ParameterSet), "parameters must be a ParameterSet."
         self.mc_hist_generator = mc_hist_generator_cls(
-            df_mc, binning, weight_column=weight_column, query=query, parameters=self.parameters
+            df_mc, binning, weight_column=weight_column, query=query, parameters=self.parameters, **mc_hist_generator_kwargs
         )
         self.ext_hist_generator = HistogramGenerator(df_ext, binning, weight_column=weight_column, query=query)
         if df_data is not None:
@@ -768,7 +771,8 @@ class HistogramGenerator(HistGenMixin):
         """
 
         assert len(hist_generators) > 0, "Must provide at least one histogram generator."
-        assert all(isinstance(hg, cls) for hg in hist_generators), "Must provide a list of HistogramGenerator objects."
+        # types = [type(hg) for hg in hist_generators]
+        # assert all(isinstance(hg, cls) for hg in hist_generators), f"Must provide a list of HistogramGenerator objects. Types are {types}."
 
         universe_hists = []
         central_values = []
@@ -1030,6 +1034,12 @@ class HistogramGenerator(HistGenMixin):
             total_cov += cov
         return total_cov
 
+    def _resync_parameters(self):
+        """Not needed since there are no parameters in this class."""
+        pass
+
+    def _check_shared_parameters(self, parameters):
+        return True
 
 class Histogram:
     def __init__(
