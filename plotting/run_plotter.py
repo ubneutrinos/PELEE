@@ -68,17 +68,23 @@ class RunHistPlotter():
         uncertainty_color="gray",
         uncertainty_label="Uncertainty",
         category_column="dataset_name",
-        include_multisim_errors=False,
-        add_ext_error_floor=True,
+        include_multisim_errors=None,
+        add_ext_error_floor=None,
         scale_to_pot=None,
-        use_sideband=False,
+        use_sideband=None,
         **kwargs,
     ):
         gen = self.run_hist_generator
         if use_sideband:
             assert gen.sideband_generator is not None
-        if gen.uncertainty_defaults is not None and "add_ext_error_floor" in gen.uncertainty_defaults:
-            add_ext_error_floor = gen.uncertainty_defaults["add_ext_error_floor"]
+        # we want the uncertainty defaults of the generator to be used if the user doesn't specify
+        gen_defaults = gen.uncertainty_defaults
+        if include_multisim_errors is None:
+            include_multisim_errors = gen_defaults.get("include_multisim_errors", False)
+        if add_ext_error_floor is None:
+            add_ext_error_floor = gen_defaults.get("add_ext_error_floor", True)
+        if use_sideband is None:
+            use_sideband = gen_defaults.get("use_sideband", False)
         ext_hist = gen.get_data_hist(type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot)
         ext_hist.tex_string = "EXT"
         mc_hists = gen.get_mc_hists(
