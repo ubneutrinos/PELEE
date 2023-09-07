@@ -3,27 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from .histogram import RunHistGenerator, Binning
-import unblinding_far_sideband as far_sb
-
-# TODO: add more variables
-# There are many more variables defined in far_sb, but it's not clear which list to use when.
-variables = [
-    ("n_showers_contained", 1, (0.5, 1.5), "normalization", "onebin"),
-    # ('n_showers_contained',10,(-0.5, 9.5),"n showers contained"),
-    ("n_tracks_contained", 6, (-0.5, 5.5), "n tracks contained"),
-    # ('n_tracks_tot',6,(-0.5, 5.5),"n tracks total"),
-    # ('reco_e',21,(0.05,2.15),r"Reconstructed Energy [GeV]"),
-    # ('reco_e',20,(0.05,3.05),r"Reconstructed Energy [GeV]","extended"),
-    # ('reco_e',7,(0.05,2.85),r"Reconstructed Energy [GeV]","coarse"),
-    # ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
-    # ('reco_e',21,(-0.05,4.15),r"Reconstructed Energy [GeV]","extended"),
-    # ('reco_e',20,(0.15,2.95),r"Reconstructed Energy [GeV]","note"),
-    # ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
-    ("reco_e", 17, (0.01, 2.39), r"Reconstructed Energy [ GeV ]"),
-    ("muon_energy", 14, (0.15, 1.55), "muon candidate reconstructed energy [GeV]"),
-    ("neutrino_energy", 14, (0.15, 1.55), "neutrino reconstructed energy [GeV]"),
-    ("muon_theta", 28, (-1, 1), r"muon candidate $\cos(\theta)$"),
-]
+from . import selections
 
 
 class RunHistPlotter():
@@ -35,15 +15,9 @@ class RunHistPlotter():
         self.title = selection_title
         self.run_hist_generator = run_hist_generator
 
-    def get_variable_definitions(self, variable):
-        for var_tuple in variables:
-            if var_tuple[0] == variable:
-                return var_tuple
-        raise ValueError(f"Variable {variable} not found in variable definitions.")
-
     def get_selection_title(self, selection, preselection):
-        presel_title = far_sb.preselection_categories[preselection]["title"]
-        sel_title = far_sb.selection_categories[selection]["title"]
+        presel_title = selections.preselection_categories[preselection]["title"]
+        sel_title = selections.selection_categories[selection]["title"]
 
         if preselection.lower() == "none":
             presel_title = "No Presel."
