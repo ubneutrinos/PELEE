@@ -7,7 +7,7 @@ import logging
 
 from numbers import Number
 from uncertainties import correlated_values, unumpy
-import unblinding_far_sideband as far_sb
+from . import selections
 from .category_definitions import get_category_label, get_category_color
 from .statistics import (
     covariance,
@@ -335,8 +335,8 @@ class RunHistGenerator(HistGenMixin):
 
         if selection is None and preselection is None:
             return None
-        presel_query = far_sb.preselection_categories[preselection]["query"]
-        sel_query = far_sb.selection_categories[selection]["query"]
+        presel_query = selections.preselection_categories[preselection]["query"]
+        sel_query = selections.selection_categories[selection]["query"]
 
         if presel_query is None:
             query = sel_query
