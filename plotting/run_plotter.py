@@ -6,12 +6,8 @@ from .histogram import RunHistGenerator, Binning
 from . import selections
 
 
-class RunHistPlotter():
-    def __init__(
-        self,
-        run_hist_generator,
-        selection_title=None
-    ):
+class RunHistPlotter:
+    def __init__(self, run_hist_generator, selection_title=None):
         self.title = selection_title
         self.run_hist_generator = run_hist_generator
 
@@ -37,15 +33,14 @@ class RunHistPlotter():
 
     def plot(
         self,
-        ax=None,
-        show_errorband=True,
-        uncertainty_color="gray",
-        uncertainty_label="Uncertainty",
         category_column="dataset_name",
         include_multisim_errors=None,
         add_ext_error_floor=None,
-        scale_to_pot=None,
+        show_data_mc_ratio=False,
         use_sideband=None,
+        ax=None,
+        scale_to_pot=None,
+        uncertainty_color="gray",
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -65,16 +60,83 @@ class RunHistPlotter():
             category_column=category_column, include_multisim_errors=False, scale_to_pot=scale_to_pot
         )
         background_hists = list(mc_hists.values()) + [ext_hist]
+        total_mc_hist = gen.get_mc_hist(
+            include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot, use_sideband=use_sideband
+        )
+        total_pred_hist = total_mc_hist + ext_hist
+        data_hist = gen.get_data_hist()
+        if self.title is None:
+            selection, preselection = gen.selection, gen.preselection
+            title = self.get_selection_title(selection, preselection)
+        else:
+            title = self.title
+
+        if show_data_mc_ratio:
+            # TODO: implement plotting within inset axes
+            assert ax is None, "Can't plot within an ax when showing data/mc ratio"
+            fig, (ax, ax_ratio) = plt.subplots(
+                nrows=2,
+                ncols=1,
+                sharex=True,
+                gridspec_kw={"height_ratios": [3, 1]},
+            )
+
+        ax = self._plot(
+            total_pred_hist,
+            background_hists,
+            title=title,
+            data_hist=data_hist,
+            ax=ax,
+            scale_to_pot=scale_to_pot,
+            **kwargs,
+        )
+        if not show_data_mc_ratio:
+            ax.set_xlabel(total_pred_hist.binning.label)
+            return ax
+
+        # plot data/mc ratio
+        # The way this is typically shown is to have the MC prediction divided by its central
+        # data with error bands to show the MC uncertainty, and then to overlay the data points
+        # with error bars.
+        mc_nominal = total_mc_hist.nominal_values
+        mc_error_band = total_mc_hist / mc_nominal
+        data_mc_ratio = data_hist / mc_nominal
+
+        self.plot_hist(
+            mc_error_band,
+            ax=ax_ratio,
+            show_errorband=True,
+            as_errorbars=False,
+            color="k",
+            uncertainty_color=uncertainty_color,
+        )
+        self.plot_hist(data_mc_ratio, ax=ax_ratio, show_errorband=False, as_errorbars=True, color="k")
+
+        ax_ratio.set_ylabel("Data/MC")
+        ax_ratio.set_xlabel(total_pred_hist.binning.label)
+        # ax_ratio.set_ylim(0, 5)
+
+        return ax, ax_ratio
+
+    def _plot(
+        self,
+        total_pred_hist,
+        background_hists,
+        title=None,
+        data_hist=None,
+        ax=None,
+        show_errorband=True,
+        uncertainty_color="gray",
+        uncertainty_label="Uncertainty",
+        scale_to_pot=None,
+        **kwargs,
+    ):
         ax = self.plot_stacked_hists(
             background_hists,
             ax=ax,
             show_errorband=False,
             **kwargs,
         )
-        total_mc_hist = gen.get_mc_hist(
-            include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot, use_sideband=use_sideband
-        )
-        total_pred_hist = total_mc_hist + ext_hist
         ax = self.plot_hist(
             total_pred_hist,
             ax=ax,
@@ -85,7 +147,6 @@ class RunHistPlotter():
             lw=0.5,
         )
         if scale_to_pot is None:
-            data_hist = gen.get_data_hist()
             if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
                 data_label = f"Data: {data_hist.sum():.1f}"
@@ -102,13 +163,8 @@ class RunHistPlotter():
             fontsize=10,
             bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
         )
-        ax.set_xlabel(total_pred_hist.binning.label)
+        
         ax.set_ylabel("Events")
-        if self.title is None:
-            selection, preselection = gen.selection, gen.preselection
-            title = self.get_selection_title(selection, preselection)
-        else:
-            title = self.title
         ax.set_title(title)
         ax.legend()
         return ax
