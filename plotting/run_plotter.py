@@ -185,6 +185,7 @@ class RunHistPlotter:
             ax = plt.gca()
         # make a step plot of the histogram
         bin_counts = hist.nominal_values
+        bin_counts[bin_counts <= 0] = np.nan
         bin_edges = hist.binning.bin_edges
         if "label" in kwargs:
             label = kwargs.pop("label")
