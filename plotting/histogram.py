@@ -1391,11 +1391,12 @@ class Histogram:
             # We can divide a histogram by an ndarray as long as the length of the ndarray matches the number of bins in the histogram.
             if len(other) != len(self.bin_counts):
                 raise ValueError("Cannot divide histogram by ndarray: ndarray has wrong length.")
-            new_bin_counts = self.nominal_values / other
-            # The covariance matrix also needs to be scaled according to
-            # C_{ij}' = C_{ij} / a_i / a_j
-            # where a_i is the ith element of the ndarray
-            new_cov_matrix = self.cov_matrix / np.outer(other, other)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                new_bin_counts = self.nominal_values / other
+                # The covariance matrix also needs to be scaled according to
+                # C_{ij}' = C_{ij} / a_i / a_j
+                # where a_i is the ith element of the ndarray
+                new_cov_matrix = self.cov_matrix / np.outer(other, other)
             # replace infs with zero
             new_cov_matrix[~np.isfinite(new_cov_matrix)] = 0
             state = self.to_dict()
