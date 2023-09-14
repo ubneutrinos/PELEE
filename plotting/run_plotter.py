@@ -35,6 +35,7 @@ class RunHistPlotter:
         self,
         category_column="dataset_name",
         include_multisim_errors=None,
+        show_chi_square=False,
         add_ext_error_floor=None,
         show_data_mc_ratio=False,
         use_sideband=None,
@@ -80,7 +81,12 @@ class RunHistPlotter:
                 sharex=True,
                 gridspec_kw={"height_ratios": [3, 1]},
             )
-
+        if show_chi_square:
+            assert not scale_to_pot, "Can't show chi square when scaling to POT"
+            assert data_hist is not None, "Can't show chi square when no data is available"
+            chi_square = gen.get_chi_square()
+        else:
+            chi_square = None
         ax = self._plot(
             total_pred_hist,
             background_hists,
@@ -88,6 +94,7 @@ class RunHistPlotter:
             data_hist=data_hist,
             ax=ax,
             scale_to_pot=scale_to_pot,
+            chi_square=chi_square,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -129,6 +136,7 @@ class RunHistPlotter:
         uncertainty_color="gray",
         uncertainty_label="Uncertainty",
         scale_to_pot=None,
+        chi_square=None,
         **kwargs,
     ):
         ax = self.plot_stacked_hists(
@@ -153,6 +161,8 @@ class RunHistPlotter:
                 ax = self.plot_hist(data_hist, ax=ax, label=data_label, color="black", as_errorbars=True, **kwargs)
         # make text label for the POT
         pot_label = self.get_pot_label(scale_to_pot)
+        if chi_square is not None:
+            pot_label += f"\n$\chi^2$ = {chi_square:.1f}"
         ax.text(
             0.05,
             0.95,
@@ -166,7 +176,7 @@ class RunHistPlotter:
         
         ax.set_ylabel("Events")
         ax.set_title(title)
-        ax.legend()
+        ax.legend(loc="upper right")
         return ax
 
     def plot_hist(

@@ -14,6 +14,7 @@ from .statistics import (
     sideband_constraint_correction,
     error_propagation_division,
     error_propagation_multiplication,
+    chi_square,
 )
 from .parameters import Parameter, ParameterSet
 
@@ -275,7 +276,7 @@ class RunHistGenerator(HistGenMixin):
             weight_column = "weights"
         query = self.get_selection_query(selection, preselection)
         self.selection = selection
-        self.preselection= preselection
+        self.preselection = preselection
         super().__init__(data_columns, binning, weight_column=weight_column, query=query)
 
         # ensure that the necessary keys are present
@@ -302,7 +303,12 @@ class RunHistGenerator(HistGenMixin):
         else:
             assert isinstance(self.parameters, ParameterSet), "parameters must be a ParameterSet."
         self.mc_hist_generator = mc_hist_generator_cls(
-            df_mc, binning, weight_column=weight_column, query=query, parameters=self.parameters, **mc_hist_generator_kwargs
+            df_mc,
+            binning,
+            weight_column=weight_column,
+            query=query,
+            parameters=self.parameters,
+            **mc_hist_generator_kwargs,
         )
         self.ext_hist_generator = HistogramGenerator(df_ext, binning, weight_column=weight_column, query=query)
         if df_data is not None:
@@ -389,7 +395,7 @@ class RunHistGenerator(HistGenMixin):
             return None
         data_hist = hist_generator.generate()
         if add_error_floor:
-            prior_errors = np.ones(data_hist.n_bins) * 1.4 ** 2
+            prior_errors = np.ones(data_hist.n_bins) * 1.4**2
             prior_errors[data_hist.nominal_values > 0] = 0
             data_hist.add_covariance(np.diag(prior_errors))
         data_hist *= scale_factor
@@ -545,6 +551,19 @@ class RunHistGenerator(HistGenMixin):
         total_prediction = mc_prediction + ext_prediction
         return total_prediction
 
+    def get_chi_square(self):
+        """Get the chi square between the data and the total prediction.
+
+        Returns
+        -------
+        chi_square : float
+            Chi square between the data and the total prediction.
+        """
+        data_hist = self.get_data_hist(type="data")
+        total_prediction = self.get_total_prediction()
+        chi_sq = chi_square(data_hist.nominal_values, total_prediction.nominal_values, total_prediction.cov_matrix)
+        return chi_sq
+
 
 class HistogramGenerator(HistGenMixin):
     def __init__(
@@ -608,7 +627,7 @@ class HistogramGenerator(HistGenMixin):
     def _invalidate_cache(self):
         """Invalidate the cache."""
         self.hist_cache = dict()
-        # we keep caches around for every combination of multisim and sideband (even though 
+        # we keep caches around for every combination of multisim and sideband (even though
         #  the combination of without mulitim and with sideband is kinda nonsense and not used)
         self.hist_cache["without_multisim"] = {"with_sideband": dict(), "without_sideband": dict()}
         self.hist_cache["with_multisim"] = {"with_sideband": dict(), "without_sideband": dict()}
@@ -671,9 +690,9 @@ class HistogramGenerator(HistGenMixin):
             assert sideband_observed_hist is not None
 
         query = self._get_query(extra_query=extra_query)
-        
+
         calculate_hist = True
-        
+
         if self.enable_cache:
             if self.parameters != self.parameters_last_evaluated:
                 self.logger.debug("Parameters changed, invalidating cache.")
@@ -788,7 +807,7 @@ class HistogramGenerator(HistGenMixin):
         concatenated_universes = np.concatenate(universe_hists, axis=1)
         cov_mat = covariance(concatenated_universes, concatenated_cv)
         return cov_mat
-    
+
     @classmethod
     def multiband_unisim_covariance(cls, hist_generators):
         """Calculate the covariance matrix for multiple histograms.
@@ -814,7 +833,9 @@ class HistogramGenerator(HistGenMixin):
         knobs = list(universe_hist_dicts[0].keys())
         summed_cov_mat = np.zeros((len(concatenated_cv), len(concatenated_cv)))
         for knob in knobs:
-            assert all(knob in hist_dict for hist_dict in universe_hist_dicts), f"Knob {knob} not found in all histograms."
+            assert all(
+                knob in hist_dict for hist_dict in universe_hist_dicts
+            ), f"Knob {knob} not found in all histograms."
             concatenated_universes = np.concatenate([hist_dict[knob] for hist_dict in universe_hist_dicts], axis=1)
             cov_mat = covariance(concatenated_universes, concatenated_cv, allow_approximation=True, tolerance=1e-10)
             summed_cov_mat += cov_mat
@@ -822,9 +843,9 @@ class HistogramGenerator(HistGenMixin):
 
     def adjust_weights(self, dataframe, base_weights):
         """Reweight events according to the parameters.
-        
+
         This method is intended to be overridden by subclasses. The default implementation
-        does not change the weights. Subclasses may safely assume that the dataframe 
+        does not change the weights. Subclasses may safely assume that the dataframe
         has already been filtered for the given query and has the same length as the
         base_weights array.
         """
@@ -847,7 +868,7 @@ class HistogramGenerator(HistGenMixin):
         -------
         weights : array_like
             Array of weights
-        
+
         Notes
         -----
         This method is _not_ intended to be overridden by subclasses. Instead, subclasses
@@ -1082,6 +1103,7 @@ class HistogramGenerator(HistGenMixin):
 
     def _check_shared_parameters(self, parameters):
         return True
+
 
 class Histogram:
     def __init__(
