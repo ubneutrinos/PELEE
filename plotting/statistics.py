@@ -163,7 +163,7 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
         raise ValueError("Covariance matrix contains NaN or inf.")
 
     # For the following checks, we want to ignore all entries that are zero.
-    # Delete all rows and columns from cov 
+    # Delete all rows and columns from cov
     # where all entries are zero.
     ixgrid = np.ix_(np.any(cov != 0, axis=1), np.any(cov != 0, axis=1))
     cov_non_zero = cov[ixgrid]
@@ -186,7 +186,7 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
                 )
         else:
             raise ValueError(f"Non-zero part of covariance matrix is not positive semi-definite. Matrix is: {cov}")
-    
+
     # Now we need to add back the rows and columns that we deleted before.
     # We do this by adding back zero rows and columns.
     cov = np.zeros((observations.shape[1], observations.shape[1]))
@@ -241,6 +241,36 @@ def get_cnp_covariance(expectation, observation):
         raise ValueError("Observation must be non-negative.")
     cnp_covariance = np.diag(3 * expectation * observation / (expectation + 2 * observation))
     return cnp_covariance
+
+
+def chi_square(observation: np.ndarray, expectation: np.ndarray, systematic_covariance: np.ndarray) -> float:
+    """
+    Calculate the chi-square value for a given observation, expectation, and systematic covariance.
+
+    Parameters:
+    observation (np.ndarray): The observed data.
+    expectation (np.ndarray): The expected data.
+    systematic_covariance (np.ndarray): The systematic covariance matrix.
+
+    Returns:
+    float: The chi-square value.
+
+    """
+    n = observation
+    mu = expectation
+
+    # we need to mask off bins where the prediction is empty, otherwise
+    # the covariance matrix will be singular
+    mask = mu > 0
+    syst_covar = systematic_covariance[np.ix_(mask, mask)]
+    mu = mu[mask]
+    n = n[mask]
+
+    stat_covar = get_cnp_covariance(mu, n)
+    total_covar = syst_covar + stat_covar
+    covar_inv = np.linalg.inv(total_covar)
+    chi2 = np.dot(n - mu, np.dot(covar_inv, n - mu))
+    return chi2
 
 
 def sideband_constraint_correction(
