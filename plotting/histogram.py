@@ -788,6 +788,37 @@ class HistogramGenerator(HistGenMixin):
         concatenated_universes = np.concatenate(universe_hists, axis=1)
         cov_mat = covariance(concatenated_universes, concatenated_cv)
         return cov_mat
+    
+    @classmethod
+    def multiband_unisim_covariance(cls, hist_generators):
+        """Calculate the covariance matrix for multiple histograms.
+
+        Given a list of HistogramGenerator objects, calculate the covariance matrix of the
+        unisim universes. The underlying assumption
+        is that the weights listed in the unisim column are from the same universes
+        in the same order for all histograms.
+
+        Parameters
+        ----------
+        hist_generators : list of HistogramGenerator
+            List of HistogramGenerator objects.
+        """
+
+        assert len(hist_generators) > 0, "Must provide at least one histogram generator."
+        universe_hist_dicts = []
+        concatenated_cv = []
+        for hg in hist_generators:
+            concatenated_cv.append(hg.generate().nominal_values)
+            universe_hist_dicts.append(hg.calculate_unisim_uncertainties(return_histograms=True)[1])
+        concatenated_cv = np.concatenate(concatenated_cv)
+        knobs = list(universe_hist_dicts[0].keys())
+        summed_cov_mat = np.zeros((len(concatenated_cv), len(concatenated_cv)))
+        for knob in knobs:
+            assert all(knob in hist_dict for hist_dict in universe_hist_dicts), f"Knob {knob} not found in all histograms."
+            concatenated_universes = np.concatenate([hist_dict[knob] for hist_dict in universe_hist_dicts], axis=1)
+            cov_mat = covariance(concatenated_universes, concatenated_cv, allow_approximation=True, tolerance=1e-10)
+            summed_cov_mat += cov_mat
+        return summed_cov_mat
 
     def adjust_weights(self, dataframe, base_weights):
         """Reweight events according to the parameters.
@@ -953,7 +984,7 @@ class HistogramGenerator(HistGenMixin):
             return cov, universe_histograms
         return cov
 
-    def calculate_unisim_uncertainties(self, central_value_hist, extra_query=None):
+    def calculate_unisim_uncertainties(self, central_value_hist=None, extra_query=None, return_histograms=False):
         """Calculate unisim uncertainties.
 
         Unisim means that a single variation of a given analysis input parameter is performed according to its uncertainty.
@@ -963,10 +994,12 @@ class HistogramGenerator(HistGenMixin):
 
         Parameters
         ----------
-        central_value_hist : Histogram
+        central_value_hist : Histogram, optional
             Central value histogram.
         extra_query : str, optional
             Extra query to apply to the dataframe before calculating the covariance matrix.
+        return_histograms : bool, optional
+            If True, return the histograms of the universes.
 
         Returns
         -------
@@ -993,6 +1026,9 @@ class HistogramGenerator(HistGenMixin):
         total_cov = np.zeros((len(self.binning), len(self.binning)))
         base_weights = self.get_weights(weight_column=base_weight, query=query)
         dataframe = self.dataframe.query(query, engine="python")
+        if central_value_hist is None:
+            central_value_hist = self.generate(query=query)
+        observation_dict = dict()
         for knob, n_universes in zip(knob_v, knob_n_universes):
             observations = []
             if self.enable_cache and (hash not in self.unisim_hist_cache):
@@ -1024,6 +1060,7 @@ class HistogramGenerator(HistGenMixin):
                 observations = np.array(observations)
                 if self.enable_cache:
                     self.unisim_hist_cache[hash][knob] = observations
+            observation_dict[knob] = observations
             # calculate the covariance matrix from the histograms
             cov = covariance(
                 observations,
@@ -1035,6 +1072,8 @@ class HistogramGenerator(HistGenMixin):
             self.logger.debug(f"Bin-wise error contribution for knob {knob}: {np.sqrt(np.diag(cov))}")
             # add it to the total covariance matrix
             total_cov += cov
+        if return_histograms:
+            return total_cov, observation_dict
         return total_cov
 
     def _resync_parameters(self):
