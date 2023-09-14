@@ -42,6 +42,10 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
 
     def calculate_multisim_uncertainties(self, *args, **kwargs):
         return self.full_generator.calculate_multisim_uncertainties(*args, **kwargs)
+    
+    # for all attributes that are not the "generate" function we want to forward the call to the full generator
+    def __getattr__(self, name):
+        return getattr(self.full_generator, name)
 
 class SpectralIndexGenerator(HistogramGenerator):
     def adjust_weights(self, dataframe, base_weights):
