@@ -76,6 +76,8 @@ runs:
     path: run3/nuepresel/
     opendata_bnb:
       file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19
+      pot: 9.43E+18
+      trig: 2271036
     bnb:
       file: run3_nuepresel
       pot: 2.57e20
