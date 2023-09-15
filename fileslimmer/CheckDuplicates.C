@@ -12,7 +12,7 @@ void CheckFile(std::string file){
 
   std::map<int,std::vector<int>> rs_map;
 
-  TFile* f_in = TFile::Open(file.c_str(),"APPEND");
+  TFile* f_in = TFile::Open(file.c_str());
   TTree* sub_tree = static_cast<TTree*>(f_in->Get("nuselection/SubRun"));
   Int_t run,subRun;
   sub_tree->SetBranchAddress("run",&run); 

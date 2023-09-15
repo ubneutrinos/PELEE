@@ -19,6 +19,7 @@ import xgboost as xgb
 from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 
+detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
@@ -1634,8 +1635,8 @@ def get_rundict(run_number, category, dataset):
     # the "dataset" is the name such as "bnb", "ext", "nue", "drt", etc.
     if dataset not in rundict:
         raise ValueError(f"Dataset '{dataset}' not found in data_paths.yml for run {run_number}")
-    return rundict
 
+    return rundict
 
 def get_pot_trig(run_number, category, dataset):
     rundict = get_rundict(run_number, category, dataset)
@@ -1654,6 +1655,7 @@ def load_sample(
     category,
     dataset,
     append="",
+    variation="cv",
     loadsystematics=False,
     loadpi0variables=False,
     loadshowervariables=False,
@@ -1666,7 +1668,7 @@ def load_sample(
 ):
     """Load one sample of one run for a particular kind of events."""
 
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel"]
+    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
 
     if use_bdt:
         assert loadshowervariables, "BDT requires shower variables"
@@ -1677,10 +1679,17 @@ def load_sample(
     if load_crt_vars:
         assert run_number >= 3, "CRT variables only available for R3 and up"
 
-    rundict = get_rundict(run_number, category, dataset)
+    print("Loaded rundict")
 
     # The path to the actual ROOT file
-    data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+    if category != "detvar":
+        rundict = get_rundict(run_number, category, dataset)
+        data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+        print("data_path=",data_path)
+    else: 
+        rundict = get_rundict(run_number, category, dataset)
+        data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
+        print("data_path=",data_path)
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
@@ -1850,6 +1859,37 @@ def _load_run(
             rundict = get_rundict(1, category, truth_set)
             df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
+
+    return output, weights, data_pot  # CT: Return the weight dict and data pot
+
+# CT: Separate function for loading detector variations 
+# might be possible to merge this with the existing _load_run with
+# more complete MC  
+def _load_run_detvar( 
+    run_number,
+    var,
+    #data="bnb",
+    data_pot,
+    mc_sets=[ "nue" ],
+    load_lee=False,
+    **load_sample_kwargs,
+):
+    assert(data_pot > 0) , "_load_run_detvar: Negative data POT!"
+    assert var in detector_variations 
+   
+    if run_number == 1 and var == "lydown":
+        print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
+ 
+    output = {}
+    weights = {}
+
+    if load_lee:
+        mc_sets.append("lee")
+    for mc_set in mc_sets:
+        mc_df = load_sample(run_number, "detvar", mc_set, variation=var, **load_sample_kwargs)
+        mc_pot, _ = get_pot_trig(run_number, "detvar", mc_set)  # nu has no trigger number
+        weights[mc_set] = data_pot / mc_pot
+        output[mc_set] = mc_df
 
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
@@ -2048,7 +2088,7 @@ def get_run_variables(
     use_lee_weights=False,
     load_crt_vars=False,
 ):
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel"]
+    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
 
     VARDICT = get_variables()
     VARIABLES = VARDICT["VARIABLES"]
@@ -2101,7 +2141,7 @@ def remove_duplicates(df):
 def get_path(run_number, category, dataset, append=""):
     """Load one sample of one run for a particular kind of events."""
 
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
+    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata","detvar"]
 
     rundict = get_rundict(run_number, category, dataset)
 
@@ -2109,12 +2149,15 @@ def get_path(run_number, category, dataset, append=""):
     return os.path.join(ls.ntuple_path, rundict["path"])
 
 
-def get_filename(run_number, category, dataset, append=""):
+def get_filename(run_number, category, dataset, variation="cv", append=""):
     """Load one sample of one run for a particular kind of events."""
 
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata"]
+    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata","detvar"]
 
     rundict = get_rundict(run_number, category, dataset)
 
     # The path to the actual ROOT file
-    return rundict[dataset]["file"] + append + ".root"
+    if(category == "detvar"):
+        return rundict[dataset][variation]["file"] + append + ".root"
+    else:
+        return rundict[dataset]["file"] + append + ".root"
