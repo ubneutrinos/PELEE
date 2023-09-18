@@ -95,7 +95,7 @@ class MultibandAnalysis(object):
         return run_generator
 
     def generate_multiband_histogram(
-        self, include_multisim_errors=False, use_sideband=False, strict_covar_checking=False, scale_to_pot=None
+        self, include_multisim_errors=False, use_sideband=False, strict_covar_checking=False, scale_to_pot=None, check_covar=True
     ):
         """Generate a combined histogram from all signal bands."""
 
@@ -120,25 +120,26 @@ class MultibandAnalysis(object):
         combined_covariance = self._get_total_multiband_covariance(
             with_stat_only=True, with_unisim=True, include_sideband=False
         )
-        # sanity check: the diagonal blocks of the combined covariance should be the same
-        # as if we had calculated the histograms with multisim separately
-        pos = 0
-        for i, g in enumerate(self._signal_generators):
-            n_bins = g.binning.n_bins
-            signal_hist = g.mc_hist_generator.generate(include_multisim_errors=True, use_sideband=False)
-            covar = signal_hist.cov_matrix
-            # for testing purposes, we divide the covariance by the square of the nominal values to get
-            # the relative covariance
-            covar = covar / np.outer(signal_hist.nominal_values, signal_hist.nominal_values)
-            reference_covar = combined_covariance[pos : pos + n_bins, pos : pos + n_bins] / np.outer(
-                combined_nominal_values[pos : pos + n_bins], combined_nominal_values[pos : pos + n_bins]
-            )
-            # When we are using non-standard histogram generators such as the signal-over-background generator,
-            # it is possible that the block matrices are not equivalent. In that case, we only check for
-            # loose agreement. However, when the standard HistogramGenerator class is used, this really should
-            # work correctly.
-            np.testing.assert_allclose(reference_covar, covar, atol=1e-6 if strict_covar_checking else 1e-1)
-            pos += n_bins
+        if check_covar:
+            # sanity check: the diagonal blocks of the combined covariance should be the same
+            # as if we had calculated the histograms with multisim separately
+            pos = 0
+            for i, g in enumerate(self._signal_generators):
+                n_bins = g.binning.n_bins
+                signal_hist = g.mc_hist_generator.generate(include_multisim_errors=True, use_sideband=False)
+                covar = signal_hist.cov_matrix
+                # for testing purposes, we divide the covariance by the square of the nominal values to get
+                # the relative covariance
+                covar = covar / np.outer(signal_hist.nominal_values, signal_hist.nominal_values)
+                reference_covar = combined_covariance[pos : pos + n_bins, pos : pos + n_bins] / np.outer(
+                    combined_nominal_values[pos : pos + n_bins], combined_nominal_values[pos : pos + n_bins]
+                )
+                # When we are using non-standard histogram generators such as the signal-over-background generator,
+                # it is possible that the block matrices are not equivalent. In that case, we only check for
+                # loose agreement. However, when the standard HistogramGenerator class is used, this really should
+                # work correctly.
+                np.testing.assert_allclose(reference_covar, covar, atol=1e-6 if strict_covar_checking else 1e-1)
+                pos += n_bins
         if not use_sideband:
             output_hist = Histogram(global_binning, combined_nominal_values, covariance_matrix=combined_covariance)
             if scale_to_pot is not None:
@@ -372,6 +373,36 @@ class MultibandAnalysis(object):
         results["pval_h1"] = np.sum(test_stat_h1 > real_data_ts) / n_trials
 
         return results
+    
+    def _get_minuit(self, observed_hist):
+        """Prepare the Minuit object that can run a fit and more.
+
+        Parameters
+        ----------
+        observed_hist : Histogram
+            The data histogram to be fitted.
+
+        Returns
+        -------
+        Minuit
+            The Minuit object.
+        """
+        
+        # make this an optional dependency only in case one wants to run a fit
+        from iminuit import Minuit
+        def loss(*args):
+            # set the parameters
+            for i, name in enumerate(self.parameters.names):
+                self.parameters[name].value = args[i]
+            # generate the histogram
+            generated_hist = self.generate_multiband_histogram(include_multisim_errors=True, use_sideband=True, check_covar=False)
+            # calculate the chi-square
+            return chi_square(observed_hist.nominal_values, generated_hist.nominal_values, generated_hist.cov_matrix)
+        initial_value_kwargs = {name: self.parameters[name].m for name in self.parameters.names}
+        limit_kwargs = {f"limit_{name}": self.parameters[name].magnitude_bounds for name in self.parameters.names}
+        minuit_kwargs = {**initial_value_kwargs, **limit_kwargs}
+        m = Minuit(loss, name=self.parameters.names, **minuit_kwargs)
+        return m
 
     def set_parameters(self, parameter_set, check_matching=True):
         """Set the parameters of the analysis.

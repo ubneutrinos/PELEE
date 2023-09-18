@@ -51,6 +51,12 @@ class Parameter:
         self._post_init_finished = True
 
     @property
+    def magnitude_bounds(self):
+        if self.bounds is None:
+            return None
+        return (self.bounds[0].value, self.bounds[1].value)
+
+    @property
     def m(self):
         """Magnitude of the parameter value."""
         return self.value.value
@@ -162,6 +168,18 @@ class ParameterSet:
             self.parameters[key] = value
         else:
             raise TypeError("Invalid argument type.")
+
+    @property
+    def values(self):
+        return [p.value for p in self.parameters]
+    
+    @property
+    def magnitudes(self):
+        return [p.m for p in self.parameters]
+    
+    @property
+    def magnitude_bounds(self):
+        return [p.magnitude_bounds for p in self.parameters]
 
     @property
     def is_empty(self):
