@@ -41,7 +41,39 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         self.parameters.synchronize(self.background_generator.parameters)
 
     def calculate_multisim_uncertainties(self, *args, **kwargs):
-        return self.full_generator.calculate_multisim_uncertainties(*args, **kwargs)
+        return_histograms = kwargs.get("return_histograms", False)
+        signal_result = self.signal_generator.calculate_multisim_uncertainties(*args, **kwargs)
+        background_result = self.background_generator.calculate_multisim_uncertainties(*args, **kwargs)
+        summed_cov = None
+        if not return_histograms:
+            # In this case the result is just the covariance matrix, so we can just add them.
+            # Note that we need to multiply the signal result by the signal strength SQUARED
+            summed_cov = self.parameters["signal_strength"].m**2 * signal_result + background_result
+            return summed_cov
+        # If the histograms are to be returned, the result is a tuple of the covariance matrix and the histograms.
+        summed_cov = self.parameters["signal_strength"].m**2 * signal_result[0] + background_result[0]
+        # In this case, we also need to add together the histograms of the observations for every universe.
+        summed_obs = self.parameters["signal_strength"].m * signal_result[1] + background_result[1]
+        return summed_cov, summed_obs
+    
+    def calculate_unisim_uncertainties(self, *args, **kwargs):
+        return_histograms = kwargs.get("return_histograms", False)
+        signal_result = self.signal_generator.calculate_unisim_uncertainties(*args, **kwargs)
+        background_result = self.background_generator.calculate_unisim_uncertainties(*args, **kwargs)
+        summed_cov = None
+        if not return_histograms:
+            # In this case the result is just the covariance matrix, so we can just add them.
+            # Note that we need to multiply the signal result by the signal strength SQUARED
+            summed_cov = self.parameters["signal_strength"].m**2 * signal_result + background_result
+            return summed_cov
+        # If the histograms are to be returned, the result is a tuple of the covariance matrix and the histograms.
+        summed_cov = self.parameters["signal_strength"].m**2 * signal_result[0] + background_result[0]
+        # For unisim variations, the universes are stored in a dict where keys are the names of the variations.
+        # We iterate over all the keys and sum the histograms for each variation.
+        summed_obs = {}
+        for key in signal_result[1].keys():
+            summed_obs[key] = self.parameters["signal_strength"].m * signal_result[1][key] + background_result[1][key]
+        return summed_cov, summed_obs
     
     # for all attributes that are not the "generate" function we want to forward the call to the full generator
     def __getattr__(self, name):
