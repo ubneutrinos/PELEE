@@ -1492,9 +1492,12 @@ class HistogramGenerator(HistGenMixin):
         # When we have two universes, then there are two weight variations, knobXXXup and knobXXXdown. Otherwise, there
         # is only one weight variation, knobXXXup.
         total_cov = np.zeros((len(self.binning), len(self.binning)))
-        base_weights = self.get_weights(weight_column=base_weight, query=query)
-        dataframe = self.dataframe.query(query, engine="python")
+        # initialize the base weigths and dataframe with None because we don't need them
+        # if we already have cached histograms
+        base_weights = None
+        dataframe = None
         if central_value_hist is None:
+            # The generate method will use caching internally so we don't need to do it here.
             central_value_hist = self.generate(query=query)
         observation_dict = dict()
         for knob, n_universes in zip(knob_v, knob_n_universes):
@@ -1505,12 +1508,17 @@ class HistogramGenerator(HistGenMixin):
                 self.logger.debug(f"Unisim histogram for knob {knob} found in cache.")
                 observations = self.unisim_hist_cache[hash][knob]
             else:
+                # only when we didn't find a knob in the cache, we want to query the dataframe 
+                # as this is also an expensive operation
+                if base_weights is None:
+                    base_weights = self.get_weights(weight_column=base_weight, query=query)
+                    dataframe = self.dataframe.query(query, engine="python")
                 for universe in range(n_universes):
                     # get the weight column for this universe
                     weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
                     # it is important to use the raw weights here that are not manipulated when this
                     # class is sub-classed and the get_weights function does some re-weighting.
-                    universe_weights = self._limit_weights(dataframe.query(query, engine="python")[weight_column_knob])
+                    universe_weights = self._limit_weights(dataframe[weight_column_knob])
                     # calculate the histogram for this universe
                     bincounts, _ = np.histogram(
                         dataframe[self.variable],
