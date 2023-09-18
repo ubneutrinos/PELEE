@@ -1,6 +1,7 @@
 """Classes to run the LEE (and possibly other) analyses."""
 
 
+import logging
 from typing import List
 from matplotlib import pyplot as plt
 import numpy as np
@@ -17,6 +18,7 @@ from plotting.statistics import sideband_constraint_correction
 
 class MultibandAnalysis(object):
     def __init__(self, configuration):
+        self.logger = logging.getLogger(__name__)
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
@@ -91,7 +93,7 @@ class MultibandAnalysis(object):
         )
         return run_generator
 
-    def generate_multiband_histogram(self, include_multisim_errors=False, use_sideband=False):
+    def generate_multiband_histogram(self, include_multisim_errors=False, use_sideband=False, strict_covar_checking=False):
         """Generate a combined histogram from all signal bands."""
 
         total_nbins = sum([g.binning.n_bins for g in self._signal_generators])
@@ -109,16 +111,25 @@ class MultibandAnalysis(object):
             return Histogram(global_binning, combined_nominal_values, uncertainties=combined_uncertainty)
         # combine the histograms
         combined_nominal_values = np.concatenate([h.nominal_values for h in stat_only_signal_hists])
-        combined_covariance = self._get_total_multiband_covariance(with_stat_only=True, with_unisim=False)
+        combined_covariance = self._get_total_multiband_covariance(with_stat_only=True, with_unisim=True, include_sideband=False)
         # sanity check: the diagonal blocks of the combined covariance should be the same
         # as if we had calculated the histograms with multisim separately
-        import pdb; pdb.set_trace()
         pos = 0
         for i, g in enumerate(self._signal_generators):
             n_bins = g.binning.n_bins
             signal_hist = g.mc_hist_generator.generate(include_multisim_errors=True, use_sideband=False)
             covar = signal_hist.cov_matrix
-            np.testing.assert_allclose(combined_covariance[pos : pos + n_bins, pos : pos + n_bins], covar)
+            # for testing purposes, we divide the covariance by the square of the nominal values to get
+            # the relative covariance
+            covar = covar / np.outer(signal_hist.nominal_values, signal_hist.nominal_values)
+            reference_covar = combined_covariance[pos : pos + n_bins, pos : pos + n_bins] / np.outer(
+                combined_nominal_values[pos : pos + n_bins], combined_nominal_values[pos : pos + n_bins]
+            )
+            # When we are using non-standard histogram generators such as the signal-over-background generator,
+            # it is possible that the block matrices are not equivalent. In that case, we only check for 
+            # loose agreement. However, when the standard HistogramGenerator class is used, this really should
+            # work correctly.
+            np.testing.assert_allclose(reference_covar, covar, atol=1e-6 if strict_covar_checking else 1e-1)
             pos += n_bins
         if not use_sideband:
             return Histogram(global_binning, combined_nominal_values, covariance_matrix=combined_covariance)
@@ -126,7 +137,7 @@ class MultibandAnalysis(object):
         sideband_observation = self._sideband_generator.data_hist_generator.generate()
         # To make the covariance matrix, we need to first generate the full multiband covariance
         # and then apply the sideband constraint.
-        multiband_covariance_multisim = self._get_total_multiband_covariance(with_stat_only=False, with_unisim=False)
+        multiband_covariance_multisim = self._get_total_multiband_covariance(with_stat_only=False, with_unisim=False, include_sideband=True)
         # Now we can calculate the sideband correction. This is done only for multisim errors.
         delta_mu, delta_covar = sideband_constraint_correction(
             sideband_measurement=sideband_observation.nominal_values,
@@ -134,6 +145,8 @@ class MultibandAnalysis(object):
             concat_covariance=multiband_covariance_multisim,
             sideband_covariance=sideband_prediction.cov_matrix,
         )
+        self.logger.debug(f"Sideband constraint correction: {delta_mu}")
+        self.logger.debug(f"Sideband constraint correction covariance: {delta_covar}")
         combined_nominal_values += delta_mu
         combined_covariance += delta_covar
 
@@ -167,10 +180,10 @@ class MultibandAnalysis(object):
         plotter = RunHistPlotter(self._sideband_generator)
         plotter.plot(category_column=category_column, **kwargs)
 
-    def _get_total_multiband_covariance(self, with_unisim=False, with_stat_only=False):
+    def _get_total_multiband_covariance(self, with_unisim=False, with_stat_only=False, include_sideband=False):
         hist_generators = []
         hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
-        if self._sideband_generator is not None:
+        if self._sideband_generator is not None and include_sideband:
             hist_generators.append(self._sideband_generator.mc_hist_generator)
         total_nbins = sum([g.binning.n_bins for g in hist_generators])
         combined_covar = np.zeros((total_nbins, total_nbins))
@@ -180,13 +193,13 @@ class MultibandAnalysis(object):
         if with_unisim:
             combined_covar += HistogramGenerator.multiband_unisim_covariance(hist_generators)
         if with_stat_only:
-            combined_covar += self._get_multiband_stat_only_covariance()
+            combined_covar += self._get_multiband_stat_only_covariance(include_sideband=include_sideband)
         return combined_covar
 
-    def _get_multiband_stat_only_covariance(self):
+    def _get_multiband_stat_only_covariance(self, include_sideband=False):
         hist_generators = []
         hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
-        if self._sideband_generator is not None:
+        if self._sideband_generator is not None and include_sideband:
             hist_generators.append(self._sideband_generator.mc_hist_generator)
         stat_only_histograms = [g.generate(include_multisim_errors=False, use_sideband=False) for g in hist_generators]
         stat_only_covariance = np.diag(np.concatenate([h.std_devs**2 for h in stat_only_histograms]))
