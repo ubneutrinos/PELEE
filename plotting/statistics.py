@@ -150,13 +150,8 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
     if central_value is None:
         cov = np.cov(observations, rowvar=False)
     else:
-        cov = np.zeros((observations.shape[1], observations.shape[1]))
-        for i in range(observations.shape[1]):
-            for j in range(observations.shape[1]):
-                cov[i, j] = np.sum((observations[:, i] - central_value[i]) * (observations[:, j] - central_value[j]))
-        # Here, we normalize by 1 / N, rather than 1 / (N - 1) as done by numpy.cov, because we
-        # used the given central value rather than calculating it from the observations.
-        cov = cov / observations.shape[0]
+        centered_data = observations - central_value
+        cov = centered_data.T @ centered_data / observations.shape[0]
 
     # check that all is finite
     if not np.all(np.isfinite(cov)):
@@ -444,6 +439,39 @@ class TestMatrix(unittest.TestCase):
         for i in range(100):
             m_test = np.random.randn(3, 3)
             check_frob_psd(m_test)
+
+class TestCovariance(unittest.TestCase):
+
+    # here we test if the naive loop implementation of the covariance matrix
+    # calculation is equivalent to the numpy implementation
+    def loop_covariance(observations, central_value):
+        cov = np.zeros((observations.shape[1], observations.shape[1]))
+        for i in range(observations.shape[1]):
+            for j in range(observations.shape[1]):
+                cov[i, j] = np.sum((observations[:, i] - central_value[i]) * (observations[:, j] - central_value[j]))
+        cov = cov / observations.shape[0]
+        return cov
+    # This is the optimized implementation that we actually use in the code
+    def numpy_covariance(observations, central_value):
+        centered_data = observations - central_value
+        cov_matrix = centered_data.T @ centered_data / observations.shape[0]
+        return cov_matrix
+    
+    def test_covariance(self):
+        """Unit test for the covariance matrix calculation."""
+        np.random.seed(42)
+        # generate some random data
+        central_value = np.random.rand(5)
+        observations = np.random.rand(1000, 5)
+        # calculate the covariance matrix
+        cov = covariance(observations, central_value)
+        # calculate the covariance matrix with the naive loop implementation
+        cov_loop = TestCovariance.loop_covariance(observations, central_value)
+        # calculate the covariance matrix with the numpy implementation
+        cov_numpy = TestCovariance.numpy_covariance(observations, central_value)
+        # check that the results are the same
+        np.testing.assert_almost_equal(cov, cov_loop)
+        np.testing.assert_almost_equal(cov, cov_numpy)
 
 
 class TestConstrainedCovariance(unittest.TestCase):
