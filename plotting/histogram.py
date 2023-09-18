@@ -148,6 +148,35 @@ class Histogram:
         else:
             raise ValueError("Either uncertainties or covariance_matrix must be provided.")
 
+    def draw_covariance_matrix(self, ax=None, as_correlation=True, **plot_kwargs):
+        """Draw the covariance matrix on a matplotlib axis.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Axis to draw the covariance matrix on.
+        plot_kwargs : dict, optional
+            Additional keyword arguments passed to the matplotlib imshow function.
+        """
+
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            ax = plt.gca()
+        ax.set_title(f"{'Correlation' if as_correlation else 'Covariance'} matrix")
+        X, Y = np.meshgrid(self.binning.bin_centers, self.binning.bin_centers)
+        colormap = plot_kwargs.pop("cmap", "RdBu_r")
+        if as_correlation:
+            plot_kwargs["vmin"] = -1
+            plot_kwargs["vmax"] = 1
+            pc = ax.pcolormesh(X, Y, self.corr_matrix, cmap=colormap, **plot_kwargs)
+        else:
+            pc = ax.pcolormesh(X, Y, self.cov_matrix, cmap=colormap, **plot_kwargs)
+        cbar = plt.colorbar(pc, ax=ax)
+        cbar.set_label("Correlation" if as_correlation else "Covariance")
+        ax.set_xlabel(self.binning.label)
+        ax.set_ylabel(self.binning.label)
+
     def draw(self, ax, as_errorbars=False, **plot_kwargs):
         """Draw the histogram on a matplotlib axis.
 
