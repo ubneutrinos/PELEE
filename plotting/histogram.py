@@ -177,7 +177,7 @@ class Histogram:
         ax.set_xlabel(self.binning.label)
         ax.set_ylabel(self.binning.label)
 
-    def draw(self, ax, as_errorbars=False, **plot_kwargs):
+    def draw(self, ax, as_errorbars=False, show_errors=True, **plot_kwargs):
         """Draw the histogram on a matplotlib axis.
 
         Parameters
@@ -217,7 +217,8 @@ class Histogram:
         # Be sure to repeat the last bin count
         bin_counts = np.append(bin_counts, bin_counts[-1])
         p = ax.step(bin_edges, bin_counts, where="post", label=label, color=color, **plot_kwargs)
-
+        if not show_errors:
+            return ax
         # plot uncertainties as a shaded region
         uncertainties = self.std_devs
         uncertainties = np.append(uncertainties, uncertainties[-1])
@@ -233,6 +234,7 @@ class Histogram:
             color=color,
             **plot_kwargs,
         )
+        return ax
 
     def _repr_html_(self):
         import matplotlib.pyplot as plt
