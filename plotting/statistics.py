@@ -8,7 +8,7 @@ import scipy.linalg as lin
 logger = logging.getLogger(__name__)
 
 
-def is_psd(A):
+def is_psd(A, ignore_zeros=False):
     """Test whether a matrix is positive semi-definite.
 
     Test is done via attempted Cholesky decomposition as suggested in [1]_.
@@ -17,6 +17,9 @@ def is_psd(A):
     ----------
     A : numpy.ndarray
         Symmetric matrix
+    ignore_zeros : bool, optional
+        Ignore rows and columns that are all zero. This is useful for covariance matrices
+        where the zero rows and columns correspond to bins that are empty.
 
     Returns
     -------
@@ -28,6 +31,11 @@ def is_psd(A):
     ..  [1] N.J. Higham, "Computing a nearest symmetric positive semidefinite
         matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
     """
+    if ignore_zeros:
+        # Delete all rows and columns from A
+        # where all entries are zero.
+        ixgrid = np.ix_(np.any(A != 0, axis=1), np.any(A != 0, axis=1))
+        A = A[ixgrid]
     # pylint: disable=invalid-name
     try:
         _ = np.linalg.cholesky(A)
