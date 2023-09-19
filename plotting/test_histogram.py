@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import uncertainties.unumpy as unumpy
 import logging
+from .statistics import fronebius_nearest_psd
 
 class TestHistogram(unittest.TestCase):
     def test_copy(self):
@@ -13,7 +14,7 @@ class TestHistogram(unittest.TestCase):
         bin_edges = np.array([0, 1, 2, 3])
         binning = Binning("x", bin_edges, "x-axis label")
         bin_counts = np.array([1, 2, 3])
-        covariance_matrix = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        covariance_matrix = fronebius_nearest_psd(np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]]))
         hist = Histogram(binning, bin_counts, covariance_matrix=covariance_matrix, label="hist", tex_string="hist")
         hist_copy = hist.copy()
         self.assertEqual(hist, hist_copy)
@@ -46,9 +47,9 @@ class TestHistogram(unittest.TestCase):
         bin_edges = np.array([0, 1, 2, 3])
         binning = Binning("x", bin_edges, "x")
         bin_counts1 = np.array([1, 2, 3])
-        covariance_matrix1 = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        covariance_matrix1 = fronebius_nearest_psd(np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]]))
         bin_counts2 = np.array([4, 5, 6])
-        covariance_matrix2 = np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]])
+        covariance_matrix2 = fronebius_nearest_psd(np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]]))
 
         hist1 = Histogram(
             binning, bin_counts1, covariance_matrix=covariance_matrix1, label="hist1", tex_string="hist1"
@@ -74,7 +75,7 @@ class TestHistogram(unittest.TestCase):
         bin_edges = np.array([0, 1, 2, 3])
         binning = Binning("x", bin_edges, "x")
         bin_counts = np.array([1, 2, 3])
-        covariance_matrix = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        covariance_matrix = fronebius_nearest_psd(np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]]))
         hist = Histogram(binning, bin_counts, covariance_matrix=covariance_matrix, label="hist", tex_string="hist")
 
         # fluctuate the histogram and check that the fluctuated bin counts are distributed according to the covariance matrix
@@ -95,10 +96,10 @@ class TestHistogram(unittest.TestCase):
         binning = Binning("x", bin_edges, "x")
         # We want to test the division away from zero to avoid division by zero errors
         bin_counts1 = np.array([1, 2, 3]) + 10
-        covariance_matrix1 = np.array([[0.1, 0.2, 0.3], [0.2, 0.4, 0.6], [0.3, 0.6, 0.9]])
+        covariance_matrix1 = fronebius_nearest_psd(np.array([[0.1, 0.2, 0.3], [0.2, 0.4, 0.6], [0.3, 0.6, 0.9]]))
         # covariance_matrix1 = np.array([[0.1, 0.0, 0.0], [0.0, 0.4, 0.0], [0.0, 0.0, 0.9]])
         bin_counts2 = np.array([4, 5, 6]) + 10
-        covariance_matrix2 = np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]])
+        covariance_matrix2 = fronebius_nearest_psd(np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]]))
         # covariance_matrix2 = np.array([[0.16, 0.0, 0.0], [0.0, 0.25, 0.0], [0.0, 0.0, 0.36]])
 
         hist1 = Histogram(
@@ -137,25 +138,26 @@ class TestHistogram(unittest.TestCase):
         bin_edges = np.array([0, 1, 2, 3])
         binning = Binning("x", bin_edges, "x")
         bin_counts = np.array([1, 2, 3])
-        covariance_matrix = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        covariance_matrix = fronebius_nearest_psd(np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]]))
+        std_devs = np.sqrt(np.diag(covariance_matrix))
         hist = Histogram(binning, bin_counts, covariance_matrix=covariance_matrix, label="hist", tex_string="hist")
 
         # Test multiplication of a Histogram by a scalar from the left
         hist_scaled_left = 2 * hist
         np.testing.assert_array_almost_equal(hist_scaled_left.nominal_values, np.array([2, 4, 6]))
-        np.testing.assert_array_almost_equal(hist_scaled_left.std_devs, np.sqrt(np.array([0.04, 0.16, 0.36])))
+        np.testing.assert_array_almost_equal(hist_scaled_left.std_devs, 2 * std_devs)
 
         # Test multiplication of a Histogram by a scalar from the right
         hist_scaled_right = hist * 2
         np.testing.assert_array_almost_equal(hist_scaled_right.nominal_values, np.array([2, 4, 6]))
-        np.testing.assert_array_almost_equal(hist_scaled_right.std_devs, np.sqrt(np.array([0.04, 0.16, 0.36])))
+        np.testing.assert_array_almost_equal(hist_scaled_right.std_devs, 2 * std_devs)
 
     # Test conversion to and from dict
     def test_dict_conversion(self):
         bin_edges = np.array([0, 1, 2, 3])
         binning = Binning("x", bin_edges, "x-axis label")
         bin_counts = np.array([1, 2, 3])
-        covariance_matrix = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        covariance_matrix = fronebius_nearest_psd(np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]]))
         hist = Histogram(binning, bin_counts, covariance_matrix=covariance_matrix, label="hist", tex_string="hist")
         hist_dict = hist.to_dict()
         hist_from_dict = Histogram.from_dict(hist_dict)
@@ -165,9 +167,9 @@ class TestHistogram(unittest.TestCase):
         bin_edges = np.array([0, 1, 2, 3])
         binning = Binning("x", bin_edges, "x")
         bin_counts1 = np.array([1, 2, 3])
-        covariance_matrix1 = np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]])
+        covariance_matrix1 = fronebius_nearest_psd(np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]]))
         bin_counts2 = np.array([4, 5, 6])
-        covariance_matrix2 = np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]])
+        covariance_matrix2 = fronebius_nearest_psd(np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]]))
 
         hist1 = Histogram(
             binning, bin_counts1, covariance_matrix=covariance_matrix1, label="hist1", tex_string="hist1"
