@@ -111,6 +111,7 @@ class Histogram:
         label=None,
         plot_color=None,
         tex_string=None,
+        check_psd=True
     ):
         """Create a histogram object.
 
@@ -142,9 +143,11 @@ class Histogram:
 
         if covariance_matrix is not None:
             self.cov_matrix = np.array(covariance_matrix)
-            if not is_psd(self.cov_matrix, ignore_zeros=True):
-                raise ValueError("Non-zero part of covariance matrix must be positive semi-definite.")
-            self.bin_counts = unumpy.uarray(bin_counts, np.sqrt(np.diag(self.cov_matrix)))
+            if check_psd:
+                if not is_psd(self.cov_matrix, ignore_zeros=True):
+                    raise ValueError("Non-zero part of covariance matrix must be positive semi-definite.")
+            std_devs = np.sqrt(np.diag(self.cov_matrix))
+            self.bin_counts = unumpy.uarray(bin_counts, std_devs)
         elif uncertainties is not None:
             self.cov_matrix = np.diag(np.array(uncertainties) ** 2)
             self.bin_counts = unumpy.uarray(bin_counts, uncertainties)
@@ -275,10 +278,14 @@ class Histogram:
         """
 
         state = self.to_dict()
-        return Histogram.from_dict(state)
+        # When we make a copy, we trust that this has already been checked.
+        # The check is a somewhat expensive operation. We make this optimization here
+        # because the caching mechanism in the HistogramGenerator would be bottlenecked
+        # by the expense of the initialization function otherwise.
+        return Histogram.from_dict(state, check_psd=False)
 
     @classmethod
-    def from_dict(cls, dictionary):
+    def from_dict(cls, dictionary, check_psd=True):
         """Create a histogram from a dictionary.
 
         Parameters
@@ -293,6 +300,7 @@ class Histogram:
         """
 
         dictionary["binning"] = Binning(**dictionary["binning"])
+        dictionary["check_psd"] = check_psd
         return cls(**dictionary)
 
     def __eq__(self, other):
