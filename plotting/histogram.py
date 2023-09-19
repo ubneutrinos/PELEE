@@ -15,6 +15,7 @@ from .statistics import (
     error_propagation_division,
     error_propagation_multiplication,
     chi_square,
+    is_psd
 )
 from .parameters import Parameter, ParameterSet
 
@@ -141,7 +142,9 @@ class Histogram:
 
         if covariance_matrix is not None:
             self.cov_matrix = np.array(covariance_matrix)
-            self.bin_counts = np.array(correlated_values(bin_counts, self.cov_matrix))
+            if not is_psd(self.cov_matrix, ignore_zeros=True):
+                raise ValueError("Non-zero part of covariance matrix must be positive semi-definite.")
+            self.bin_counts = unumpy.uarray(bin_counts, np.sqrt(np.diag(self.cov_matrix)))
         elif uncertainties is not None:
             self.cov_matrix = np.diag(np.array(uncertainties) ** 2)
             self.bin_counts = unumpy.uarray(bin_counts, uncertainties)
