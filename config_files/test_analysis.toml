@@ -36,11 +36,11 @@ add_ext_error_floor = false
 use_sideband = false
 
 [signal_data]
-run_numbers = [1, 3]
-data = "opendata_bnb"
-blinded = false
-# truth_filtered_sets = ["nue", "drt", "cc_pi0", "nc_pi0", "cc_nopi", "cc_cpi", "nc_nopi", "nc_cpi"]
-truth_filtered_sets = ["nue", "drt"]
+run_numbers = [1, 2, 3]
+data = "bnb"
+blinded = true
+truth_filtered_sets = ["nue", "drt", "cc_pi0", "nc_pi0", "cc_nopi", "cc_cpi", "nc_nopi", "nc_cpi"]
+# truth_filtered_sets = ["nue", "drt"]
 loadshowervariables = true
 loadsystematics = true
 loadpi0variables = true
@@ -72,11 +72,6 @@ enable_cache=true
     name = "signal_strength"
     value = 1.0
     bounds = [0.0, 10.0]
-
-    # [[signal.parameter]]
-    # name = "delta_gamma"
-    # value = 0.0
-    # bounds = [-1.0, 1.0]
 
 [[signal]]
 

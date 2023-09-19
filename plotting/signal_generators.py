@@ -14,9 +14,10 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
     def __init__(self, *args, signal_query="category == 111", background_query="category != 111", parameters=None, **kwargs):
         assert parameters is not None, "parameters must be given"
         query = kwargs.pop("query", None)
-        assert not "category" in query, "category should not be in query"
-        signal_query = query + f" and ({signal_query})"
-        background_query = query + f" and ({background_query})"
+        if query is not None:
+            assert not "category" in query, "category should not be in query"
+            signal_query = query + f" and ({signal_query})"
+            background_query = query + f" and ({background_query})"
         self.parameters = parameters
         assert "signal_strength" in parameters.names, "signal_strength must be in parameters"
         # We want to forward all parameters except the signal strength to the histogram generator

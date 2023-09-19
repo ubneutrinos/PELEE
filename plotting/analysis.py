@@ -181,8 +181,12 @@ class MultibandAnalysis(object):
         # make a Binning of the global bin number
         bin_edges = np.arange(total_nbins + 1)
         global_binning = Binning("None", bin_edges, label="Global bin number")
+        
+        # If any of the data hist generators is None, we return None
+        if any([g.data_hist_generator is None for g in self._signal_generators]):
+            return None
         data_hists = [g.data_hist_generator.generate() for g in self._signal_generators]
-        # If any of the data histograms is None, we return None
+        # if any of the produced histograms is None, we return None
         if any([h is None for h in data_hists]):
             return None
         # combine the histograms

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, fields
 import hashlib
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 import logging
@@ -685,6 +685,7 @@ class RunHistGenerator(HistGenMixin):
         uncertainty_defaults: Optional[Dict[str, bool]] = None,
         parameters: Optional[ParameterSet] = None,
         mc_hist_generator_cls: Optional[type] = None,
+        slim_dataframe: bool = True,
         **mc_hist_generator_kwargs,
     ) -> None:
         """Create a histogram generator for data and simulation runs.
@@ -724,10 +725,13 @@ class RunHistGenerator(HistGenMixin):
         mc_hist_generator_cls : type, optional
             Class to use for the MC histogram generator. If None, the default HistogramGenerator
             class is used.
+        slim_dataframe : bool, optional
+            Apply the query to the dataframe before passing it to the histogram generator.
+            This removes the need for repeated querying of the dataframe and reduces
+            memory usage.
         **mc_hist_generator_kwargs
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
-        self.rundata_dict = rundata_dict
         self.data_pot = data_pot
         data_columns = rundata_dict["mc"].columns
         if weight_column is None:
@@ -738,11 +742,11 @@ class RunHistGenerator(HistGenMixin):
         super().__init__(data_columns, binning, weight_column=weight_column, query=query)
 
         # ensure that the necessary keys are present
-        if "data" not in self.rundata_dict.keys():
+        if "data" not in rundata_dict.keys():
             raise ValueError("data key is missing from rundata_dict.")
-        if "mc" not in self.rundata_dict.keys():
+        if "mc" not in rundata_dict.keys():
             raise ValueError("mc key is missing from rundata_dict.")
-        if "ext" not in self.rundata_dict.keys():
+        if "ext" not in rundata_dict.keys():
             raise ValueError("ext key is missing from rundata_dict.")
 
         for k, df in rundata_dict.items():
@@ -755,6 +759,16 @@ class RunHistGenerator(HistGenMixin):
         df_mc = pd.concat([df for k, df in rundata_dict.items() if k not in ["data", "ext"]])
         df_ext = rundata_dict["ext"]
         df_data = rundata_dict["data"]
+        if slim_dataframe:
+            # The Python engine is necessary because the queries tend to have too many inputs
+            # for numexpr to handle.
+            df_mc = df_mc.query(query, engine="python")
+            df_ext = df_ext.query(query, engine="python")
+            if df_data is not None:
+                df_data = df_data.query(query, engine="python")
+            # the query has already been applied, so we can set it to None
+            query = None
+            
         self.parameters = parameters
         if self.parameters is None:
             self.parameters = ParameterSet([])  # empty parameter set
@@ -1425,7 +1439,10 @@ class HistogramGenerator(HistGenMixin):
                     return self.multisim_hist_cache[multisim_weight_column][hash]
                 else:
                     return self.multisim_hist_cache[multisim_weight_column][hash][0]
-        dataframe = self.dataframe.query(query, engine="python")
+        if query is not None:
+            dataframe = self.dataframe.query(query, engine="python")
+        else:
+            dataframe = self.dataframe
         multisim_weights = dataframe[multisim_weight_column].values
         # We have to make sure that there are no NaNs in the weights. Every row should contain
         # a list or np.ndarray of values of the same length. If there are NaNs, this indicates that the
@@ -1523,7 +1540,10 @@ class HistogramGenerator(HistGenMixin):
                 # as this is also an expensive operation
                 if base_weights is None:
                     base_weights = self.get_weights(weight_column=base_weight, query=query)
-                    dataframe = self.dataframe.query(query, engine="python")
+                    if query is not None:
+                        dataframe = self.dataframe.query(query, engine="python")
+                    else:
+                        dataframe = self.dataframe
                 for universe in range(n_universes):
                     # get the weight column for this universe
                     weight_column_knob = f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
