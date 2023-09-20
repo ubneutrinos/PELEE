@@ -1,14 +1,14 @@
 """Run a two-hypothesis test from a pre-configured analysis."""
 import sys, os
 sys.path.append(".")
-from plotting.analysis import MultibandAnalysis
-from plotting.parameters import ParameterSet
+from microfit.analysis import MultibandAnalysis
+from microfit.parameters import ParameterSet
 from matplotlib import pyplot as plt
 import logging
 import argparse
 import toml
 import numpy as np
-from plotting.fileio import to_json, from_json
+from microfit.fileio import to_json, from_json
 
 def run_analysis(args):
     # assert that configuration is given

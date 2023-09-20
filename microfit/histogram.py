@@ -759,7 +759,7 @@ class RunHistGenerator(HistGenMixin):
         df_mc = pd.concat([df for k, df in rundata_dict.items() if k not in ["data", "ext"]])
         df_ext = rundata_dict["ext"]
         df_data = rundata_dict["data"]
-        if slim_dataframe:
+        if slim_dataframe and query is not None:
             # The Python engine is necessary because the queries tend to have too many inputs
             # for numexpr to handle.
             df_mc = df_mc.query(query, engine="python")
