@@ -393,6 +393,13 @@ def error_propagation_division(x1, x2, C1, C2):
                 # Off-diagonal elements (covariance)
                 Cy[i, j] = y[i] * y[j] * (C1[i, j] / (x1[i] * x1[j]) + C2[i, j] / (x2[i] * x2[j]))
 
+    # extract finite part of Cy
+    ixgrid = np.ix_(np.any(np.isfinite(Cy), axis=1), np.any(np.isfinite(Cy), axis=1))
+    Cy_finite = Cy[ixgrid]
+    if not is_psd(Cy_finite):
+        Cy_finite = fronebius_nearest_psd(Cy_finite, return_distance=False)
+    Cy = np.zeros((n, n))
+    Cy[ixgrid] = Cy_finite
     return y, Cy
 
 
@@ -434,6 +441,8 @@ def error_propagation_multiplication(x1, x2, C1, C2):
                 # Off-diagonal elements (covariance)
                 Cy[i, j] = y[i] * y[j] * (C1[i, j] / (x1[i] * x1[j]) + C2[i, j] / (x2[i] * x2[j]))
 
+    if not is_psd(Cy):
+        Cy = fronebius_nearest_psd(Cy)
     return y, Cy
 
 

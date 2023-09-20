@@ -206,6 +206,25 @@ class TestHistogram(unittest.TestCase):
         )
         # check covariance matrix
         np.testing.assert_array_almost_equal(cov_matrix, expected_mult_hist.cov_matrix, decimal=1)
+    
+    def test_division(self):
+        bin_edges = np.array([0, 1, 2, 3])
+        binning = Binning("x", bin_edges, "x")
+        bin_counts1 = np.array([3, 2, 3])
+        covariance_matrix1 = fronebius_nearest_psd(np.array([[0.01, 0.02, 0.03], [0.02, 0.04, 0.06], [0.03, 0.06, 0.09]]))
+        bin_counts2 = np.array([1, 4, 6])
+        covariance_matrix2 = fronebius_nearest_psd(np.array([[0.16, 0.20, 0.24], [0.20, 0.25, 0.30], [0.24, 0.30, 0.36]]))
+
+        hist1 = Histogram(
+            binning, bin_counts1, covariance_matrix=covariance_matrix1, label="hist1", tex_string="hist1"
+        )
+        hist2 = Histogram(
+            binning, bin_counts2, covariance_matrix=covariance_matrix2, label="hist2", tex_string="hist2"
+        )
+
+        hist_div = hist1 / hist2
+
+        np.testing.assert_array_almost_equal(unumpy.nominal_values(hist_div.bin_counts), np.array([3, 0.5, 0.5]))
 
 
 class TestHistogramGenerator(unittest.TestCase):
