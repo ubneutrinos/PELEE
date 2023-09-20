@@ -9,11 +9,11 @@ import numpy as np
 from scipy.linalg import block_diag
 import toml
 from data_loading import load_runs
-from plotting.histogram import Binning, HistogramGenerator, RunHistGenerator, Histogram
-from plotting.parameters import ParameterSet
-from plotting.run_plotter import RunHistPlotter
-from plotting import signal_generators
-from plotting.statistics import sideband_constraint_correction, chi_square
+from microfit.histogram import Binning, HistogramGenerator, RunHistGenerator, Histogram
+from microfit.parameters import ParameterSet
+from microfit.run_plotter import RunHistPlotter
+from microfit import signal_generators
+from microfit.statistics import sideband_constraint_correction, chi_square
 
 
 class MultibandAnalysis(object):

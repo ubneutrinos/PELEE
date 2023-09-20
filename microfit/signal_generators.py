@@ -4,8 +4,8 @@ as a signal generator when defining an analysis in a toml file.
 
 
 import numpy as np
-from plotting.histogram import Binning, HistogramGenerator, RunHistGenerator
-from plotting.parameters import ParameterSet
+from microfit.histogram import Binning, HistogramGenerator, RunHistGenerator
+from microfit.parameters import ParameterSet
 
 class SignalOverBackgroundGenerator(HistogramGenerator):
 
