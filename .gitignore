@@ -11,6 +11,9 @@ __pycache__/
 pickles
 localSettings.py
 .vscode/
-scripts/
+scripts/test_output
 *~
 .DS_Store
+dataframes
+cached_dataframes
+plot_output/*

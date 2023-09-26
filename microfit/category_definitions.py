@@ -15,6 +15,19 @@ def get_category_label(category_column, category):
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
+def get_categories(category_column):
+    """Get the list of categories for a given category column."""
+
+    if category_column == "category":
+        return list(category_labels.keys())
+    elif category_column == "paper_category":
+        return list(paper_labels.keys())
+    elif category_column == "paper_category_xsec":
+        return list(paper_labels_xsec.keys())
+    elif category_column == "category_1e1p":
+        return list(category_labels_1e1p.keys())
+    else:
+        raise ValueError("Invalid category column: {}".format(category_column))
 
 def get_category_color(category_column, category):
     """Get the appropriate color for a given category depending on which category column was used."""
@@ -22,6 +35,8 @@ def get_category_color(category_column, category):
     # always use the same colors for now
     return category_colors[category]
 
+# Whenever you define categories, be sure to define all the categories that can appear in the data.
+# Missing categories can lead to events not showing up in histograms.
 
 paper_labels_numu = {
     11: r"$\nu_e$ CC",
