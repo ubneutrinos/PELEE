@@ -3,8 +3,6 @@
 
 void slimmer_nuepresel(TString fname)
 {
-
-
   
    // Get old file, old tree and set top branch address
    TString dir = "/home/david/data/searchingfornues/v08_00_00_33/cc0pinp/0218/run3/";
