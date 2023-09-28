@@ -715,7 +715,8 @@ class Plotter:
                 print ('name : ',colname)
                 print ('nan entries : ',colvals.sum())
         '''
-        df = sample.query(sel_query)
+
+        df = sample.query(sel_query,engine="python")
         #if (track_cuts != None):
         #    df = sample.query(sel_query).dropna().copy() #don't want to eliminate anything from memory
 
@@ -1075,7 +1076,7 @@ class Plotter:
             lee_plotted_variable = self._select_showers(
                 lee_plotted_variable, variable, self.samples["lee"], query=query)
             lee_weight = self.samples["lee"].query(
-                query)["leeweight"] * self.weights["lee"]
+                query,engine="python")["leeweight"] * self.weights["lee"]
 
         total_weight = np.concatenate((mc_weight, nue_weight, ext_weight, dirt_weight, ncpi0_weight, ccpi0_weight, eta_weight, ccnopi_weight, cccpi_weight, nccpi_weight, ncnopi_weight, lee_weight))
         total_variable = np.concatenate((mc_plotted_variable, nue_plotted_variable, ext_plotted_variable, dirt_plotted_variable, ncpi0_plotted_variable, ccpi0_plotted_variable, eta_plotted_variable, ccnopi_plotted_variable, cccpi_plotted_variable, nccpi_plotted_variable, ncnopi_plotted_variable, lee_plotted_variable))
@@ -1417,7 +1418,7 @@ class Plotter:
             categorization = self._categorize_entries_paper_numu
             cat_labels = paper_labels_numu
         elif kind == "particle_pdg":
-            var = self.samples["mc"].query(query).eval(variable)
+            var = self.samples["mc"].query(query,engine="python").eval(variable)
             if var.dtype == np.float32:
                 categorization = self._categorize_entries_single_pdg
             else:
@@ -1584,7 +1585,6 @@ class Plotter:
                                    range=plot_options["range"],weights=ext_weight)
                 self.ext = n_ext
 
-
         if ratio:
             fig = plt.figure(figsize=(8, 7))
             gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
@@ -1728,6 +1728,7 @@ class Plotter:
             total_array = np.concatenate([total_array, ext_plotted_variable])
             total_weight = np.concatenate([total_weight, ext_weight])
 
+
         #### for paper draw lee as dashed line on top of stack plot
         '''
         if kind == "paper_category":
@@ -1799,8 +1800,8 @@ class Plotter:
                 lee_bins = [plot_options["range"][0]+n*bin_size for n in range(plot_options["bins"]+1)]
 
             if variable[-2:] != "_v":
-                binned_lee = pd.cut(self.samples["lee"].query(query).eval(variable), lee_bins)
-                err_lee = self.samples["lee"].query(query).groupby(binned_lee)['leeweight'].agg(
+                binned_lee = pd.cut(self.samples["lee"].query(query,engine="python").eval(variable), lee_bins)
+                err_lee = self.samples["lee"].query(query,engine="python").groupby(binned_lee)['leeweight'].agg(
                     "sum").values * self.weights["lee"] * self.weights["lee"]
             if ("lee" in detsysdict.keys() and detsysdict["lee"]==True):
                 self.detsys["lee"] = self.load_detsys_errors("lee",variable,DETSYSPATH,bin_edges,fullcov)
@@ -2251,7 +2252,7 @@ class Plotter:
             if t == "mc":
                 extra_query = "& " + self.nu_pdg
 
-            queried_tree = tree.query(query+extra_query)
+            queried_tree = tree.query(query+extra_query,engine="python")
             variable = queried_tree[var_name]
             if islee:
                 spline_fix_cv  = queried_tree["weightSplineTimesTune"] * queried_tree['leeweight'] * self.weights[t]
@@ -2362,7 +2363,7 @@ class Plotter:
 
             if t in ["data","ext"]:
                 tree = self.samples[t]
-                data_tree = tree.query(query)
+                data_tree = tree.query(query,engine="python")
                 variable_data = data_tree[var_name]
                 weights_data = np.ones(len(variable_data))
                 if (t == "ext"):
@@ -2382,8 +2383,8 @@ class Plotter:
                     extra_query = " & " + self.nu_pdg
 
                 tree = self.samples[t]
-                signal_tot_tree = tree.query(acceptance + extra_query)
-                signal_sel_tree = tree.query(query_sgnl + extra_query)
+                signal_tot_tree = tree.query(acceptance + extra_query,engine="python")
+                signal_sel_tree = tree.query(query_sgnl + extra_query,engine="python")
                 variable_tot = signal_tot_tree[var_name]
                 variable_sel = signal_sel_tree[var_name]
                 syst_weights_tot = signal_tot_tree[name]
@@ -2424,9 +2425,9 @@ class Plotter:
 
             tree = self.samples[t]
 
-            queried_tree_bkgd = tree.query(query_bkgd + extra_query)
-            queried_tree_sgnl = tree.query(query_sgnl + extra_query)
-            queried_tree_totl = tree.query(acceptance + extra_query)
+            queried_tree_bkgd = tree.query(query_bkgd + extra_query,engine="python")
+            queried_tree_sgnl = tree.query(query_sgnl + extra_query,engine="python")
+            queried_tree_totl = tree.query(acceptance + extra_query,engine="python")
 
             print ('key is %s and there are %.0f signal and %.0f background entries'%(t,queried_tree_sgnl.shape[0],queried_tree_bkgd.shape[0]))
 
@@ -2583,7 +2584,7 @@ class Plotter:
             if t == "mc":
                 extra_query = "& " + self.nu_pdg # "& ~(abs(nu_pdg) == 12 & ccnc == 0) & ~(npi0 == 1 & category != 5)"
 
-            queried_tree = tree.query(query+extra_query)
+            queried_tree = tree.query(query+extra_query,engine="python")
             variable = queried_tree[var_name]
             syst_weights = queried_tree[name]
             #print ('N universes is :',len(syst_weights))
@@ -2650,10 +2651,10 @@ class Plotter:
 
     def ResponseMatrix(self,sample,acceptance,fullsel,vart,varr,bin_edges,wlab,potw,univ=-1,wvar=''):
         #get number of signal events at true level before selection
-        truevals = sample.query(acceptance)[vart]
-        tweights = sample.query(acceptance)[wlab]*potw
+        truevals = sample.query(acceptance,engine="python")[vart]
+        tweights = sample.query(acceptance,engine="python")[wlab]*potw
         if univ>=0:
-            vweights = sample.query(acceptance)[wvar]
+            vweights = sample.query(acceptance,engine="python")[wvar]
             if (np.stack(vweights).ndim>1):
                 #multisim, pick specific universe
                 vweights = np.stack(vweights)[:,univ]/1000.
@@ -2664,11 +2665,11 @@ class Plotter:
             tweights = tweights*vweights
         n, bins = np.histogram(truevals,weights=tweights,bins=bin_edges)
         #get number of signal events at reco and true level after selection
-        x = sample.query(acceptance+' and '+fullsel)[vart]
-        y = sample.query(acceptance+' and '+fullsel)[varr]
-        w = sample.query(acceptance+' and '+fullsel)[wlab]*potw
+        x = sample.query(acceptance+' and '+fullsel,engine="python")[vart]
+        y = sample.query(acceptance+' and '+fullsel,engine="python")[varr]
+        w = sample.query(acceptance+' and '+fullsel,engine="python")[wlab]*potw
         if univ>=0:
-            vw = sample.query(acceptance+' and '+fullsel)[wvar]
+            vw = sample.query(acceptance+' and '+fullsel,engine="python")[wvar]
             if (np.stack(vw).ndim>1):
                 #multisim, pick specific universe
                 vw = np.stack(vw)[:,univ]/1000.
@@ -2725,7 +2726,7 @@ class Plotter:
             if t == signame:
                 extra_query = "& ~(" + acceptance +")"
 
-            queried_tree = tree.query(query+extra_query)
+            queried_tree = tree.query(query+extra_query,engine="python")
             variable = queried_tree[var_name]
             spline_fix_cv  = queried_tree[weightVarCV] * self.weights[t]
             spline_fix_var = queried_tree[weightVarVar] * self.weights[t]
@@ -2759,7 +2760,7 @@ class Plotter:
         if signame == "mc":
             extra_query += "& " + self.nu_pdg
 
-        queried_tree = tree.query(query+"& (" + acceptance +")"+extra_query)
+        queried_tree = tree.query(query+"& (" + acceptance +")"+extra_query,engine="python")
         variable = queried_tree[var_name]
         #print ('N universes is :',len(syst_weights))
         spline_fix_cv  = queried_tree[weightVarCV] * self.weights[signame]
@@ -2767,8 +2768,8 @@ class Plotter:
         n_cv, bins = np.histogram(variable,bins=bins,weights=spline_fix_cv)
         n_cv_tot += n_cv
 
-        true_variable = tree.query(acceptance)[true_var_name]
-        spline_fix_cv  = tree.query(acceptance)[weightVarCV] * self.weights[signame]
+        true_variable = tree.query(acceptance,engine="python")[true_var_name]
+        spline_fix_cv  = tree.query(acceptance,engine="python")[weightVarCV] * self.weights[signame]
         t_cv, bins = np.histogram(true_variable,bins=bins,weights=spline_fix_cv)
 
         for n,knob in enumerate(knob_v):
@@ -2852,7 +2853,7 @@ class Plotter:
             if t == signame:
                 extra_query = "& ~(" + acceptance +")"
 
-            queried_tree = tree.query(query+extra_query)
+            queried_tree = tree.query(query+extra_query,engine="python")
             variable = queried_tree[var_name]
             syst_weights = queried_tree[wname]
             #print ('N universes is :',len(syst_weights))
@@ -2891,7 +2892,7 @@ class Plotter:
         if signame == "mc":
             extra_query += "& " + self.nu_pdg
 
-        queried_tree = tree.query(query+"& (" + acceptance +")"+extra_query)
+        queried_tree = tree.query(query+"& (" + acceptance +")"+extra_query,engine="python")
         variable = queried_tree[var_name]
         syst_weights = queried_tree[wname]
         #print ('N universes is :',len(syst_weights))
@@ -2914,8 +2915,8 @@ class Plotter:
         n_cv_tot += n_cv
         #print('n_cv',n_cv)
 
-        true_variable = tree.query(acceptance)[true_var_name]
-        spline_fix_cv  = tree.query(acceptance)[weightVarCV] * self.weights[signame]
+        true_variable = tree.query(acceptance,engine="python")[true_var_name]
+        spline_fix_cv  = tree.query(acceptance,engine="python")[weightVarCV] * self.weights[signame]
         t_cv, bins = np.histogram(
             true_variable,
             bins=bins,

@@ -877,6 +877,7 @@ def process_uproot_shower_variables(up, df):
 
 
 def post_process_shower_vars(up, df):
+    
     # These shower variables depend on variables that may be subject to recovery
 
     df["dx_s"] = df["shr_start_x"] - df["true_nu_vtx_sce_x"]
@@ -953,6 +954,8 @@ def post_process_shower_vars(up, df):
     Eb = 0.0285
 
     df["reco_e"] = (df["shr_energy_tot_cali"] + INTERCEPT) / SLOPE + df["trk_energy_tot"]
+   
+
     df["reco_e_overflow"] = df["reco_e"]
     df.loc[(df["reco_e"] >= 2.25), "reco_e_overflow"] = 2.24
     df["reco_e_mev"] = df["reco_e"] * 1000.0
@@ -1187,8 +1190,15 @@ def process_uproot_recoveryvars(up, df):
     shr2_id = up.array("shr2_id") - 1  # I think we need this -1 to get the right result
     #
     shr_energy_y_v = up.array("shr_energy_y_v")
-    df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
-    df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
+    # Fix of the 9999 bug
+    #print("Using new code for energy estimation")
+    #df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
+    #df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
+    # Old code
+    print("Using old buggy code for energy estimation")
+    df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
+    df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
+
     #
     shr_start_x_v = up.array("shr_start_x_v")
     shr_start_y_v = up.array("shr_start_y_v")
@@ -1368,6 +1378,7 @@ def process_uproot_recoveryvars(up, df):
     df.loc[trk1bad, "trk_phi"] = df["trk2_phi"]
     df.loc[trk1bad, "trkshrhitdist2"] = df["trk2shrhitdist2"]
     df.loc[trk1bad, "n_tracks_contained"] = df["n_tracks_contained"] - 1
+
     df.loc[trk1bad, "trk_energy_tot"] = df["trk_energy_tot"] - df["trk_energy"]
     # note: we should redefine also pt, p
     #
@@ -1709,6 +1720,7 @@ def load_sample(
         load_crt_vars=load_crt_vars,
     )
     df = up.pandas.df(variables, flatten=False)
+    # trk_energy_tot agrees here
     # For runs before 3, we put zeros for the CRT variables
     if run_number < 3:
         vardict = get_variables()

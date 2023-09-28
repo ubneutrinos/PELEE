@@ -101,6 +101,8 @@ class RunHistPlotter:
             ax.set_xlabel(total_pred_hist.binning.label)
             return ax
 
+        ax.set_ylim(0.0,ax.get_ylim()[1]*1.7)
+
         # plot data/mc ratio
         # The way this is typically shown is to have the MC prediction divided by its central
         # data with error bands to show the MC uncertainty, and then to overlay the data points
@@ -176,7 +178,7 @@ class RunHistPlotter:
         
         ax.set_ylabel("Events")
         ax.set_title(title)
-        ax.legend(loc="upper right")
+        ax.legend(loc="upper right",ncol=2,fontsize='small')
         return ax
 
     def plot_hist(

@@ -391,8 +391,14 @@ def process_uproot_recoveryvars(up,df):
     shr2_id = up.array('shr2_id')-1 # I think we need this -1 to get the right result
     #
     shr_energy_y_v = up.array("shr_energy_y_v")
+
+    # Fix of the 9999 bug
+    #df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
+    #df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
+    # Old code
     df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
     df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
+
     #
     shr_start_x_v   = up.array("shr_start_x_v")
     shr_start_y_v   = up.array("shr_start_y_v")
@@ -523,7 +529,10 @@ def process_uproot_recoveryvars(up,df):
     df.loc[trk1bad, 'trk_phi' ] = df["trk2_phi"]
     df.loc[trk1bad, 'trkshrhitdist2' ] = df["trk2shrhitdist2"]
     df.loc[trk1bad, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
+
+
     df.loc[trk1bad, 'trk_energy_tot'] = df["trk_energy_tot"]-df["trk_energy"]
+
     # note: we should redefine also pt, p
     #
     # try to recover cases where the 2nd track is actually the start of the shower
@@ -1832,6 +1841,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         if ( (loadshowervariables == False) and (loadnumuntuples == True)):
             df_v += [r1data_numu_sidebands]
 
+
         #if (loadshowervariables == True):
         for i,df in enumerate(df_v):
             up = uproot_v[i]
@@ -1842,9 +1852,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             if (loadshowervariables == True):
                 process_uproot(up,df)
             if (loadrecoveryvars == True):
+                # trk_energy_tot agrees is getting reset somewhere in here
                 process_uproot_recoveryvars(up,df)
             if (loadccncpi0vars == True):
                 process_uproot_ccncpi0vars(up,df)
+
 
     ################################# Run 2 ######################################
 
@@ -2450,6 +2462,8 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df["reco_e_qe"] = 0.938*((df["shr_energy"]+INTERCEPT)/SLOPE)/(0.938 - ((df["shr_energy"]+INTERCEPT)/SLOPE)*(1-np.cos(df["shr_theta"])))
             df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
 
+            
+
     # define ratio of deposited to total shower energy for pi0
     if (loadpi0variables):
         for i,df in enumerate(df_v):
@@ -2469,19 +2483,15 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
     if (loadfakedata > 0):
         dirt['nslice'] = np.zeros_like(dirt['nslice'])
         ext['nslice']  = np.zeros_like(ext['nslice'])
-
-    # TODO: this is the equivalent line to the one causing the crash in the new code
         
     # add back the cosmic category, for background only
     for i,df in enumerate(df_v):
-        print(i)
-        print("Checking categories 1")
-        print(df.query("category == 4").shape[0])
+        #print(i)
+        #print(df.query("category == 4").shape[0])
         df.loc[(df['category']!=1)&(df['category']!=10)&(df['category']!=11)&(df['category']!=111)&(df['slnunhits']/df['slnhits']<0.2), 'category'] = 4
         if (loadeta == True):
             df.loc[ (df['category']== 4), 'category' ] = 806
-        print("Checking categories 2")
-        print(df.query("category == 4").shape[0])
+        #print(df.query("category == 4").shape[0])
 
     # change proton threshold (50 MeV for xsec)
     if updatedProtThresh>0:

@@ -308,10 +308,7 @@ NUMUSELCRT = NUMUSEL + NUMUCRT
 NUMUSELCRTNP = NUMUSELCRT + ' and n_protons_tot > 0'
 NUMUSELCRT0P = NUMUSELCRT + ' and n_protons_tot == 0'
 
-
-
 NUMUSEL1MU1P = NUMUSEL + ' and n_tracks_contained == 2 and trk2_pid < -0.2'
-
 
 # eta queries
 ETASLICE = ' nslice == 1'
