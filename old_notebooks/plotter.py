@@ -790,6 +790,7 @@ class Plotter:
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
 
+
         if plotted_variable.size > 0:
             if isinstance(plotted_variable[0], np.ndarray):
                 if "trk" in variable or select_longest:
@@ -937,6 +938,7 @@ class Plotter:
 
         plotted_variable = self._selection(
             variable, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
+
         genie_weights = self._selection(
             weightvar, sample, query=query, extra_cut=extra_cut, track_cuts=track_cuts, select_longest=select_longest)
         if (weightsignal != None):
@@ -1440,8 +1442,7 @@ class Plotter:
 
         category, mc_plotted_variable = categorization(
             self.samples["mc"], variable, query=query, extra_cut=self.nu_pdg, track_cuts=track_cuts, select_longest=select_longest)
-       
-
+ 
         var_dict = defaultdict(list)
         weight_dict = defaultdict(list)
         mc_genie_weights = self._get_genie_weight(
@@ -1450,8 +1451,6 @@ class Plotter:
         for c, v, w in zip(category, mc_plotted_variable, mc_genie_weights):
             var_dict[c].append(v)
             weight_dict[c].append(self.weights["mc"] * w)
-
-        # OK SO FAR #
 
         nue_genie_weights = self._get_genie_weight(
             self.samples["nue"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest, weightvar=genieweight)
@@ -1543,6 +1542,17 @@ class Plotter:
                 var_dict[c].append(v)
                 weight_dict[c].append(self.weights["dirt"] * w)
 
+        # CT: Slightly lazy way to handle change in naming convention
+        if "drt" in self.samples:
+            dirt_genie_weights = self._get_genie_weight(
+                self.samples["drt"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest, weightvar=genieweight)
+            category, dirt_plotted_variable = categorization(
+                self.samples["drt"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
+
+            for c, v, w in zip(category, dirt_plotted_variable, dirt_genie_weights):
+                var_dict[c].append(v)
+                weight_dict[c].append(self.weights["drt"] * w)
+
         if "lee" in self.samples:
             category, lee_plotted_variable = categorization(
                 self.samples["lee"], variable, query=query, track_cuts=track_cuts, select_longest=select_longest)
@@ -1565,6 +1575,7 @@ class Plotter:
                 weights=weight_dict[111])
 
         if draw_data:
+            
             ext_plotted_variable = self._selection(
                 variable, self.samples["ext"], query=query, track_cuts=track_cuts, select_longest=select_longest)
             ext_plotted_variable = self._select_showers(
@@ -1577,6 +1588,7 @@ class Plotter:
             if (kind == "paper_category" or kind == "paper_category_xsec" or kind == "paper_category_numu"):
                 var_dict[100] = ext_plotted_variable
                 ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
+                print(self.weights["ext"])
                 weight_dict[100] = ext_weight
                 cat_labels[100] = "Cosmics"
                 #category_colors[100] = "xkcd:cerulean"
@@ -1751,9 +1763,6 @@ class Plotter:
         histtype="step",
         edgecolor="black",
         **plot_options)
-
-        #print(n_tot)
-        #print(np.sum(n_tot))
 
         summarydict = {}
         if 0:#kind == "paper_category":

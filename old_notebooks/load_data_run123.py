@@ -14,7 +14,6 @@ import uproot
 import awkward
 import plotter
 
-
 USEBDT = True
 
 # returns the element in a vector at a given index (if out of range, the element is set to defval)
@@ -1841,7 +1840,6 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
         if ( (loadshowervariables == False) and (loadnumuntuples == True)):
             df_v += [r1data_numu_sidebands]
 
-
         #if (loadshowervariables == True):
         for i,df in enumerate(df_v):
             up = uproot_v[i]
@@ -1926,7 +1924,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             r2_dataset['run1'] = np.zeros(len(r2_dataset), dtype=bool)
             r2_dataset['run2'] = np.ones(len(r2_dataset), dtype=bool)
             r2_dataset['run3'] = np.zeros(len(r2_dataset), dtype=bool)
-            r3_dataset['run30'] = np.zeros(len(r3_dataset), dtype=bool)
+            
+            if 3 in runs_to_load:
+                r3_dataset['run30'] = np.zeros(len(r3_dataset), dtype=bool)
             r2_dataset['run12'] = np.ones(len(r2_dataset), dtype=bool)
             r2_dataset['run4'] = np.zeros(len(r2_dataset), dtype=bool)
             if (loadnumucrtonly == True):
@@ -1935,8 +1935,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                 r2_dataset["crthitpe"] = np.zeros(len(r2_dataset),dtype=float)
                 r2_dataset["_closestNuCosmicDist"] = np.zeros(len(r2_dataset),dtype=float)
 
-        r1dirt['run2'] = np.ones(len(r1dirt), dtype=bool)
-        r3dirt['run2'] = np.ones(len(r3dirt), dtype=bool)
+        if 1 in runs_to_load:
+            r1dirt['run2'] = np.ones(len(r1dirt), dtype=bool)
+        
+        if 3 in runs_to_load:
+            r3dirt['run2'] = np.ones(len(r3dirt), dtype=bool)
 
         if (loadpi0filters == True):
             for r_dataset in [r1ncpi0, r1ccpi0, r3ncpi0, r3ccpi0, r3eta]:
@@ -2342,6 +2345,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df['dr_s'] = np.sqrt( df['dx_s']*df['dx_s'] + df['dy_s']*df['dy_s'] + df['dz_s']*df['dz_s'] )
         
     df_v = [lee,mc,nue,ext,data,dirt]
+
     if (loadpi0filters == True):
         df_v += [ncpi0,ccpi0,eta]
     if (loadtruthfilters == True):
@@ -2485,7 +2489,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         ext['nslice']  = np.zeros_like(ext['nslice'])
         
     # add back the cosmic category, for background only
-    for i,df in enumerate(df_v):
+    for i,df in enumerate(df_v):        
         #print(i)
         #print(df.query("category == 4").shape[0])
         df.loc[(df['category']!=1)&(df['category']!=10)&(df['category']!=11)&(df['category']!=111)&(df['slnunhits']/df['slnhits']<0.2), 'category'] = 4
@@ -2560,6 +2564,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
                         xgb.DMatrix(df[TRAINVAR]),
                         ntree_limit=booster.best_iteration)
                 
+
     # 0p BDT
 
     TRAINVARZP = ['shrmoliereavg','shr_score', "trkfit","subcluster",
@@ -2581,7 +2586,6 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
                     df[label+"_score"] = booster.predict(
                         xgb.DMatrix(df[TRAINVARZP]),
                         ntree_limit=booster.best_iteration)
-
 
     ## avoid recycling unbiased ext events (i.e. selecting a slice with little nu content from these samples)
     ## note: this needs to be after setting the BDT scores, so that we do not mess with copied data frames
@@ -2610,7 +2614,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         ncpi0 = ncpi0.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end                                  
         Npos = float(ncpi0.shape[0])
         #print ('fraction of ncpi0 surviving duplicate removal : %.02f'%(Npos/Npre))
-    
+
     Npre = float(data.shape[0])
     if (loadfakedata == 0):
        data = data.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end
@@ -2643,7 +2647,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         samples["nccpi"]  = nccpi
         samples["ncpi0"]  = ncpi0
         samples["ccpi0"]  = ccpi0
-   
+
     # these variables incate which category of events the events belong to, used for drawing plots! 
     for key, df in samples.items():
         df.loc[:,"paper_category"] = df["category"]

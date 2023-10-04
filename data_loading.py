@@ -20,6 +20,7 @@ from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
+use_buggy_energy_estimator=False
 
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
@@ -1191,13 +1192,15 @@ def process_uproot_recoveryvars(up, df):
     #
     shr_energy_y_v = up.array("shr_energy_y_v")
     # Fix of the 9999 bug
-    #print("Using new code for energy estimation")
-    #df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
-    #df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
-    # Old code
-    print("Using old buggy code for energy estimation")
-    df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
-    df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
+    
+    if use_buggy_energy_estimator:
+        print("Using old buggy code for energy estimation")
+        df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
+        df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
+    else:
+        print("Using new code for energy estimation")
+        df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
+        df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
 
     #
     shr_start_x_v = up.array("shr_start_x_v")
@@ -1677,6 +1680,8 @@ def load_sample(
     pi0scaling=0,
     load_crt_vars=False,
 ):
+
+    print("Starting load_sample")
     """Load one sample of one run for a particular kind of events."""
 
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
@@ -1696,11 +1701,9 @@ def load_sample(
     if category != "detvar":
         rundict = get_rundict(run_number, category, dataset)
         data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
-        print("data_path=",data_path)
     else: 
         rundict = get_rundict(run_number, category, dataset)
         data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
-        print("data_path=",data_path)
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
@@ -1790,8 +1793,12 @@ def load_sample(
 
     add_paper_categories(df, dataset)
     drop_vector_columns(df)
-    return df
 
+    # CT: For some reason this only run over the EXT and data in the old code
+    if dataset == "ext" or dataset == "data":
+        df = remove_duplicates(df)
+
+    return df
 
 # CT: plotter currently requires the pot weights to be passed in as another dictionary
 # Adding to this function for now, discuss when refactoring plotter.py
@@ -1829,7 +1836,8 @@ def _load_run(
     for mc_set in mc_sets:
         if mc_set == "lee":
             print("Loading lee sample")
-
+            """
+            # Why is this being done?
             if run_number == 2:
                 mc_df1 = load_sample(1, category, "nue", **load_sample_kwargs, use_lee_weights=True)
                 mc_df3 = load_sample(3, category, "nue", **load_sample_kwargs, use_lee_weights=True)
@@ -1837,10 +1845,14 @@ def _load_run(
                 mc_pot1, _ = get_pot_trig(1, category, "nue")  # nu has no trigger number
                 mc_pot3, _ = get_pot_trig(3, category, "nue")  # nu has no trigger number
                 mc_pot = mc_pot1 + mc_pot3
-            else:
+            else:                      
                 mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
                 mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
+            """
+            mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
+            mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
         else:
+            """
             if run_number == 2:
                 mc_df1 = load_sample(1, category, mc_set, **load_sample_kwargs)
                 mc_df3 = load_sample(3, category, mc_set, **load_sample_kwargs)
@@ -1851,11 +1863,16 @@ def _load_run(
             else:
                 mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
                 mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
+            """
+            mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
+            mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
+
         mc_df["dataset"] = mc_set
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
         # weights without the tune. We add this as a separate column here.
         mc_df["weights_no_tune"] = mc_df["weightSpline"] * data_pot / mc_pot
+        
         if mc_set == "lee":
             mc_df["weights"] *= mc_df["leeweight"]
             mc_df["weights_no_tune"] *= mc_df["leeweight"]
