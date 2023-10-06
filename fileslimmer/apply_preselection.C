@@ -39,9 +39,10 @@ void apply_preselection(const string in_file,const string selection){
   // Make a clone of the tree with the selection applied
   std::cout << "Making clone of event tree" << std::endl;
   TTree* t_out = t_in->CopyTree(queries.at(i_sel).c_str());      
+  TTree* sr_out = sr_in->CopyTree(""); 
 
   std::cout << "Writing trees to output file" << std::endl;
-  sr_in->Write("SubRun");
+  sr_out->Write("SubRun");
   t_out->Write("NeutrinoSelectionFilter");
 
   f_in->Close();

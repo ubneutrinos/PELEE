@@ -20,7 +20,7 @@ from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-use_buggy_energy_estimator=False
+use_buggy_energy_estimator=True
 
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
@@ -500,7 +500,6 @@ def load_data_run(
     updatedProtThresh=-1,
 ):
     raise NotImplementedError("Full data run loading not implemented yet")
-
 
 def get_elm_from_vec_idx(
     myvec: ak.JaggedArray, idx: Union[List[int], NDArray[Any]], fillval=np.nan
@@ -1637,6 +1636,7 @@ def apply_bdt_truth_filters(df):
 def get_rundict(run_number, category, dataset):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
+    #with open(os.path.join(thisfile_path, "data_paths_2023.yml"), "r") as f:
         pathdefs = yaml.safe_load(f)
 
     runpaths = pathdefs[category]
@@ -1795,7 +1795,7 @@ def load_sample(
     drop_vector_columns(df)
 
     # CT: For some reason this only run over the EXT and data in the old code
-    if dataset == "ext" or dataset == "data":
+    if dataset == "ext" or dataset == "bnb":
         df = remove_duplicates(df)
 
     return df
