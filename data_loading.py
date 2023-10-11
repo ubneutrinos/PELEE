@@ -20,7 +20,11 @@ from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-use_buggy_energy_estimator=True
+
+# Set to true if trying to exactly reproduce old plots, otherwise, false
+use_buggy_energy_estimator=False
+
+QUERY = "nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06  and nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06 & trk2_energy > 0.3" 
 
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
@@ -1181,6 +1185,7 @@ def process_uproot_ccncpi0vars(up, df):
 
 
 def process_uproot_recoveryvars(up, df):
+
     #
     # data events where recovery matters should have shr2_id and trk2_id properly set
     #
@@ -1190,16 +1195,8 @@ def process_uproot_recoveryvars(up, df):
     shr2_id = up.array("shr2_id") - 1  # I think we need this -1 to get the right result
     #
     shr_energy_y_v = up.array("shr_energy_y_v")
-    # Fix of the 9999 bug
-    
-    if use_buggy_energy_estimator:
-        print("Using old buggy code for energy estimation")
-        df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
-        df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
-    else:
-        print("Using new code for energy estimation")
-        df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
-        df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
+    df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
+    df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
 
     #
     shr_start_x_v = up.array("shr_start_x_v")
@@ -1449,7 +1446,7 @@ def process_uproot_recoveryvars(up, df):
     df.loc[trk2srtshr, "trk_energy_tot"] = df["trk_energy_tot"] - df["trk2_protonenergy"]
     df.loc[trk2srtshr & (df["trk2_energy"] < 0.0), "trk2_energy"] = 0.0
     df["trk2_energy_cali"] = 0.001 * df["trk2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
-    df.loc[trk2srtshr, "shr_energy_tot_cali"] = df["shr_energy_tot_cali"] + df["trk2_energy_cali"]
+
     #
     # try to recover cases where the 2nd shower is actually an attached proton
     #
@@ -1467,7 +1464,9 @@ def process_uproot_recoveryvars(up, df):
     df.loc[shr2prtn, "trk_energy_tot"] = df["trk_energy_tot"] + df["shr2_protonenergy"]
     df.loc[shr2prtn & (df["shr2_energy"] < 0.0), "shr2_energy"] = 0.0
     df["shr2_energy_cali"] = 0.001 * df["shr2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
+
     df.loc[shr2prtn, "shr_energy_tot_cali"] = df["shr_energy_tot_cali"] - df["trk2_energy_cali"]
+
     #
     # try to recover cases where the leading track is embedded in the shower
     # todo: check that the two overlap, i.e. the shower is not downstream the track
@@ -1505,6 +1504,272 @@ def process_uproot_recoveryvars(up, df):
     df.loc[((df["tk2sh1_distance"] > 3) & (np.isfinite(df["tk2sh1_distance"]))), "n_tracks_cont_attach"] = (
         df["n_tracks_contained"] - 1
     )
+
+    return
+
+# Recovery vars calculation with the buggy energy estimator
+
+def process_uproot_recoveryvars_old(up, df):
+
+    print("WARNING: You are running the old (buggy) neutrino energy estimator")
+
+    #
+    # data events where recovery matters should have shr2_id and trk2_id properly set
+    #
+    trk_id = up.array('trk_id')-1 # I think we need this -1 to get the right result
+    shr_id = up.array('shr_id')-1 # I think we need this -1 to get the right result
+    trk2_id = up.array('trk2_id')-1 # I think we need this -1 to get the right result
+    shr2_id = up.array('shr2_id')-1 # I think we need this -1 to get the right result
+    #
+    shr_energy_y_v = up.array("shr_energy_y_v")
+
+    df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
+    df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
+
+    #
+    shr_start_x_v   = up.array("shr_start_x_v")
+    shr_start_y_v   = up.array("shr_start_y_v")
+    shr_start_z_v   = up.array("shr_start_z_v")
+    df["shr1_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr_id,-9999.)
+    df["shr2_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr2_id,-9999.)
+    df["shr1_start_y"] = get_elm_from_vec_idx(shr_start_y_v,shr_id,-9999.)
+    df["shr2_start_y"] = get_elm_from_vec_idx(shr_start_y_v,shr2_id,-9999.)
+    df["shr1_start_z"] = get_elm_from_vec_idx(shr_start_z_v,shr_id,-9999.)
+    df["shr2_start_z"] = get_elm_from_vec_idx(shr_start_z_v,shr2_id,-9999.)
+    #
+    df["shr12_start_dx"] = df["shr2_start_x"]-df["shr1_start_x"]
+    df["shr12_start_dy"] = df["shr2_start_y"]-df["shr1_start_y"]
+    df["shr12_start_dz"] = df["shr2_start_z"]-df["shr1_start_z"]
+    #
+    df["shr12_cos_p1_dstart"] = np.where((df['n_showers_contained']<2)|(df["shr2_energy"]<0)|(df["shr12_start_dx"]==0),-9999.,
+                                   cos_angle_two_vecs(df["shr12_start_dx"],df["shr12_start_dy"],df["shr12_start_dz"],\
+                                                   df["shr_px"],        df["shr_py"],        df["shr_pz"]))
+    #
+    trk_len_v = up.array("trk_len_v")
+    df["trk1_len"] = get_elm_from_vec_idx(trk_len_v,trk_id,-9999.)
+    df["trk2_len"] = get_elm_from_vec_idx(trk_len_v,trk2_id,-9999.)
+    #
+    trk_distance_v = up.array("trk_distance_v")
+    df["trk1_distance"] = get_elm_from_vec_idx(trk_distance_v,trk_id,-9999.)
+    df["trk2_distance"] = get_elm_from_vec_idx(trk_distance_v,trk2_id,-9999.)
+    #
+    trk_llr_pid_v = up.array('trk_llr_pid_score_v')
+    df["trk1_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk_id,np.nan)
+    df["trk2_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk2_id,np.nan)
+    #
+    pfnhits_v = up.array("pfnhits")
+    df["trk1_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk_id,-9999.)
+    df["trk2_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk2_id,-9999.)
+    df["shr1_nhits"] = get_elm_from_vec_idx(pfnhits_v,shr_id,-9999.)
+    df["shr2_nhits"] = get_elm_from_vec_idx(pfnhits_v,shr2_id,-9999.)
+    #
+    trk_start_x_v   = up.array("trk_start_x_v")
+    trk_start_y_v   = up.array("trk_start_y_v")
+    trk_start_z_v   = up.array("trk_start_z_v")
+    df["trk1_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk_id,-9999.)
+    df["trk2_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk2_id,-9999.)
+    df["trk1_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk_id,-9999.)
+    df["trk2_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk2_id,-9999.)
+    df["trk1_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk_id,-9999.)
+    df["trk2_start_z"] = get_elm_from_vec_idx(trk_start_z_v,trk2_id,-9999.)
+    df['tk1sh1_distance'] = np.where((df['n_showers_contained']>0)&(df['n_tracks_contained']>0),\
+                                     distance(df['shr_start_x'], df['shr_start_y'], df['shr_start_z'],\
+                                              df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z']),\
+                                     9999.)
+    df['tk2sh1_distance'] = np.where((df['n_showers_contained']>0)&(df['n_tracks_contained']>1),\
+                                     distance(df['shr_start_x'], df['shr_start_y'], df['shr_start_z'],\
+                                     df['trk2_start_x'],df['trk2_start_y'],df['trk2_start_z']),\
+                                     9999.)
+    df['tk1tk2_distance'] = np.where(df['n_tracks_contained']>1,\
+                                     distance(df['trk1_start_x'],df['trk1_start_y'],df['trk1_start_z'],\
+                                     df['trk2_start_x'],df['trk2_start_y'],df['trk2_start_z']),\
+                                     9999.)
+    #
+    trk_dir_x_v = up.array("trk_dir_x_v")
+    trk_dir_y_v = up.array("trk_dir_y_v")
+    trk_dir_z_v = up.array("trk_dir_z_v")
+    df["trk1_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v,trk_id,-9999.)
+    df["trk2_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v,trk2_id,-9999.)
+    df["trk1_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v,trk_id,-9999.)
+    df["trk2_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v,trk2_id,-9999.)
+    df["trk1_dir_z"] = get_elm_from_vec_idx(trk_dir_z_v,trk_id,-9999.)
+    df["trk2_dir_z"] = get_elm_from_vec_idx(trk_dir_z_v,trk2_id,-9999.)
+
+    df["tk1sh1_angle"] = np.where((df['n_tracks_contained']<1)|(df['n_showers_contained']<1),-9999.,
+                            cos_angle_two_vecs(df["trk1_dir_x"],df["trk1_dir_y"],df["trk1_dir_z"],\
+                                            df["shr_px"],    df["shr_py"],    df["shr_pz"]))
+    df["tk2sh1_angle"] = np.where((df['n_tracks_contained']<2)|(df['n_showers_contained']<1),-9999.,
+                            cos_angle_two_vecs(df["trk2_dir_x"],df["trk2_dir_y"],df["trk2_dir_z"],\
+                                            df["shr_px"],    df["shr_py"],    df["shr_pz"]))
+    df["tk1tk2_angle"] = np.where(df['n_tracks_contained']<2,-9999.,
+                            cos_angle_two_vecs(df["trk1_dir_x"],df["trk1_dir_y"],df["trk1_dir_z"],\
+                                            df["trk2_dir_x"],df["trk2_dir_y"],df["trk2_dir_z"]))
+    #
+    # todo: update also other variables, not used in the selection
+    #
+    # try to recover cases where the 2nd shower is split from the main one
+    # note: we do not remake the shower pfp, so we ignore differences on
+    # shr_score, shr_tkfit_dedx_max, trkfit since they are negligible
+    # note2: in principle this can be done for 0p as well, but we focus only on Np for now
+    #
+    df["is_shr2splt"] = np.zeros_like(df["n_tracks_contained"])
+    shr2splt = ((df["n_tracks_contained"]>0) & (df["n_showers_contained"]>1) &\
+                (df['shr12_cos_p1_dstart'] > 0.95) & (df['tk1sh2_distance'] > 60) &\
+                (df['shr_score']<0.1) & ((df["shrsubclusters0"]+df["shrsubclusters1"]+df["shrsubclusters2"])>3))
+    df.loc[shr2splt, 'is_shr2splt' ] = 1
+    df.loc[shr2splt, 'n_showers_contained' ] = 1 #assume this happens to nues only! previously: = df["n_showers_contained"]-1
+    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
+    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
+    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
+    df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr2_id,0)
+    df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr2_id,0)
+    df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr2_id,0)
+    df.loc[shr2splt, 'shrsubclusters0' ] = df["shrsubclusters0"] + df["shr2subclusters0"]
+    df.loc[shr2splt, 'shrsubclusters1' ] = df["shrsubclusters1"] + df["shr2subclusters1"]
+    df.loc[shr2splt, 'shrsubclusters2' ] = df["shrsubclusters2"] + df["shr2subclusters2"]
+    df.loc[shr2splt & (df["shr1shr2moliereavg"]>0), 'shrmoliereavg' ] = df["shr1shr2moliereavg"]
+    #
+    # try to recover cases where the leading track is spurious (more than 30 cm away from nu vtx)
+    # note: we redefine all track-related variables from trk2 (except pt and p for now),
+    # and remove the contribution of trk1 from hit counting and energy calculation
+    #
+    df["is_trk1bad"] = np.zeros_like(df["n_tracks_contained"])
+    trk1bad = ((df["n_tracks_contained"]>1) & (df['trk_distance'] > 30.) & (df["is_shr2splt"]==0))
+    df.loc[trk1bad, 'is_trk1bad' ] = 1
+    df.loc[trk1bad, 'trkpid' ] = df["trk2_llr_pid"]
+    df.loc[trk1bad, 'tksh_distance' ] = df["tk2sh1_distance"]
+    df.loc[trk1bad, 'tksh_angle' ] = df["tk2sh1_angle"]
+    df.loc[trk1bad, 'hits_ratio' ] = df["shr_hits_tot"]/(df["shr_hits_tot"]+df["trk_hits_tot"]-df["trk1_nhits"])
+    df.loc[trk1bad, 'trk_len' ] = df["trk2_len"]
+    df.loc[trk1bad, 'trk_distance' ] = df["trk2_distance"]
+    trk_score_v = up.array("trk_score_v")
+    df["trk2_score"] = get_elm_from_vec_idx(trk_score_v,trk2_id,-9999.)
+    trk_energy_proton_v = up.array('trk_energy_proton_v')
+    df["trk2_protonenergy"] = get_elm_from_vec_idx(trk_energy_proton_v,trk2_id,-9999.)
+    trk_theta_v = up.array("trk_theta_v")
+    df["trk2_theta"] = get_elm_from_vec_idx(trk_theta_v,trk2_id,-9999.)
+    trk_phi_v = up.array("trk_phi_v")
+    df["trk2_phi"] = get_elm_from_vec_idx(trk_phi_v,trk2_id,-9999.)
+    df.loc[trk1bad, 'trk_score' ] = df["trk2_score"]
+    df.loc[trk1bad, 'protonenergy' ] = df["trk2_protonenergy"]
+    df.loc[trk1bad, 'trk_theta' ] = df["trk2_theta"]
+    df.loc[trk1bad, 'trk_phi' ] = df["trk2_phi"]
+    df.loc[trk1bad, 'trkshrhitdist2' ] = df["trk2shrhitdist2"]
+    df.loc[trk1bad, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
+
+
+    df.loc[trk1bad, 'trk_energy_tot'] = df["trk_energy_tot"]-df["trk_energy"]
+
+    # note: we should redefine also pt, p
+    #
+    # try to recover cases where the 2nd track is actually the start of the shower
+    # we need to redefine almost all shower variables (including dedx, which is tricky)
+    #
+    df["is_trk2srtshr"] = np.zeros_like(df["n_tracks_contained"])
+    trk2srtshr = ((df["n_tracks_contained"]>1) & (df['tk2sh1_angle']>0.98) & (df['tk1tk2_distance']<df['tksh_distance']) & \
+                  (df['shr_score']<0.1) & (df["is_shr2splt"]==0) & (df["is_trk1bad"]==0))
+    df.loc[trk2srtshr, 'is_trk2srtshr' ] = 1
+    #
+    shr_tkfit_dedx_u_v = up.array("shr_tkfit_dedx_u_v")
+    shr_tkfit_dedx_v_v = up.array("shr_tkfit_dedx_v_v")
+    shr_tkfit_dedx_y_v = up.array("shr_tkfit_dedx_y_v")
+    shr_tkfit_nhits_u_v = up.array("shr_tkfit_dedx_nhits_u_v")
+    shr_tkfit_nhits_v_v = up.array("shr_tkfit_dedx_nhits_v_v")
+    shr_tkfit_nhits_y_v = up.array("shr_tkfit_dedx_nhits_y_v")
+    df["trk2_tkfit_dedx_u"] = get_elm_from_vec_idx(shr_tkfit_dedx_u_v,trk2_id,-9999.)
+    df["trk2_tkfit_dedx_v"] = get_elm_from_vec_idx(shr_tkfit_dedx_v_v,trk2_id,-9999.)
+    df["trk2_tkfit_dedx_y"] = get_elm_from_vec_idx(shr_tkfit_dedx_y_v,trk2_id,-9999.)
+    df["trk2_tkfit_nhits_u"] = get_elm_from_vec_idx(shr_tkfit_nhits_u_v,trk2_id,0)
+    df["trk2_tkfit_nhits_v"] = get_elm_from_vec_idx(shr_tkfit_nhits_v_v,trk2_id,0)
+    df["trk2_tkfit_nhits_y"] = get_elm_from_vec_idx(shr_tkfit_nhits_y_v,trk2_id,0)
+    df["trk2_tkfit_nhits_tot"] = df["trk2_tkfit_nhits_u"]+df["trk2_tkfit_nhits_v"]+df["trk2_tkfit_nhits_y"]    
+    df["trk2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,trk2_id,0)
+    df["trk2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,trk2_id,0)
+    df["trk2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,trk2_id,0)
+    #
+    df.loc[trk2srtshr, 'tksh_distance' ] = df["tk1tk2_distance"]
+    df.loc[trk2srtshr, 'tksh_angle' ] = df["tk1tk2_angle"]
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_dedx_U' ] = df["trk2_tkfit_dedx_u"]
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_dedx_V' ] = df["trk2_tkfit_dedx_v"]
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_dedx_Y' ] = df["trk2_tkfit_dedx_y"]
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_nhits_U' ] = df['trk2_tkfit_nhits_u']
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_nhits_V' ] = df['trk2_tkfit_nhits_v']
+    df.loc[trk2srtshr & (df["trk2_tkfit_nhits_tot"]>0), 'shr_tkfit_nhits_Y' ] = df['trk2_tkfit_nhits_y']
+    df.loc[trk2srtshr, 'hits_ratio' ] = (df["shr_hits_tot"]+df["trk2_nhits"])/(df["shr_hits_tot"]+df["trk_hits_tot"])
+    #
+    df.loc[trk2srtshr, 'shr_tkfit_npointsvalid' ] = df["shr_tkfit_npointsvalid"] + df["trk2_nhits"] #patched!
+    # other option... taking the track fit npoints for both (results do not change)
+    #shr_tkfit_nhits_v = up.array("shr_tkfit_nhits_v")
+    #df["trk2_tkfit_npointsvalid"] = get_elm_from_vec_idx(shr_tkfit_nhits_v,trk2_id,-9999.)
+    #df.loc[trk2srtshr, 'shr_tkfit_npointsvalid' ] = df["shr_tkfit_npointsvalid"] + df["trk2_tkfit_npointsvalid"]
+    #df.loc[trk2srtshr, 'shr_tkfit_npoints' ] = df["shr_tkfit_npoints"] + df["trk2_nhits"]
+    #
+    df.loc[trk2srtshr & (df["trk1trk2hitdist2"]>0) & (df["trkshrhitdist2"]>0) & (df["trk1trk2hitdist2"]<df["trkshrhitdist2"]), 'trkshrhitdist2' ] = df["trk1trk2hitdist2"]
+    df.loc[trk2srtshr & (df["trk1trk2hitdist2"]>0) & (df["trkshrhitdist2"]<0), 'trkshrhitdist2' ] = df["trk1trk2hitdist2"]
+    df.loc[trk2srtshr, 'shrsubclusters0' ] = df["shrsubclusters0"] + df["trk2subclusters0"]
+    df.loc[trk2srtshr, 'shrsubclusters1' ] = df["shrsubclusters1"] + df["trk2subclusters1"]
+    df.loc[trk2srtshr, 'shrsubclusters2' ] = df["shrsubclusters2"] + df["trk2subclusters2"]
+    df.loc[trk2srtshr & (df["shr1trk2moliereavg"]>0), 'shrmoliereavg' ] = df["shr1trk2moliereavg"]
+    df.loc[trk2srtshr, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
+    df.loc[trk2srtshr, 'trk_energy_tot'] = df["trk_energy_tot"]-df["trk2_protonenergy"]
+    df.loc[df["trk2_energy"]<0., "trk2_energy"] = 0.
+    df["trk2_energy_cali"] = 0.001 * df["trk2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
+    df.loc[trk2srtshr, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]+df["trk2_energy_cali"]
+    #
+    # try to recover cases where the 2nd shower is actually an attached proton
+    #
+    df["is_shr2prtn"] = np.zeros_like(df["n_tracks_contained"])
+    shr2prtn = ((df["n_showers_contained"]>1) & (df['tk1sh2_distance'] < 6.0) & (df["subcluster2tmp"]<=4) & (df["shr2pid"]<0.02))
+    df.loc[shr2prtn, 'is_shr2prtn' ] = 1
+    df.loc[shr2prtn, 'n_showers_contained' ] = df["n_showers_contained"]-1
+    df.loc[shr2prtn, 'n_tracks_contained' ] = df["n_tracks_contained"]+1
+    df["shr2_protonenergy"] = get_elm_from_vec_idx(trk_energy_proton_v,shr2_id,-9999.)
+    df.loc[shr2prtn, 'trk_energy_tot'] = df["trk_energy_tot"]+df["shr2_protonenergy"]
+    df.loc[df["shr2_energy"]<0., "shr2_energy"] = 0.
+    df["shr2_energy_cali"] = 0.001 * df["shr2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
+
+    df.loc[shr2prtn, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]-df["trk2_energy_cali"]
+    #
+    # try to recover cases where the leading track is embedded in the shower
+    # todo: check that the two overlap, i.e. the shower is not downstream the track
+    # todo: use distance/angle/dedx from the object closest to trk2
+    # todo: in principle we should update also moliere angle and subcluster
+    # FOR NOW WE JUST TAG THEM AND DO NOT TRY TO RECOVER
+    #
+    df["is_trk1embd"] = np.zeros_like(df["n_tracks_contained"])
+    trk1embd = ((df["n_tracks_contained"]>1) & (df['tksh_angle'] > 0.99) & (df["is_trk1bad"]==0))
+    df.loc[trk1embd, 'is_trk1embd' ] = 1
+    #df.loc[trk1embd, 'trkpid' ] = df["trk2_llr_pid"]
+    #df.loc[trk1embd, 'tksh_distance' ] = df["tk2sh1_distance"]
+    #df.loc[trk1embd, 'tksh_angle' ] = df["tk2sh1_angle"]
+    #df.loc[trk1embd, 'hits_ratio' ] = (df["shr_hits_tot"]+df["trk1_nhits"])/(df["shr_hits_tot"]+df["trk_hits_tot"])
+    #df.loc[trk1embd, 'trkshrhitdist2' ] = df["tk2sh1_distance"] #patched!
+    #df.loc[trk1embd, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
+    #
+    # Let's save memory by dropping some stuff we just used and won't use anymore
+    #
+    df.drop(columns=['shr1_start_x', 'shr1_start_y', 'shr1_start_z'])
+    df.drop(columns=['shr2_start_x', 'shr2_start_y', 'shr2_start_z'])
+    df.drop(columns=['shr12_start_dx', 'shr12_start_dy', 'shr12_start_dz'])
+    #df.drop(columns=['shr2_energy'])
+    df.drop(columns=['trk1_len', 'trk2_len'])
+    df.drop(columns=['trk1_distance', 'trk2_distance'])
+    df.drop(columns=['trk1_llr_pid', 'trk2_llr_pid'])
+    df.drop(columns=['trk1_nhits', 'trk2_nhits'])
+    df.drop(columns=['trk1_start_x', 'trk1_start_y', 'trk1_start_z'])
+    df.drop(columns=['trk2_start_x', 'trk2_start_y', 'trk2_start_z'])
+    df.drop(columns=['trk1_dir_x', 'trk1_dir_y', 'trk1_dir_z'])
+    df.drop(columns=['trk2_dir_x', 'trk2_dir_y', 'trk2_dir_z'])
+    df.drop(columns=['shr2subclusters0', 'shr2subclusters1', 'shr2subclusters2'])
+    df.drop(columns=['trk2_score', 'trk2_protonenergy'])
+    df.drop(columns=['trk2_theta', 'trk2_phi'])
+    df.drop(columns=['trk2_tkfit_dedx_u', 'trk2_tkfit_dedx_v', 'trk2_tkfit_dedx_y'])
+    df.drop(columns=['trk2_tkfit_nhits_u', 'trk2_tkfit_nhits_v', 'trk2_tkfit_nhits_y'])
+    df.drop(columns=['trk2_tkfit_nhits_tot'])
+    df.drop(columns=['trk2subclusters0', 'trk2subclusters1', 'trk2subclusters2'])
+    df.drop(columns=['trk2_energy', 'trk2_energy_cali'])
+    #
+
     return
 
 
@@ -1681,7 +1946,6 @@ def load_sample(
     load_crt_vars=False,
 ):
 
-    print("Starting load_sample")
     """Load one sample of one run for a particular kind of events."""
 
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
@@ -1694,8 +1958,6 @@ def load_sample(
 
     if load_crt_vars:
         assert run_number >= 3, "CRT variables only available for R3 and up"
-
-    print("Loaded rundict")
 
     # The path to the actual ROOT file
     if category != "detvar":
@@ -1722,7 +1984,12 @@ def load_sample(
         use_lee_weights=use_lee_weights,
         load_crt_vars=load_crt_vars,
     )
+
     df = up.pandas.df(variables, flatten=False)
+
+    df["bnbdata"] = dataset in ["bnb", "opendata_bnb"]
+    df["extdata"] = dataset == "ext"
+
     # trk_energy_tot agrees here
     # For runs before 3, we put zeros for the CRT variables
     if run_number < 3:
@@ -1752,7 +2019,10 @@ def load_sample(
     if loadshowervariables:
         process_uproot_shower_variables(up, df)
     if loadrecoveryvars:
-        process_uproot_recoveryvars(up, df)
+        if use_buggy_energy_estimator:
+            process_uproot_recoveryvars_old(up, df)
+        else:
+            process_uproot_recoveryvars(up, df)
     if loadpi0variables:
         process_uproot_ccncpi0vars(up, df)
     if loadshowervariables:
@@ -1760,6 +2030,7 @@ def load_sample(
         post_process_shower_vars(up, df)
     if use_bdt:
         add_bdt_scores(df)
+
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
@@ -1772,9 +2043,6 @@ def load_sample(
         # If the category is 1, 10 or 11, we set it to 111
         df.loc[df["category"].isin([1, 10, 11]), "category"] = 111
         df["flux"] = 111
-
-    df["bnbdata"] = dataset in ["bnb", "opendata_bnb"]
-    df["extdata"] = dataset == "ext"
 
     # set EXT and DIRT contributions to 0 for fake-data studies
     if category == "fakedata":
