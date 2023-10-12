@@ -2,7 +2,11 @@
 
 # Script for hadding together ntuple files based on a sam definition
 # Author: C Thorpe (U of Manchester)
-# Usage: nohup ./hadd_ntuple.sh <samdef>
+#
+# Prestages files so best run inside nohup (or screen):
+# Usage: nohup ./hadd_ntuple.sh <samdef> >& hadd_<samdef>.log &
+
+cleanup=true
 
 ########################################################################
 
@@ -41,5 +45,17 @@ echo "Converted file locations to xrootd"
 onelinefilelist=$(cat xrootd_locations_${def}.log | tr \\n ' ')
 hadd -f ${def}.root ${onelinefilelist}
 
+########################################################################
+# Remove temp files/logs
+
+if [ $cleanup == true ]; then
+    rm file_locations_${def}.log
+    rm xrootd_locations_${def}.log
+    rm prestage_${def}.log 
+fi
+
+########################################################################
+
 echo "Finished!"
+
 
