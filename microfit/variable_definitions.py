@@ -99,6 +99,7 @@ bdtscore_variables = [
 energy_variables = [
     ("trk_energy_tot", 10, (0, 2), "trk energy (range, P) [GeV]"),
     ("shr_energy_tot_cali", 10, (0, 2), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 20, (0.15, 2.95), r"Reconstructed Energy [GeV]", "note"),
     # ('NeutrinoEnergy0', 20, (0,2000), r"Reconstructed Calorimetric Energy U [MeV]"),
     # ('NeutrinoEnergy1', 20, (0,2000), r"Reconstructed Calorimetric Energy V [MeV]"),
     # ('NeutrinoEnergy2', 20, (0,2000), r"Reconstructed Calorimetric Energy Y [MeV]"),

@@ -12,17 +12,16 @@
 // Change the contents of the vector of files below to set which files it checks
 
 const std::vector<std::string> files = {
-"prodgenie_bnb_nu_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_LYAttenuation_v08_00_00_38_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_LYDown_v08_00_00_37_v2_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_LYRayleigh_v08_00_00_37_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_WireModAngleXZ_v08_00_00_38_exe_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_WireModAngleYZ_v08_00_00_38_exe_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_wiremod_ScaledEdX_v08_00_00_39_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2.root",
-"prodgenie_bnb_nu_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2.root"
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_CV_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYDown_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYRayleigh_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYAttenuation_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_SCE_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_Recombination_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_X_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_YZ_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_ThetaXZ_reco2_reco2.root",
+"/uboone/data/users/apapadop/searchingfornues/high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_ThetaYZ_reco2_reco2.root"
 };
 
 void CheckRSLists(){
@@ -121,7 +120,8 @@ void CheckRSLists(){
     TTree* sub_tree = static_cast<TTree*>(f_in->Get("nuselection/SubRun"));
 
     // Create a new file + a clone of old tree in new file
-    TFile* f_out = TFile::Open(("CommonRS/" + files.at(i_f)).c_str(),"recreate");
+    string filename =  "CommonRS/" + files.at(i_f).substr(files.at(i_f).find_last_of("/")+1);
+    TFile* f_out = TFile::Open(filename.c_str(),"recreate");
     f_out->mkdir("nuselection");
     f_out->cd("nuselection");
     TTree* new_evt_tree = evt_tree->CloneTree(0);

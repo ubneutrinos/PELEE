@@ -1,0 +1,73 @@
+# This file contains the paths to all data files used in the analysis relative to the data directory
+# excluding the ".root" extension.
+# The actual data from the detector is in the "BNB" (beam on) and "EXT" (beam off) datasets. All other 
+# categories of data are MC "overlay" samples. Here, GENIE generated neutrino interactions are superimposed
+# on background data.
+# See also the technote for the definitions and explanations of the datasets.
+runs:
+  - run_id: 1
+    path: run1/nuepresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19
+      pot: 4.55E+19 
+      trig: 10172678
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
+      trig: 65744587 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_nu
+      pot: 1.28278E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_nue
+      pot: 5.22325E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_dirt 
+      pot: 3.1606E+20
+  - run_id: 2
+    path: run2/nuepresel/
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 2.61E+20 
+      trig: 61882791 
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
+      trig: 153905891 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run2_nu 
+      pot: 1.02E+21 
+    nue: 
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run2_nue
+      pot: 6.42E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run2a_dirt # CT: We also have a dirt sample for run 2b 
+      pot: 5.47E+20
+    # apparently there are no detailed background MC sets for run2
+  - run_id: 3
+    path: run3/nuepresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
+      pot: 9.43E+18
+      trig: 2271036
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 61326657
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
+      trig: 207224641.0 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
+      pot: 1.31E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
+      pot: 7.77E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
+      pot: 3.27E+20

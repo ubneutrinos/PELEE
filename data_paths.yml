@@ -24,7 +24,7 @@ runs:
     nue:
       file: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
       pot: 5.25e22
-      filter: abs(nu_pdg)==12
+      filter: abs(nu_pdg)==12 and ccnc == 0 
     drt:
       file: prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
       pot: 3.23e20
@@ -67,7 +67,7 @@ runs:
     nue:
       file: prodgenie_bnb_intrinsic_nue_overlay_run2_v08_00_00_35_run2a_reco2_reco2
       pot: 6.32e22
-      filter: abs(nu_pdg)==12
+      filter: abs(nu_pdg)==12 and ccnc == 0 
     drt:
       file: prodgenie_dirt_overlay_v08_00_00_35_all_run2_reco2_reco2
       pot: 9.50e20
@@ -84,14 +84,15 @@ runs:
       trig: 61381194
     ext:
       file: data_extbnb_mcc9.1_v08_00_00_25_reco2_F_G_all_reco2
-      trig: 198642758
+      #trig: 198642758
+      trig: 205802114 # For some reason the old code uses this value though I don't know why
     mc:
       file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run3_reco2_G_reco2
       pot: 1.34e21
     nue:
       file: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2
       pot: 7.75e22
-      filter: abs(nu_pdg)==12
+      filter: abs(nu_pdg)==12 and ccnc == 0 
     drt:
       file: prodgenie_bnb_dirt_overlay_mcc9.1_v08_00_00_26_run3_reco2_reco2
       pot: 3.28e20
@@ -204,7 +205,7 @@ numupresel:
     nue:
       file: prodgenie_bnb_intrinsice_nue_uboone_overlay_mcc9.1_v08_00_00_26_run1_reco2_reco2
       pot: 5.25e22
-      filter: abs(nu_pdg)==12
+      filter: abs(nu_pdg)==12 and ccnc == 0 
     mc:
       file: prodgenie_bnb_nu_uboone_overlay_mcc9.1_v08_00_00_26_filter_run1_reco2_reco2
       pot: 1.31e21  # for MC files we only have POT info
@@ -234,6 +235,7 @@ detvar:
     path: run1/detvar/
     nue: 
       pot: 2.73375e+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
       cv: 
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_CV_reco2_v08_00_00_38_run1_reco2_reco2 
       lydown: # No LYDown used to run 1 - put the CV sample in as a dummy 
@@ -279,6 +281,7 @@ detvar:
   - run_id: 3
     path: run3/detvar/
     nue:
+      filter: abs(nu_pdg)==12 and ccnc == 0 
       pot: 7.09879e+21
       cv: 
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 

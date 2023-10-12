@@ -14,8 +14,9 @@ import uproot
 import awkward
 import plotter
 
-
 USEBDT = True
+
+QUERY = "nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06  and nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06 & trk2_energy > 0.3" 
 
 # returns the element in a vector at a given index (if out of range, the element is set to defval)
 def get_elm_from_vec_idx(myvec,idx,defval=9999.):
@@ -382,6 +383,7 @@ def process_uproot(up,df):
     return
 
 def process_uproot_recoveryvars(up,df):
+ 
     #
     # data events where recovery matters should have shr2_id and trk2_id properly set
     #
@@ -391,8 +393,14 @@ def process_uproot_recoveryvars(up,df):
     shr2_id = up.array('shr2_id')-1 # I think we need this -1 to get the right result
     #
     shr_energy_y_v = up.array("shr_energy_y_v")
+
+    # Fix of the 9999 bug
+    #df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
+    #df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
+    # Old code
     df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
     df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
+
     #
     shr_start_x_v   = up.array("shr_start_x_v")
     shr_start_y_v   = up.array("shr_start_y_v")
@@ -523,7 +531,10 @@ def process_uproot_recoveryvars(up,df):
     df.loc[trk1bad, 'trk_phi' ] = df["trk2_phi"]
     df.loc[trk1bad, 'trkshrhitdist2' ] = df["trk2shrhitdist2"]
     df.loc[trk1bad, 'n_tracks_contained' ] = df["n_tracks_contained"]-1
+
+
     df.loc[trk1bad, 'trk_energy_tot'] = df["trk_energy_tot"]-df["trk_energy"]
+
     # note: we should redefine also pt, p
     #
     # try to recover cases where the 2nd track is actually the start of the shower
@@ -591,6 +602,7 @@ def process_uproot_recoveryvars(up,df):
     df.loc[shr2prtn, 'trk_energy_tot'] = df["trk_energy_tot"]+df["shr2_protonenergy"]
     df.loc[df["shr2_energy"]<0., "shr2_energy"] = 0.
     df["shr2_energy_cali"] = 0.001 * df["shr2_energy"] * df["shr_energy_tot_cali"] / df["shr_energy_tot"]
+
     df.loc[shr2prtn, 'shr_energy_tot_cali'] = df["shr_energy_tot_cali"]-df["trk2_energy_cali"]
     #
     # try to recover cases where the leading track is embedded in the shower
@@ -1842,9 +1854,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             if (loadshowervariables == True):
                 process_uproot(up,df)
             if (loadrecoveryvars == True):
+                # trk_energy_tot agrees is getting reset somewhere in here
                 process_uproot_recoveryvars(up,df)
             if (loadccncpi0vars == True):
                 process_uproot_ccncpi0vars(up,df)
+
 
     ################################# Run 2 ######################################
 
@@ -1914,7 +1928,9 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             r2_dataset['run1'] = np.zeros(len(r2_dataset), dtype=bool)
             r2_dataset['run2'] = np.ones(len(r2_dataset), dtype=bool)
             r2_dataset['run3'] = np.zeros(len(r2_dataset), dtype=bool)
-            r3_dataset['run30'] = np.zeros(len(r3_dataset), dtype=bool)
+            
+            if 3 in runs_to_load:
+                r3_dataset['run30'] = np.zeros(len(r3_dataset), dtype=bool)
             r2_dataset['run12'] = np.ones(len(r2_dataset), dtype=bool)
             r2_dataset['run4'] = np.zeros(len(r2_dataset), dtype=bool)
             if (loadnumucrtonly == True):
@@ -1923,8 +1939,11 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
                 r2_dataset["crthitpe"] = np.zeros(len(r2_dataset),dtype=float)
                 r2_dataset["_closestNuCosmicDist"] = np.zeros(len(r2_dataset),dtype=float)
 
-        r1dirt['run2'] = np.ones(len(r1dirt), dtype=bool)
-        r3dirt['run2'] = np.ones(len(r3dirt), dtype=bool)
+        if 1 in runs_to_load:
+            r1dirt['run2'] = np.ones(len(r1dirt), dtype=bool)
+        
+        if 3 in runs_to_load:
+            r3dirt['run2'] = np.ones(len(r3dirt), dtype=bool)
 
         if (loadpi0filters == True):
             for r_dataset in [r1ncpi0, r1ccpi0, r3ncpi0, r3ccpi0, r3eta]:
@@ -2122,6 +2141,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
             data_to_concat.append(r3data_numu_sidebands)
         #data = pd.concat([r1data_numu_sidebands, r2data_numu_sidebands, r3data_numu_sidebands],ignore_index=True)
 
+
     elif which_sideband == "opendata":
         #data = pd.concat([r1data, r3data],ignore_index=True) # 5e19 and 1e19
         if 1 in runs_to_load:
@@ -2196,7 +2216,7 @@ def load_data_run123(which_sideband='pi0', return_plotter=True,
     #lee = pd.concat([r3lee,r1lee],ignore_index=True)
 
     ################################## Done concantating dataframes and deciding what to analyse ############################################
-    
+
     print("Add derived variables")
     # update CRT hit to calibrate out time-dependence [DcoDB 24031] 
     #if (loadnumucrtonly):                                             
@@ -2330,6 +2350,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df['dr_s'] = np.sqrt( df['dx_s']*df['dx_s'] + df['dy_s']*df['dy_s'] + df['dz_s']*df['dz_s'] )
         
     df_v = [lee,mc,nue,ext,data,dirt]
+
     if (loadpi0filters == True):
         df_v += [ncpi0,ccpi0,eta]
     if (loadtruthfilters == True):
@@ -2402,7 +2423,16 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df['etathetacm'] = df['asymm']/df['etabeta']
             df['sintheta'] = np.sin(np.arccos(df['pi0_gammadot']))
             df['kinmass'] = df['sintheta'] * (df['pi0energyraw']/0.83)            
-            
+
+    # and a way to filter out data
+    for i,df in enumerate(df_v):
+        df["bnbdata"] = np.zeros_like(df["nslice"])
+        df["extdata"] = np.zeros_like(df["nslice"])
+    data["bnbdata"] = np.ones_like(data["nslice"])
+    ext["extdata"] = np.ones_like(ext["nslice"])
+    data["nu_decay_mode"] = np.zeros_like(data["nslice"])
+    ext["nu_decay_mode"]  = np.zeros_like(ext["nslice"])
+
     if (loadshowervariables):
         for i,df in enumerate(df_v):
             df['shr_tkfit_nhits_tot'] = (df['shr_tkfit_nhits_Y']+df['shr_tkfit_nhits_U']+df['shr_tkfit_nhits_V'])
@@ -2450,38 +2480,28 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
             df["reco_e_qe"] = 0.938*((df["shr_energy"]+INTERCEPT)/SLOPE)/(0.938 - ((df["shr_energy"]+INTERCEPT)/SLOPE)*(1-np.cos(df["shr_theta"])))
             df["reco_e_rqe"] = df["reco_e_qe"]/df["reco_e"]
 
+
     # define ratio of deposited to total shower energy for pi0
     if (loadpi0variables):
         for i,df in enumerate(df_v):
             df['pi0truth_gamma1_edep_frac'] = df["pi0truth_gamma1_edep"]/df["pi0truth_gamma1_etot"]
             df['pi0truth_gamma2_edep_frac'] = df["pi0truth_gamma2_edep"]/df["pi0truth_gamma2_etot"]
 
-    # and a way to filter out data
-    for i,df in enumerate(df_v):
-        df["bnbdata"] = np.zeros_like(df["nslice"])
-        df["extdata"] = np.zeros_like(df["nslice"])
-    data["bnbdata"] = np.ones_like(data["nslice"])
-    ext["extdata"] = np.ones_like(ext["nslice"])
-    data["nu_decay_mode"] = np.zeros_like(data["nslice"])
-    ext["nu_decay_mode"]  = np.zeros_like(ext["nslice"])
+
 
     # set EXT and DIRT contributions to 0 for fake-data studies
     if (loadfakedata > 0):
         dirt['nslice'] = np.zeros_like(dirt['nslice'])
         ext['nslice']  = np.zeros_like(ext['nslice'])
-
-    # TODO: this is the equivalent line to the one causing the crash in the new code
         
     # add back the cosmic category, for background only
-    for i,df in enumerate(df_v):
-        print(i)
-        print("Checking categories 1")
-        print(df.query("category == 4").shape[0])
+    for i,df in enumerate(df_v):        
+        #print(i)
+        #print(df.query("category == 4").shape[0])
         df.loc[(df['category']!=1)&(df['category']!=10)&(df['category']!=11)&(df['category']!=111)&(df['slnunhits']/df['slnhits']<0.2), 'category'] = 4
         if (loadeta == True):
             df.loc[ (df['category']== 4), 'category' ] = 806
-        print("Checking categories 2")
-        print(df.query("category == 4").shape[0])
+        #print(df.query("category == 4").shape[0])
 
     # change proton threshold (50 MeV for xsec)
     if updatedProtThresh>0:
@@ -2550,8 +2570,8 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
                         xgb.DMatrix(df[TRAINVAR]),
                         ntree_limit=booster.best_iteration)
                 
-    # 0p BDT
 
+    # 0p BDT
     TRAINVARZP = ['shrmoliereavg','shr_score', "trkfit","subcluster",
                   "CosmicIPAll3D","CosmicDirAll3D",
                   'secondshower_Y_nhit','secondshower_Y_vtxdist','secondshower_Y_dot','anglediff_Y',
@@ -2571,8 +2591,6 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
                     df[label+"_score"] = booster.predict(
                         xgb.DMatrix(df[TRAINVARZP]),
                         ntree_limit=booster.best_iteration)
-
-
     ## avoid recycling unbiased ext events (i.e. selecting a slice with little nu content from these samples)
     ## note: this needs to be after setting the BDT scores, so that we do not mess with copied data frames
     if (loadpi0filters == True):
@@ -2600,7 +2618,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         ncpi0 = ncpi0.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end                                  
         Npos = float(ncpi0.shape[0])
         #print ('fraction of ncpi0 surviving duplicate removal : %.02f'%(Npos/Npre))
-    
+
     Npre = float(data.shape[0])
     if (loadfakedata == 0):
        data = data.drop_duplicates(subset=['run','evt'],keep='last') # keep last since the recovery samples are added at the end
@@ -2633,7 +2651,7 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
         samples["nccpi"]  = nccpi
         samples["ncpi0"]  = ncpi0
         samples["ccpi0"]  = ccpi0
-   
+
     # these variables incate which category of events the events belong to, used for drawing plots! 
     for key, df in samples.items():
         df.loc[:,"paper_category"] = df["category"]
@@ -2755,7 +2773,6 @@ vtx_z'] < 25) | (df['true_nu_vtx_z'] > 990) ), 'category' ] = 801
 
         #print ('number of data entries returned is : ',data.shape)
         #print ('number of data entries returned is : ',samples['data'].shape)
-        # TODO: Where do the 21's come from?
         print("Done!")
         return samples
 
