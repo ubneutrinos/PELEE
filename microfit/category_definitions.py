@@ -12,6 +12,8 @@ def get_category_label(category_column, category):
         return paper_labels_xsec.get(category, "Other")
     elif category_column == "category_1e1p":
         return category_labels_1e1p.get(category, "Other")
+    elif category_column == "interaction":
+        return int_labels.get(category, "Other")
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
@@ -26,13 +28,16 @@ def get_categories(category_column):
         return list(paper_labels_xsec.keys())
     elif category_column == "category_1e1p":
         return list(category_labels_1e1p.keys())
+    elif category_column == "interaction":
+        return list(int_labels.keys())
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
 def get_category_color(category_column, category):
     """Get the appropriate color for a given category depending on which category column was used."""
 
-    # always use the same colors for now
+    if category_column == "interaction":
+        return int_colors[category]
     return category_colors[category]
 
 # Whenever you define categories, be sure to define all the categories that can appear in the data.
