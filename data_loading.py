@@ -122,6 +122,11 @@ def get_variables():
         "theta",  # angle between incoming and outgoing leptons in radians
         # "nu_decay_mode","nu_hadron_pdg","nu_parent_pdg", # flux truth info
         # "shr_energy_tot_cali","selected","n_showers_contained",  # only if CC0piNp variables are saved!
+        "pfp_generation_v",
+        "shr_energy_cali",
+        "trk_dir_x_v",
+        "trk_dir_y_v",
+        "trk_dir_z_v",
     ]
 
     VARDICT["VARIABLES"] = VARIABLES
@@ -661,10 +666,10 @@ def unique_combs(combs: List[Tuple[int, int]], combs_argsort: List[int]) -> List
 def process_uproot_shower_variables(up, df):
     """Add shower variables to the dataframe using the ROOT tree."""
 
-    # TODO: Investigate this subtraction of one. The distribution looks right, but we
-    # should know the exact reason why we do this.
-    trk_id = up.array("trk_id") - 1  # I think we need this -1 to get the right result
-    shr_id = up.array("shr_id") - 1  # I think we need this -1 to get the right result
+    # this subtraction of one is needed because an ID number of 1 corresponds to the first element 
+    # in an associated vector variable, but in python this is denoted by 0, hence the -1 requirement.
+    trk_id = up.array("trk_id") - 1
+    shr_id = up.array("shr_id") - 1
 
     trk_llr_pid_v = up.array("trk_llr_pid_score_v")
     trk_calo_energy_y_v = up.array("trk_calo_energy_y_v")

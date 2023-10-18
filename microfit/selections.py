@@ -14,6 +14,19 @@ PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata =
 OnePPRESQ = PRESQ
 OnePPRESQ += ' and n_tracks_contained == 1 and n_showers_contained == 1'
 
+# 1e1p selection (loose box cuts, same as 1eNp loose box cuts)
+OnePLCUTQ = OnePPRESQ
+OnePLCUTQ += ' and CosmicIPAll3D > 10.'
+OnePLCUTQ += ' and trkpid < 0.02'
+OnePLCUTQ += ' and hits_ratio > 0.50'
+OnePLCUTQ += ' and shrmoliereavg < 9'
+OnePLCUTQ += ' and subcluster > 4'
+OnePLCUTQ += ' and trkfit < 0.65'
+OnePLCUTQ += ' and tksh_distance < 6.0'
+OnePLCUTQ += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5)' 
+OnePLCUTQ += ' and tksh_angle > -0.9'
+OnePLCUTQ += ' and shr_trk_len < 300.'
+
 # 1eNp preselection
 NPPRESQ = PRESQ
 NPPRESQ += ' and n_tracks_contained > 0'
@@ -420,6 +433,7 @@ selection_categories = {
     'ZPXSBDT': {'query': ZPXSBDTQ, 'title': '1e0p xsec BDT sel.', 'dir': 'ZPXSBDT'},
     'ZPXSBDTAllShr': {'query': ZPXSBDTQ_all_showers, 'title': '1e0p xsec BDT sel., 0+ showers', 'dir': 'ZPXSBDTAllShr'},
     'XPXSBDT': {'query': XPXSBDTQ, 'title': '1eXp xsec BDT sel.', 'dir': 'XPXSBDT'},
+    'OnePL': {'query': OnePLCUTQ, 'title': '1e1p Loose cuts', 'dir': 'OnePL'},
 }
 
 stages_queries = {
