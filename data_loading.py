@@ -22,7 +22,7 @@ from numpy.typing import NDArray
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
-use_buggy_energy_estimator=False
+use_buggy_energy_estimator=True
 
 QUERY = "nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06  and nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06 & trk2_energy > 0.3" 
 
@@ -1905,15 +1905,17 @@ def apply_bdt_truth_filters(df):
 
 def get_rundict(run_number, category, dataset):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
-    with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
-    #with open(os.path.join(thisfile_path, "data_paths_2023.yml"), "r") as f:
+    #with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
+    with open(os.path.join(thisfile_path, "data_paths_2023.yml"), "r") as f:
         pathdefs = yaml.safe_load(f)
 
     runpaths = pathdefs[category]
 
+    print("run_number=",run_number)
+
     # runpaths is a list of dictionaries that each contain the 'run_id' and 'path' keys
     # Search for the dictionary where 'run_id' matches the run_number
-    rundict = next((d for d in runpaths if d["run_id"] == run_number), None)
+    rundict = next((d for d in runpaths if d["run_id"] == str(run_number)), None)
     if rundict is None:
         raise ValueError(f"Run {run_number} not found in data_paths.yml for category {category}")
     # the "dataset" is the name such as "bnb", "ext", "nue", "drt", etc.
@@ -1961,8 +1963,9 @@ def load_sample(
     if use_lee_weights:
         assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
 
+    # CT: Slightly hacky way to ensure run number is >= 3 (assume first letter of string is >= 3)
     if load_crt_vars:
-        assert run_number >= 3, "CRT variables only available for R3 and up"
+        assert run_number[0] >= 3, "CRT variables only available for R3 and up"
 
     # The path to the actual ROOT file
     if category != "detvar":
@@ -1972,10 +1975,17 @@ def load_sample(
         rundict = get_rundict(run_number, category, dataset)
         data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
 
+    # try returning an empty dataframe
+    if rundict[dataset]["file"] == "dummy":
+        print("Using dummy file for run",run_number,"dataset",dataset)
+        return None 
+
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
 
     up = uproot.open(data_path)[fold][tree]
+
+    
 
     variables = get_run_variables(
         run_number,
@@ -1997,7 +2007,7 @@ def load_sample(
 
     # trk_energy_tot agrees here
     # For runs before 3, we put zeros for the CRT variables
-    if run_number < 3:
+    if int(run_number[0]) < 3:
         vardict = get_variables()
         crtvars = vardict["CRTVARS"]
         for var in crtvars:

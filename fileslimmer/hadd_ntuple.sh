@@ -6,7 +6,8 @@
 # Prestages files so best run inside nohup (or screen):
 # Usage: nohup ./hadd_ntuple.sh <samdef> >& hadd_<samdef>.log &
 
-cleanup=true
+cleanup=false
+skip_prestage=true
 
 ########################################################################
 
@@ -16,8 +17,10 @@ echo "Hadding files for sam def ${def}"
 ########################################################################
 # Prestage the input def first
 
-samweb prestage-dataset --defname=${def} --parallel=4 >& prestage_${def}.log 
-echo "Finished prestaging definition"
+if [ $skip_prestage == false ]; then
+    samweb prestage-dataset --defname=${def} --parallel=4 >& prestage_${def}.log 
+    echo "Finished prestaging definition"
+fi
 
 ########################################################################
 # Make a fullpath list of the files
@@ -26,6 +29,9 @@ samweb list-file-locations --defname=${def} > file_locations_${def}.log
 sed -i 's/\.root.*/\.root/g' file_locations_${def}.log
 sed -i 's/enstore://g' file_locations_${def}.log
 sed -i 's/\s\+/\//g' file_locations_${def}.log
+grep -v '^dcache' file_locations_${def}.log > tmp_file_locations_${def}.log
+mv tmp_file_locations_${def}.log file_locations_${def}.log
+#sed -i 's/^dcache/d' file_locations_${def}.og
 
 echo "Done making list of file locations"
  
