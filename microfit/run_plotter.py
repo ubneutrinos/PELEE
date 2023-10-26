@@ -1,6 +1,7 @@
 """Module to plot histograms for runs of data and simulation."""
 
 import numpy as np
+import itertools
 import matplotlib.pyplot as plt
 from .histogram import RunHistGenerator, Binning
 from . import selections
@@ -55,14 +56,20 @@ class RunHistPlotter:
             add_ext_error_floor = gen_defaults.get("add_ext_error_floor", True)
         if use_sideband is None:
             use_sideband = gen_defaults.get("use_sideband", False)
-        ext_hist = gen.get_data_hist(type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot)
+        ext_hist = gen.get_data_hist(
+            type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot
+        )
         ext_hist.tex_string = "EXT"
         mc_hists = gen.get_mc_hists(
-            category_column=category_column, include_multisim_errors=False, scale_to_pot=scale_to_pot
+            category_column=category_column,
+            include_multisim_errors=False,
+            scale_to_pot=scale_to_pot,
         )
         background_hists = list(mc_hists.values()) + [ext_hist]
         total_mc_hist = gen.get_mc_hist(
-            include_multisim_errors=include_multisim_errors, scale_to_pot=scale_to_pot, use_sideband=use_sideband
+            include_multisim_errors=include_multisim_errors,
+            scale_to_pot=scale_to_pot,
+            use_sideband=use_sideband,
         )
         total_pred_hist = total_mc_hist + ext_hist
         data_hist = gen.get_data_hist()
@@ -101,7 +108,7 @@ class RunHistPlotter:
             ax.set_xlabel(total_pred_hist.binning.label)
             return ax
 
-        ax.set_ylim(0.0,ax.get_ylim()[1]*1.7)
+        ax.set_ylim(0.0, ax.get_ylim()[1] * 1.7)
 
         # plot data/mc ratio
         # The way this is typically shown is to have the MC prediction divided by its central
@@ -119,7 +126,13 @@ class RunHistPlotter:
             color="k",
             uncertainty_color=uncertainty_color,
         )
-        self.plot_hist(data_mc_ratio, ax=ax_ratio, show_errorband=False, as_errorbars=True, color="k")
+        self.plot_hist(
+            data_mc_ratio,
+            ax=ax_ratio,
+            show_errorband=False,
+            as_errorbars=True,
+            color="k",
+        )
 
         ax_ratio.set_ylabel("Data/MC")
         ax_ratio.set_xlabel(total_pred_hist.binning.label)
@@ -160,7 +173,14 @@ class RunHistPlotter:
             if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
                 data_label = f"Data: {data_hist.sum():.1f}"
-                ax = self.plot_hist(data_hist, ax=ax, label=data_label, color="black", as_errorbars=True, **kwargs)
+                ax = self.plot_hist(
+                    data_hist,
+                    ax=ax,
+                    label=data_label,
+                    color="black",
+                    as_errorbars=True,
+                    **kwargs,
+                )
         # make text label for the POT
         pot_label = self.get_pot_label(scale_to_pot)
         if chi_square is not None:
@@ -175,10 +195,10 @@ class RunHistPlotter:
             fontsize=10,
             bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
         )
-        
+
         ax.set_ylabel("Events")
         ax.set_title(title)
-        ax.legend(loc="upper right",ncol=2,fontsize='small')
+        ax.legend(loc="upper right", ncol=2, fontsize="small")
         return ax
 
     def plot_hist(
@@ -271,14 +291,22 @@ class RunHistPlotter:
         # If all hist.color are not None, we can pass them to stackplot
         if all([hist.color is not None for hist in hists]):
             colors = [hist.color for hist in hists]
+        # Hatches may be None
+        hatches = [hist.hatch for hist in hists]
 
-        ax.stackplot(x, y, step="post", labels=labels, colors=colors, **kwargs)
+        stackplot(ax, x, y, step="post", labels=labels, colors=colors, hatches=hatches, **kwargs)
         if not show_errorband:
             return ax
         # plot uncertainties as a shaded region, but only for the sum of all hists
         summed_hist = sum(hists)
         # show sum as black line
-        p = ax.step(summed_hist.binning.bin_edges, repeated_nom_values(summed_hist), where="post", color="k", lw=0.5)
+        p = ax.step(
+            summed_hist.binning.bin_edges,
+            repeated_nom_values(summed_hist),
+            where="post",
+            color="k",
+            lw=0.5,
+        )
         # show uncertainty as shaded region
         uncertainties = summed_hist.std_devs
         uncertainties = np.append(uncertainties, uncertainties[-1])
@@ -297,3 +325,124 @@ class RunHistPlotter:
             **kwargs,
         )
         return ax
+
+
+def stackplot(axes, x, *args, labels=(), colors=None, hatches=None, **kwargs):
+    """
+    Draw a stacked area plot.
+
+    This function is copied from matplotlib.Axes.stackplot, but with the
+    addition of the `hatches` kwarg. The baseline option has been
+    removed, as we only need the zero baseline.
+
+    Parameters
+    ----------
+    x : (N,) array-like
+
+    y : (M, N) array-like
+        The data is assumed to be unstacked. Each of the following
+        calls is legal::
+
+            stackplot(x, y)           # where y has shape (M, N)
+            stackplot(x, y1, y2, y3)  # where y1, y2, y3, y4 have length N
+
+    labels : list of str, optional
+        A sequence of labels to assign to each data series. If unspecified,
+        then no labels will be applied to artists.
+
+    colors : list of color, optional
+        A sequence of colors to be cycled through and used to color the stacked
+        areas. The sequence need not be exactly the same length as the number
+        of provided *y*, in which case the colors will repeat from the
+        beginning.
+
+        If not specified, the colors from the Axes property cycle will be used.
+
+        If the ``hatch`` property is not None for a member of the stack, the
+        ``color`` will be passed to the ``edgecolor`` keyword argument for
+        patch objects, and the ``facecolor`` will be set to "none".
+        Otherwise, the given color is used as the ``facecolor``.
+
+    hatches : list of str, optional
+        A sequence of hatches to be cycled through and used to fill the
+        stacked areas. The sequence need not be exactly the same length as
+        the number of provided *y*, in which case the hatches will repeat
+        from the beginning.
+
+        If not specified, no hatches will be used.
+
+    data : indexable object, optional
+        DATA_PARAMETER_PLACEHOLDER
+
+    **kwargs
+        All other keyword arguments are passed to `.Axes.fill_between`.
+
+    Returns
+    -------
+    list of `.PolyCollection`
+        A list of `.PolyCollection` instances, one for each element in the
+        stacked area plot.
+    """
+
+    y = np.vstack(args)
+
+    labels = iter(labels)
+    if colors is not None:
+        colors = itertools.cycle(colors)
+    else:
+        colors = (axes._get_lines.get_next_color() for _ in y)
+    if hatches is not None:
+        hatches = itertools.cycle(hatches)
+    else:
+        hatches = itertools.repeat(None)
+
+    # Assume data passed has not been 'stacked', so stack it here.
+    # We'll need a float buffer for the upcoming calculations.
+    stack = np.cumsum(y, axis=0, dtype=np.promote_types(y.dtype, np.float32))
+    first_line = 0.0
+
+    # Color between x = 0 and the first array.
+    color = next(colors)
+    hatch = next(hatches)
+    if hatch is not None:
+        edgecolor = color
+        facecolor = "none"
+    else:
+        edgecolor = None
+        facecolor = color
+    coll = axes.fill_between(
+        x,
+        first_line,
+        stack[0, :],
+        facecolor=facecolor,
+        edgecolor=edgecolor,
+        hatch=hatch,
+        label=next(labels, None),
+        **kwargs,
+    )
+    coll.sticky_edges.y[:] = [0]
+    r = [coll]
+
+    # Color between array i-1 and array i
+    for i in range(len(y) - 1):
+        color = next(colors)
+        hatch = next(hatches)
+        if hatch is not None:
+            edgecolor = color
+            facecolor = "none"
+        else:
+            edgecolor = None
+            facecolor = color
+        r.append(
+            axes.fill_between(
+                x,
+                stack[i, :],
+                stack[i + 1, :],
+                facecolor=facecolor,
+                edgecolor=edgecolor,
+                hatch=hatch,
+                label=next(labels, None),
+                **kwargs,
+            )
+        )
+    return r

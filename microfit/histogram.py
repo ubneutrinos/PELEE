@@ -110,6 +110,7 @@ class Histogram:
         covariance_matrix=None,
         label=None,
         plot_color=None,
+        plot_hatch=None,
         tex_string=None,
         check_psd=True
     ):
@@ -139,6 +140,7 @@ class Histogram:
         assert self.binning.n_bins == len(self.bin_counts), "bin_counts must have the same length as binning."
         self._label = label
         self._plot_color = plot_color
+        self._plot_hatch = plot_hatch
         self._tex_string = tex_string
 
         if covariance_matrix is not None:
@@ -207,6 +209,7 @@ class Histogram:
         bin_edges = self.binning.bin_edges
         label = plot_kwargs.pop("label", self.tex_string)
         color = plot_kwargs.pop("color", self.color)
+        hatch = plot_kwargs.pop("hatch", self.hatch)
         if as_errorbars:
             ax.errorbar(
                 self.binning.bin_centers,
@@ -216,6 +219,7 @@ class Histogram:
                 marker=".",
                 label=label,
                 color=color,
+                hatch=hatch,
                 **plot_kwargs,
             )
             return ax
@@ -265,6 +269,7 @@ class Histogram:
             "covariance_matrix": self.cov_matrix,
             "label": self._label,
             "plot_color": self._plot_color,
+            "plot_hatch": self._plot_hatch,
             "tex_string": self._tex_string,
         }
 
@@ -343,6 +348,14 @@ class Histogram:
     @color.setter
     def color(self, value):
         self._plot_color = value
+
+    @property
+    def hatch(self):
+        return self._plot_hatch
+
+    @hatch.setter
+    def hatch(self, value):
+        self._plot_hatch = value
 
     @property
     def label(self):
@@ -872,7 +885,8 @@ class RunHistGenerator(HistGenMixin):
             data_hist.add_covariance(np.diag(prior_errors))
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
-        data_hist.color = {"data": "k", "ext": "yellow"}[type]
+        data_hist.color = "k"
+        data_hist.hatch = {"data": None, "ext": "///"}[type]
         return data_hist
 
     def get_mc_hists(self, category_column="dataset_name", include_multisim_errors=None, scale_to_pot=None):
