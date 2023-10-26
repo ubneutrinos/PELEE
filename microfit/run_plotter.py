@@ -43,6 +43,8 @@ class RunHistPlotter:
         ax=None,
         scale_to_pot=None,
         uncertainty_color="gray",
+        stacked=True,
+        show_total=True,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -102,6 +104,8 @@ class RunHistPlotter:
             ax=ax,
             scale_to_pot=scale_to_pot,
             chi_square=chi_square,
+            stacked=stacked,
+            show_total=show_total,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -152,23 +156,35 @@ class RunHistPlotter:
         uncertainty_label="Uncertainty",
         scale_to_pot=None,
         chi_square=None,
+        stacked=True,
+        show_total=True,
         **kwargs,
     ):
-        ax = self.plot_stacked_hists(
-            background_hists,
-            ax=ax,
-            show_errorband=False,
-            **kwargs,
-        )
-        ax = self.plot_hist(
-            total_pred_hist,
-            ax=ax,
-            show_errorband=show_errorband,
-            uncertainty_color=uncertainty_color,
-            uncertainty_label=uncertainty_label,
-            color="k",
-            lw=0.5,
-        )
+        if stacked:
+            ax = self.plot_stacked_hists(
+                background_hists,
+                ax=ax,
+                show_errorband=False,
+                **kwargs,
+            )
+        else:
+            for background_hist in background_hists:
+                ax = self.plot_hist(
+                    background_hist,
+                    ax=ax,
+                    show_errorband=True,
+                    **kwargs,
+                )
+        if show_total:
+            ax = self.plot_hist(
+                total_pred_hist,
+                ax=ax,
+                show_errorband=show_errorband,
+                uncertainty_color=uncertainty_color,
+                uncertainty_label=uncertainty_label,
+                color="k",
+                lw=0.5,
+            )
         if scale_to_pot is None:
             if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
