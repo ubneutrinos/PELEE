@@ -71,7 +71,6 @@ runs:
     drt:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
       pot: 3.27E+20
-
   - run_id: "4b"
     path: run4b/nuepresel/
     bnb:  
@@ -91,7 +90,6 @@ runs:
     drt:
       file: Run4b_BNB_dirt_overlay_Pandora_Reco2_reco2_ana
       pot: 3.02E+20
-
   - run_id: "4c"
     path: run4c/nuepresel/
     bnb:
@@ -111,7 +109,6 @@ runs:
     drt:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run4c_dirt
       pot: 1.78E+20
-
   - run_id: "4d"
     path: run4d/nuepresel/
     bnb:
@@ -131,9 +128,151 @@ runs:
     drt:
       file: Run4d_BNB_dirt_overlay_Pandora_Unified_Reco2_reco2_ana
       pot: 2.01E+20
-
   - run_id: "5"
     path: run5/nuepresel/
+    bnb:
+      file: dummy 
+      pot: 1.31E+20
+      trig: 31233834
+    ext:
+      file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
+      trig: 115079907 
+    mc:
+      file: run5_bnb_nu_overlay_ntuple_v08_00_00_67_run5_ana 
+      pot: 8.72E+20 
+    nue:
+      file: run5_bnb_intrinsic_nue_overlay_pandora_unified_reco2_reco2_ana
+      pot: 1.59E+23
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run5_dirt
+      pot: 3.57E+20
+numupresel:
+  - run_id: "1"
+    path: run1/numupresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19
+      pot: 4.55E+19 
+      trig: 10172678
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
+      trig: 65744587 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_nu
+      pot: 1.28278E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_nue
+      pot: 5.22325E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_dirt 
+      pot: 3.1606E+20
+  - run_id: "2"
+    path: run2/numupresel/
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 2.61E+20 
+      trig: 61882791 
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
+      trig: 153905891 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run2_nu 
+      pot: 1.02E+21 
+    nue: 
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run2_nue
+      pot: 6.42E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run2a_dirt # CT: We also have a dirt sample for run 2b 
+      pot: 5.47E+20
+    # apparently there are no detailed background MC sets for run2
+  - run_id: "3"
+    path: run3/numupresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
+      pot: 9.43E+18
+      trig: 2271036
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 61326657
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
+      trig: 207224641.0 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
+      pot: 1.31E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
+      pot: 7.77E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
+      pot: 3.27E+20
+  - run_id: "4b"
+    path: run4b/numupresel/
+    bnb:  
+      file: dummy
+      pot: 1.47E+20 # POT from Reco 1 definition TODO: Update when files processed
+      trig: 34838180 # Triggers from Reco 1 definition TODO: Update when files processed
+    ext:
+      file: Run4b_bnb_beamOff_PeLee_ntuples_run4b_ana
+      trig: 91167643
+    mc:
+      file: run4b_bnb_nu_overlay_unified_pandora_reco2_run4b_ana
+      pot: 7.58E+20 
+    nue:
+      file: run4b_bnb_intrinsic_nue_overlay_pandora_reco2_reco2_ana
+      pot: 1.15E+23
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: Run4b_BNB_dirt_overlay_Pandora_Reco2_reco2_ana
+      pot: 3.02E+20
+  - run_id: "4c"
+    path: run4c/numupresel/
+    bnb:
+      file: dummy
+      pot: 9.13E+19 # POT from Reco 1 definition TODO: Update when files processed
+      trig: 20684471 # Trig from Reco 1 definition TODO: Update when files processed
+    ext:
+      file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
+      trig: 50978641 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run4c_nu 
+      pot: 4.65E+20
+    nue:
+      file: run4c_bnb_intrinsic_nue_overlay_pandora_reco2_v08_00_00_67_reco2_ana 
+      pot:  6.88E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run4c_dirt
+      pot: 1.78E+20
+  - run_id: "4d"
+    path: run4d/numupresel/
+    bnb:
+      file: dummy 
+      pot: 5.02E+19 # POT from Reco 1 definition TODO: Update when files processed
+      trig: 11411650 # Trig from Reco 1 definition TODO: Update when files processed
+    ext:
+      file: Run4d_bnb_beamOff_PeLee_ntuples_run4d_ana_ana 
+      trig: 75637751 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run4d_nu
+      pot: 8.67E+20 
+    nue:
+      file: run4d_bnb_intrinsic_nue_overlay_pandora_unified_reco2_reco2_ana
+      pot: 1.40E+23
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: Run4d_BNB_dirt_overlay_Pandora_Unified_Reco2_reco2_ana
+      pot: 2.01E+20
+  - run_id: "5"
+    path: run5/numupresel/
     bnb:
       file: dummy 
       pot: 1.31E+20

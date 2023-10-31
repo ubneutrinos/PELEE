@@ -24,8 +24,6 @@ detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wirem
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=True
 
-QUERY = "nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06  and nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06 & trk2_energy > 0.3" 
-
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
     data = str(args) + str(kwargs)
@@ -62,6 +60,11 @@ def get_variables():
 
     VARIABLES = [
         "nu_pdg",
+        "mc_pdg",
+        "mc_px",
+        "mc_py",
+        "mc_pz",
+        "mc_E",
         "slpdg",
         # "backtracked_pdg",
         # "trk_score_v",
@@ -1975,6 +1978,9 @@ def load_sample(
         rundict = get_rundict(run_number, category, dataset)
         data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
 
+   
+    print(data_path)
+
     # try returning an empty dataframe
     if rundict[dataset]["file"] == "dummy":
         print("Using dummy file for run",run_number,"dataset",dataset)
@@ -1984,8 +1990,6 @@ def load_sample(
     tree = "NeutrinoSelectionFilter"
 
     up = uproot.open(data_path)[fold][tree]
-
-    
 
     variables = get_run_variables(
         run_number,
@@ -2001,6 +2005,7 @@ def load_sample(
     )
 
     df = up.pandas.df(variables, flatten=False)
+
 
     df["bnbdata"] = dataset in ["bnb", "opendata_bnb"]
     df["extdata"] = dataset == "ext"
