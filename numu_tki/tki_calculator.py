@@ -59,19 +59,21 @@ def in_fiducial_volume(true_nu_vtx_x,true_nu_vtx_y,true_nu_vtx_z):
 # Add a column indicating if the events belong to
 # the 1muNp signal
 
-def set_1muNpSignal(df):
- 
-    # First check if there is a muon in the dataframe
-     
-    #print(df["mc_pdg"].iloc[0][0]) 
- 
-    #df["1mu1pSignal"] = False
-    df["1mu1pSignal"] = df.apply(lambda x: (has_muon(x["mc_pdg"],x["mc_E"]) and\
-                                            n_fs_protons(x["mc_pdg"],x["mc_E"]) == 1 and\
+def set_Signal1muNp(df):
+
+    df["Signal1muNp"] = df.apply(lambda x: (has_muon(x["mc_pdg"],x["mc_E"]) and\
+                                            n_fs_protons(x["mc_pdg"],x["mc_E"]) >= 1 and\
                                             has_no_mesons(x["mc_pdg"],x["mc_E"]) and\
                                             in_fiducial_volume(x["true_nu_vtx_x"],x["true_nu_vtx_y"],x["true_nu_vtx_z"]))\
                                             ,axis=1)
 
-    print(df["1mu1pSignal"])
+    df["Signal1mu1p"] = df.apply(lambda x: (x["Signal1muNp"] == True and n_fs_protons(x["mc_pdg"],x["mc_E"]) == 1),axis=1)
+
+    return df   
+
+
+################################################################################
+# Add a column indicating if the events belong to
+# the 1muNp signal
+
  
-    return df    
