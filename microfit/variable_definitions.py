@@ -22,6 +22,7 @@ variables_1e1p = [
     # ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
     ("p", 20, (0, 4), "Total Reconstructed Momentum [GeV/c] \n (p)"),
     ("pt", 20, (0, 2), "Total Reconstructed Transverse Momentum [GeV/c] \n (pt)"),
+    ("trk_energy", 10, (0, 1), "Reconstructed Proton Kinetic Energy [GeV] \n (trk_energy)"),
     ("shr_energy_cali", 16, (0, 4), "Reconstructed Electron Energy [GeV] \n (shr_energy_cali)"),
     ("mod_shr_p", 20, (0, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c] \n (mod_shr_p)"),
     ("shr_px", 12, (-1.5, 1.5), "x component of Reconstructed Electron Momentum [GeV/c] \n (shr_px)"),
@@ -31,6 +32,11 @@ variables_1e1p = [
     ("trk_px", 20, (-1, 1), "x component of Reconstructed Proton Momentum [GeV/c] \n (trk_px)"),
     ("trk_py", 20, (-1.5, 1.5), "y component of Reconstructed Proton Momentum [GeV/c] \n (trk_py)"),
     ("trk_pz", 20, (-1, 1.5), "z component of Reconstructed Proton Momentum [GeV/c] \n (trk_pz)"),
+]
+
+TKI_variables_1e1p = [
+    ("mod_delta_pt", 20, (0, 2), "$\\delta p_T$ [GeV/c] \n (mod_delta_pt)"),
+    ("delta_alpha", 20, (0, 180), "$\\delta \\alpha_T$ [degrees] \n (delta_alpha)"),
 ]
 
 loosesel_variables_1eNp = [
