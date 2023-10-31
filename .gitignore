@@ -10,7 +10,7 @@ Sandbox.ipynb
 __pycache__/
 pickles
 localSettings.py
-.vscode/
+.vscode
 scripts/test_output
 *~
 .DS_Store
