@@ -4,6 +4,14 @@ import numpy as np
 # Re-using selection developed by Steven Gardiner
 # Author: C Thorpe
 
+TRACK_SCORE_CUT = 0.5
+
+MUON_P_MIN_MOM_CUT = 0.100
+MUON_P_MAX_MOM_CUT = 1.200
+
+LEAD_P_MIN_MOM_CUT = 0.250
+LEAD_P_MAX_MOM_CUT = 1.
+
 ################################################################################
 # Fiducial volume cut is already applied by preselection filter - repeated here
 # for completeness
@@ -30,6 +38,16 @@ def in_proton_containment_vol(x,y,z):
     return x > PCV_X_MIN and x < PCV_X_MAX and\
            y > PCV_Y_MIN and y < PCV_Y_MAX and\
            z > PCV_Z_MIN and z < PCV_Z_MAX
+
+################################################################################
+# Make vector indicating if tracks are in the containedment volume 
+def is_contained(track_end_sce_x_v,track_end_sce_y_v,track_end_sce_z_v):
+
+    contained = []
+    for i in range(0,len(track_end_sce_x_v)):
+         contained.append(in_proton_containment_vol(track_end_sce_x_v[i],track_end_sce_y_v[i],track_end_sce_z_v[i]))
+
+    return contained
 
 ################################################################################
 # Apply generic numu cc selection
@@ -74,8 +92,6 @@ def find_muon_candidate(pfp_generation_v,trk_score_v,trk_distance_v,trk_len_v,tr
 ################################################################################
 # Get number of reconstructed showers 
 
-TRACK_SCORE_CUT = 0.5
-
 def sel_reco_showers(pfp_generation_v,trk_score_v):
     showers=0
     for i in range(0,len(pfp_generation_v)):
@@ -86,8 +102,8 @@ def sel_reco_showers(pfp_generation_v,trk_score_v):
 ################################################################################
 # Check muon track is contained
 
-def is_muon_contianed(MuonCandidateIdx_1muNp,trk_sce_end_x_v,trk_sce_end_y_v,trk_sce_end_z_v):
-    return in_proton_containment_vol(trk_sce_end_x_v[MuonCandidateIdx_1muNp],trk_sce_end_y_v[MuonCandidateIdx_1muNp],trk_sce_end_z_v[MuonCandidateIdx_1muNp])
+def is_muon_contianed(MuonCandidateIdx_1muNp,IsContained_1muNp):
+    return IsContained_1muNp[MuonCandidateIdx_1muNp]
 
 ################################################################################
 # Get momentum of reconstructed muon track
@@ -102,11 +118,8 @@ def get_reco_muon_mom(MuonCandidateIdx_1muNp,trk_range_muon_mom_v,trk_mcs_muon_m
 ################################################################################
 # Muon track momentun cuts 
 
-MUON_P_MIN_MOM_CUT = 0.100
-MUON_P_MAX_MOM_CUT = 1.200
-
-def pass_muon_mom_cut(RecoMuonMomentum_1muNp):
-    return RecoMuonMomentum_1muNp > MUON_P_MIN_MOM_CUT and RecoMuonMomentum_1muNp < MUON_P_MAX_MOM_CUT
+def pass_mom_cut(RecoMuonMomentum_1muNp,CUT_LOW,CUT_HIGH):
+    return RecoMuonMomentum_1muNp > CUT_LOW and RecoMuonMomentum_1muNp < CUT_HIGH 
 
 ################################################################################
 
@@ -116,17 +129,78 @@ def pass_muon_qual_cut(MuonCandidateIdx_1muNp,trk_range_muon_mom_v,trk_mcs_muon_
     return abs(trk_range_muon_mom_v[MuonCandidateIdx_1muNp] - trk_mcs_muon_mom_v[MuonCandidateIdx_1muNp])/trk_range_muon_mom_v[MuonCandidateIdx_1muNp] < MUON_MOM_QUALITY_CUT
 
 ################################################################################
+# Make a list of the indices of the protons candidates
+
+DEFAULT_PROTON_PID_CUT = 0.2
+
+def find_proton_candidates(MuonCandidateIdx_1muNp,pfp_generation_v,trk_score_v,trk_len_v,trk_llr_pid_score_v,IsContained_1muNp):
+
+    proton_candidate_idx=[]
+    for i in range(0,len(pfp_generation_v)):
+        if pfp_generation_v[i] != 2 or i == MuonCandidateIdx_1muNp or\
+           trk_score_v[i] < TRACK_SCORE_CUT or trk_len_v[i] < 0.0 or\
+           trk_llr_pid_score_v[i] > DEFAULT_PROTON_PID_CUT or\
+           not IsContained_1muNp[i]: continue
+        
+        proton_candidate_idx.append(i) 
+
+    return proton_candidate_idx
+
+################################################################################
+
+def find_leading_proton_candidate(ProtonCandidateIdx_1muNp,trk_len_v):
+    
+    longest_idx=-1
+    longest_len=-1
+    for i in range(0,len(trk_len_v)):
+        if i in ProtonCandidateIdx_1muNp and trk_len_v[i] > longest_len:
+            longest_idx = i
+            longest_len = trk_len_v[i]
+
+    return longest_idx
+
+################################################################################
+# Apply the whole selection
+
+def is_sel_1muNp(PassNuMuCCSelection_1muNp,NoRecoShowers_1muNp,MuonContained_1muNp,PassMuonMomentumCut_1muNp,PassMuonQualCut_1muNp,LeadingProtonPassMomentumCut_1muNp):
+    return PassNuMuCCSelection_1muNp and NoRecoShowers_1muNp and MuonContained_1muNp and\
+           PassMuonMomentumCut_1muNp and PassMuonQualCut_1muNp and LeadingProtonPassMomentumCut_1muNp
+
+################################################################################
 # Add a column to the dataframe indicating whether event passed the 1muNp selection
 
-def apply_selection_1muNp(df):
+def apply_selection_1muNp(df,filter=False):
 
     df["MuonCandidateIdx_1muNp"] = df.apply(lambda x: (find_muon_candidate(x["pfp_generation_v"],x["trk_score_v"],x["trk_distance_v"],x["trk_len_v"],x["trk_llr_pid_score_v"])),axis=1)
+    if filter: df = df.query("MuonCandidateIdx_1muNp != -1")
+    print(len(df))
+  
+    df["IsContained_1muNp"] = df.apply(lambda x: (is_contained(x["trk_sce_end_x_v"],x["trk_sce_end_y_v"],x["trk_sce_end_z_v"])),axis=1)
     df["PassNuMuCCSelection_1muNp"] = df.apply(lambda x: (pass_numu_CC_selection(x["topological_score"],x["pfp_generation_v"],x["trk_sce_start_x_v"],x["trk_sce_start_y_v"],x["trk_sce_start_z_v"],x["MuonCandidateIdx_1muNp"])),axis=1)
+    if filter: df = df.query("PassNuMuCCSelection_1muNp == True")    
+    print(len(df))
+
     df["NoRecoShowers_1muNp"] = df.apply(lambda x: (sel_reco_showers(x["pfp_generation_v"],x["trk_score_v"]) == 0),axis=1)
-    df["MuonContained_1muNp"] = df.apply(lambda x: (is_muon_contianed(x["MuonCandidateIdx_1muNp"],x["trk_sce_end_x_v"],x["trk_sce_end_y_v"],x["trk_sce_end_z_v"])),axis=1)
+    if filter: df = df.query("NoRecoShowers_1muNp == True")
+    print(len(df))
+
+    df["MuonContained_1muNp"] = df.apply(lambda x: (is_muon_contianed(x["MuonCandidateIdx_1muNp"],x["IsContained_1muNp"])),axis=1)
     df["RecoMuonMomentum_1muNp"] = df.apply(lambda x: (get_reco_muon_mom(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"])),axis=1)
-    df["PassMuonMomentumCut_1muNp"] = df.apply(lambda x: (pass_muon_mom_cut(x["RecoMuonMomentum_1muNp"])),axis=1) 
-    df["PassMuonQualCut_1muNp"] = df.apply(lambda x: (pass_muon_mom_cut(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"])),axis=1)
+    df["PassMuonMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoMuonMomentum_1muNp"],MUON_P_MIN_MOM_CUT,MUON_P_MAX_MOM_CUT)),axis=1) 
 
+    if filter: df = df.query("PassMuonMomentumCut_1muNp == True")
+    print(len(df))
+
+    df["PassMuonQualCut_1muNp"] = df.apply(lambda x: (pass_muon_qual_cut(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"])),axis=1)
+    if filter: df = df.query("PassMuonQualCut_1muNp == True")
+    print(len(df))
+
+    df["ProtonCandidateIdx_1muNp"] = df.apply(lambda x: (find_proton_candidates(x["MuonCandidateIdx_1muNp"],x["pfp_generation_v"],x["trk_score_v"],x["trk_len_v"],x["trk_llr_pid_score_v"],x["IsContained_1muNp"])),axis=1)
+    df["LeadingProtonIdx_1muNp"] = df.apply(lambda x: (find_leading_proton_candidate(x["ProtonCandidateIdx_1muNp"],x["trk_len_v"])),axis=1)
+    df["LeadingProtonPassMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoMuonMomentum_1muNp"],LEAD_P_MIN_MOM_CUT,LEAD_P_MAX_MOM_CUT)),axis=1)
+    if filter: df = df.query("LeadingProtonPassMomentumCut_1muNp == True")  
+
+    df["sel_CCNp0pi"] = df.apply(lambda x: (is_sel_1muNp(x["PassNuMuCCSelection_1muNp"],x["NoRecoShowers_1muNp"],x["MuonContained_1muNp"],x["PassMuonMomentumCut_1muNp"],x["PassMuonQualCut_1muNp"],x["LeadingProtonPassMomentumCut_1muNp"])),axis=1)
+    if filter: df  = df.query("sel_CCNp0pi == True")
+ 
     return df  
-
