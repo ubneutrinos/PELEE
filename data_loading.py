@@ -82,7 +82,7 @@ def get_variables():
         "flash_pe",
         # The TRK scroe is a rugged array and we probably don't want it directly in the DataFrame.
         # The processing functions pick out the relevant values from it.
-        # "trk_llr_pid_score_v",  # trk-PID score
+        "trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
         "_opfilter_pe_veto",  # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x",
@@ -1792,6 +1792,8 @@ def process_uproot_numu(up, df):
     trk_start_x_v = up.array("trk_sce_start_x_v")
     trk_start_y_v = up.array("trk_sce_start_y_v")
     trk_start_z_v = up.array("trk_sce_start_z_v")
+   
+
     trk_energy_proton_v = up.array("trk_energy_proton_v")  # range-based proton kinetic energy
     trk_range_muon_mom_v = up.array("trk_range_muon_mom_v")  # range-based muon momentum
     trk_mcs_muon_mom_v = up.array("trk_mcs_muon_mom_v")
@@ -1802,6 +1804,22 @@ def process_uproot_numu(up, df):
     trk_calo_energy_y_v = up.array("trk_calo_energy_y_v")
     trk_pfp_id_v = up.array("trk_pfp_id_v")
     pfp_pdg_v = up.array("backtracked_pdg")
+
+    # CT: Adding track starts to the dataframe
+    df["trk_sce_start_x_v"] = trk_start_x_v
+    df["trk_sce_start_y_v"] = trk_start_y_v
+    df["trk_sce_start_z_v"] = trk_start_z_v
+    df["trk_sce_end_x_v"] = trk_end_x_v
+    df["trk_sce_end_y_v"] = trk_end_y_v
+    df["trk_sce_end_z_v"] = trk_end_z_v
+    df["trk_range_muon_mom_v"] = trk_range_muon_mom_v
+    df["trk_mcs_muon_mom_v"] = trk_mcs_muon_mom_v
+
+    # CT: Adding pfp info to the dataframe
+    df["pfp_generation_v"] = pfp_generation_v
+    df["trk_score_v"] = trk_score_v
+    df["trk_distance_v"] = trk_distance_v
+    df["trk_len_v"] = trk_len_v
 
     trk_mask = trk_score_v > 0.0
     proton_mask = (trk_score_v > 0.5) & (trk_llr_pid_v < 0.0)
@@ -1870,13 +1888,14 @@ def process_uproot_numu(up, df):
     df["n_protons_tot"] = proton_mask.sum()
     df["n_showers_tot"] = shr_mask.sum()
 
+    print(df["trk_len_v"])
     return
 
 def drop_vector_columns(df):
     drop_columns = [
             "trk_theta_v",
             "trk_end_z_v",
-            "trk_len_v",
+            #"trk_len_v",
             "shr_tkfit_dedx_nhits_v_v",
             "trk_phi_v",
             "shr_tkfit_dedx_y_v",
@@ -2055,6 +2074,8 @@ def load_sample(
     if use_bdt:
         add_bdt_scores(df)
 
+    print("Check 1")
+    print(df["trk_len_v"])
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
@@ -2089,6 +2110,9 @@ def load_sample(
     # CT: For some reason this only run over the EXT and data in the old code
     if dataset == "ext" or dataset == "bnb":
         df = remove_duplicates(df)
+
+    print("Check 2")
+    print(df["trk_len_v"])
 
     return df
 
