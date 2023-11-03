@@ -18,6 +18,9 @@ import nue_booster
 import xgboost as xgb
 from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
+from numu_tki import selection_1muNp 
+from numu_tki import signal_1muNp 
+from numu_tki import tki_calculators 
 
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 
@@ -1888,7 +1891,6 @@ def process_uproot_numu(up, df):
     df["n_protons_tot"] = proton_mask.sum()
     df["n_showers_tot"] = shr_mask.sum()
 
-    print(df["trk_len_v"])
     return
 
 def drop_vector_columns(df):
@@ -1977,6 +1979,7 @@ def load_sample(
     use_bdt=True,
     pi0scaling=0,
     load_crt_vars=False,
+    load_numu_tki=False
 ):
 
     """Load one sample of one run for a particular kind of events."""
@@ -2001,7 +2004,6 @@ def load_sample(
         rundict = get_rundict(run_number, category, dataset)
         data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
 
-   
     print(data_path)
 
     # try returning an empty dataframe
@@ -2074,8 +2076,9 @@ def load_sample(
     if use_bdt:
         add_bdt_scores(df)
 
-    print("Check 1")
-    print(df["trk_len_v"])
+    if load_numu_tki:
+        signal_1muNp.set_Signal1muNp(df)
+        selection_1muNp.apply_selection_1muNp(df) 
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
@@ -2110,9 +2113,6 @@ def load_sample(
     # CT: For some reason this only run over the EXT and data in the old code
     if dataset == "ext" or dataset == "bnb":
         df = remove_duplicates(df)
-
-    print("Check 2")
-    print(df["trk_len_v"])
 
     return df
 
