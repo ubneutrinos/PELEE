@@ -199,5 +199,9 @@ def apply_selection_1muNp(df,filter=False):
 
     df["sel_CCNp0pi"] = df.apply(lambda x: (is_sel_1muNp(x["PassNuMuCCSelection_1muNp"],x["NoRecoShowers_1muNp"],x["MuonContained_1muNp"],x["PassMuonMomentumCut_1muNp"],x["PassMuonQualCut_1muNp"],x["LeadingProtonPassMomentumCut_1muNp"])),axis=1)
     if filter: df = df.query("sel_CCNp0pi == True")
+
+    
+
+
  
     return df  

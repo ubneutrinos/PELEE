@@ -107,6 +107,12 @@ NPALTESTQ = NPALTESTQ_all_showers + ' and n_showers_contained == 1'
 BDTCQ_all_showers = NPLCUTQ_all_showers
 BDTCQ_all_showers += ' and pi0_score > 0.67 and nonpi0_score > 0.70'
 BDTCQ = BDTCQ_all_showers + ' and n_showers_contained == 1'
+
+# CT: Adding inverted BDT cuts
+BDTCQ_all_showers_INV = NPLCUTQ_all_showers
+BDTCQ_all_showers_INV += ' and (pi0_score < 0.67 or nonpi0_score < 0.70)'
+BDTCQ_INV = BDTCQ_all_showers_INV + ' and n_showers_contained == 1'
+
 #BDTCQ = BDTCQ_all_showers + ' and (n_showers_contained == 1 or (n_showers_contained>1 and shr12_cos_p1_dstart>0.99))'
 
 BDTCQ_only = 'pi0_score > 0.67 and nonpi0_score > 0.70'
@@ -182,11 +188,20 @@ ZPLOOSESEL_all_tracks += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_
 ZPLOOSESEL_onep_track = ZPLOOSESEL_all_tracks + ' and n_tracks_contained > 0'
 ZPLOOSESEL = ZPLOOSESEL_all_tracks + ' and n_tracks_contained == 0'
 ZPBDTLOOSE_all_tracks = ZPLOOSESEL_all_tracks
-ZPBDTLOOSE_all_tracks += ' and bkg_score >0.72'
+ZPBDTLOOSE_all_tracks += ' and bkg_score > 0.72'
+
+# CT: Adding new query for inverted BDT cuts
+ZPBDTLOOSE_all_tracks_INV = ZPLOOSESEL_all_tracks 
+ZPBDTLOOSE_all_tracks_INV  += ' and bkg_score < 0.72'
+
 ZPBDTLOOSE_onep_track = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained > 0'
+ZPBDTLOOSE_onep_track_INV = ZPBDTLOOSE_all_tracks_INV + ' and n_tracks_contained > 0'
 
 ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
 ZPBDTLOOSE += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
+
+ZPBDTLOOSE_INV = ZPBDTLOOSE_all_tracks_INV + ' and n_tracks_contained == 0'
+ZPBDTLOOSE_INV += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 
 ZPBDTVLOOSE_all_tracks = ZPLOOSESEL_all_tracks
 ZPBDTVLOOSE_all_tracks += ' and bkg_score >0.5'
@@ -438,6 +453,13 @@ selection_categories = {
     'ZPXSBDTAllShr': {'query': ZPXSBDTQ_all_showers, 'title': '1e0p xsec BDT sel., 0+ showers', 'dir': 'ZPXSBDTAllShr'},
     'XPXSBDT': {'query': XPXSBDTQ, 'title': '1eXp xsec BDT sel.', 'dir': 'XPXSBDT'},
     'OnePL': {'query': OnePLCUTQ, 'title': '1e1p Loose cuts', 'dir': 'OnePL'},
+
+    # CT: Full selections with BDT cuts inverted
+    'ZPBDT_INV': {'query': ZPBDTLOOSE_INV, 'title': 'Inverted 1e0p BDT sel.', 'dir': 'ZPBDT_INV'},
+    'NPBDT_INV': {'query': BDTCQ_INV, 'title': 'Inverted 1eNp BDT sel.', 'dir': 'NPBDT_INV'},
+    # Selections with only the BDT score cuts inverted but no other criteria
+    'SIDEBAND': {'query': "(pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72", 'title': '1e0p Sideband', 'dir': 'ZPBDT_INV'},
+
 }
 
 stages_queries = {

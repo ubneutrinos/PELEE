@@ -68,7 +68,7 @@ def delta_alphaT(LepMom_x,LepMom_y,LepMom_z,HadMom_x,HadMom_y,HadMom_z):
     arg=-lep_pT.dot(dpT)/mag_lep_pT/mag_dpT
     if arg != np.nan:
         if arg > 1.0: return 0.0
-        if arg < 1.0: return 3.1415
+        if arg < -1.0: return 3.1415
 
     return math.acos(arg)
 
@@ -80,7 +80,7 @@ def Ecal(Lep_E,Had_E):
     E=0
     if isinstance(Had_E,list): 
         for i in range(0,len(Had_E)):
-            E = E + Had_E - PROTON_MASS + BINDING_ENERGY
+            E = E + Had_E[i] - PROTON_MASS + BINDING_ENERGY
     else:    
         E = Had_E - PROTON_MASS + BINDING_ENERGY 
     
@@ -113,7 +113,7 @@ def pL(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
 # Vector q (4 momentum transfer) 
 
 def vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
-    return np.array([LepMom_x,LepMom_y,Ecal(Lep_E,Had_E)-LepMom_z])
+    return np.array([-LepMom_x,-LepMom_y,Ecal(Lep_E,Had_E)-LepMom_z])
    
 ################################################################################
 # Vector pn 
@@ -134,8 +134,15 @@ def pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
 
 def phi_3D(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
     q = vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
-    pp = np.array([HadMom_x,HadMom_y,HadMom_z])
+    pp = np.array([0,0,0])
+    if isinstance(HadMom_x,list): 
+        for i in range(0,len(HadMom_x)):
+            pp = pp + np.array([HadMom_x[i],HadMom_y[i],HadMom_z[i]])
+    else: 
+        pp = np.array([HadMom_x,HadMom_y,HadMom_z])
+    
     return math.acos(q.dot(pp)/np.sqrt(q.dot(q))/np.sqrt(pp.dot(pp)))
+    #return np.sqrt(pp.dot(pp))
 
 ################################################################################
 # Alpha 3D 
@@ -143,7 +150,12 @@ def phi_3D(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
 def alpha_3D(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
     q = vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
     pn = vec_pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
-    return math.acos(q.dot(pn)/np.sqrt(q.dot(q))/np.sqrt(pn.dot(pn)))
+    print(q.dot(pn)/np.sqrt(q.dot(q))/np.sqrt(pn.dot(pn)))
+    arg = q.dot(pn)/np.sqrt(q.dot(q))/np.sqrt(pn.dot(pn))
+    if arg != np.nan:
+        if arg > 1.0: return 0.0
+        if arg < -1.0: return 3.1415
+    return math.acos(arg)
 
 ################################################################################
 # delta pT x 

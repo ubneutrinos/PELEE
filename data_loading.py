@@ -25,7 +25,7 @@ from numu_tki import tki_calculators
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
-use_buggy_energy_estimator=True
+use_buggy_energy_estimator=False
 
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
@@ -1979,37 +1979,48 @@ def load_sample(
     use_bdt=True,
     pi0scaling=0,
     load_crt_vars=False,
-    load_numu_tki=False
+    load_numu_tki=False,
+    full_path=""
 ):
 
-    """Load one sample of one run for a particular kind of events."""
+    # Load the file from data_path.yml
+    if full_path == "":
 
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
+        print("Using data_paths.yml to locate ntuple file")
 
-    if use_bdt:
-        assert loadshowervariables, "BDT requires shower variables"
+        """Load one sample of one run for a particular kind of events."""
+        
+        assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
+        
+        if use_bdt:
+            assert loadshowervariables, "BDT requires shower variables"
+        
+        if use_lee_weights:
+            assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
+        
+        # CT: Slightly hacky way to ensure run number is >= 3 (assume first letter of string is >= 3)
+        if load_crt_vars:
+            assert run_number[0] >= 3, "CRT variables only available for R3 and up"
+        
+        # The path to the actual ROOT file
+        if category != "detvar":
+            rundict = get_rundict(run_number, category, dataset)
+            data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+        else: 
+            rundict = get_rundict(run_number, category, dataset)
+            data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
+        
+        print(data_path)
+        
+        # try returning an empty dataframe
+        if rundict[dataset]["file"] == "dummy":
+            print("Using dummy file for run",run_number,"dataset",dataset)
+            return None 
 
-    if use_lee_weights:
-        assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
-
-    # CT: Slightly hacky way to ensure run number is >= 3 (assume first letter of string is >= 3)
-    if load_crt_vars:
-        assert run_number[0] >= 3, "CRT variables only available for R3 and up"
-
-    # The path to the actual ROOT file
-    if category != "detvar":
-        rundict = get_rundict(run_number, category, dataset)
-        data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+    # Load the data from its full path
     else: 
-        rundict = get_rundict(run_number, category, dataset)
-        data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
-
-    print(data_path)
-
-    # try returning an empty dataframe
-    if rundict[dataset]["file"] == "dummy":
-        print("Using dummy file for run",run_number,"dataset",dataset)
-        return None 
+        print("Loading file",full_path,"instead of using data_paths.yml")
+        data_path = full_path 
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
