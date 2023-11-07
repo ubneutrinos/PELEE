@@ -236,7 +236,7 @@ numupresel:
   - run_id: "4c"
     path: run4c/numupresel/
     bnb:
-      file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana.root  
+      file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana  
       pot: 9.11E+19
       trig: 20639283
     ext:
