@@ -236,9 +236,9 @@ numupresel:
   - run_id: "4c"
     path: run4c/numupresel/
     bnb:
-      file: dummy
-      pot: 9.13E+19 # POT from Reco 1 definition TODO: Update when files processed
-      trig: 20684471 # Trig from Reco 1 definition TODO: Update when files processed
+      file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana.root  
+      pot: 9.11E+19
+      trig: 20639283
     ext:
       file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
       trig: 50978641 
