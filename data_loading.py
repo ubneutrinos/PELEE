@@ -1990,7 +1990,8 @@ def load_sample(
 
         """Load one sample of one run for a particular kind of events."""
         
-        assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
+        #assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
+        assert category in ["runs","numupresel","detvar"]
         
         if use_bdt:
             assert loadshowervariables, "BDT requires shower variables"
@@ -2006,11 +2007,12 @@ def load_sample(
         if category != "detvar":
             rundict = get_rundict(run_number, category, dataset)
             data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+            
         else: 
             rundict = get_rundict(run_number, category, dataset)
             data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
         
-        print(data_path)
+        print("Loading ntuple file",data_path)
         
         # try returning an empty dataframe
         if rundict[dataset]["file"] == "dummy":
@@ -2042,8 +2044,7 @@ def load_sample(
 
     df = up.pandas.df(variables, flatten=False)
 
-
-    df["bnbdata"] = dataset in ["bnb", "opendata_bnb"]
+    df["bnbdata"] = dataset in ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband"]
     df["extdata"] = dataset == "ext"
 
     # trk_energy_tot agrees here
@@ -2093,7 +2094,7 @@ def load_sample(
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category == "runs" and dataset not in ["bnb", "ext", "opendata_bnb"]
+    is_mc = category == "runs" and dataset not in ["bnb","bdt_sideband","shr_energy_sideband","ext","opendata_bnb"]
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2138,6 +2139,7 @@ def _load_run(
     numupresel=False,
     **load_sample_kwargs,
 ):
+
     category = "numupresel" if numupresel else "runs"
     output = {}
     weights = {}
@@ -2216,6 +2218,19 @@ def _load_run(
             df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
 
+    # If using one of the sideband datasets, apply the same query to the MC as well
+    datadict = get_rundict(run_number,category,data)[data] 
+    print(len(output["mc"]))
+    if "sideband_def" in datadict:
+        sdb_def = datadict["sideband_def"]
+        print("The sideband data you're using had the following query applied:")
+        print(sdb_def)
+        print("I will also apply this query to the MC you're loading")
+        for key in output:
+            df_temp = output[key].query(sdb_def)
+            output[key] = df_temp
+
+    print(len(output["mc"]))
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
 # CT: Separate function for loading detector variations 
@@ -2444,7 +2459,7 @@ def get_run_variables(
     use_lee_weights=False,
     load_crt_vars=False,
 ):
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
+    assert category in ["runs","numupresel","detvar"]
 
     VARDICT = get_variables()
     VARIABLES = VARDICT["VARIABLES"]
@@ -2459,7 +2474,6 @@ def get_run_variables(
     if loadsystematics:
         WEIGHTS += SYSTVARS
         WEIGHTSLEE += SYSTVARS
-
     if loadpi0variables:
         VARIABLES += PI0VARS
     if loadshowervariables:
@@ -2472,7 +2486,7 @@ def get_run_variables(
     ALLVARS = VARIABLES
 
     # Weights are only available in MC runs.
-    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb"]:
+    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband"]:
         if use_lee_weights:
             assert dataset == "nue", "LEE weights are only available for nue runs"
             ALLVARS += WEIGHTSLEE

@@ -15,6 +15,16 @@ runs:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
       pot: 1.67E+20
       trig: 37273255.00
+    bdt_sideband:
+      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
       trig: 65744587 
@@ -34,6 +44,16 @@ runs:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
       trig: 61882791 
+    bdt_sideband:
+      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 2.61E+20 
+      trig: 61882791 
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 2.61E+20 
+      trig: 61882791 
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
       trig: 153905891 
@@ -58,6 +78,16 @@ runs:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
       pot: 2.57E+20
       trig: 61326657
+    bdt_sideband:
+      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 61326657
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 61326657
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
       trig: 207224641.0 
@@ -92,10 +122,16 @@ runs:
       pot: 3.02E+20
   - run_id: "4c"
     path: run4c/nuepresel/
-    bnb:
+    bdt_sideband:
       file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.11E+19
       trig: 20639283 
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
+      pot: 9.11E+19
+      trig: 20639283 
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
       trig: 50978641 
@@ -147,6 +183,9 @@ runs:
     drt:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run5_dirt
       pot: 3.57E+20
+
+
+
 numupresel:
   - run_id: "1"
     path: run1/numupresel/
@@ -158,6 +197,16 @@ numupresel:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
       pot: 1.67E+20
       trig: 37273255.00
+    bdt_sideband:
+      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
       trig: 65744587 
@@ -177,6 +226,16 @@ numupresel:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
       trig: 61882791 
+    bdt_sideband:
+      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 2.61E+20 
+      trig: 61882791 
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 2.61E+20 
+      trig: 61882791 
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
       trig: 153905891 
@@ -201,6 +260,16 @@ numupresel:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
       pot: 2.57E+20
       trig: 61326657
+    bdt_sideband:
+      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 61326657
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 61326657
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
       trig: 207224641.0 
@@ -235,10 +304,16 @@ numupresel:
       pot: 3.02E+20
   - run_id: "4c"
     path: run4c/numupresel/
-    bnb:
+    bdt_sideband:
       file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana  
       pot: 9.11E+19
       trig: 20639283
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana  
+      pot: 9.11E+19
+      trig: 20639283
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
       trig: 50978641 

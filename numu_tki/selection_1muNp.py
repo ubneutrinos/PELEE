@@ -122,6 +122,7 @@ def pass_mom_cut(RecoMuonMomentum_1muNp,CUT_LOW,CUT_HIGH):
     return RecoMuonMomentum_1muNp > CUT_LOW and RecoMuonMomentum_1muNp < CUT_HIGH 
 
 ################################################################################
+# Check selected muon candidate passes momentum consistency check
 
 MUON_MOM_QUALITY_CUT = 0.25 
 
@@ -187,6 +188,9 @@ def apply_selection_1muNp(df,filter=False):
     df["RecoMuonMomentum_1muNp"] = df.apply(lambda x: (get_reco_muon_mom(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"])),axis=1)
     df["PassMuonMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoMuonMomentum_1muNp"],MUON_P_MIN_MOM_CUT,MUON_P_MAX_MOM_CUT)),axis=1) 
 
+    
+
+
     if filter: df = df.query("PassMuonMomentumCut_1muNp == True")
 
     df["PassMuonQualCut_1muNp"] = df.apply(lambda x: (pass_muon_qual_cut(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"])),axis=1)
@@ -200,7 +204,7 @@ def apply_selection_1muNp(df,filter=False):
     df["sel_CCNp0pi"] = df.apply(lambda x: (is_sel_1muNp(x["PassNuMuCCSelection_1muNp"],x["NoRecoShowers_1muNp"],x["MuonContained_1muNp"],x["PassMuonMomentumCut_1muNp"],x["PassMuonQualCut_1muNp"],x["LeadingProtonPassMomentumCut_1muNp"])),axis=1)
     if filter: df = df.query("sel_CCNp0pi == True")
 
-    
+     
 
 
  

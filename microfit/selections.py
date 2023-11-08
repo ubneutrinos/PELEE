@@ -458,7 +458,8 @@ selection_categories = {
     'ZPBDT_INV': {'query': ZPBDTLOOSE_INV, 'title': 'Inverted 1e0p BDT sel.', 'dir': 'ZPBDT_INV'},
     'NPBDT_INV': {'query': BDTCQ_INV, 'title': 'Inverted 1eNp BDT sel.', 'dir': 'NPBDT_INV'},
     # Selections with only the BDT score cuts inverted but no other criteria
-    'SIDEBAND': {'query': "(pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72", 'title': '1e0p Sideband', 'dir': 'ZPBDT_INV'},
+    'BDT_SIDEBAND': {'query': "(pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72", 'title': '1e0p Sideband', 'dir': 'BDT_SIDEBAND'},
+    'SHR_ENERGY_SIDEBAND': {'query': "shr_energy_tot_cali > 0.75", 'title': 'Shower Energy Sideband', 'dir': 'SHR_ENERGY_SIDEBANDbbbV'},
 
 }
 

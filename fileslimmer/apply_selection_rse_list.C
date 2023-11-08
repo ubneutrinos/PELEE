@@ -59,6 +59,7 @@ void apply_selection_rse_list(const string in_file,const string rse_list){
         if(se->at(i_se) == tree_se){
           t_out->Fill();
           se->erase(se->begin()+i_se);
+          if(!se->size()) rse_map.erase(run);
           break;
         } 
       }    
