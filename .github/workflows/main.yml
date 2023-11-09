@@ -22,7 +22,8 @@ jobs:
       shell: bash -l {0}
       run: |
         conda activate python3LEE
-        conda install scipy pandas==1.0.5 matplotlib uncertainties
+        conda install scipy pandas==1.0.5 matplotlib
+        conda install -c conda-forge uncertainties
         # scikit-learn is also not used for testing at the moment
         # conda install scikit-learn
         # For testing purposes, we don't need jupyter (it only slows down the workflow)
