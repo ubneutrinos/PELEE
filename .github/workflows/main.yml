@@ -1,0 +1,39 @@
+name: Python application test with unittest
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: python3LEE
+        environment-file: environment.yml
+        python-version: 3.7
+        auto-activate-base: false
+    - name: Install dependencies
+      run: |
+        conda activate python3LEE
+        conda install scipy
+        conda install scikit-learn
+        conda install jupyter
+        conda install pandas==1.0.5
+        conda install matplotlib
+        conda install -c conda-forge uproot==3.11.6
+        conda install dask-core
+        conda install -c conda-forge xgboost==0.90
+        conda install -c conda-forge shap
+        conda install uncertainties
+        pip install unitpy
+    - name: Run tests
+      run: |
+        conda activate python3LEE
+        python -m unittest discover
