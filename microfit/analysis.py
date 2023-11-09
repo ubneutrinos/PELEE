@@ -132,7 +132,7 @@ class MultibandAnalysis(object):
             for i, g in enumerate(self._signal_generators):
                 n_bins = g.binning.n_bins
                 signal_hist = g.mc_hist_generator.generate(include_multisim_errors=True, use_sideband=False)
-                covar = signal_hist.cov_matrix
+                covar = signal_hist.covariance_matrix
                 # for testing purposes, we divide the covariance by the square of the nominal values to get
                 # the relative covariance
                 covar = covar / np.outer(signal_hist.nominal_values, signal_hist.nominal_values)
@@ -162,7 +162,7 @@ class MultibandAnalysis(object):
             sideband_measurement=sideband_observation.nominal_values,
             sideband_central_value=sideband_prediction.nominal_values,
             concat_covariance=multiband_covariance_multisim,
-            sideband_covariance=sideband_prediction.cov_matrix,
+            sideband_covariance=sideband_prediction.covariance_matrix,
         )
         self.logger.debug(f"Sideband constraint correction: {delta_mu}")
         self.logger.debug(f"Sideband constraint correction covariance: {delta_covar}")
@@ -347,8 +347,8 @@ class MultibandAnalysis(object):
         test_stat_h1 = []
 
         def test_statistic(observation):
-            chi2_h0 = chi_square(observation.nominal_values, h0_hist.nominal_values, h0_hist.cov_matrix)
-            chi2_h1 = chi_square(observation.nominal_values, h1_hist.nominal_values, h1_hist.cov_matrix)
+            chi2_h0 = chi_square(observation.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix)
+            chi2_h1 = chi_square(observation.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix)
             return chi2_h0 - chi2_h1
 
         for i in range(n_trials):
@@ -379,10 +379,10 @@ class MultibandAnalysis(object):
             return results
         # calculate the p-value of the observed data under H0
         real_data_ts = test_statistic(data_hist)
-        results["chi2_h0"] = chi_square(data_hist.nominal_values, h0_hist.nominal_values, h0_hist.cov_matrix)
+        results["chi2_h0"] = chi_square(data_hist.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix)
         results["pval_h0"] = np.sum(test_stat_h0 > real_data_ts) / n_trials
         # calculate the p-value of the observed data under H1
-        results["chi2_h1"] = chi_square(data_hist.nominal_values, h1_hist.nominal_values, h1_hist.cov_matrix)
+        results["chi2_h1"] = chi_square(data_hist.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix)
         results["pval_h1"] = np.sum(test_stat_h1 > real_data_ts) / n_trials
 
         return results
@@ -417,7 +417,7 @@ class MultibandAnalysis(object):
                 include_multisim_errors=True, use_sideband=True, check_covar=False, scale_to_pot=scale_to_pot
             )
             # calculate the chi-square
-            return chi_square(observed_hist.nominal_values, generated_hist.nominal_values, generated_hist.cov_matrix)
+            return chi_square(observed_hist.nominal_values, generated_hist.nominal_values, generated_hist.covariance_matrix)
 
         # TODO: This is the syntax for the old Minuit 1.5.4 version. We should upgrade to the new version
         # at some point.
@@ -455,7 +455,7 @@ class MultibandAnalysis(object):
                 # the seeds are chosen such that no seed is used twice
                 pseudo_data = expectation.fluctuate(seed=global_trial_index).fluctuate_poisson(seed=global_trial_index + number_of_samples)
                 self.parameters[parameter_name].value = scan_point
-                chi2_at_truth = chi_square(pseudo_data.nominal_values, expectation.nominal_values, expectation.cov_matrix)
+                chi2_at_truth = chi_square(pseudo_data.nominal_values, expectation.nominal_values, expectation.covariance_matrix)
                 m = self._get_minuit(pseudo_data, scale_to_pot=scale_to_pot)
                 m.migrad()
                 chi2_at_best_fit = m.fval

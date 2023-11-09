@@ -3,7 +3,12 @@
 import numpy as np
 import itertools
 import matplotlib.pyplot as plt
-from .histogram import RunHistGenerator, Binning
+from .histogram import (
+    RunHistGenerator,
+    Binning,
+    MultiChannelBinning,
+    MultiChannelHistogram,
+)
 from . import selections
 
 
@@ -13,12 +18,13 @@ class RunHistPlotter:
         self.run_hist_generator = run_hist_generator
 
     def get_selection_title(self, selection, preselection):
-        presel_title = selections.preselection_categories[preselection]["title"]
-        sel_title = selections.selection_categories[selection]["title"]
-
-        if preselection.lower() == "none":
+        if preselection is not None:
+            presel_title = selections.preselection_categories[preselection]["title"]
+        if selection is not None:
+            sel_title = selections.selection_categories[selection]["title"]
+        if preselection is None or preselection.lower() == "none":
             presel_title = "No Presel."
-        elif selection.lower() == "none":
+        if selection is None or selection.lower() == "none":
             sel_title = "No Sel."
 
         title = f"{presel_title} and {sel_title}"
@@ -45,9 +51,20 @@ class RunHistPlotter:
         uncertainty_color="gray",
         stacked=True,
         show_total=True,
+        channel=None,
         **kwargs,
     ):
         gen = self.run_hist_generator
+
+        def flatten(hist):
+            if isinstance(hist, MultiChannelHistogram):
+                if channel is None:
+                    return hist.get_unrolled_histogram()
+                else:
+                    return hist[channel]
+            else:
+                return hist
+
         if use_sideband:
             assert gen.sideband_generator is not None
         # we want the uncertainty defaults of the generator to be used if the user doesn't specify
@@ -62,19 +79,22 @@ class RunHistPlotter:
             type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot
         )
         ext_hist.tex_string = "EXT"
+        ext_hist = flatten(ext_hist)
+
         mc_hists = gen.get_mc_hists(
             category_column=category_column,
             include_multisim_errors=False,
             scale_to_pot=scale_to_pot,
         )
         background_hists = list(mc_hists.values()) + [ext_hist]
+        background_hists = [flatten(hist) for hist in background_hists]
         total_mc_hist = gen.get_mc_hist(
             include_multisim_errors=include_multisim_errors,
             scale_to_pot=scale_to_pot,
             use_sideband=use_sideband,
         )
-        total_pred_hist = total_mc_hist + ext_hist
-        data_hist = gen.get_data_hist()
+        total_pred_hist = flatten(total_mc_hist) + ext_hist
+        data_hist = flatten(gen.get_data_hist())
         if self.title is None:
             selection, preselection = gen.selection, gen.preselection
             title = self.get_selection_title(selection, preselection)
@@ -85,14 +105,13 @@ class RunHistPlotter:
             # TODO: implement plotting within inset axes
             assert ax is None, "Can't plot within an ax when showing data/mc ratio"
             fig, (ax, ax_ratio) = plt.subplots(
-                nrows=2,
-                ncols=1,
-                sharex=True,
-                gridspec_kw={"height_ratios": [3, 1]},
+                nrows=2, ncols=1, sharex=True, gridspec_kw={"height_ratios": [3, 1]},
             )
         if show_chi_square:
             assert not scale_to_pot, "Can't show chi square when scaling to POT"
-            assert data_hist is not None, "Can't show chi square when no data is available"
+            assert (
+                data_hist is not None
+            ), "Can't show chi square when no data is available"
             chi_square = gen.get_chi_square()
         else:
             chi_square = None
@@ -162,18 +181,12 @@ class RunHistPlotter:
     ):
         if stacked:
             ax = self.plot_stacked_hists(
-                background_hists,
-                ax=ax,
-                show_errorband=False,
-                **kwargs,
+                background_hists, ax=ax, show_errorband=False, **kwargs,
             )
         else:
             for background_hist in background_hists:
                 ax = self.plot_hist(
-                    background_hist,
-                    ax=ax,
-                    show_errorband=True,
-                    **kwargs,
+                    background_hist, ax=ax, show_errorband=True, **kwargs,
                 )
         if show_total:
             ax = self.plot_hist(
@@ -186,7 +199,9 @@ class RunHistPlotter:
                 lw=0.5,
             )
         if scale_to_pot is None:
-            if data_hist is not None:  # skip if no data (as is the case for blind analysis)
+            if (
+                data_hist is not None
+            ):  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
                 data_label = f"Data: {data_hist.sum():.1f}"
                 ax = self.plot_hist(
@@ -302,15 +317,24 @@ class RunHistPlotter:
         y = np.array([repeated_nom_values(hist) for hist in hists])
         labels = [hist.tex_string for hist in hists]
         if show_counts:
-            labels = [f"{label}: {hist.sum():.1f}" for label, hist in zip(labels, hists)]
+            labels = [
+                f"{label}: {hist.sum():.1f}" for label, hist in zip(labels, hists)
+            ]
         colors = None
-        # If all hist.color are not None, we can pass them to stackplot
-        if all([hist.color is not None for hist in hists]):
-            colors = [hist.color for hist in hists]
+        colors = [hist.color for hist in hists]
         # Hatches may be None
         hatches = [hist.hatch for hist in hists]
 
-        stackplot(ax, x, y, step="post", labels=labels, colors=colors, hatches=hatches, **kwargs)
+        stackplot(
+            ax,
+            x,
+            y,
+            step="post",
+            labels=labels,
+            colors=colors,
+            hatches=hatches,
+            **kwargs,
+        )
         if not show_errorband:
             return ax
         # plot uncertainties as a shaded region, but only for the sum of all hists
