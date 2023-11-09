@@ -1,0 +1,41 @@
+name: Python application test with unittest
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: python3LEE
+        python-version: 3.7
+        auto-activate-base: false
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        conda activate python3LEE
+        conda install scipy pandas==1.0.5 matplotlib
+        conda install -c conda-forge uncertainties
+        # scikit-learn is also not used for testing at the moment
+        # conda install scikit-learn
+        # For testing purposes, we don't need jupyter (it only slows down the workflow)
+        # conda install jupyter
+        # TODO: Run some tests on the data loading part
+        # conda install -c conda-forge uproot==3.11.6
+        # conda install dask-core
+        # conda install -c conda-forge xgboost==0.90
+        # conda install -c conda-forge shap
+        pip install unitpy
+    - name: Run tests
+      shell: bash -l {0}
+      run: |
+        conda activate python3LEE
+        python -m unittest discover

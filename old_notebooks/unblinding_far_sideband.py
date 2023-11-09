@@ -10,6 +10,10 @@ PRESQ += ' and selected == 1'
 PRESQ += ' and shr_energy_tot_cali > 0.07'
 PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
 
+# 1e1p preselection
+OnePPRESQ = PRESQ
+OnePPRESQ += ' and n_tracks_contained == 1 and n_showers_contained == 1'
+
 # 1eNp preselection
 NPPRESQ = PRESQ
 NPPRESQ += ' and n_tracks_contained > 0'
@@ -361,7 +365,8 @@ preselection_categories = {
     'None': {'query': None, 'title': None, 'dir': 'None'},
     'NSLICE': {'query': 'nslice==1', 'title': r"SliceID selection", 'dir': 'NSLICE'},
     'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
-    'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ pre-selection w/ CRT", 'dir': 'NUMUCRT'}
+    'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ pre-selection w/ CRT", 'dir': 'NUMUCRT'},
+    'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'}
 
 }
 
