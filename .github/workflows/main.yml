@@ -22,16 +22,16 @@ jobs:
       shell: bash -l {0}
       run: |
         conda activate python3LEE
-        conda install scipy
-        conda install scikit-learn
-        conda install jupyter
-        conda install pandas==1.0.5
-        conda install matplotlib
-        conda install -c conda-forge uproot==3.11.6
-        conda install dask-core
-        conda install -c conda-forge xgboost==0.90
-        conda install -c conda-forge shap
-        conda install uncertainties
+        conda install scipy pandas==1.0.5 matplotlib uncertainties
+        # scikit-learn is also not used for testing at the moment
+        # conda install scikit-learn
+        # For testing purposes, we don't need jupyter (it only slows down the workflow)
+        # conda install jupyter
+        # TODO: Run some tests on the data loading part
+        # conda install -c conda-forge uproot==3.11.6
+        # conda install dask-core
+        # conda install -c conda-forge xgboost==0.90
+        # conda install -c conda-forge shap
         pip install unitpy
     - name: Run tests
       shell: bash -l {0}
