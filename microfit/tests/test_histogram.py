@@ -1,7 +1,7 @@
 """Unit Tests for plotting.histogram module"""
 import unittest
 
-from .histogram import (
+from ..histogram import (
     Histogram,
     HistogramGenerator,
     Binning,
@@ -9,12 +9,12 @@ from .histogram import (
     MultiChannelBinning,
     MultiChannelHistogram,
 )
-from .parameters import Parameter, ParameterSet
+from ..parameters import Parameter, ParameterSet
 import numpy as np
 import pandas as pd
 import uncertainties.unumpy as unumpy
 import logging
-from .statistics import fronebius_nearest_psd
+from ..statistics import fronebius_nearest_psd
 
 
 class TestHistogram(unittest.TestCase):
@@ -486,10 +486,7 @@ class TestHistogramGenerator(unittest.TestCase):
                 self.assertEqual(len(histogram.std_devs), binning.n_bins)
 
     def test_subchannel_extraction(self):
-        """Test that a subchannel extracted from a MultiChannelHistogram is the same as the
-        histogram that one would get from the HistogramGenerator with a single-channel
-        binning.
-        """
+
         df = self.make_dataframe()
         for second_query in ["matching", "non_matching", "overlapping"]:
             mc_binning = self.make_test_binning(
