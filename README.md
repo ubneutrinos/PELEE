@@ -17,7 +17,7 @@ conda install -c conda-forge uproot==3.11.6
 conda install dask-core
 conda install -c conda-forge xgboost==0.90
 conda install -c conda-forge shap
-conda install uncertainties
+conda install -c conda-forge uncertainties
 pip install unitpy
 ```
 (the xgboost version needs to be specified to be compatible with the stored BDTs)
