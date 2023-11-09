@@ -38,9 +38,11 @@ plots_path = "/Users/cerati/Notebooks/PELEE/plots/"
 ```
 
 ## Unit Tests
-Run unit tests to make sure core functionality is working as intended
+Run unit tests to make sure core functionality is working as intended.
+These tests are also automatically run on GitHub for every PR to `master`.
+Since all tests are defined in source files that match the `test_*.py` pattern, they are automatically discovered and run by `unittest`.
 ```
-python -m unittest microfit.parameters microfit.statistics microfit.test_histogram
+python -m unittest discover
 ```
 
 ## Tutorial
