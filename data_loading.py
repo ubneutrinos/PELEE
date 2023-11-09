@@ -18,13 +18,14 @@ import nue_booster
 import xgboost as xgb
 from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
+from numu_tki import selection_1muNp 
+from numu_tki import signal_1muNp 
+from numu_tki import tki_calculators 
 
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
-
-QUERY = "nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06  and nslice == 1 and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251.  and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110.  and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986.  and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775)  and topological_score > 0.06 & trk2_energy > 0.3" 
 
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
@@ -62,6 +63,11 @@ def get_variables():
 
     VARIABLES = [
         "nu_pdg",
+        "mc_pdg",
+        "mc_px",
+        "mc_py",
+        "mc_pz",
+        "mc_E",
         "slpdg",
         # "backtracked_pdg",
         # "trk_score_v",
@@ -79,7 +85,7 @@ def get_variables():
         "flash_pe",
         # The TRK scroe is a rugged array and we probably don't want it directly in the DataFrame.
         # The processing functions pick out the relevant values from it.
-        # "trk_llr_pid_score_v",  # trk-PID score
+        "trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
         "_opfilter_pe_veto",  # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x",
@@ -1789,6 +1795,8 @@ def process_uproot_numu(up, df):
     trk_start_x_v = up.array("trk_sce_start_x_v")
     trk_start_y_v = up.array("trk_sce_start_y_v")
     trk_start_z_v = up.array("trk_sce_start_z_v")
+   
+
     trk_energy_proton_v = up.array("trk_energy_proton_v")  # range-based proton kinetic energy
     trk_range_muon_mom_v = up.array("trk_range_muon_mom_v")  # range-based muon momentum
     trk_mcs_muon_mom_v = up.array("trk_mcs_muon_mom_v")
@@ -1799,6 +1807,22 @@ def process_uproot_numu(up, df):
     trk_calo_energy_y_v = up.array("trk_calo_energy_y_v")
     trk_pfp_id_v = up.array("trk_pfp_id_v")
     pfp_pdg_v = up.array("backtracked_pdg")
+
+    # CT: Adding track starts to the dataframe
+    df["trk_sce_start_x_v"] = trk_start_x_v
+    df["trk_sce_start_y_v"] = trk_start_y_v
+    df["trk_sce_start_z_v"] = trk_start_z_v
+    df["trk_sce_end_x_v"] = trk_end_x_v
+    df["trk_sce_end_y_v"] = trk_end_y_v
+    df["trk_sce_end_z_v"] = trk_end_z_v
+    df["trk_range_muon_mom_v"] = trk_range_muon_mom_v
+    df["trk_mcs_muon_mom_v"] = trk_mcs_muon_mom_v
+
+    # CT: Adding pfp info to the dataframe
+    df["pfp_generation_v"] = pfp_generation_v
+    df["trk_score_v"] = trk_score_v
+    df["trk_distance_v"] = trk_distance_v
+    df["trk_len_v"] = trk_len_v
 
     trk_mask = trk_score_v > 0.0
     proton_mask = (trk_score_v > 0.5) & (trk_llr_pid_v < 0.0)
@@ -1873,7 +1897,7 @@ def drop_vector_columns(df):
     drop_columns = [
             "trk_theta_v",
             "trk_end_z_v",
-            "trk_len_v",
+            #"trk_len_v",
             "shr_tkfit_dedx_nhits_v_v",
             "trk_phi_v",
             "shr_tkfit_dedx_y_v",
@@ -1905,15 +1929,21 @@ def apply_bdt_truth_filters(df):
 
 def get_rundict(run_number, category, dataset):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
-    with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
-    #with open(os.path.join(thisfile_path, "data_paths_2023.yml"), "r") as f:
+    
+    # Old ntuple paths
+    #with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
+
+    # New ntuple paths!
+    with open(os.path.join(thisfile_path, "data_paths_2023.yml"), "r") as f:
         pathdefs = yaml.safe_load(f)
 
     runpaths = pathdefs[category]
 
+    print("run_number=",run_number)
+
     # runpaths is a list of dictionaries that each contain the 'run_id' and 'path' keys
     # Search for the dictionary where 'run_id' matches the run_number
-    rundict = next((d for d in runpaths if d["run_id"] == run_number), None)
+    rundict = next((d for d in runpaths if d["run_id"] == str(run_number)), None)
     if rundict is None:
         raise ValueError(f"Run {run_number} not found in data_paths.yml for category {category}")
     # the "dataset" is the name such as "bnb", "ext", "nue", "drt", etc.
@@ -1949,28 +1979,50 @@ def load_sample(
     use_bdt=True,
     pi0scaling=0,
     load_crt_vars=False,
+    load_numu_tki=False,
+    full_path=""
 ):
 
-    """Load one sample of one run for a particular kind of events."""
+    # Load the file from data_path.yml
+    if full_path == "":
 
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
+        print("Using data_paths.yml to locate ntuple file")
 
-    if use_bdt:
-        assert loadshowervariables, "BDT requires shower variables"
+        """Load one sample of one run for a particular kind of events."""
+        
+        #assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
+        assert category in ["runs","numupresel","detvar"]
+        
+        if use_bdt:
+            assert loadshowervariables, "BDT requires shower variables"
+        
+        if use_lee_weights:
+            assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
+        
+        # CT: Slightly hacky way to ensure run number is >= 3 (assume first letter of string is >= 3)
+        if load_crt_vars:
+            assert run_number[0] >= 3, "CRT variables only available for R3 and up"
+        
+        # The path to the actual ROOT file
+        if category != "detvar":
+            rundict = get_rundict(run_number, category, dataset)
+            data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+            
+        else: 
+            rundict = get_rundict(run_number, category, dataset)
+            data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
+        
+        print("Loading ntuple file",data_path)
+        
+        # try returning an empty dataframe
+        if rundict[dataset]["file"] == "dummy":
+            print("Using dummy file for run",run_number,"dataset",dataset)
+            return None 
 
-    if use_lee_weights:
-        assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
-
-    if load_crt_vars:
-        assert run_number >= 3, "CRT variables only available for R3 and up"
-
-    # The path to the actual ROOT file
-    if category != "detvar":
-        rundict = get_rundict(run_number, category, dataset)
-        data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+    # Load the data from its full path
     else: 
-        rundict = get_rundict(run_number, category, dataset)
-        data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
+        print("Loading file",full_path,"instead of using data_paths.yml")
+        data_path = full_path 
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
@@ -1992,12 +2044,12 @@ def load_sample(
 
     df = up.pandas.df(variables, flatten=False)
 
-    df["bnbdata"] = dataset in ["bnb", "opendata_bnb"]
+    df["bnbdata"] = dataset in ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband"]
     df["extdata"] = dataset == "ext"
 
     # trk_energy_tot agrees here
     # For runs before 3, we put zeros for the CRT variables
-    if run_number < 3:
+    if int(run_number[0]) < 3:
         vardict = get_variables()
         crtvars = vardict["CRTVARS"]
         for var in crtvars:
@@ -2036,10 +2088,13 @@ def load_sample(
     if use_bdt:
         add_bdt_scores(df)
 
+    if load_numu_tki:
+        signal_1muNp.set_Signal1muNp(df)
+        selection_1muNp.apply_selection_1muNp(df) 
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category == "runs" and dataset not in ["bnb", "ext", "opendata_bnb"]
+    is_mc = category == "runs" and dataset not in ["bnb","bdt_sideband","shr_energy_sideband","ext","opendata_bnb"]
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2084,6 +2139,7 @@ def _load_run(
     numupresel=False,
     **load_sample_kwargs,
 ):
+
     category = "numupresel" if numupresel else "runs"
     output = {}
     weights = {}
@@ -2162,6 +2218,19 @@ def _load_run(
             df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
 
+    # If using one of the sideband datasets, apply the same query to the MC as well
+    datadict = get_rundict(run_number,category,data)[data] 
+    print(len(output["mc"]))
+    if "sideband_def" in datadict:
+        sdb_def = datadict["sideband_def"]
+        print("The sideband data you're using had the following query applied:")
+        print(sdb_def)
+        print("I will also apply this query to the MC you're loading")
+        for key in output:
+            df_temp = output[key].query(sdb_def)
+            output[key] = df_temp
+
+    print(len(output["mc"]))
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
 # CT: Separate function for loading detector variations 
@@ -2390,7 +2459,7 @@ def get_run_variables(
     use_lee_weights=False,
     load_crt_vars=False,
 ):
-    assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
+    assert category in ["runs","numupresel","detvar"]
 
     VARDICT = get_variables()
     VARIABLES = VARDICT["VARIABLES"]
@@ -2405,7 +2474,6 @@ def get_run_variables(
     if loadsystematics:
         WEIGHTS += SYSTVARS
         WEIGHTSLEE += SYSTVARS
-
     if loadpi0variables:
         VARIABLES += PI0VARS
     if loadshowervariables:
@@ -2418,7 +2486,7 @@ def get_run_variables(
     ALLVARS = VARIABLES
 
     # Weights are only available in MC runs.
-    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb"]:
+    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband"]:
         if use_lee_weights:
             assert dataset == "nue", "LEE weights are only available for nue runs"
             ALLVARS += WEIGHTSLEE

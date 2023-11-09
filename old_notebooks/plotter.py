@@ -1580,8 +1580,11 @@ class Plotter:
                 variable, self.samples["ext"], query=query, track_cuts=track_cuts, select_longest=select_longest)
             ext_plotted_variable = self._select_showers(
             ext_plotted_variable, variable, self.samples["ext"], query=query)
+            ext_weight = [self.weights["ext"]] * len(ext_plotted_variable)
+            
             data_plotted_variable = self._selection(
             variable, self.samples["data"], query=query, track_cuts=track_cuts, select_longest=select_longest)
+
             data_plotted_variable = self._select_showers(data_plotted_variable, variable,
                                                      self.samples["data"], query=query)
             #### for paper add EXT to the stacked plot
