@@ -103,10 +103,16 @@ runs:
       pot: 3.27E+20
   - run_id: "4b"
     path: run4b/nuepresel/
-    bnb:  
-      file: dummy
-      pot: 1.47E+20 # POT from Reco 1 definition TODO: Update when files processed
-      trig: 34838180 # Triggers from Reco 1 definition TODO: Update when files processed
+    bdt_sideband:
+      file: SignalRemoved_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
+      pot: 1.47E+20
+      trig: 34737600
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband: 
+      file: ShowerSideband_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana
+      pot: 1.47E+20
+      trig: 34737600
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: Run4b_bnb_beamOff_PeLee_ntuples_run4b_ana
       trig: 91167643
@@ -285,10 +291,16 @@ numupresel:
       pot: 3.27E+20
   - run_id: "4b"
     path: run4b/numupresel/
-    bnb:  
-      file: dummy
-      pot: 1.47E+20 # POT from Reco 1 definition TODO: Update when files processed
-      trig: 34838180 # Triggers from Reco 1 definition TODO: Update when files processed
+    bdt_sideband:
+      file: SignalRemoved_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
+      pot: 1.47E+20
+      trig: 34737600
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband: 
+      file: ShowerSideband_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana
+      pot: 1.47E+20
+      trig: 34737600
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: Run4b_bnb_beamOff_PeLee_ntuples_run4b_ana
       trig: 91167643
