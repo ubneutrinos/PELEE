@@ -268,7 +268,15 @@ class RunHistPlotter:
         bin_counts = np.append(bin_counts, bin_counts[-1])
         default_linestyle = "--" if hist.hatch == "///" else "-"
         linestyle = kwargs.pop("linestyle", default_linestyle)
-        p = ax.step(bin_edges, bin_counts, where="post", label=label, color=color, linestyle=linestyle, **kwargs)
+        p = ax.step(
+            bin_edges,
+            bin_counts,
+            where="post",
+            label=label,
+            color=color,
+            linestyle=linestyle,
+            **kwargs,
+        )
         if not show_errorband:
             return ax
         # plot uncertainties as a shaded region
