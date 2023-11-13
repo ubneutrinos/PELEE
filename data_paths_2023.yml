@@ -172,10 +172,16 @@ runs:
       pot: 2.01E+20
   - run_id: "5"
     path: run5/nuepresel/
-    bnb:
-      file: dummy 
-      pot: 1.31E+20
-      trig: 31233834
+    bdt_sideband:
+      file: SignalRemoved_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
+      pot: 1.301e+20  
+      trig: 31064575.0
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana
+      pot: 1.301e+20
+      trig: 31064575.0  
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
       trig: 115079907 
@@ -360,10 +366,16 @@ numupresel:
       pot: 2.01E+20
   - run_id: "5"
     path: run5/numupresel/
-    bnb:
-      file: dummy 
-      pot: 1.31E+20
-      trig: 31233834
+    bdt_sideband:
+      file: SignalRemoved_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
+      pot: 1.301e+20  
+      trig: 31064575.0
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana
+      pot: 1.301e+20
+      trig: 31064575.0  
+      sideband_def: shr_energy_tot_cali > 0.75
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
       trig: 115079907 
