@@ -23,6 +23,7 @@ from numu_tki import signal_1muNp
 from numu_tki import tki_calculators 
 
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
+verbose=False
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
@@ -1939,7 +1940,7 @@ def get_rundict(run_number, category, dataset):
 
     runpaths = pathdefs[category]
 
-    print("run_number=",run_number)
+    if verbose: print("get_rundict: run_number=",run_number)
 
     # runpaths is a list of dictionaries that each contain the 'run_id' and 'path' keys
     # Search for the dictionary where 'run_id' matches the run_number
@@ -1986,7 +1987,7 @@ def load_sample(
     # Load the file from data_path.yml
     if full_path == "":
 
-        print("Using data_paths.yml to locate ntuple file")
+        if verbose: print("Using data_paths.yml to locate ntuple file")
 
         """Load one sample of one run for a particular kind of events."""
         
@@ -2001,7 +2002,7 @@ def load_sample(
         
         # CT: Slightly hacky way to ensure run number is >= 3 (assume first letter of string is >= 3)
         if load_crt_vars:
-            assert run_number[0] >= 3, "CRT variables only available for R3 and up"
+            assert int(run_number[0]) >= 3, "CRT variables only available for R3 and up"
         
         # The path to the actual ROOT file
         if category != "detvar":
@@ -2011,17 +2012,17 @@ def load_sample(
         else: 
             rundict = get_rundict(run_number, category, dataset)
             data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
-        
-        print("Loading ntuple file",data_path)
+       
+        if verbose: print("Loading ntuple file",data_path)
         
         # try returning an empty dataframe
         if rundict[dataset]["file"] == "dummy":
-            print("Using dummy file for run",run_number,"dataset",dataset)
+            if verbose: print("Using dummy file for run",run_number,"dataset",dataset)
             return None 
 
     # Load the data from its full path
     else: 
-        print("Loading file",full_path,"instead of using data_paths.yml")
+        if verbose: print("Loading file",full_path,"instead of using data_paths.yml")
         data_path = full_path 
 
     fold = "nuselection"
@@ -2054,6 +2055,7 @@ def load_sample(
         crtvars = vardict["CRTVARS"]
         for var in crtvars:
             df[var] = 0.0
+
     # We also add some "one-hot" variables for the run number
     # TODO: Do we need this?
     df["run1"] = True if run_number == 1 else False
@@ -2220,17 +2222,16 @@ def _load_run(
 
     # If using one of the sideband datasets, apply the same query to the MC as well
     datadict = get_rundict(run_number,category,data)[data] 
-    print(len(output["mc"]))
     if "sideband_def" in datadict:
         sdb_def = datadict["sideband_def"]
-        print("The sideband data you're using had the following query applied:")
-        print(sdb_def)
-        print("I will also apply this query to the MC you're loading")
+        if verbose:
+            print("The sideband data you're using had the following query applied:")
+            print(sdb_def)
+            print("I will also apply this query to the MC you're loading")
         for key in output:
             df_temp = output[key].query(sdb_def)
             output[key] = df_temp
 
-    print(len(output["mc"]))
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
 # CT: Separate function for loading detector variations 
@@ -2248,7 +2249,7 @@ def _load_run_detvar(
     assert(data_pot > 0) , "_load_run_detvar: Negative data POT!"
     assert var in detector_variations 
    
-    if run_number == 1 and var == "lydown":
+    if verbose and run_number == 1 and var == "lydown":
         print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
  
     output = {}
@@ -2492,9 +2493,11 @@ def get_run_variables(
             ALLVARS += WEIGHTSLEE
         else:
             ALLVARS += WEIGHTS
+
     # Starting in Run 3, the CRT veto has been implemented.
-    if load_crt_vars and run_number >= 3:
+    if load_crt_vars and int(run_number[0]) >= 3:
         ALLVARS += VARDICT["CRTVARS"]
+
     # There are some additional variables that are only used for baseline "nu"
     # MC runs.
     if dataset == "nu":
