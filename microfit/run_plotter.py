@@ -186,7 +186,7 @@ class RunHistPlotter:
         else:
             for background_hist in background_hists:
                 ax = self.plot_hist(
-                    background_hist, ax=ax, show_errorband=True, **kwargs,
+                    background_hist, ax=ax, show_errorband=False, **kwargs,
                 )
         if show_total:
             ax = self.plot_hist(
@@ -250,10 +250,8 @@ class RunHistPlotter:
         bin_counts = hist.nominal_values
         bin_counts[bin_counts <= 0] = np.nan
         bin_edges = hist.binning.bin_edges
-        if "label" in kwargs:
-            label = kwargs.pop("label")
-        else:
-            label = hist.tex_string
+        label = kwargs.pop("label", hist.tex_string)
+        color = kwargs.pop("color", hist.color)
         if as_errorbars:
             ax.errorbar(
                 hist.binning.bin_centers,
@@ -262,12 +260,23 @@ class RunHistPlotter:
                 linestyle="none",
                 marker=".",
                 label=label,
+                color=color,
                 **kwargs,
             )
             return ax
         # Be sure to repeat the last bin count
         bin_counts = np.append(bin_counts, bin_counts[-1])
-        p = ax.step(bin_edges, bin_counts, where="post", label=label, **kwargs)
+        default_linestyle = "--" if hist.hatch == "///" else "-"
+        linestyle = kwargs.pop("linestyle", default_linestyle)
+        p = ax.step(
+            bin_edges,
+            bin_counts,
+            where="post",
+            label=label,
+            color=color,
+            linestyle=linestyle,
+            **kwargs,
+        )
         if not show_errorband:
             return ax
         # plot uncertainties as a shaded region
