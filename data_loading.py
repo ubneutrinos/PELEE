@@ -409,16 +409,16 @@ def add_paper_category(df, key):
     if key in ["data", "nu"]:
         return
     df.loc[df["paper_category"].isin([1, 10]), "paper_category"] = 11
-    if key is "nue":
+    if key == "nue":
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 0), "paper_category"] = 11
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 1), "paper_category"] = 2
         df.loc[(df["paper_category"] == 3), "paper_category"] = 2
         return
-    if key is "lee":
+    if key == "lee":
         df.loc[df["category"].isin([4, 5]), "paper_category"] = 111
         df.loc[(df["paper_category"] == 3), "paper_category"] = 2
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category"] = 2
         return
     df.loc[(df["npi0"] > 0), "paper_category"] = 31
@@ -441,7 +441,7 @@ def add_paper_xsec_category(df, key):
         return
     df.loc[(df["npi0"] > 0), "paper_category_xsec"] = 31
     df.loc[(df["npi0"] == 0), "paper_category_xsec"] = 2
-    if key is "nue":
+    if key == "nue":
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 1), "paper_category_xsec"] = 2
         df.loc[(df["category"] == 3), "paper_category_xsec"] = 2
         df.loc[
@@ -465,7 +465,7 @@ def add_paper_xsec_category(df, key):
             "paper_category_xsec",
         ] = 11
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category_xsec"] = 2
         return
 
@@ -476,13 +476,13 @@ def add_paper_numu_category(df, key):
         return
     df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 2
     df.loc[(df["ccnc"] == 1), "paper_category_numu"] = 3
-    if key is "nue":
+    if key == "nue":
         df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 11
         return
-    if key is "lee":
+    if key == "lee":
         df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 111
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category"] = 5
         df["paper_category_numu"] = 5
         return
