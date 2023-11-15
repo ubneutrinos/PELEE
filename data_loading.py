@@ -2164,6 +2164,10 @@ def _load_run(
     ] + truth_filtered_sets  # CT: The existing plotter.py looks for a sample labelled "mc" mfor the numu component
     if load_lee:
         mc_sets.append("lee")
+    # We get the number of expected multisim universes from the first mc set.
+    # Then, we can check that every truth-filtered mc set has the same number of universes.
+    # Also, we can fix the issue where multisim universes are missing for the drt sample.
+    expected_multisim_universes = {"weightsGenie": None, "weightsFlux": None, "weightsReint": None}
     for mc_set in mc_sets:
         if mc_set == "lee":
             print("Loading lee sample")
@@ -2197,7 +2201,6 @@ def _load_run(
             """
             mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
             mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
-
         mc_df["dataset"] = mc_set
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
@@ -2207,6 +2210,25 @@ def _load_run(
         if mc_set == "lee":
             mc_df["weights"] *= mc_df["leeweight"]
             mc_df["weights_no_tune"] *= mc_df["leeweight"]
+        for ms_column in expected_multisim_universes:
+            multisim_weights = mc_df[ms_column].values
+            n_universes = len(multisim_weights[0])
+            # First, check that the number of universes is the same for every event
+            assert (
+                np.all([len(weights) == n_universes for weights in multisim_weights])
+            ), f"Multisim weights for {mc_set} have different numbers of universes"
+            if expected_multisim_universes[ms_column] is None:
+                expected_multisim_universes[ms_column] = n_universes
+            if n_universes != expected_multisim_universes[ms_column]:
+                if mc_set == "drt" and n_universes == 0:
+                    # For missing multisim universes, we replace them with a list of ones (stored as integer 1000) of the
+                    # correct length
+                    print(f"WARNING: {mc_set} has no {ms_column} universes, replacing with ones")
+                    mc_df[ms_column] = [[1000] * expected_multisim_universes[ms_column]] * len(mc_df)
+                else:
+                    raise ValueError(
+                        f"Multisim weights for {mc_set} have inconsistent or missing multisim universes for {ms_column}"
+                    )
         weights[mc_set] = data_pot / mc_pot
         output[mc_set] = mc_df
 
