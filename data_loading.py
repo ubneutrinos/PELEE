@@ -319,7 +319,9 @@ def get_variables():
 
     VARDICT["NUEVARS"] = NUEVARS
 
-    NUMUVARS = []
+    NUMUVARS = [
+    "trk_energy_proton_v"
+    ]
 
     VARDICT["NUMUVARS"] = NUMUVARS
 
@@ -2045,7 +2047,7 @@ def load_sample(
 
     df = up.pandas.df(variables, flatten=False)
 
-    df["bnbdata"] = dataset in ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband"]
+    df["bnbdata"] = dataset in ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband"]
     df["extdata"] = dataset == "ext"
 
     # trk_energy_tot agrees here
@@ -2096,7 +2098,7 @@ def load_sample(
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category == "runs" and dataset not in ["bnb","bdt_sideband","shr_energy_sideband","ext","opendata_bnb"]
+    is_mc = category == "runs" and dataset not in ["bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","ext","opendata_bnb"]
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2487,7 +2489,7 @@ def get_run_variables(
     ALLVARS = VARIABLES
 
     # Weights are only available in MC runs.
-    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband"]:
+    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband"]:
         if use_lee_weights:
             assert dataset == "nue", "LEE weights are only available for nue runs"
             ALLVARS += WEIGHTSLEE

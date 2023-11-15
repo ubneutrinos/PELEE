@@ -459,6 +459,7 @@ selection_categories = {
     # Selections with only the BDT score cuts inverted but no other criteria
     'BDT_SIDEBAND': {'query': "(pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72", 'title': '1e0p Sideband', 'dir': 'BDT_SIDEBAND'},
     'SHR_ENERGY_SIDEBAND': {'query': "shr_energy_tot_cali > 0.75", 'title': 'Shower Energy Sideband', 'dir': 'SHR_ENERGY_SIDEBANDbbbV'},
+    'TWO_SHR_SIDEBAND': {'query': "n_showers_contained >= 2", 'title': '1e0p Sideband', 'dir': 'TWO_SHR_SIDEBAND'},
 
 }
 
