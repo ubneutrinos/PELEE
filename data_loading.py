@@ -36,7 +36,7 @@ def generate_hash(*args, **kwargs):
 
 
 def cache_dataframe(func):
-    def wrapper(*args, enable_cache=False, cache_dir="cached_dataframes", **kwargs):
+    def wrapper(*args, enable_cache=False, cache_dir=ls.dataframe_cache_path, **kwargs):
 
         if not enable_cache:
             return func(*args, **kwargs)
