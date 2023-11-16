@@ -150,7 +150,6 @@ def phi_3D(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
 def alpha_3D(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
     q = vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
     pn = vec_pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
-    print(q.dot(pn)/np.sqrt(q.dot(q))/np.sqrt(pn.dot(pn)))
     arg = q.dot(pn)/np.sqrt(q.dot(q))/np.sqrt(pn.dot(pn))
     if arg != np.nan:
         if arg > 1.0: return 0.0

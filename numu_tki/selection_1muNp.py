@@ -1,4 +1,6 @@
+import math
 import numpy as np
+from numu_tki import tki_calculators
 
 # Selection Algorithms for the 1muNp channel
 # Re-using selection developed by Steven Gardiner
@@ -112,8 +114,105 @@ def get_reco_muon_mom(MuonCandidateIdx_1muNp,trk_range_muon_mom_v,trk_mcs_muon_m
 
     if MuonCandidateIdx_1muNp == -1: return np.nan
 
-    if MuonCandidateIdx_1muNp: return trk_range_muon_mom_v[MuonCandidateIdx_1muNp]
+    if MuonContained_1muNp: return trk_range_muon_mom_v[MuonCandidateIdx_1muNp]
     else: return trk_mcs_muon_mom_v[MuonCandidateIdx_1muNp] 
+
+################################################################################
+# Get a component of the muon momentum 
+
+def get_reco_muon_mom_comp(MuonCandidateIdx_1muNp,trk_range_muon_mom_v,trk_mcs_muon_mom_v,MuonContained_1muNp,trk_dir_v):
+
+    if MuonCandidateIdx_1muNp == -1: return np.nan
+
+    if MuonContained_1muNp: return trk_range_muon_mom_v[MuonCandidateIdx_1muNp]*trk_dir_v[MuonCandidateIdx_1muNp]
+    else: return trk_mcs_muon_mom_v[MuonCandidateIdx_1muNp]*trk_dir_v[MuonCandidateIdx_1muNp] 
+
+################################################################################
+# Get energy of reconstructed muon track
+
+MASS_MUON = 0.1057
+
+def get_reco_muon_E(RecoMuonMomentum_1muNp):
+    return math.sqrt(RecoMuonMomentum_1muNp*RecoMuonMomentum_1muNp + MASS_MUON*MASS_MUON) 
+
+################################################################################
+# Get momentum of reconstructed protons. Returns either a vector or 
+
+MASS_PROTON = 0.93827
+
+def get_reco_proton_mom(LeadProtonIdx_1muNp,trk_energy_proton_v):
+
+    ke = trk_energy_proton_v[LeadProtonIdx_1muNp]
+    return math.sqrt(ke*ke + 2*MASS_PROTON*ke)
+
+################################################################################
+# Get momentum of reconstructed protons. Returns either a vector or 
+
+def get_reco_proton_mom_comp(LeadProtonIdx_1muNp,trk_energy_proton_v,trk_dir_v):
+
+    if LeadProtonIdx_1muNp == -1: return np.nan
+
+    ke = trk_energy_proton_v[LeadProtonIdx_1muNp]
+    return math.sqrt(ke*ke + 2*MASS_PROTON*ke)*trk_dir_v[LeadProtonIdx_1muNp]
+
+################################################################################
+# Get momentum of reconstructed protons. Returns either a vector or 
+
+MASS_PROTON = 0.93827
+
+def get_reco_proton_E(RecoLeadProtonMomentum_1muNp):
+
+    return math.sqrt(RecoLeadProtonMomentum_1muNp*RecoLeadProtonMomentum_1muNp + MASS_PROTON*MASS_PROTON) 
+
+################################################################################
+# Get momentum of reconstructed protons. Returns either a vector or 
+
+MASS_PROTON = 0.93827
+
+def get_reco_proton_E_v(RecoProtonMomentum_1muNp):
+
+    E = []
+    for i in range(0,len(RecoProtonMomentum_1muNp)):
+        E.append(math.sqrt(RecoProtonMomentum_1muNp*RecoProtonMomentum_1muNp + MASS_PROTON*MASS_PROTON)) 
+
+    return E
+
+################################################################################
+# Get momentum of reconstructed protons. Returns either a vector or 
+
+def get_reco_proton_mom_v(ProtonCandidateIdx_1muNp,trk_energy_proton_v):
+
+    mom = []
+    for i in range(0,len(ProtonCandidateIdx_1muNp)):
+        ke = trk_energy_proton_v[ProtonCandidateIdx_1muNp[i]]
+        mom.append(math.sqrt(ke*ke + 2*MASS_PROTON*ke))
+
+    return mom
+
+################################################################################
+# Get momentum of reconstructed protons. Returns either a vector or 
+
+def get_reco_proton_mom_comp_v(ProtonCandidateIdx_1muNp,trk_energy_proton_v,trk_dir_v):
+
+    mom = []
+    for i in range(0,len(ProtonCandidateIdx_1muNp)):
+        ke = trk_energy_proton_v[ProtonCandidateIdx_1muNp[i]]
+        mom.append(math.sqrt(ke*ke + 2*MASS_PROTON*ke)*trk_dir_v[ProtonCandidateIdx_1muNp[i]])
+
+    return mom
+
+################################################################################
+# Get momentum of reconstructed protons. Returns either a vector or 
+
+MASS_PROTON = 0.93827
+
+def get_reco_proton_E_v(RecoProtonMomentum_1muNp):
+
+    E = []
+    for i in range(0,len(RecoProtonMomentum_1muNp)):
+        E.append(math.sqrt(RecoProtonMomentum_1muNp[i]*RecoProtonMomentum_1muNp[i] + MASS_PROTON*MASS_PROTON)) 
+
+    return E
 
 ################################################################################
 # Muon track momentun cuts 
@@ -163,15 +262,16 @@ def find_leading_proton_candidate(ProtonCandidateIdx_1muNp,trk_len_v):
 ################################################################################
 # Apply the whole selection
 
-def is_sel_1muNp(PassNuMuCCSelection_1muNp,NoRecoShowers_1muNp,MuonContained_1muNp,PassMuonMomentumCut_1muNp,PassMuonQualCut_1muNp,LeadingProtonPassMomentumCut_1muNp):
+def is_sel_1muNp(PassNuMuCCSelection_1muNp,NoRecoShowers_1muNp,MuonContained_1muNp,PassMuonMomentumCut_1muNp,PassMuonQualCut_1muNp,LeadProtonPassMomentumCut_1muNp):
     return PassNuMuCCSelection_1muNp and NoRecoShowers_1muNp and MuonContained_1muNp and\
-           PassMuonMomentumCut_1muNp and PassMuonQualCut_1muNp and LeadingProtonPassMomentumCut_1muNp
+           PassMuonMomentumCut_1muNp and PassMuonQualCut_1muNp and LeadProtonPassMomentumCut_1muNp
 
 ################################################################################
 # Add a column to the dataframe indicating whether event passed the 1muNp selection
 
 def apply_selection_1muNp(df,filter=False):
 
+    df = df.head(100)
     print("Applying SG's selection")
 
     df["MuonCandidateIdx_1muNp"] = df.apply(lambda x: (find_muon_candidate(x["pfp_generation_v"],x["trk_score_v"],x["trk_distance_v"],x["trk_len_v"],x["trk_llr_pid_score_v"])),axis=1)
@@ -187,25 +287,36 @@ def apply_selection_1muNp(df,filter=False):
     df["MuonContained_1muNp"] = df.apply(lambda x: (is_muon_contianed(x["MuonCandidateIdx_1muNp"],x["IsContained_1muNp"])),axis=1)
     df["RecoMuonMomentum_1muNp"] = df.apply(lambda x: (get_reco_muon_mom(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"])),axis=1)
     df["PassMuonMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoMuonMomentum_1muNp"],MUON_P_MIN_MOM_CUT,MUON_P_MAX_MOM_CUT)),axis=1) 
-
-    
-
-
     if filter: df = df.query("PassMuonMomentumCut_1muNp == True")
 
     df["PassMuonQualCut_1muNp"] = df.apply(lambda x: (pass_muon_qual_cut(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"])),axis=1)
     if filter: df = df.query("PassMuonQualCut_1muNp == True")
 
     df["ProtonCandidateIdx_1muNp"] = df.apply(lambda x: (find_proton_candidates(x["MuonCandidateIdx_1muNp"],x["pfp_generation_v"],x["trk_score_v"],x["trk_len_v"],x["trk_llr_pid_score_v"],x["IsContained_1muNp"])),axis=1)
-    df["LeadingProtonIdx_1muNp"] = df.apply(lambda x: (find_leading_proton_candidate(x["ProtonCandidateIdx_1muNp"],x["trk_len_v"])),axis=1)
-    df["LeadingProtonPassMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoMuonMomentum_1muNp"],LEAD_P_MIN_MOM_CUT,LEAD_P_MAX_MOM_CUT)),axis=1)
-    if filter: df = df.query("LeadingProtonPassMomentumCut_1muNp == True")  
+    
+    df["LeadProtonIdx_1muNp"] = df.apply(lambda x: (find_leading_proton_candidate(x["ProtonCandidateIdx_1muNp"],x["trk_len_v"])),axis=1)
+    df["RecoLeadProtonMomentum_1muNp"] = df.apply(lambda x: (get_reco_proton_mom(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"])),axis=1)
+    df["RecoProtonMomentum_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"])),axis=1)
+    df["LeadProtonPassMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoLeadProtonMomentum_1muNp"],LEAD_P_MIN_MOM_CUT,LEAD_P_MAX_MOM_CUT)),axis=1)
+    if filter: df = df.query("LeadProtonPassMomentumCut_1muNp == True")  
 
-    df["sel_CCNp0pi"] = df.apply(lambda x: (is_sel_1muNp(x["PassNuMuCCSelection_1muNp"],x["NoRecoShowers_1muNp"],x["MuonContained_1muNp"],x["PassMuonMomentumCut_1muNp"],x["PassMuonQualCut_1muNp"],x["LeadingProtonPassMomentumCut_1muNp"])),axis=1)
+    df["sel_CCNp0pi"] = df.apply(lambda x: (is_sel_1muNp(x["PassNuMuCCSelection_1muNp"],x["NoRecoShowers_1muNp"],x["MuonContained_1muNp"],x["PassMuonMomentumCut_1muNp"],x["PassMuonQualCut_1muNp"],x["LeadProtonPassMomentumCut_1muNp"])),axis=1)
     if filter: df = df.query("sel_CCNp0pi == True")
 
-     
+     # If the event passes the selection, set the various momentum/tki variables     
+    df["RecoMuonE_1muNp"] = df.apply(lambda x: (get_reco_muon_E(x["RecoMuonMomentum_1muNp"])),axis=1)
+    df["RecoMuonMomX_1muNp"] = df.apply(lambda x: (get_reco_muon_mom_comp(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"],x["trk_dir_x_v"])),axis=1)
+    df["RecoMuonMomY_1muNp"] = df.apply(lambda x: (get_reco_muon_mom_comp(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"],x["trk_dir_y_v"])),axis=1)
+    df["RecoMuonMomZ_1muNp"] = df.apply(lambda x: (get_reco_muon_mom_comp(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"],x["trk_dir_z_v"])),axis=1)
 
+    df["RecoLeadProtonE_1muNp"] = df.apply(lambda x: (get_reco_proton_E(x["RecoLeadProtonMomentum_1muNp"])),axis=1)
+    df["RecoLeadProtonMomX_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_x_v"])),axis=1)
+    df["RecoLeadProtonMomY_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_y_v"])),axis=1)
+    df["RecoLeadProtonMomZ_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_z_v"])),axis=1)
 
- 
+    df["RecoProtonE_1muNp"] = df.apply(lambda x: (get_reco_proton_E_v(x["RecoProtonMomentum_1muNp"])),axis=1)
+    df["RecoProtonMomX_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_x_v"])),axis=1)
+    df["RecoProtonMomY_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_y_v"])),axis=1)
+    df["RecoProtonMomZ_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_z_v"])),axis=1)
+
     return df  

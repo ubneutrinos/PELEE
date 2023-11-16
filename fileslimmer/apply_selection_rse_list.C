@@ -45,13 +45,6 @@ void apply_selection_rse_list(const string in_file,const string rse_list){
 
     t_in->GetEntry(ientry);
 
-    //std::cout << run << " " << sub << " " << evt << std::endl;
-
-    // only keep events with corresponding entries in the rse map 
-   // if(rse_map.find(run) != rse_map.end() && std::find(rse_map.at(run).begin(),rse_map.at(run).end(),std::make_pair(sub,evt)) != rse_map.at(run).end()){
-  //    t_out->Fill();      
- //   }
-
     if(rse_map.find(run) != rse_map.end()){
       std::vector<std::pair<int,int>>* se = &rse_map.at(run);
       std::pair<int,int> tree_se = std::make_pair(sub,evt); 
