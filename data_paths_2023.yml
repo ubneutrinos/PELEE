@@ -180,18 +180,18 @@ runs:
     path: run4d/nuepresel/
     bdt_sideband:
       file: SignalRemoved_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
-      pot: 5.11E+19
-      trig: 11610448
+      pot: 5.01E+19
+      trig: 11391193 
       sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
     shr_energy_sideband:
       file: ShowerSideband_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana  
-      pot: 5.11E+19
-      trig: 11610448
+      pot: 5.01E+19
+      trig: 11391193
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
       file: TwoShowers_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana  
-      pot: 5.11E+19
-      trig: 11610448
+      pot: 5.01E+19
+      trig: 11391193
       sideband_def: n_showers_contained >= 2
     ext:
       file: Run4d_bnb_beamOff_PeLee_ntuples_run4d_ana_ana 
@@ -412,18 +412,18 @@ numupresel:
     path: run4d/numupresel/
     bdt_sideband:
       file: SignalRemoved_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
-      pot: 5.11E+19
-      trig: 11610448
+      pot: 5.01E+19
+      trig: 11391193 
       sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
     shr_energy_sideband:
       file: ShowerSideband_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana  
-      pot: 5.11E+19
-      trig: 11610448
+      pot: 5.01E+19
+      trig: 11391193
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
       file: TwoShowers_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana  
-      pot: 5.11E+19
-      trig: 11610448
+      pot: 5.01E+19
+      trig: 11391193
       sideband_def: n_showers_contained >= 2
     ext:
       file: Run4d_bnb_beamOff_PeLee_ntuples_run4d_ana_ana 
