@@ -178,8 +178,8 @@ def pn_TX(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
     q = vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
     qT = np.array([q[0],q[1],0.0])
     pnu = np.array([0,0,1.0])   
-    p = pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
-    return np.cross(qT,pnu).dot(p)
+    p = vec_pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
+    return (np.cross(qT,pnu)).dot(p)
 
 ################################################################################
 # p n (perp) y 
@@ -188,7 +188,7 @@ def pn_TY(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
     q = vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
     qT = np.array([q[0],q[1],0.0])
     pnu = np.array([0,0,1.0])   
-    p = pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
+    p = vec_pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
     return np.cross(q,np.cross(qT,pnu)).dot(p)
 
 ################################################################################
@@ -204,5 +204,5 @@ def pn_T(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
 
 def pn_II(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
     q = vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
-    p = pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
+    p = vec_pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
     return q.dot(p) 

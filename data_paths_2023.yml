@@ -185,7 +185,7 @@ runs:
       trig: 20639283 
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
-      file: TwoShower_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
+      file: TwoShowers_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.11E+19
       trig: 20639283 
       sideband_def: n_showers_contained >= 2
@@ -294,6 +294,11 @@ numupresel:
       pot: 1.67E+20
       trig: 37273255.00
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+      sideband_def: n_muons_tot > 0
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
       trig: 65744587 
@@ -328,6 +333,11 @@ numupresel:
       pot: 2.61E+20 
       trig: 61882791 
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 2.61E+20 
+      trig: 61882791 
+      sideband_def: n_muons_tot > 0
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
       trig: 153905891 
@@ -367,6 +377,11 @@ numupresel:
       pot: 2.57E+20
       trig: 61326657
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 61326657
+      sideband_def: n_muons_tot > 0  
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
       trig: 207224641.0 
@@ -397,6 +412,11 @@ numupresel:
       pot: 1.47E+20
       trig: 34737600
       sideband_def: n_showers_contained >= 2
+    muon_sideband: 
+      file: NuMuSideband_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana
+      pot: 1.47E+20
+      trig: 34737600
+      sideband_def: n_muons_tot > 0 
     ext:
       file: Run4b_bnb_beamOff_PeLee_ntuples_run4b_ana
       trig: 91167643
@@ -423,10 +443,15 @@ numupresel:
       trig: 20639283
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
-      file: TwoShower_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
+      file: TwoShowers_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.11E+19
       trig: 20639283 
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
+      pot: 9.11E+19
+      trig: 20639283 
+      sideband_def: n_muons_tot > 0 
     ext:
       file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
       trig: 50978641 
@@ -457,6 +482,11 @@ numupresel:
       pot: 5.01E+19
       trig: 11391193
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana  
+      pot: 5.01E+19
+      trig: 11391193
+      sideband_def: n_muons_tot > 0
     ext:
       file: Run4d_bnb_beamOff_PeLee_ntuples_run4d_ana_ana 
       trig: 75637751 
@@ -487,6 +517,11 @@ numupresel:
       pot: 1.301e+20
       trig: 31064575.0  
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana
+      pot: 1.301e+20
+      trig: 31064575.0  
+      sideband_def: n_muons_tot > 0 
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
       trig: 115079907 

@@ -319,6 +319,40 @@ vtx_variables = [
     ("reco_nu_vtx_sce_z", 5, (0, 1030), "reco neutrino vertex z [cm]"),
 ]
 
+tki_truth_variables_1mu1p = [
+    ("TrueDeltaPT_1mu1p", 10, (0.0,1.2), "delta pT"),
+    ("TrueDeltaPhiT_1mu1p", 10, (0.0,3.142), "delta phiT"),
+    ("TrueDeltaAlphaT_1mu1p", 10, (0.0,3.142), "delta alphaT"),
+    ("TrueECal_1mu1p", 10, (0.1,2.0), "Ecal"),
+    ("TruePL_1mu1p", 10, (0.0,0.75), "pL"),
+    ("TruePN_1mu1p", 10, (0.0,1.0), "pn"),
+    ("TrueAlpha3D_1mu1p", 10, (0.0,3.142), "alpha 3D"),
+    ("TruePhi3D_1mu1p", 10, (0.0,3.142), "phi 3D"),
+    ("TrueDeltaPTX_1mu1p", 10, (-0.5,0.5), "delta pTX"),
+    ("TrueDeltaPTY_1mu1p", 10, (-0.5,0.5), "delta pTY"),
+    ("TruePNTX_1mu1p", 10, (-0.3,0.3), "pnTx"),
+    ("TruePNTY_1mu1p", 10, (-0.5,0.5), "pnTy"),
+    ("TruePNT_1mu1p", 10, (0.0,0.5), "pnT"),
+    ("TruePNII_1mu1p", 10, (-0.5,0.75), "pnII"),
+]
+
+tki_reco_variables_1mu1p = [
+    ("RecoDeltaPT_1mu1p", 10, (0.0,1.2), "delta pT"),
+    ("RecoDeltaPhiT_1mu1p", 10, (0.0,3.142), "delta phiT"),
+    ("RecoDeltaAlphaT_1mu1p", 10, (0.0,3.142), "delta alphaT"),
+    ("RecoECal_1mu1p", 10, (0.1,2.0), "Ecal"),
+    ("RecoPL_1mu1p", 10, (0.0,0.75), "pL"),
+    ("RecoPN_1mu1p", 10, (0.0,1.0), "pn"),
+    ("RecoAlpha3D_1mu1p", 10, (0.0,3.142), "alpha 3D"),
+    ("RecoPhi3D_1mu1p", 10, (0.0,3.142), "phi 3D"),
+    ("RecoDeltaPTX_1mu1p", 10, (-0.5,0.5), "delta pTX"),
+    ("RecoDeltaPTY_1mu1p", 10, (-0.5,0.5), "delta pTY"),
+    ("RecoPNTX_1mu1p", 10, (-0.3,0.3), "pnTx"),
+    ("RecoPNTY_1mu1p", 10, (-0.5,0.5), "pnTy"),
+    ("RecoPNT_1mu1p", 10, (0.0,0.5), "pnT"),
+    ("RecoPNII_1mu1p", 10, (-0.5,0.75), "pnII"),
+]
 
 plot_variables = basic_variables + evtsel_variabls + shrsel_variables + bdtscore_variables
 plot_variables += kinematic_variables
+plot_variables += tki_truth_variables_1mu1p
