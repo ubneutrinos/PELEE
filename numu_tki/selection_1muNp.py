@@ -270,9 +270,8 @@ def is_sel_1muNp(PassNuMuCCSelection_1muNp,NoRecoShowers_1muNp,MuonContained_1mu
 # Add a column to the dataframe indicating whether event passed the 1muNp selection
 
 def apply_selection_1muNp(df,filter=False):
-
-    df = df.head(100)
     print("Applying SG's selection")
+    print(len(df))
 
     df["MuonCandidateIdx_1muNp"] = df.apply(lambda x: (find_muon_candidate(x["pfp_generation_v"],x["trk_score_v"],x["trk_distance_v"],x["trk_len_v"],x["trk_llr_pid_score_v"])),axis=1)
     if filter: df = df.query("MuonCandidateIdx_1muNp != -1")
@@ -319,4 +318,57 @@ def apply_selection_1muNp(df,filter=False):
     df["RecoProtonMomY_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_y_v"])),axis=1)
     df["RecoProtonMomZ_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_z_v"])),axis=1)
 
-    return df  
+    # Drop all of the temporary columns added to the dataframe to save space
+    df.drop("MuonCandidateIdx_1muNp",inplace=True,axis=1) 
+    df.drop("IsContained_1muNp",inplace=True,axis=1) 
+    df.drop("PassNuMuCCSelection_1muNp",inplace=True,axis=1)
+    df.drop("NoRecoShowers_1muNp",inplace=True,axis=1)
+    df.drop("MuonContained_1muNp",inplace=True,axis=1)
+    df.drop("PassMuonMomentumCut_1muNp",inplace=True,axis=1)
+    df.drop("PassMuonQualCut_1muNp",inplace=True,axis=1)
+    df.drop("ProtonCandidateIdx_1muNp",inplace=True,axis=1) 
+    df.drop("LeadProtonIdx_1muNp",inplace=True,axis=1)
+    df.drop("LeadProtonPassMomentumCut_1muNp",inplace=True,axis=1)
+   
+    print("Calc reco TKI variables for leading proton only")
+
+    df["RecoDeltaPT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_pT(x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaPhiT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaAlphaT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoECal_1mu1p"] = df.apply(lambda x: (tki_calculators.Ecal(x["RecoMuonE_1muNp"],x["RecoLeadProtonE_1muNp"])),axis=1)
+    df["RecoPL_1mu1p"] = df.apply(lambda x: (tki_calculators.pL(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoPN_1mu1p"] = df.apply(lambda x: (tki_calculators.pn(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoAlpha3D_1mu1p"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoPhi3D_1mu1p"] = df.apply(lambda x: (tki_calculators.phi_3D(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaPTX_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_pT_X(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaPTY_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_pT_Y(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoPNTX_1mu1p"] = df.apply(lambda x: (tki_calculators.pn_TX(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoPNTY_1mu1p"] = df.apply(lambda x: (tki_calculators.pn_TY(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoPNT_1mu1p"] = df.apply(lambda x: (tki_calculators.pn_T(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoPNII_1mu1p"] = df.apply(lambda x: (tki_calculators.pn_II(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+
+    print("Calc reco TKI variables with all FS protons above threshold")
+
+    df["RecoDeltaPT_1muNp"] = df.apply(lambda x: (tki_calculators.delta_pT(x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaPhiT_1muNp"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaAlphaT_1muNp"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoECal_1muNp"] = df.apply(lambda x: (tki_calculators.Ecal(x["RecoMuonE_1muNp"],x["RecoProtonE_1muNp"])),axis=1)
+    df["RecoPL_1muNp"] = df.apply(lambda x: (tki_calculators.pL(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoPN_1muNp"] = df.apply(lambda x: (tki_calculators.pn(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoAlpha3D_1muNp"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoPhi3D_1muNp"] = df.apply(lambda x: (tki_calculators.phi_3D(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaPTX_1muNp"] = df.apply(lambda x: (tki_calculators.delta_pT_X(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaPTY_1muNp"] = df.apply(lambda x: (tki_calculators.delta_pT_Y(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoPNTX_1muNp"] = df.apply(lambda x: (tki_calculators.pn_TX(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoPNTY_1muNp"] = df.apply(lambda x: (tki_calculators.pn_TY(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoPNT_1muNp"] = df.apply(lambda x: (tki_calculators.pn_T(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+    df["RecoPNII_1muNp"] = df.apply(lambda x: (tki_calculators.pn_II(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
+
+
+    df.drop("RecoProtonE_1muNp",inplace=True,axis=1)
+    df.drop("RecoProtonMomentum_1muNp",inplace=True,axis=1)
+    df.drop("RecoProtonMomX_1muNp",inplace=True,axis=1)
+    df.drop("RecoProtonMomY_1muNp",inplace=True,axis=1)
+    df.drop("RecoProtonMomZ_1muNp",inplace=True,axis=1)
+   
+    return df

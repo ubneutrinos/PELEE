@@ -89,6 +89,9 @@ def true_mom(TrueIdx_1muNp,mc_p):
 
 def true_mom_tot(TrueIdx_v,mc_p):
 
+    if len(TrueIdx_v) == 0:
+        return np.nan
+
     p=0
     for i in TrueIdx_v:
         p = p + mc_p[i]    
@@ -119,9 +122,8 @@ def n_proton(TrueIdx_v):
 
 def set_Signal1muNp(df):
 
-    df = df.head(100)
-
     df["InFV_1muNp"] = df.apply(lambda x: (in_fiducial_volume(x["true_nu_vtx_x"],x["true_nu_vtx_y"],x["true_nu_vtx_z"])),axis=1)
+    
     df["TrueMuonIdx_1muNp"] = df.apply(lambda x: (true_muon_idx(x["mc_pdg"],x["mc_E"])),axis=1)
     df["TrueProtonIdx_1muNp"] = df.apply(lambda x: (true_proton_idx(x["mc_pdg"],x["mc_E"])),axis=1)
     df["TrueLeadProtonIdx_1muNp"] = df.apply(lambda x: (true_lead_proton_idx(x["mc_pdg"],x["mc_E"])),axis=1)
@@ -147,11 +149,15 @@ def set_Signal1muNp(df):
     df["TrueLeadProtonMomY_1muNp"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx_1muNp"],x["mc_py"])),axis=1)
     df["TrueLeadProtonMomZ_1muNp"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx_1muNp"],x["mc_pz"])),axis=1)
 
+
     # Set the signal definition
     df.loc[((df["TrueMuonIdx_1muNp"] != -1) & (df["TrueLeadProtonIdx_1muNp"] != -1) & (df["InFV_1muNp"] == True)), "Signal_1muNp"] = True 
+    df.loc[((df["TrueMuonIdx_1muNp"] == -1) | (df["TrueLeadProtonIdx_1muNp"] == -1) | (df["InFV_1muNp"] != True)), "Signal_1muNp"] = False 
     df.loc[((df["TrueMuonIdx_1muNp"] != -1) & (df["TrueLeadProtonIdx_1muNp"] != -1) & (df["InFV_1muNp"] == True) & (df["TrueNProt_1muNp"] == 1)), "Signal_1mu1p"] = True 
+    df.loc[((df["TrueMuonIdx_1muNp"] == -1) | (df["TrueLeadProtonIdx_1muNp"] == -1) | (df["InFV_1muNp"] != True) | (df["TrueNProt_1muNp"] != 1)), "Signal_1mu1p"] = False 
 
-    print("Calc deltapT for leading proton only")
+    print("Calc true TKI variables for leading proton only")
+
     df["TrueDeltaPT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_pT(x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TrueDeltaPhiT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TrueDeltaAlphaT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
@@ -167,7 +173,8 @@ def set_Signal1muNp(df):
     df["TruePNT_1mu1p"] = df.apply(lambda x: (tki_calculators.pn_T(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TruePNII_1mu1p"] = df.apply(lambda x: (tki_calculators.pn_II(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
 
-    print("Calc deltapT with all FS protons above threshold")
+    print("Calc true TKI variables with all FS protons above threshold")
+
     df["TrueDeltaPT_1muNp"] = df.apply(lambda x: (tki_calculators.delta_pT(x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueProtonMomX_1muNp"],x["TrueProtonMomY_1muNp"],x["TrueProtonMomZ_1muNp"])),axis=1)
     df["TrueDeltaPhiT_1muNp"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueProtonMomX_1muNp"],x["TrueProtonMomY_1muNp"],x["TrueProtonMomZ_1muNp"])),axis=1)
     df["TrueDeltaAlphaT_1muNp"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueProtonMomX_1muNp"],x["TrueProtonMomY_1muNp"],x["TrueProtonMomZ_1muNp"])),axis=1)
@@ -183,5 +190,28 @@ def set_Signal1muNp(df):
     df["TruePNT_1muNp"] = df.apply(lambda x: (tki_calculators.pn_T(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueProtonE_1muNp"],x["TrueProtonMomX_1muNp"],x["TrueProtonMomY_1muNp"],x["TrueProtonMomZ_1muNp"])),axis=1)
     df["TruePNII_1muNp"] = df.apply(lambda x: (tki_calculators.pn_II(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueProtonE_1muNp"],x["TrueProtonMomX_1muNp"],x["TrueProtonMomY_1muNp"],x["TrueProtonMomZ_1muNp"])),axis=1)
 
-    return df   
+    # TODO: Drop temporary data from dataframes
+    df.drop("InFV_1muNp",inplace=True,axis=1)
+    df.drop("TrueMuonIdx_1muNp",inplace=True,axis=1)
+    df.drop("TrueProtonIdx_1muNp",inplace=True,axis=1)
+    df.drop("TrueLeadProtonIdx_1muNp",inplace=True,axis=1)
+    df.drop("TrueNProt_1muNp",inplace=True,axis=1)
+    df.drop("TrueTotalProtonE_1muNp",inplace=True,axis=1)
+    df.drop("TrueTotalProtonMomX_1muNp",inplace=True,axis=1)
+    df.drop("TrueTotalProtonMomY_1muNp",inplace=True,axis=1)
+    df.drop("TrueTotalProtonMomZ_1muNp",inplace=True,axis=1)
+    df.drop("TrueLeadProtonE_1muNp",inplace=True,axis=1)
+    df.drop("TrueLeadProtonMomX_1muNp",inplace=True,axis=1)
+    df.drop("TrueLeadProtonMomY_1muNp",inplace=True,axis=1)
+    df.drop("TrueLeadProtonMomZ_1muNp",inplace=True,axis=1)
+    df.drop("TrueProtonE_1muNp",inplace=True,axis=1)
+    df.drop("TrueProtonMomX_1muNp",inplace=True,axis=1)
+    df.drop("TrueProtonMomY_1muNp",inplace=True,axis=1)
+    df.drop("TrueProtonMomZ_1muNp",inplace=True,axis=1)
+    df.drop("TrueMuonE_1muNp",inplace=True,axis=1)
+    df.drop("TrueMuonMomX_1muNp",inplace=True,axis=1)
+    df.drop("TrueMuonMomY_1muNp",inplace=True,axis=1)
+    df.drop("TrueMuonMomZ_1muNp",inplace=True,axis=1)
+
+    return df
 
