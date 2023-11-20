@@ -35,7 +35,9 @@ main_path = "/Users/cerati/Notebooks/PELEE/"
 ntuple_path = "/Users/cerati/Notebooks/PELEE/root_files/1013/"
 pickle_path = "/Users/cerati/Notebooks/PELEE/pickles/"
 plots_path = "/Users/cerati/Notebooks/PELEE/plots/"
+dataframe_cache_path = "/Users/cerati/Notebooks/PELEE/cached_dataframes/
 ```
+The path `dataframe_cache_path` is used to store loaded dataframes to disk for faster loading in the future when `enable_cache=True` is set for the data loading functions. 
 
 ## Unit Tests
 Run unit tests to make sure core functionality is working as intended.
