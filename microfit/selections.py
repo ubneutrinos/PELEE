@@ -283,6 +283,7 @@ MEDIUM_ENERGY = '(0.75 < reco_e < 1.05)'
 LOW_MEDIUM_ENERGY = '(0.05 < reco_e < 1.05)'
 HIGH_ENERGY = '(1.05 < reco_e < 2.05)'
 HIGH_ENERGY_ZP = '(reco_e > 0.9)'
+MEDIUM_ENERGY_ZP = '(0.65 < reco_e < 0.9)'
 HIGH_ENERGY_NOUPBOUND = '(reco_e > 1.05)'
 NEAR_ENERGY_NOUPBOUND = '(reco_e > 0.65)'
 NEAR_ENERGY_ONLY = '(0.65 < reco_e < 0.85)'
@@ -292,10 +293,15 @@ ADD_ENERGY_BINS = '(reco_e > 0.85 and reco_e < 1.05)'
 ALL_ENERGY = '(reco_e > 0.)'
 TWOP_SHOWERS = 'n_showers_contained >= 2'
 LOW_PID_ZP = '(0.0 < bkg_score < 0.4)'
-MEDIUM_PID_ZP = '(0.0 < bkg_score < 0.72)'
+MEDIUM_PID_ZP = '(0.4 < bkg_score < 0.72)'
 BLIND = '(bnbdata == 0)'
 
+# CT Defining near and far sideband selection queries
+NP_FAR_SIDEBAND = "n_showers_contained  == 1 and (" + HIGH_ENERGY + " or " + LOW_PID + ")" 
+NP_NEAR_SIDEBAND = "n_showers_contained ==  1 and (" + MEDIUM_ENERGY + " or " +  MEDIUM_PID +")"
 
+ZP_FAR_SIDEBAND = HIGH_ENERGY_ZP + " or " + LOW_PID_ZP 
+ZP_NEAR_SIDEBAND = MEDIUM_ENERGY_ZP + " or " + MEDIUM_PID_ZP 
 
 # pi0 selection
 SCORECUT = 0.5 # 0.75 #75 # max track score
@@ -469,7 +475,12 @@ selection_categories = {
     'SIGNAL_1MU1P': {'query': "Signal_1mu1p == True", 'title': 'True 1mu1p Events', 'dir': 'SIGNAL_1MU1P'},
     'SIGNAL_1MUNP': {'query': "Signal_1muNp == True", 'title': 'True 1muNp Events', 'dir': 'SIGNAL_1MUNP'},
     'SG_1MUNP': {'query': "sel_CCNp0pi == True", 'title': 'Selected 1muNp0pi Events', 'dir': 'SG_1MUNP'},
-        
+
+    # Near and far sidebands
+    'NP_FAR_SIDEBAND': {'query': NP_FAR_SIDEBAND, 'title': '1eNp Far Sideband', 'dir': 'NP_FAR_SIDEBAND'},
+    'NP_NEAR_SIDEBAND': {'query': NP_NEAR_SIDEBAND, 'title': '1eNp Near Sideband', 'dir': 'NP_NEAR_SIDEBAND'},
+    'ZP_FAR_SIDEBAND': {'query': ZP_FAR_SIDEBAND, 'title': '1e0p Far Sideband', 'dir': 'ZP_FAR_SIDEBAND'},
+    'ZP_NEAR_SIDEBAND': {'query': ZP_NEAR_SIDEBAND, 'title': '1e0p Near Sideband', 'dir': 'ZP_NEAR_SIDEBAND'},
 }
 
 stages_queries = {

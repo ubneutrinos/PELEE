@@ -144,6 +144,7 @@ class RunHistPlotter:
             ax.set_xlabel(total_pred_hist.binning.label)
             return ax
 
+        # TODO: Xheck this
         ax.set_ylim(0.0, ax.get_ylim()[1] * 1.7)
 
         # plot data/mc ratio
