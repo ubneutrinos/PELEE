@@ -468,3 +468,99 @@ numupresel:
     drt:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run5_dirt
       pot: 3.57E+20
+# CT: Adding detvars - covarage of samples is a bit patchy, only have intrinsic nue for everything thus far
+detvar:
+  - run_id: "1"
+    path: run1/detvar/
+    nue: 
+      pot: 2.73375e+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+      cv: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_CV_reco2_v08_00_00_38_run1_reco2_reco2 
+      lydown: # No LYDown used to run 1 - put the CV sample in as a dummy 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_CV_reco2_v08_00_00_38_run1_reco2_reco2 
+      lyatt: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYAttenuation_v08_00_00_38_run1_reco2_reco2 
+      lyrayleigh: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYRayleigh_v08_00_00_37_run1_reco2_reco2 
+      sce: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_detvar_sce_reco2_run1_reco2_reco2 
+      recomb2: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_detvar_recomb2_reco2_run1_reco2_reco2 
+      wiremodx: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_wiremod_ScaleX_v08_00_00_42_run1_reco2_reco2 
+      wiremodyz: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_42_run1_reco2_reco2
+      wiremodthetaxz: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleXZ_v08_00_00_42_run1_reco2_reco2 
+      wiremodthetayz: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleYZ_v08_00_00_42_run1_reco2_reco2 
+    numu: 
+      pot: 1.66179e+20 
+      cv: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_CV_reco2_reco2
+      lydown: # No LYDown used to run 1 - put the CV sample in as a dummy 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_CV_reco2_reco2
+      lyatt: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_LYAttenuation_reco2_reco2
+      lyrayleigh: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_LYRayleigh_reco2_reco2
+      sce: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_SCE_reco2_reco2
+      recomb2: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_Recombination_reco2_reco2
+      wiremodx: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_X_reco2_reco2
+      wiremodyz: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_YZ_reco2_reco2
+      wiremodthetaxz: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_ThetaXZ_reco2_reco2
+      wiremodthetayz: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_YZ_reco2_reco2
+  - run_id: "3"
+    path: run3/detvar/
+    nue:
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+      pot: 7.09879e+21
+      cv: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+      lydown: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2 
+      lyatt: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYAttenuation_v08_00_00_38_run3b_reco2_reco2 
+      lyrayleigh: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYRayleigh_v08_00_00_37_run3b_reco2_reco2
+      sce:  
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2
+      recomb2: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2
+      wiremodx: 
+        file: prodgenie_bnb_nue_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2
+      wiremodyz: 
+        file: prodgenie_bnb_nue_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2
+      wiremodthetaxz: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2
+      wiremodthetayz: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2
+    numu: 
+      pot: 5.86935e+19
+      cv:
+        file: prodgenie_bnb_nu_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+      lydown: 
+        file: prodgenie_bnb_nu_overlay_DetVar_LYDown_v08_00_00_37_v2_run3b_reco2_reco2
+      lyatt: 
+        file: prodgenie_bnb_nu_overlay_DetVar_LYAttenuation_v08_00_00_38_run3b_reco2_reco2
+      lyrayleigh: 
+        file: prodgenie_bnb_nu_overlay_DetVar_LYRayleigh_v08_00_00_37_run3b_reco2_reco2
+      sce:  
+        file: prodgenie_bnb_nu_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2
+      recomb2: 
+        file: prodgenie_bnb_nu_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2
+      wiremodx: 
+        file: prodgenie_bnb_nu_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2
+      wiremodyz: 
+        file: prodgenie_bnb_nu_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2
+      wiremodthetaxz: 
+        file: prodgenie_bnb_nu_overlay_DetVar_WireModAngleXZ_v08_00_00_38_exe_run3b_reco2_reco2
+      wiremodthetayz: 
+        file: prodgenie_bnb_nu_overlay_DetVar_WireModAngleYZ_v08_00_00_38_exe_run3b_reco2_reco2

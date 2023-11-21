@@ -52,6 +52,7 @@ class RunHistPlotter:
         stacked=True,
         show_total=True,
         channel=None,
+        add_precomputed_detsys=False,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -92,6 +93,7 @@ class RunHistPlotter:
             include_multisim_errors=include_multisim_errors,
             scale_to_pot=scale_to_pot,
             use_sideband=use_sideband,
+            add_precomputed_detsys=add_precomputed_detsys,
         )
         total_pred_hist = flatten(total_mc_hist) + ext_hist
         data_hist = flatten(gen.get_data_hist())

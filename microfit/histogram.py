@@ -1,5 +1,6 @@
 from dataclasses import dataclass, fields, field
 import hashlib
+import os
 from typing import Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
@@ -7,6 +8,8 @@ import logging
 
 from numbers import Number
 from uncertainties import correlated_values, unumpy
+
+from microfit.fileio import from_json
 from . import selections
 from .category_definitions import get_category_label, get_category_color
 from .statistics import (
@@ -41,7 +44,7 @@ class Binning:
 
     variable: str
     bin_edges: np.ndarray
-    label: str
+    label: Optional[str] = None
     is_log: bool = False
     selection_query: Optional[str] = None
 
@@ -49,6 +52,12 @@ class Binning:
         for field in fields(self):
             attr_self = getattr(self, field.name)
             attr_other = getattr(other, field.name)
+            if field.name == "label":
+                # There may be situations where a label is undefined (for instance, when
+                # loading detector systematics). In this case, we don't want to compare
+                # the labels.
+                if attr_self is None or attr_other is None:
+                    continue
             if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
                 if not np.array_equal(attr_self, attr_other):
                     return False
@@ -65,7 +74,7 @@ class Binning:
         return self.n_bins
 
     @classmethod
-    def from_config(cls, variable, n_bins, limits, label, is_log=False):
+    def from_config(cls, variable, n_bins, limits, label=None, is_log=False):
         """Create a Binning object from a typical binning configuration
 
         Parameters:
@@ -76,7 +85,7 @@ class Binning:
             Number of bins
         limits : tuple
             Tuple of lower and upper limits
-        label : str
+        label : str, optional
             Label for the binned variable. This will be used to label the x-axis in plots.
         is_log : bool, optional
             Whether the binning is logarithmic or not (default is False)
@@ -104,6 +113,15 @@ class Binning:
             return np.sqrt(self.bin_edges[1:] * self.bin_edges[:-1])
         else:
             return (self.bin_edges[1:] + self.bin_edges[:-1]) / 2
+    
+    def to_dict(self):
+        """Return a dictionary representation of the binning."""
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, state):
+        """Create a Binning object from a dictionary representation of the binning."""
+        return cls(**state)
 
 
 class Histogram:
@@ -465,6 +483,9 @@ class Histogram:
 
     def __repr__(self):
         return f"Histogram(binning={self.binning}, bin_counts={self.bin_counts}, label={self.label}, tex={self.tex_string})"
+
+    def __abs__(self):
+        return np.abs(self.nominal_values)
 
     def __add__(self, other):
         if isinstance(other, np.ndarray):
@@ -968,6 +989,7 @@ class RunHistGenerator:
         sideband_generator: Optional["RunHistGenerator"] = None,
         uncertainty_defaults: Optional[Dict[str, bool]] = None,
         parameters: Optional[ParameterSet] = None,
+        detvar_data_path: Optional[str] = None,
         mc_hist_generator_cls: Optional[type] = None,
         **mc_hist_generator_kwargs,
     ) -> None:
@@ -1003,6 +1025,9 @@ class RunHistGenerator:
             histogram generator for MC. The default HistogramGenerator ignores all parameters.
             The parameters are passed through by reference, so any changes to the parameters
             will be reflected in the histogram generator automatically.
+        detvar_data_path : str, optional
+            Path to the JSON file containing histograms of detector variations. If provided,
+            the detector variations will be treated as unisim variations for additional uncertainty.
         mc_hist_generator_cls : type, optional
             Class to use for the MC histogram generator. If None, the default HistogramGenerator
             class is used.
@@ -1014,6 +1039,23 @@ class RunHistGenerator:
         self.selection = selection
         self.preselection = preselection
         self.binning = binning
+        if detvar_data_path is not None:
+            # check that path exists
+            if not os.path.exists(detvar_data_path):
+                raise ValueError(f"Path {detvar_data_path} does not exist.")
+            self.detvar_data = from_json(detvar_data_path)
+            if not self.detvar_data["binning"] == self.binning:
+                raise ValueError(
+                    "Binning of detector variations does not match binning of main histogram."
+                )
+            if not self.detvar_data["selection"] == self.selection:
+                raise ValueError(
+                    "Selection of detector variations does not match selection of main histogram."
+                )
+            if not self.detvar_data["preselection"] == self.preselection:
+                raise ValueError(
+                    "Preselection of detector variations does not match preselection of main histogram."
+                )
 
         # ensure that the necessary keys are present
         if "data" not in rundata_dict.keys():
@@ -1068,6 +1110,57 @@ class RunHistGenerator:
         self.uncertainty_defaults = (
             dict() if uncertainty_defaults is None else uncertainty_defaults
         )
+
+    def get_detector_covariance(self):
+        """Get the covariance matrix for detector uncertainties.
+
+        This function follows the recommendation outlined in:
+        A. Ashkenazi, et al., "Detector Systematics supporting note", DocDB 27009
+
+        The relevant quote is:
+            We recommend running the full analysis chain on each one of the samples, and adding the
+            difference between each sample and the central value in quadrature. An exception should be
+            made to the recombination and wire modification dEdx variations. The recommendation is to
+            use only the one that has the larger impact to obtain the uncertainty.
+        
+        Note that we only use the variations as the diagonal part of the covariance matrix and ignore
+        the correlations between bins.
+        """
+        if self.detvar_data is None:
+            return None
+        variation_hists = self.detvar_data["variation_hists"]
+        cv_hist = variation_hists["cv"]
+        variations = [
+            "lydown", "lyatt", "lyrayleigh", "sce", "recomb2", "wiremodx", "wiremodyz", "wiremodthetaxz", "wiremodthetayz"
+        ]
+        # make sure every variation is in the dictionary
+        for v in variations:
+            if v not in variation_hists.keys():
+                raise ValueError(f"Variation {v} is missing from the detector variations.")
+        # get the difference between each variation and the central value
+        # we use the absolute value of the difference, since we are only interested in the magnitude
+        # of the difference
+        variation_diffs = {
+            v: abs(cv_hist - h) for v, h in variation_hists.items()
+        }
+        # As per the recommendation, we should use the larger one out of "recomb2" and "wiremodx"
+        # for the recombination and wire modification uncertainties.
+        # Get the larger of the two variations for each bin
+        variation_diffs["recomb2_wiremodx_max"] = np.maximum(
+            variation_diffs["recomb2"], variation_diffs["wiremodx"]
+        )
+        variation_diffs.pop("wiremodx")
+        variation_diffs.pop("recomb2")
+        # Add all variations in quadrature, assuming each represents a 1 sigma variation
+        cv_np = cv_hist.nominal_values
+        cov_mat = np.zeros((len(cv_np), len(cv_np)))
+        for v, h in variation_diffs.items():
+            cov_mat += np.diag(h ** 2)
+        # As a final step, we want to rescale the covariance matrix to the POT
+        scale = self.data_pot / self.detvar_data["data_pot"]
+        cov_mat *= scale ** 2
+        return cov_mat
+
 
     @classmethod
     def get_selection_query(cls, selection, preselection, extra_queries=None):
@@ -1233,6 +1326,7 @@ class RunHistGenerator:
         extra_query=None,
         scale_to_pot=None,
         use_sideband=None,
+        add_precomputed_detsys=False
     ):
         """Produce a histogram from the MC dataframe.
 
@@ -1248,6 +1342,8 @@ class RunHistGenerator:
         use_sideband : bool, optional
             If True, use the sideband MC and data to constrain multisim uncertainties.
             Overrides the default setting.
+        add_precomputed_detsys : bool, optional
+            Whether to add the precomputed detector systematics to the histogram covariance.
         """
 
         scale_factor = 1.0
@@ -1292,6 +1388,11 @@ class RunHistGenerator:
         )
         hist.label = "MC"
 
+        if add_precomputed_detsys:
+            det_cov = self.get_detector_covariance()
+            if det_cov is not None:
+                hist.add_covariance(det_cov)
+
         hist *= scale_factor
         return hist
 
@@ -1302,6 +1403,7 @@ class RunHistGenerator:
         scale_to_pot=None,
         use_sideband=None,
         add_ext_error_floor=None,
+        add_precomputed_detsys=False
     ):
         """Get the total prediction from MC and EXT.
 
@@ -1319,12 +1421,15 @@ class RunHistGenerator:
             Overrides the default setting.
         add_ext_error_floor : bool, optional
             Whether to add an error floor to the histogram in bins with zero entries.
+        add_precomputed_detsys : bool, optional
+            Whether to add the precomputed detector systematics to the histogram covariance.
         """
         mc_prediction = self.get_mc_hist(
             include_multisim_errors=include_multisim_errors,
             extra_query=extra_query,
             scale_to_pot=scale_to_pot,
             use_sideband=use_sideband,
+            add_precomputed_detsys=add_precomputed_detsys
         )
         ext_prediction = self.get_data_hist(
             type="ext", scale_to_pot=scale_to_pot, add_error_floor=add_ext_error_floor

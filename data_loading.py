@@ -4,6 +4,7 @@ This is a refactorization of the code that was formerly in "load_data_run123.py"
 """
 
 import hashlib
+import logging
 import os
 import pickle
 import numpy as np
@@ -2013,12 +2014,13 @@ def load_sample(
             
         else: 
             rundict = get_rundict(run_number, category, dataset)
-            data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
+            subdir = "numupresel" if loadnumuvariables else "nuepresel"
+            data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[dataset][variation]["file"] + append + ".root")
        
         if verbose: print("Loading ntuple file",data_path)
         
         # try returning an empty dataframe
-        if rundict[dataset]["file"] == "dummy":
+        if os.path.basename(data_path) == "dummy.root":
             if verbose: print("Using dummy file for run",run_number,"dataset",dataset)
             return None 
 
@@ -2029,7 +2031,7 @@ def load_sample(
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
-
+    logging.debug("Loading %s from %s", tree, data_path)
     up = uproot.open(data_path)[fold][tree]
 
     variables = get_run_variables(
@@ -2264,6 +2266,11 @@ def _load_run_detvar(
         mc_pot, _ = get_pot_trig(run_number, "detvar", mc_set)  # nu has no trigger number
         weights[mc_set] = data_pot / mc_pot
         output[mc_set] = mc_df
+        mc_df["dataset"] = mc_set
+        mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+        # For some calculations, specifically the multisim error calculations for GENIE, we need the
+        # weights without the tune. We add this as a separate column here.
+        mc_df["weights_no_tune"] = mc_df["weightSpline"] * data_pot / mc_pot
 
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
@@ -2489,7 +2496,7 @@ def get_run_variables(
     ALLVARS = VARIABLES
 
     # Weights are only available in MC runs.
-    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband"]:
+    if category in ["runs", "numupresel", "detvar"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband"]:
         if use_lee_weights:
             assert dataset == "nue", "LEE weights are only available for nue runs"
             ALLVARS += WEIGHTSLEE
