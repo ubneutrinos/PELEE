@@ -131,6 +131,7 @@ energy_variables = [
     # ('NeutrinoEnergy1', 20, (0,2000), r"Reconstructed Calorimetric Energy V [MeV]"),
     # ('NeutrinoEnergy2', 20, (0,2000), r"Reconstructed Calorimetric Energy Y [MeV]"),
 ]
+
 kinematic_variables = [
     ("protonenergy", 12, (0, 0.6), "proton kinetic energy [GeV]"),
     ("pt", 10, (0, 2), "pt [GeV]"),
@@ -351,6 +352,29 @@ tki_reco_variables_1mu1p = [
     ("RecoPNTY_1mu1p", 10, (-0.5,0.5), "pnTy"),
     ("RecoPNT_1mu1p", 10, (0.0,0.5), "pnT"),
     ("RecoPNII_1mu1p", 10, (-0.5,0.75), "pnII"),
+]
+
+# CT: Adding sideband variables
+NP_far_sideband_variables = [
+    ("shr_energy_tot_cali", 10, (0.05,0.7), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (1.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 2), "trk energy (range, P) [GeV]"),
+]
+
+NP_near_sideband_variables = [
+    ("shr_energy_tot_cali", 10, (0.0,0.7), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.75, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 1), "trk energy (range, P) [GeV]"),
+]
+
+ZP_far_sideband_variables = [
+    ("shr_energy_tot_cali", 10, (0.0, 0.7), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.90, 2.50), r"Reconstructed Energy [GeV]", "note"),
+]
+
+ZP_near_sideband_variables = [
+    ("shr_energy_tot_cali", 10, (0.5, 1.0), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.65, 0.90), r"Reconstructed Energy [GeV]", "note"),
 ]
 
 plot_variables = basic_variables + evtsel_variabls + shrsel_variables + bdtscore_variables
