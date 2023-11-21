@@ -1069,7 +1069,8 @@ class RunHistGenerator:
             dict() if uncertainty_defaults is None else uncertainty_defaults
         )
 
-    def get_selection_query(self, selection, preselection, extra_queries=None):
+    @classmethod
+    def get_selection_query(cls, selection, preselection, extra_queries=None):
         """Get the query for the given selection and preselection.
 
         Optionally, add any extra queries to the selection query. These will
@@ -1897,9 +1898,9 @@ class HistogramGenerator:
 
     def _limit_weights(self, weights):
         weights = np.asarray(weights)
-        weights[weights > 100] = 1.0
-        weights[weights < 0] = 1.0
-        weights[~np.isfinite(weights)] = 1.0
+        weights[weights > 100] = 0.0
+        weights[weights < 0] = 0.0
+        weights[~np.isfinite(weights)] = 0.0
         if np.sum(~np.isfinite(weights)) > 0:
             self.logger.debug(
                 f"Found {np.sum(~np.isfinite(weights))} invalid weights (set to one)."
