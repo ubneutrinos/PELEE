@@ -39,6 +39,31 @@ def make_variation_histograms(run, variation, selection_query, binning_def, trut
     filter_queries["mc"] = _get_mc_filter_query(list(filter_queries.values()))
     return hist_dict, filter_queries
 
+def make_detvar_plots(detvar_data, output_dir):
+    """Make plots of the histograms contained in the detvar data"""
+
+    import matplotlib.pyplot as plt
+
+    for truth_filter in detvar_data["variation_hist_data"]:
+        fig, ax = plt.subplots()
+        hist_dict = detvar_data["variation_hist_data"][truth_filter]
+        hist_dict["cv"].draw(ax=ax, label="CV", color="k", show_errors=False, lw=3)
+        for name, hist in hist_dict.items():
+            if name == "cv":
+                continue
+            hist.draw(ax=ax, label=name, show_errors=False)
+        ax.set_ylabel("Events / POT")
+        ax.set_xlabel(detvar_data["binning"].variable)
+        ax.set_ylim(bottom=0)
+        ax.legend(ncol=2)
+        ax.set_title(f"Dataset: {truth_filter}, Selection: {detvar_data['selection']}")
+        fig.savefig(
+            os.path.join(
+                output_dir,
+                f"detvar_{truth_filter}_{detvar_data['selection']}.pdf",
+            ),
+            bbox_inches="tight",
+        )
 
 def main(args):
     RUN = args.run
@@ -62,7 +87,7 @@ def main(args):
     for variation in variations:
         logging.info(f"Making histogram for variation {variation}")
         variation_hist_data[variation], filter_queries[variation] = make_variation_histograms(
-            RUN, variation, selection_query, binning_def
+            RUN, variation, selection_query, binning_def, truth_filtered_sets=args.truth_filtered_sets
         )
 
     # Switch ordering of keys in the variation_hist_data dict. Instead of
@@ -91,6 +116,11 @@ def main(args):
 
     to_json(args.output_file, detvar_data)
 
+    if not args.make_plots:
+        return
+    
+    make_detvar_plots(detvar_data, args.plot_output_dir)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Make variation histograms")
@@ -110,6 +140,23 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-v", "--verbosity", action="count", default=0, help="Increase output verbosity"
+    )
+    parser.add_argument(
+        "--truth-filtered-sets",
+        type=str,
+        nargs="*",
+        default=["nue"],
+        help="List of truth-filtered sets to use",)
+    parser.add_argument(
+        "--make-plots",
+        action="store_true",
+        help="Make plots of the histograms",
+    )
+    parser.add_argument(
+        "--plot-output-dir",
+        type=str,
+        default=".",
+        help="Output directory for plots",
     )
     args = parser.parse_args()
 
