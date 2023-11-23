@@ -17,8 +17,10 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,**
       runcombo_str=""
       for i_r in range(0,len(run_combo)):
           runcombo_str = runcombo_str + run_combo[i_r]
-      os.system("mkdir -p Plots/run_"+runcombo_str)
-      
+
+      os.system("mkdir -p Plots/png/run_"+runcombo_str)
+      os.system("mkdir -p Plots/pdf/run_"+runcombo_str)
+     
       print("Making plots for runs",run_combo)
      
       # Load the data 
@@ -60,9 +62,9 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,**
               )
 
               # Form a unique name for each plot
-              pltname = "Plots/run_" + runcombo_str + "/" + DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + selection + ".pdf"
-              print(pltname)
-              print(type(plt))
+              pltname = "Plots/pdf/run_" + runcombo_str + "/" + DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + selection + ".pdf"
+              plt.savefig(pltname)
+              pltname = "Plots/png/run_" + runcombo_str + "/" + DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + selection + ".png"
               plt.savefig(pltname)
               
       del rundata
