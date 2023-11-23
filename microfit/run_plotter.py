@@ -79,15 +79,18 @@ class RunHistPlotter:
         ext_hist = gen.get_data_hist(
             type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot
         )
-        ext_hist.tex_string = "EXT"
-        ext_hist = flatten(ext_hist)
+        if ext_hist is not None:
+            ext_hist.tex_string = "EXT"
+            ext_hist = flatten(ext_hist)
 
         mc_hists = gen.get_mc_hists(
             category_column=category_column,
             include_multisim_errors=False,
             scale_to_pot=scale_to_pot,
         )
-        background_hists = list(mc_hists.values()) + [ext_hist]
+        background_hists = list(mc_hists.values())
+        if ext_hist is not None:
+            background_hists.append(ext_hist)
         background_hists = [flatten(hist) for hist in background_hists]
         total_mc_hist = gen.get_mc_hist(
             include_multisim_errors=include_multisim_errors,
@@ -95,7 +98,9 @@ class RunHistPlotter:
             use_sideband=use_sideband,
             add_precomputed_detsys=add_precomputed_detsys,
         )
-        total_pred_hist = flatten(total_mc_hist) + ext_hist
+        total_pred_hist = flatten(total_mc_hist)
+        if ext_hist is not None:
+            total_pred_hist += ext_hist
         data_hist = flatten(gen.get_data_hist())
         if self.title is None:
             selection, preselection = gen.selection, gen.preselection

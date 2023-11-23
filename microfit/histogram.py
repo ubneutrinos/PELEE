@@ -1039,6 +1039,7 @@ class RunHistGenerator:
         self.selection = selection
         self.preselection = preselection
         self.binning = binning
+        self.logger = logging.getLogger(__name__)
         if detvar_data_path is not None:
             # check that path exists
             if not os.path.exists(detvar_data_path):
@@ -1059,11 +1060,11 @@ class RunHistGenerator:
 
         # ensure that the necessary keys are present
         if "data" not in rundata_dict.keys():
-            raise ValueError("data key is missing from rundata_dict.")
+            raise ValueError("data key is missing from rundata_dict (may be None).")
         if "mc" not in rundata_dict.keys():
             raise ValueError("mc key is missing from rundata_dict.")
         if "ext" not in rundata_dict.keys():
-            raise ValueError("ext key is missing from rundata_dict.")
+            raise ValueError("ext key is missing from rundata_dict (may be None).")
 
         for k, df in rundata_dict.items():
             if df is None:
@@ -1085,7 +1086,8 @@ class RunHistGenerator:
             # The Python engine is necessary because the queries tend to have too many inputs
             # for numexpr to handle.
             df_mc = df_mc.query(query, engine="python")
-            df_ext = df_ext.query(query, engine="python")
+            if df_ext is not None:
+                df_ext = df_ext.query(query, engine="python")
             if df_data is not None:
                 df_data = df_data.query(query, engine="python")
             # the query has already been applied, so we can set it to None
@@ -1101,7 +1103,10 @@ class RunHistGenerator:
         self.mc_hist_generator = mc_hist_generator_cls(
             df_mc, binning, parameters=self.parameters, **mc_hist_generator_kwargs,
         )
-        self.ext_hist_generator = HistogramGenerator(df_ext, binning)
+        if df_ext is not None:
+            self.ext_hist_generator = HistogramGenerator(df_ext, binning)
+        else:
+            self.ext_hist_generator = None
         if df_data is not None:
             self.data_hist_generator = HistogramGenerator(df_data, binning)
         else:
@@ -1128,37 +1133,50 @@ class RunHistGenerator:
         """
         if self.detvar_data is None:
             return None
-        variation_hists = self.detvar_data["variation_hists"]
-        cv_hist = variation_hists["cv"]
         variations = [
             "lydown", "lyatt", "lyrayleigh", "sce", "recomb2", "wiremodx", "wiremodyz", "wiremodthetaxz", "wiremodthetayz"
         ]
-        # make sure every variation is in the dictionary
-        for v in variations:
-            if v not in variation_hists.keys():
-                raise ValueError(f"Variation {v} is missing from the detector variations.")
-        # get the difference between each variation and the central value
-        # we use the absolute value of the difference, since we are only interested in the magnitude
-        # of the difference
-        variation_diffs = {
-            v: abs(cv_hist - h) for v, h in variation_hists.items()
-        }
-        # As per the recommendation, we should use the larger one out of "recomb2" and "wiremodx"
-        # for the recombination and wire modification uncertainties.
-        # Get the larger of the two variations for each bin
-        variation_diffs["recomb2_wiremodx_max"] = np.maximum(
-            variation_diffs["recomb2"], variation_diffs["wiremodx"]
-        )
-        variation_diffs.pop("wiremodx")
-        variation_diffs.pop("recomb2")
-        # Add all variations in quadrature, assuming each represents a 1 sigma variation
-        cv_np = cv_hist.nominal_values
-        cov_mat = np.zeros((len(cv_np), len(cv_np)))
-        for v, h in variation_diffs.items():
-            cov_mat += np.diag(h ** 2)
-        # As a final step, we want to rescale the covariance matrix to the POT
-        scale = self.data_pot / self.detvar_data["data_pot"]
-        cov_mat *= scale ** 2
+        variation_hist_data = self.detvar_data["variation_hist_data"]
+        # Detector variations are calculated separately for each truth-filtered set. We can not
+        # assume, however, that the truth-filtered sets are identical to those used in this RunHistGenerator.
+        # Instead, we use the filter queries that are part of the detector variation data to select the
+        # correct samples.
+        filter_queries = self.detvar_data["filter_queries"]
+        cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
+        
+        for dataset, query in filter_queries.items():
+            self.logger.debug(f"Getting detector covariance for dataset {dataset} with query {query}.")
+            variation_hists = variation_hist_data[dataset]
+            this_analysis_hist = self.get_mc_hist(extra_query=query, add_precomputed_detsys=False)
+            cv_hist = this_analysis_hist.nominal_values
+            variation_cv_hist = variation_hists["cv"].nominal_values
+            
+            # make sure every variation is in the dictionary
+            for v in variations:
+                if v not in variation_hists:
+                    raise ValueError(f"Variation {v} is missing from the detector variations.")
+            # We are taking the *relative* error from the detector variation data and scale it 
+            # to the bin counts of the histogram of this analysis. This means that, for example,
+            # if the error in a bin was 10% in the detector variation data, and the bin count
+            # in this analysis was 100, the error in this analysis will be 10.
+            with np.errstate(divide="ignore", invalid="ignore"):
+                variation_diffs = {
+                    v: abs(variation_cv_hist - h.nominal_values) * (cv_hist / variation_cv_hist) for v, h in variation_hists.items()
+                }
+            # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
+            for v, h in variation_diffs.items():
+                h[~np.isfinite(h)] = 0.0
+            # As per the recommendation, we should use the larger one out of "recomb2" and "wiremodx"
+            # for the recombination and wire modification uncertainties.
+            # Get the larger of the two variations for each bin
+            variation_diffs["recomb2_wiremodx_max"] = np.maximum(
+                variation_diffs["recomb2"], variation_diffs["wiremodx"]
+            )
+            variation_diffs.pop("wiremodx")
+            variation_diffs.pop("recomb2")
+            # Add all variations in quadrature, assuming each represents a 1 sigma variation
+            for v, h in variation_diffs.items():
+                cov_mat += np.diag(h ** 2)
         return cov_mat
 
 
@@ -1431,10 +1449,13 @@ class RunHistGenerator:
             use_sideband=use_sideband,
             add_precomputed_detsys=add_precomputed_detsys
         )
-        ext_prediction = self.get_data_hist(
-            type="ext", scale_to_pot=scale_to_pot, add_error_floor=add_ext_error_floor
-        )
-        total_prediction = mc_prediction + ext_prediction
+        if self.ext_hist_generator is not None:
+            ext_prediction = self.get_data_hist(
+                type="ext", scale_to_pot=scale_to_pot, add_error_floor=add_ext_error_floor
+            )
+            total_prediction = mc_prediction + ext_prediction
+        else:
+            total_prediction = mc_prediction
         return total_prediction
 
     def get_chi_square(self):

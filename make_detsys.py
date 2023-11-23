@@ -8,14 +8,22 @@ import logging
 import os
 
 
-def make_variation_histogram(run, variation, selection_query, binning_def, data_pot):
+def _get_mc_filter_query(filter_queries):
+    """Given a list of filter queries, combine and then negate them.
+    
+    The result is a query that will get the same sample as was used to make
+    the 'mc' histogram in the detector variations.
+    """
+    query = " & ".join(filter_queries)
+    query = "not (" + query + ")"
+    return query
+
+def make_variation_histograms(run, variation, selection_query, binning_def, truth_filtered_sets=["nue"]):
     binning = Binning.from_config(*binning_def)
-    # TODO: Include other MC sets besides nue
-    rundata, mc_weights, data_pot = dl._load_run_detvar(
+    rundata, filter_queries = dl.load_run_detvar(
         run,
         variation,
-        data_pot,
-        mc_sets=["nue"],
+        truth_filtered_sets=truth_filtered_sets,
         loadpi0variables=True,
         loadshowervariables=True,
         loadrecoveryvars=True,
@@ -23,18 +31,17 @@ def make_variation_histogram(run, variation, selection_query, binning_def, data_
         use_bdt=True,
         enable_cache=True,
     )
-    df = rundata["nue"].query(selection_query, engine="python")
-    logging.debug(f"Total number of events: {len(df)}")
-    generator = HistogramGenerator(df, binning)
-    hist = generator.generate()
-    return hist
+    hist_dict = {}
+    for dataset in rundata:
+        df = rundata[dataset].query(selection_query, engine="python")
+        generator = HistogramGenerator(df, binning)
+        hist_dict[dataset] = generator.generate()
+    filter_queries["mc"] = _get_mc_filter_query(list(filter_queries.values()))
+    return hist_dict, filter_queries
 
 
 def main(args):
     RUN = args.run
-    # The number here is arbitrary, as the covariance is rescaled to the data POT
-    # by the RunHistGenerator anyways.
-    data_pot = 1.0e20
     selection = args.selection
     preselection = args.preselection
 
@@ -49,13 +56,28 @@ def main(args):
         selection=selection, preselection=preselection
     )
     logging.debug(f"Selection query: {selection_query}")
-    variation_hists = {}
+    variation_hist_data = {}
+    filter_queries = {}
     variations = dl.detector_variations
     for variation in variations:
         logging.info(f"Making histogram for variation {variation}")
-        variation_hists[variation] = make_variation_histogram(
-            RUN, variation, selection_query, binning_def, data_pot
+        variation_hist_data[variation], filter_queries[variation] = make_variation_histograms(
+            RUN, variation, selection_query, binning_def
         )
+
+    # Switch ordering of keys in the variation_hist_data dict. Instead of
+    # variation_hist_data[variation][dataset], we want to have
+    # variation_hist_data[dataset][variation]
+    variation_hist_data = {
+        dataset: {
+            variation: variation_hist_data[variation][dataset]
+            for variation in variations
+        }
+        for dataset in variation_hist_data[variations[0]]
+    }
+    # Also, we can assume that the filter_queries are the same for all
+    # variations, so we can just take the first one
+    filter_queries = filter_queries[variations[0]]
 
     detvar_data = {
         "run": RUN,
@@ -63,8 +85,8 @@ def main(args):
         "preselection": preselection,
         "selection_query": selection_query,
         "binning": binning,
-        "data_pot": data_pot,
-        "variation_hists": variation_hists,
+        "variation_hist_data": variation_hist_data,
+        "filter_queries": filter_queries,
     }
 
     to_json(args.output_file, detvar_data)

@@ -21,7 +21,14 @@ def microfit_decoder(dct):
             return np.array(dct["data"])
         elif dct["_obj_type"] in ["Binning", "Histogram"]:
             try:
-                module = __import__('microfit').histogram
+                module = __import__("microfit").histogram
+            except AttributeError:
+                raise RuntimeError(
+                    "Could not import module 'microfit.histogram' because the attribute was not found. "
+                    "This may be fixed by importing microfit.histogram (or any class within it) "
+                    "before calling this function."
+                )
+            try:
                 class_ = getattr(module, dct["_obj_type"])
                 return class_.from_dict(dct["data"])
             except ImportError:
