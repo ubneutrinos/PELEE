@@ -176,6 +176,7 @@ other_variables = [
     ("shrPCA1CMed_5cm", 10, (0.5, 1), "Median of 1st component of shr PCA (5cm window)"),
 ]
 pi0_variables = [
+    ("reco_e",20, (0.0,2.0), "Reconstructed Energy [GeV]"),
     ("pi0_gammadot", 20, (-1, 1), "$\pi^0$ $\gamma_{\\theta\\theta}$"),
     ("pi0energy", 20, (135, 1135), "$\pi^0$ Energy [MeV]"),
     ("pi0energyraw", 20, (0, 1135), "$\pi^0$ Calorimeric Energy $E_1 + E_2$ [MeV]"),
@@ -357,25 +358,26 @@ tki_reco_variables_1mu1p = [
 # CT: Adding sideband variables
 NP_far_sideband_variables = [
     ("shr_energy_tot_cali", 10, (0.05,0.7), "shr energy (calibrated) [GeV]"),
-    ("reco_e", 10, (1.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
+    ("reco_e", 10, (0.85, 2.05), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 2), "trk energy (range, P) [GeV]"),
-]
+] + bdt_common_variables_1eNp
 
 NP_near_sideband_variables = [
     ("shr_energy_tot_cali", 10, (0.0,0.7), "shr energy (calibrated) [GeV]"),
-    ("reco_e", 10, (0.75, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("reco_e", 10, (0.65, 0.85), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 1), "trk energy (range, P) [GeV]"),
-]
+] + bdt_common_variables_1eNp
 
 ZP_far_sideband_variables = [
     ("shr_energy_tot_cali", 10, (0.0, 0.7), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.90, 2.50), r"Reconstructed Energy [GeV]", "note"),
-]
+] + bdt_common_variables_1e0p
 
 ZP_near_sideband_variables = [
     ("shr_energy_tot_cali", 10, (0.5, 1.0), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.65, 0.90), r"Reconstructed Energy [GeV]", "note"),
-]
+] + bdt_common_variables_1e0p
+
 
 plot_variables = basic_variables + evtsel_variabls + shrsel_variables + bdtscore_variables
 plot_variables += kinematic_variables

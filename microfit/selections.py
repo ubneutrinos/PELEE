@@ -296,12 +296,19 @@ LOW_PID_ZP = '(0.0 < bkg_score < 0.4)'
 MEDIUM_PID_ZP = '(0.4 < bkg_score < 0.72)'
 BLIND = '(bnbdata == 0)'
 
-# CT Defining near and far sideband selection queries
-NP_FAR_SIDEBAND = "n_showers_contained  == 1 and (" + HIGH_ENERGY + " or " + LOW_PID + ")" 
-NP_NEAR_SIDEBAND = "n_showers_contained ==  1 and (" + MEDIUM_ENERGY + " or " +  MEDIUM_PID +")"
+# CT Defining near and far sideband selection queries, these are what's used in the technote
+# Everything in the NP selection except the BDT cuts
+NP_SIDEBANDS_OTHERCRITERIA = "CosmicIPAll3D > 10. and trkpid < 0.02 and hits_ratio > 0.50 and shrmoliereavg < 9 and subcluster > 4 and trkfit < 0.65 and tksh_distance < 6.0 and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5) and tksh_angle > -0.9 and shr_trk_len < 300. and n_showers_contained == 1" 
+NP_FAR_SIDEBAND = NP_SIDEBANDS_OTHERCRITERIA + " and (reco_e > 0.85 or (pi0_score < 0.1 and nonpi0_score < 0.1))" 
+NP_NEAR_SIDEBAND = NP_SIDEBANDS_OTHERCRITERIA + " and ( (0.65 < reco_e < 0.85 and (pi0_score > 0.1 and nonpi0_score > 0.1)) or (reco_e < 0.85 and (0.1 < pi0_score < 0.67 and 0.1 < nonpi0_score < 0.7)) )" 
 
-ZP_FAR_SIDEBAND = HIGH_ENERGY_ZP + " or " + LOW_PID_ZP 
-ZP_NEAR_SIDEBAND = MEDIUM_ENERGY_ZP + " or " + MEDIUM_PID_ZP 
+# Everything in the NP selection except the BDT cuts
+ZP_SIDEBANDS_OTHERCRITERIA="n_showers_contained == 1 and CosmicIPAll3D > 10. and CosmicDirAll3D > -0.9 and CosmicDirAll3D < 0.9 and shrmoliereavg < 15 and subcluster > 4 and trkfit < 0.65 and secondshower_Y_nhit < 50 and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 80 and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100  and shr_trk_len < 300. and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9)) and n_tracks_contained == 0 and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))"
+ZP_FAR_SIDEBAND = ZP_SIDEBANDS_OTHERCRITERIA + " and (reco_e > 0.9 or bkg_score > 0.4)" 
+ZP_NEAR_SIDEBAND = ZP_SIDEBANDS_OTHERCRITERIA + " and ( (0.65 < reco_e < 0.9 and bkg_score > 0.4) or (reco_e < 0.65 and 0.4 < bkg_score < 0.72) )" 
+
+#ZP_FAR_SIDEBAND = HIGH_ENERGY_ZP + " or " + LOW_PID_ZP 
+#ZP_NEAR_SIDEBAND = MEDIUM_ENERGY_ZP + " or " + MEDIUM_PID_ZP 
 
 # pi0 selection
 SCORECUT = 0.5 # 0.75 #75 # max track score
