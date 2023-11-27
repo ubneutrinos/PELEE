@@ -10,6 +10,7 @@ from .histogram import (
     MultiChannelHistogram,
 )
 from . import selections
+from .statistics import chi_square as chi_square_func
 
 
 class RunHistPlotter:
@@ -112,7 +113,11 @@ class RunHistPlotter:
             assert (
                 data_hist is not None
             ), "Can't show chi square when no data is available"
-            chi_square = gen.get_chi_square()
+            chi_square = chi_square_func(
+                data_hist.nominal_values,
+                total_pred_hist.nominal_values,
+                total_pred_hist.covariance_matrix
+            )
         else:
             chi_square = None
         ax = self._plot(
@@ -215,7 +220,8 @@ class RunHistPlotter:
         # make text label for the POT
         pot_label = self.get_pot_label(scale_to_pot)
         if chi_square is not None:
-            pot_label += f"\n$\chi^2$ = {chi_square:.1f}"
+            n_bins = total_pred_hist.binning.n_bins
+            pot_label += f"\n$\chi^2$ = {chi_square:.1f} / {n_bins}"
         ax.text(
             0.05,
             0.95,
