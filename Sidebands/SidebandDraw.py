@@ -67,6 +67,7 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,**
                       include_multisim_errors=False,
                       add_ext_error_floor=True,
                       show_data_mc_ratio=True,
+                      show_chi_square=True,
                   )
                   
                   # Form a unique name for each plot
