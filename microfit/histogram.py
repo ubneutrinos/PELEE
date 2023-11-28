@@ -1331,7 +1331,7 @@ class RunHistGenerator:
         total_prediction = mc_prediction + ext_prediction
         return total_prediction
 
-    def get_chi_square(self):
+    def get_chi_square(self, **kwargs):
         """Get the chi square between the data and the total prediction.
 
         Returns
@@ -1340,7 +1340,7 @@ class RunHistGenerator:
             Chi square between the data and the total prediction.
         """
         data_hist = self.get_data_hist(type="data")
-        total_prediction = self.get_total_prediction()
+        total_prediction = self.get_total_prediction(**kwargs)
         chi_sq = chi_square(
             data_hist.nominal_values,
             total_prediction.nominal_values,
