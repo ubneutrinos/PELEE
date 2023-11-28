@@ -26,7 +26,7 @@ from numu_tki import tki_calculators
 from microfit.selections import extract_variables_from_query
 
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-verbose=True
+verbose=False
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
