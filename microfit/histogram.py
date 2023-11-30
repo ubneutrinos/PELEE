@@ -1166,14 +1166,6 @@ class RunHistGenerator:
             # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
             for v, h in variation_diffs.items():
                 h[~np.isfinite(h)] = 0.0
-            # As per the recommendation, we should use the larger one out of "recomb2" and "wiremodx"
-            # for the recombination and wire modification uncertainties.
-            # Get the larger of the two variations for each bin
-            variation_diffs["recomb2_wiremodx_max"] = np.maximum(
-                variation_diffs["recomb2"], variation_diffs["wiremodx"]
-            )
-            variation_diffs.pop("wiremodx")
-            variation_diffs.pop("recomb2")
             # Add all variations in quadrature, assuming each represents a 1 sigma variation
             for v, h in variation_diffs.items():
                 cov_mat += np.diag(h ** 2)
