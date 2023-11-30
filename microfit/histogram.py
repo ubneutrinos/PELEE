@@ -192,7 +192,7 @@ class Histogram:
                 "Either uncertainties or covariance_matrix must be provided."
             )
 
-    def draw_covariance_matrix(self, ax=None, as_correlation=True, **plot_kwargs):
+    def draw_covariance_matrix(self, ax=None, as_correlation=True, as_fractional=False, **plot_kwargs):
         """Draw the covariance matrix on a matplotlib axis.
 
         Parameters
@@ -210,16 +210,29 @@ class Histogram:
         ax.set_title(f"{'Correlation' if as_correlation else 'Covariance'} matrix")
         X, Y = np.meshgrid(self.binning.bin_centers, self.binning.bin_centers)
         colormap = plot_kwargs.pop("cmap", "RdBu_r")
+        label = None
         if as_correlation:
             plot_kwargs["vmin"] = -1
             plot_kwargs["vmax"] = 1
             pc = ax.pcolormesh(X, Y, self.corr_matrix, cmap=colormap, **plot_kwargs)
+            label = "Correlation"
+        elif as_fractional:
+            # plot fractional covariance matrix
+            fractional_covar = self.covariance_matrix / np.outer(self.nominal_values, self.nominal_values)
+            max_val = np.max(np.abs(fractional_covar))
+            plot_kwargs["vmin"] = -max_val
+            plot_kwargs["vmax"] = max_val
+            pc = ax.pcolormesh(
+                X, Y, fractional_covar, cmap=colormap, **plot_kwargs
+            )
+            label = "Fractional covariance"
         else:
             pc = ax.pcolormesh(
                 X, Y, self.covariance_matrix, cmap=colormap, **plot_kwargs
             )
+            label = "Covariance"
         cbar = plt.colorbar(pc, ax=ax)
-        cbar.set_label("Correlation" if as_correlation else "Covariance")
+        cbar.set_label(label)
         ax.set_xlabel(self.binning.label)
         ax.set_ylabel(self.binning.label)
 
@@ -1116,7 +1129,7 @@ class RunHistGenerator:
             dict() if uncertainty_defaults is None else uncertainty_defaults
         )
 
-    def get_detector_covariance(self):
+    def get_detector_covariance(self, only_diagonal=False, return_dict=False):
         """Get the covariance matrix for detector uncertainties.
 
         This function follows the recommendation outlined in:
@@ -1128,8 +1141,8 @@ class RunHistGenerator:
             made to the recombination and wire modification dEdx variations. The recommendation is to
             use only the one that has the larger impact to obtain the uncertainty.
         
-        Note that we only use the variations as the diagonal part of the covariance matrix and ignore
-        the correlations between bins.
+        In newer samples, the dEdx variations are not included anymore, so we do not need to worry
+        about them here.
         """
         if self.detvar_data is None:
             return None
@@ -1143,9 +1156,11 @@ class RunHistGenerator:
         # correct samples.
         filter_queries = self.detvar_data["filter_queries"]
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
+        cov_mat_dict = {}
         
         for dataset, query in filter_queries.items():
             self.logger.debug(f"Getting detector covariance for dataset {dataset} with query {query}.")
+            cov_mat_dict[dataset] = {}
             variation_hists = variation_hist_data[dataset]
             this_analysis_hist = self.get_mc_hist(extra_query=query, add_precomputed_detsys=False)
             cv_hist = this_analysis_hist.nominal_values
@@ -1161,14 +1176,30 @@ class RunHistGenerator:
             # in this analysis was 100, the error in this analysis will be 10.
             with np.errstate(divide="ignore", invalid="ignore"):
                 variation_diffs = {
-                    v: abs(variation_cv_hist - h.nominal_values) * (cv_hist / variation_cv_hist) for v, h in variation_hists.items()
+                    v: (h.nominal_values - variation_cv_hist) * (cv_hist / variation_cv_hist) for v, h in variation_hists.items()
                 }
             # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
             for v, h in variation_diffs.items():
                 h[~np.isfinite(h)] = 0.0
-            # Add all variations in quadrature, assuming each represents a 1 sigma variation
+            # Calculate the covariance assuming that each variation is a unisim variation just like 
+            # the GENIE knobs
             for v, h in variation_diffs.items():
-                cov_mat += np.diag(h ** 2)
+                # We have just one observation and the central value is zero since it was already subtracted
+                partial_cov_mat = covariance(
+                    h.reshape(1, -1),
+                    central_value=np.zeros_like(h),
+                    # As with all unisim variations, small deviations from the PSD case are expected
+                    allow_approximation=True,
+                    tolerance=1e-10,
+                    debug_name=f"detector_{v}"
+                )
+                cov_mat += partial_cov_mat
+                cov_mat_dict[dataset][v] = partial_cov_mat.copy()
+
+        if only_diagonal:
+            cov_mat = np.diag(np.diag(cov_mat))
+        if return_dict:
+            return cov_mat, cov_mat_dict
         return cov_mat
 
 
