@@ -214,7 +214,7 @@ class Histogram:
         if as_correlation:
             plot_kwargs["vmin"] = -1
             plot_kwargs["vmax"] = 1
-            pc = ax.pcolormesh(X, Y, self.corr_matrix, cmap=colormap, **plot_kwargs)
+            pc = ax.pcolormesh(X, Y, self.correlation_matrix, cmap=colormap, **plot_kwargs)
             label = "Correlation"
         elif as_fractional:
             # plot fractional covariance matrix
@@ -442,7 +442,17 @@ class Histogram:
         return unumpy.std_devs(self.bin_counts)
 
     @property
-    def corr_matrix(self):
+    def covariance_matrix(self):
+        return self._covariance_matrix
+    
+    @covariance_matrix.setter
+    def covariance_matrix(self, value):
+        self._covariance_matrix = value
+        # also update the bin counts
+        self.bin_counts = unumpy.uarray(self.nominal_values, np.sqrt(np.diag(value)))
+
+    @property
+    def correlation_matrix(self):
         # convert the covariance matrix into a correlation matrix
         # ignore division by zero error
         with np.errstate(divide="ignore", invalid="ignore"):
