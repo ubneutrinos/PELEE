@@ -1941,6 +1941,61 @@ class HistogramGenerator:
             )
             summed_cov_mat += cov_mat
         return summed_cov_mat
+    
+    @classmethod
+    def multiband_detector_covariance(cls, hist_generators):
+        """Calculate the covariance matrix for multiple histograms.
+
+        Given a list of HistogramGenerator objects, calculate the covariance matrix of the
+        detector variations.
+
+        Parameters
+        ----------
+        hist_generators : list of HistogramGenerator
+            List of HistogramGenerator objects.
+        """
+
+        assert (
+            len(hist_generators) > 0
+        ), "Must provide at least one histogram generator."
+        # Before we start, we have to make sure that the same truth-filtered sets were used
+        # in the detector systematics of all histograms. Otherwise, we could not combine 
+        # the universes in a meaningful way.
+        # The detvar_data dictionary contains a dictionary of all the filter queries that 
+        # were used under the key `filter_queries`. 
+        reference_filter_queries = hist_generators[0].detvar_data["filter_queries"]
+        for hg in hist_generators:
+            assert hg.detvar_data["filter_queries"] == reference_filter_queries, "Not all histograms have the same filter queries."
+
+        universe_hist_dicts = []
+        for hg in hist_generators:
+            universe_hist_dicts.append(
+                hg.calculate_detector_covariance(
+                    return_histograms=True
+                )[1]
+            )
+        datasets = list(universe_hist_dicts[0].keys())
+        knobs = list(universe_hist_dicts[0][datasets[0]].keys())
+        total_bins = sum([len(hg.binning) for hg in hist_generators])
+        summed_cov_mat = np.zeros((total_bins, total_bins))
+        for dataset in datasets:
+            for knob in knobs:
+                assert all(
+                    knob in hist_dict[dataset] for hist_dict in universe_hist_dicts
+                ), f"Knob {knob} not found in all histograms."
+                concatenated_universes = np.concatenate(
+                    [hist_dict[dataset][knob] for hist_dict in universe_hist_dicts], axis=1
+                )
+                # The detector universes are special, because the central value has already been subtracted
+                # by construction. Therefore, we can use the zero vector as the central value.
+                cov_mat = covariance(
+                    concatenated_universes,
+                    np.zeros(total_bins),
+                    allow_approximation=True,
+                    tolerance=1e-10,
+                )
+                summed_cov_mat += cov_mat
+        return summed_cov_mat
 
     def adjust_weights(self, dataframe, base_weights):
         """Reweight events according to the parameters.
@@ -2255,7 +2310,7 @@ class HistogramGenerator:
             # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
             for v, h in variation_diffs.items():
                 h[~np.isfinite(h)] = 0.0
-                observation_dict[dataset][v] = h
+                observation_dict[dataset][v] = h.reshape(1, -1)
                 # We have just one observation and the central value is zero since it was already subtracted
                 cov_mat += covariance(
                     h.reshape(1, -1),
