@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields, field
 import hashlib
 import os
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 import logging
@@ -1063,6 +1063,7 @@ class RunHistGenerator:
         self.preselection = preselection
         self.binning = binning
         self.logger = logging.getLogger(__name__)
+        self.detvar_data = None
         if detvar_data_path is not None:
             # check that path exists
             if not os.path.exists(detvar_data_path):
@@ -1124,7 +1125,7 @@ class RunHistGenerator:
                 self.parameters, ParameterSet
             ), "parameters must be a ParameterSet."
         self.mc_hist_generator = mc_hist_generator_cls(
-            df_mc, binning, parameters=self.parameters, **mc_hist_generator_kwargs,
+            df_mc, binning, parameters=self.parameters, detvar_data=self.detvar_data, **mc_hist_generator_kwargs,
         )
         if df_ext is not None:
             self.ext_hist_generator = HistogramGenerator(df_ext, binning)
@@ -1138,80 +1139,6 @@ class RunHistGenerator:
         self.uncertainty_defaults = (
             dict() if uncertainty_defaults is None else uncertainty_defaults
         )
-
-    def get_detector_covariance(self, only_diagonal=False, return_dict=False):
-        """Get the covariance matrix for detector uncertainties.
-
-        This function follows the recommendation outlined in:
-        A. Ashkenazi, et al., "Detector Systematics supporting note", DocDB 27009
-
-        The relevant quote is:
-            We recommend running the full analysis chain on each one of the samples, and adding the
-            difference between each sample and the central value in quadrature. An exception should be
-            made to the recombination and wire modification dEdx variations. The recommendation is to
-            use only the one that has the larger impact to obtain the uncertainty.
-        
-        In newer samples, the dEdx variations are not included anymore, so we do not need to worry
-        about them here.
-        """
-        if self.detvar_data is None:
-            return None
-        variations = [
-            "lydown", "lyatt", "lyrayleigh", "sce", "recomb2", "wiremodx", "wiremodyz", "wiremodthetaxz", "wiremodthetayz"
-        ]
-        variation_hist_data = self.detvar_data["variation_hist_data"]
-        # Detector variations are calculated separately for each truth-filtered set. We can not
-        # assume, however, that the truth-filtered sets are identical to those used in this RunHistGenerator.
-        # Instead, we use the filter queries that are part of the detector variation data to select the
-        # correct samples.
-        filter_queries = self.detvar_data["filter_queries"]
-        cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
-        cov_mat_dict = {}
-        
-        for dataset, query in filter_queries.items():
-            self.logger.debug(f"Getting detector covariance for dataset {dataset} with query {query}.")
-            cov_mat_dict[dataset] = {}
-            variation_hists = variation_hist_data[dataset]
-            this_analysis_hist = self.get_mc_hist(extra_query=query, add_precomputed_detsys=False)
-            cv_hist = this_analysis_hist.nominal_values
-            variation_cv_hist = variation_hists["cv"].nominal_values
-            
-            # make sure every variation is in the dictionary
-            for v in variations:
-                if v not in variation_hists:
-                    raise ValueError(f"Variation {v} is missing from the detector variations.")
-            # We are taking the *relative* error from the detector variation data and scale it 
-            # to the bin counts of the histogram of this analysis. This means that, for example,
-            # if the error in a bin was 10% in the detector variation data, and the bin count
-            # in this analysis was 100, the error in this analysis will be 10.
-            with np.errstate(divide="ignore", invalid="ignore"):
-                variation_diffs = {
-                    v: (h.nominal_values - variation_cv_hist) * (cv_hist / variation_cv_hist) for v, h in variation_hists.items()
-                }
-            # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
-            for v, h in variation_diffs.items():
-                h[~np.isfinite(h)] = 0.0
-            # Calculate the covariance assuming that each variation is a unisim variation just like 
-            # the GENIE knobs
-            for v, h in variation_diffs.items():
-                # We have just one observation and the central value is zero since it was already subtracted
-                partial_cov_mat = covariance(
-                    h.reshape(1, -1),
-                    central_value=np.zeros_like(h),
-                    # As with all unisim variations, small deviations from the PSD case are expected
-                    allow_approximation=True,
-                    tolerance=1e-10,
-                    debug_name=f"detector_{v}"
-                )
-                cov_mat += partial_cov_mat
-                cov_mat_dict[dataset][v] = partial_cov_mat.copy()
-
-        if only_diagonal:
-            cov_mat = np.diag(np.diag(cov_mat))
-        if return_dict:
-            return cov_mat, cov_mat_dict
-        return cov_mat
-
 
     @classmethod
     def get_selection_query(cls, selection, preselection, extra_queries=None):
@@ -1436,13 +1363,9 @@ class RunHistGenerator:
             sideband_total_prediction=sideband_total_prediction,
             sideband_observed_hist=sideband_observed_hist,
             extra_query=extra_query,
+            add_precomputed_detsys=add_precomputed_detsys
         )
         hist.label = "MC"
-
-        if add_precomputed_detsys:
-            det_cov = self.get_detector_covariance()
-            if det_cov is not None:
-                hist.add_covariance(det_cov)
 
         hist *= scale_factor
         return hist
@@ -1515,6 +1438,7 @@ class HistogramGenerator:
         dataframe: pd.DataFrame,
         binning: Union[Binning, MultiChannelBinning],
         parameters: Optional[ParameterSet] = None,
+        detvar_data: Optional[Union[Dict[str, Any], str]] = None,
         enable_cache: bool = True,
         cache_total_covariance: bool = True,
     ):
@@ -1570,21 +1494,28 @@ class HistogramGenerator:
         self.binning = binning
         self.enable_cache = enable_cache
         self.cache_total_covariance = cache_total_covariance
+        self.detvar_data = detvar_data
+        # in case a string was passed to detvar_data, we load it from the file
+        if isinstance(self.detvar_data, str):
+            self.detvar_data = from_json(self.detvar_data)
+        # check that binning matches to detvar_data
+        if self.detvar_data is not None:
+            if not self.detvar_data["binning"] == self.binning:
+                raise ValueError(
+                    "Binning of detector variations does not match binning of main histogram."
+                )
+            
         self._invalidate_cache()
+
+    def _generate_hash(*args, **kwargs):
+        hash_obj = hashlib.md5()
+        data = str(args) + str(kwargs)
+        hash_obj.update(data.encode("utf-8"))
+        return hash_obj.hexdigest()
 
     def _invalidate_cache(self):
         """Invalidate the cache."""
         self.hist_cache = dict()
-        # we keep caches around for every combination of multisim and sideband (even though
-        #  the combination of without mulitim and with sideband is kinda nonsense and not used)
-        self.hist_cache["without_multisim"] = {
-            "with_sideband": dict(),
-            "without_sideband": dict(),
-        }
-        self.hist_cache["with_multisim"] = {
-            "with_sideband": dict(),
-            "without_sideband": dict(),
-        }
         self.unisim_hist_cache = dict()
         self.multisim_hist_cache = dict()
         self.multisim_hist_cache["weightsReint"] = dict()
@@ -1787,6 +1718,7 @@ class HistogramGenerator:
         sideband_generator=None,
         sideband_total_prediction=None,
         sideband_observed_hist=None,
+        add_precomputed_detsys=False,
     ):
         """Generate a histogram from the dataframe.
 
@@ -1809,6 +1741,8 @@ class HistogramGenerator:
         sideband_observed_hist : Histogram, optional
             Histogram containing the observed data in the sideband. If provided, the sideband
             data will be used to constrain multisim uncertainties.
+        add_precomputed_detsys : bool, optional
+            Whether to include the detector systematics in the covariance matrix.
 
         Returns
         -------
@@ -1820,24 +1754,22 @@ class HistogramGenerator:
             assert sideband_generator is not None
             assert sideband_total_prediction is not None
             assert sideband_observed_hist is not None
+        if add_precomputed_detsys:
+            assert self.detvar_data is not None, "No detector variations provided."
         calculate_hist = True
         if self.enable_cache:
             if self.parameters != self.parameters_last_evaluated:
                 self.logger.debug("Parameters changed, invalidating cache.")
                 self._invalidate_cache()
-            if extra_query is None:
-                hash = "None"
-            else:
-                hash = hashlib.sha256(extra_query.encode("utf-8")).hexdigest()
-            hist_cache = self.hist_cache[
-                "with_multisim" if include_multisim_errors else "without_multisim"
-            ]["with_sideband" if use_sideband else "without_sideband"]
-            if hash in hist_cache:
+            hash = self._generate_hash(
+                extra_query, add_precomputed_detsys, use_sideband, include_multisim_errors
+            )
+            if hash in self.hist_cache:
                 self.logger.debug("Histogram found in cache.")
                 if self.cache_total_covariance:
                     self.logger.debug("Using cached total covariance matrix.")
-                    return hist_cache[hash].copy()
-                hist = hist_cache[hash].copy()
+                    return self.hist_cache[hash].copy()
+                hist = self.hist_cache[hash].copy()
                 calculate_hist = False
         if calculate_hist:
             if extra_query is not None:
@@ -1848,13 +1780,13 @@ class HistogramGenerator:
                     )
                     hist = self._return_empty_hist()
                     if self.enable_cache:
-                        hist_cache[hash] = hist.copy()
+                        self.hist_cache[hash] = hist.copy()
                     return hist
             else:
                 dataframe = self.dataframe
             hist = self._histogram_multi_channel(dataframe)
             if self.enable_cache:
-                hist_cache[hash] = hist.copy()
+                self.hist_cache[hash] = hist.copy()
         self.logger.debug(f"Generated histogram: {hist}")
         if include_multisim_errors:
             self.logger.debug("Calculating multisim uncertainties")
@@ -1902,8 +1834,12 @@ class HistogramGenerator:
                 if not is_psd(hist.covariance_matrix + cov_corr):
                     raise RuntimeError("Covariance matrix is not PSD after correction.")
                 hist.add_covariance(cov_corr)
+        if add_precomputed_detsys:
+            det_cov = self.calculate_detector_covariance()
+            if det_cov is not None:
+                hist.add_covariance(det_cov)
         if self.enable_cache and self.cache_total_covariance:
-            hist_cache[hash] = hist.copy()
+            self.hist_cache[hash] = hist.copy()
         return hist
 
     @classmethod
@@ -2266,6 +2202,74 @@ class HistogramGenerator:
         if return_histograms:
             return total_cov, observation_dict
         return total_cov
+
+    def calculate_detector_covariance(self, only_diagonal=False, return_histograms=False):
+        """Get the covariance matrix for detector uncertainties.
+
+        This function follows the recommendation outlined in:
+        A. Ashkenazi, et al., "Detector Systematics supporting note", DocDB 27009
+
+        The relevant quote is:
+            We recommend running the full analysis chain on each one of the samples, and adding the
+            difference between each sample and the central value in quadrature. An exception should be
+            made to the recombination and wire modification dEdx variations. The recommendation is to
+            use only the one that has the larger impact to obtain the uncertainty.
+        
+        In newer samples, the dEdx variations are not included anymore, so we do not need to worry
+        about them here.
+        """
+        if self.detvar_data is None:
+            return None
+        variations = [
+            "lydown", "lyatt", "lyrayleigh", "sce", "recomb2", "wiremodx", "wiremodyz", "wiremodthetaxz", "wiremodthetayz"
+        ]
+        variation_hist_data = self.detvar_data["variation_hist_data"]
+        # Detector variations are calculated separately for each truth-filtered set. We can not
+        # assume, however, that the truth-filtered sets are identical to those used in this RunHistGenerator.
+        # Instead, we use the filter queries that are part of the detector variation data to select the
+        # correct samples.
+        filter_queries = self.detvar_data["filter_queries"]
+        cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
+        observation_dict = {}
+        
+        for dataset, query in filter_queries.items():
+            self.logger.debug(f"Getting detector covariance for dataset {dataset} with query {query}.")
+            observation_dict[dataset] = {}
+            variation_hists = variation_hist_data[dataset]
+            this_analysis_hist = self.generate(extra_query=query, add_precomputed_detsys=False)
+            cv_hist = this_analysis_hist.nominal_values
+            variation_cv_hist = variation_hists["cv"].nominal_values
+            
+            # make sure every variation is in the dictionary
+            for v in variations:
+                if v not in variation_hists:
+                    raise ValueError(f"Variation {v} is missing from the detector variations.")
+            # We are taking the *relative* error from the detector variation data and scale it 
+            # to the bin counts of the histogram of this analysis. This means that, for example,
+            # if the error in a bin was 10% in the detector variation data, and the bin count
+            # in this analysis was 100, the error in this analysis will be 10.
+            with np.errstate(divide="ignore", invalid="ignore"):
+                variation_diffs = {
+                    v: (h.nominal_values - variation_cv_hist) * (cv_hist / variation_cv_hist) for v, h in variation_hists.items()
+                }
+            # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
+            for v, h in variation_diffs.items():
+                h[~np.isfinite(h)] = 0.0
+                observation_dict[dataset][v] = h
+                # We have just one observation and the central value is zero since it was already subtracted
+                cov_mat += covariance(
+                    h.reshape(1, -1),
+                    central_value=np.zeros_like(h),
+                    # As with all unisim variations, small deviations from the PSD case are expected
+                    allow_approximation=True,
+                    tolerance=1e-10,
+                    debug_name=f"detector_{v}"
+                )
+        if only_diagonal:
+            cov_mat = np.diag(np.diag(cov_mat))
+        if return_histograms:
+            return cov_mat, observation_dict
+        return cov_mat
 
     def _resync_parameters(self):
         """Not needed since there are no parameters in this class."""
