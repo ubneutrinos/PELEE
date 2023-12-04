@@ -18,18 +18,39 @@ def _get_mc_filter_query(filter_queries):
     query = "not (" + query + ")"
     return query
 
-def make_variation_histograms(run, variation, selection_query, binning_def, truth_filtered_sets=["nue"]):
+
+def make_variation_histograms(
+    run,
+    variation,
+    selection_query,
+    binning_def,
+    truth_filtered_sets=["nue"],
+    numu=False,
+):
     binning = Binning.from_config(*binning_def)
+    if numu:
+        kwargs = {
+            "loadshowervariables": False,
+            "use_bdt": False,
+            "loadnumuvariables": True,
+            # CRT variables are only available from run 3 onwards
+            "load_crt_vars": run not in ["1", "2"],
+        }
+    else:
+        kwargs = {
+            "loadshowervariables": True,
+            "use_bdt": True,
+            "loadnumuvariables": False,
+            "load_crt_vars": False,
+            "loadpi0variables": True,
+            "loadrecoveryvars": True,
+        }
     rundata, filter_queries = dl.load_run_detvar(
         run,
         variation,
         truth_filtered_sets=truth_filtered_sets,
-        loadpi0variables=True,
-        loadshowervariables=True,
-        loadrecoveryvars=True,
-        loadsystematics=False,
-        use_bdt=True,
         enable_cache=True,
+        **kwargs,
     )
     hist_dict = {}
     for dataset in rundata:
@@ -38,6 +59,7 @@ def make_variation_histograms(run, variation, selection_query, binning_def, trut
         hist_dict[dataset] = generator.generate()
     filter_queries["mc"] = _get_mc_filter_query(list(filter_queries.values()))
     return hist_dict, filter_queries
+
 
 def make_detvar_plots(detvar_data, output_dir):
     """Make plots of the histograms contained in the detvar data"""
@@ -59,11 +81,11 @@ def make_detvar_plots(detvar_data, output_dir):
         ax.set_title(f"Dataset: {truth_filter}, Selection: {detvar_data['selection']}")
         fig.savefig(
             os.path.join(
-                output_dir,
-                f"detvar_{truth_filter}_{detvar_data['selection']}.pdf",
+                output_dir, f"detvar_{truth_filter}_{detvar_data['selection']}.pdf",
             ),
             bbox_inches="tight",
         )
+
 
 def main(args):
     RUN = args.run
@@ -86,8 +108,16 @@ def main(args):
     variations = dl.detector_variations
     for variation in variations:
         logging.info(f"Making histogram for variation {variation}")
-        variation_hist_data[variation], filter_queries[variation] = make_variation_histograms(
-            RUN, variation, selection_query, binning_def, truth_filtered_sets=args.truth_filtered_sets
+        (
+            variation_hist_data[variation],
+            filter_queries[variation],
+        ) = make_variation_histograms(
+            RUN,
+            variation,
+            selection_query,
+            binning_def,
+            truth_filtered_sets=args.truth_filtered_sets,
+            numu=args.numu,
         )
 
     # Switch ordering of keys in the variation_hist_data dict. Instead of
@@ -118,7 +148,7 @@ def main(args):
 
     if not args.make_plots:
         return
-    
+
     make_detvar_plots(detvar_data, args.plot_output_dir)
 
 
@@ -146,17 +176,16 @@ if __name__ == "__main__":
         type=str,
         nargs="*",
         default=["nue"],
-        help="List of truth-filtered sets to use",)
-    parser.add_argument(
-        "--make-plots",
-        action="store_true",
-        help="Make plots of the histograms",
+        help="List of truth-filtered sets to use",
     )
     parser.add_argument(
-        "--plot-output-dir",
-        type=str,
-        default=".",
-        help="Output directory for plots",
+        "--make-plots", action="store_true", help="Make plots of the histograms",
+    )
+    parser.add_argument(
+        "--plot-output-dir", type=str, default=".", help="Output directory for plots",
+    )
+    parser.add_argument(
+        "--numu", action="store_true", help="Use numu selection instead of nue",
     )
     args = parser.parse_args()
 
