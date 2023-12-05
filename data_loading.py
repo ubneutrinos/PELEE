@@ -23,6 +23,8 @@ from numu_tki import selection_1muNp
 from numu_tki import signal_1muNp 
 from numu_tki import tki_calculators 
 
+from microfit.selections import extract_variables_from_query
+
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 verbose=False
 
@@ -31,6 +33,13 @@ use_buggy_energy_estimator=False
 
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
+    # Even though the order should not matter in sets, it turns out that 
+    # the conversion into the string does depend on the order in which items
+    # were added to the set. To avoid this, we convert the sets into lists
+    # and sort them before hashing.
+    for key, value in kwargs.items():
+        if isinstance(value, set):
+            kwargs[key] = sorted(list(value))
     data = str(args) + str(kwargs)
     hash_obj.update(data.encode("utf-8"))
     return hash_obj.hexdigest()
@@ -1971,9 +1980,9 @@ def load_sample(
     pi0scaling=0,
     load_crt_vars=False,
     load_numu_tki=False,
-    full_path=""
+    full_path="",
+    keep_columns=None,
 ):
-
     # Load the file from data_path.yml
     if full_path == "":
 
@@ -2119,6 +2128,14 @@ def load_sample(
     if dataset == "ext" or dataset == "bnb":
         df = remove_duplicates(df)
 
+    if keep_columns is not None:
+        # We have to keep certain variables in order for everything to even function
+        vardict = get_variables()
+        minimum_columns = vardict["WEIGHTS"] + vardict["SYSTVARS"] + vardict["WEIGHTSLEE"]
+        minimum_columns += ["category", "paper_category", "paper_category_xsec", "category_1e1p", "interaction"]
+        keep_columns = set(keep_columns) | set(minimum_columns)
+        # drop all columns that are not in keep_columns in place
+        df.drop(columns=set(df.columns) - set(keep_columns), inplace=True)
     return df
 
 # CT: plotter currently requires the pot weights to be passed in as another dictionary
@@ -2134,6 +2151,18 @@ def _load_run(
 ):
 
     category = "numupresel" if numupresel else "runs"
+    # As a preparation step, we find out which variables we will need in order to do the truth-filtering
+    rundict = get_rundict(1, category)
+    filter_vars = set()
+    for truth_set in truth_filtered_sets:
+        if truth_set == "drt":
+            continue
+        filter_vars.update(extract_variables_from_query(rundict[truth_set]["filter"]))
+    keep_columns = load_sample_kwargs.pop("keep_columns", None)
+    if keep_columns is not None:
+        keep_columns = set(keep_columns) | filter_vars
+        print(f"Updating keep_columns with truth-filtering variables: {filter_vars}")
+        load_sample_kwargs["keep_columns"] = keep_columns
     output = {}
     weights = {}
     # At a minimum, we always need data, ext and nu (mc)
