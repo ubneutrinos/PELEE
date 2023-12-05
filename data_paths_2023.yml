@@ -118,8 +118,29 @@ runs:
     drt:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
       pot: 3.27E+20
+  - run_id: "4a"
+    path: run4a/nuepresel/
+    bnb: 
+      pot: 5.54E+19  
+      trig: 12329277
+    ext:
+      file: Run4a_bnb_beamOff_PeLee_ntuples_run4a_ana 
+      trig: 35295091 
+    mc:
+      file: run4a_bnb_nu_overlay_unified_pandora_reco2_run4a_ana 
+      pot: 2.49E+20 
+    nue:
+      file: run4a_bnb_intrnue_overlay_unified_pandora_reco2_run4a_ana
+      pot: 3.86E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: Run4a_BNB_dirt_overlay_Pandora_Unified_Reco2_fixed_run4a_ana
+      pot: 1.10E+20
   - run_id: "4b"
     path: run4b/nuepresel/
+    bnb: 
+      pot: 1.47E+20
+      trig: 34737600
     bdt_sideband:
       file: SignalRemoved_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
       pot: 1.47E+20
@@ -150,6 +171,9 @@ runs:
       pot: 3.02E+20
   - run_id: "4c"
     path: run4c/nuepresel/
+    bnb: 
+      pot: 9.11E+19
+      trig: 20639283
     bdt_sideband:
       file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.11E+19
@@ -180,6 +204,9 @@ runs:
       pot: 1.78E+20
   - run_id: "4d"
     path: run4d/nuepresel/
+    bnb: 
+      pot: 5.01E+19
+      trig: 11391193
     bdt_sideband:
       file: SignalRemoved_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
       pot: 5.01E+19
@@ -210,6 +237,9 @@ runs:
       pot: 2.01E+20
   - run_id: "5"
     path: run5/nuepresel/
+    bnb: 
+      pot: 1.55E+20  
+      trig: 37159286
     bdt_sideband:
       file: SignalRemoved_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
       pot: 1.301e+20  
