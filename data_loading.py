@@ -4,6 +4,7 @@ This is a refactorization of the code that was formerly in "load_data_run123.py"
 """
 
 import hashlib
+import logging
 import os
 import pickle
 import numpy as np
@@ -1930,7 +1931,7 @@ def apply_bdt_truth_filters(df):
     print("fraction of R3 CCpi0 sample after split : %.02f" % (Npost / Npre))
 
 
-def get_rundict(run_number, category, dataset):
+def get_rundict(run_number, category):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
     
     # Old ntuple paths
@@ -1949,16 +1950,15 @@ def get_rundict(run_number, category, dataset):
     rundict = next((d for d in runpaths if d["run_id"] == str(run_number)), None)
     if rundict is None:
         raise ValueError(f"Run {run_number} not found in data_paths.yml for category {category}")
-    # the "dataset" is the name such as "bnb", "ext", "nue", "drt", etc.
-    if dataset not in rundict:
-        raise ValueError(f"Dataset '{dataset}' not found in data_paths.yml for run {run_number}")
 
     return rundict
 
 def get_pot_trig(run_number, category, dataset):
-    rundict = get_rundict(run_number, category, dataset)
-    pot = rundict[dataset].pop("pot", None)
-    trig = rundict[dataset].pop("trig", None)
+    rundict = get_rundict(run_number, category)
+    # POT is the same for all detvar sets, taking it from CV
+    dataset_dict = rundict[dataset] if category != "detvar" else rundict["cv"][dataset]
+    pot = dataset_dict.pop("pot", None)
+    trig = dataset_dict.pop("trig", None)
     if trig is not None:
         trig = int(trig)
     if pot is not None:
@@ -2008,17 +2008,18 @@ def load_sample(
         
         # The path to the actual ROOT file
         if category != "detvar":
-            rundict = get_rundict(run_number, category, dataset)
+            rundict = get_rundict(run_number, category)
             data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
             
         else: 
-            rundict = get_rundict(run_number, category, dataset)
-            data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset][variation]["file"] + append + ".root")
+            rundict = get_rundict(run_number, category)
+            subdir = "numupresel" if loadnumuvariables else "nuepresel"
+            data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
        
         if verbose: print("Loading ntuple file",data_path)
         
         # try returning an empty dataframe
-        if rundict[dataset]["file"] == "dummy":
+        if os.path.basename(data_path) == "dummy.root":
             if verbose: print("Using dummy file for run",run_number,"dataset",dataset)
             return None 
 
@@ -2029,7 +2030,7 @@ def load_sample(
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
-
+    logging.debug("Loading %s from %s", tree, data_path)
     up = uproot.open(data_path)[fold][tree]
 
     variables = get_run_variables(
@@ -2173,34 +2174,9 @@ def _load_run(
     for mc_set in mc_sets:
         if mc_set == "lee":
             print("Loading lee sample")
-            """
-            # Why is this being done?
-            if run_number == 2:
-                mc_df1 = load_sample(1, category, "nue", **load_sample_kwargs, use_lee_weights=True)
-                mc_df3 = load_sample(3, category, "nue", **load_sample_kwargs, use_lee_weights=True)
-                mc_df = pd.concat([mc_df1, mc_df3])
-                mc_pot1, _ = get_pot_trig(1, category, "nue")  # nu has no trigger number
-                mc_pot3, _ = get_pot_trig(3, category, "nue")  # nu has no trigger number
-                mc_pot = mc_pot1 + mc_pot3
-            else:                      
-                mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
-                mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
-            """
             mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
             mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
         else:
-            """
-            if run_number == 2:
-                mc_df1 = load_sample(1, category, mc_set, **load_sample_kwargs)
-                mc_df3 = load_sample(3, category, mc_set, **load_sample_kwargs)
-                mc_df = pd.concat([mc_df1, mc_df3])
-                mc_pot1, _ = get_pot_trig(1, category, mc_set)  # nu has no trigger number
-                mc_pot3, _ = get_pot_trig(3, category, mc_set)  # nu has no trigger number
-                mc_pot = mc_pot1 + mc_pot3
-            else:
-                mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
-                mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
-            """
             mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
             mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
         mc_df["dataset"] = mc_set
@@ -2240,12 +2216,12 @@ def _load_run(
             continue
         else:
             # The filters are all the same, so we just take them from run 1 here
-            rundict = get_rundict(1, category, truth_set)
+            rundict = get_rundict(1, category)
             df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
 
     # If using one of the sideband datasets, apply the same query to the MC as well
-    datadict = get_rundict(run_number,category,data)[data] 
+    datadict = get_rundict(run_number,category)[data] 
     if "sideband_def" in datadict:
         sdb_def = datadict["sideband_def"]
         if verbose:
@@ -2258,36 +2234,59 @@ def _load_run(
 
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
-# CT: Separate function for loading detector variations 
-# might be possible to merge this with the existing _load_run with
-# more complete MC  
-def _load_run_detvar( 
+def load_run_detvar( 
     run_number,
     var,
-    #data="bnb",
-    data_pot,
-    mc_sets=[ "nue" ],
+    truth_filtered_sets=["nue"],
     load_lee=False,
     **load_sample_kwargs,
 ):
-    assert(data_pot > 0) , "_load_run_detvar: Negative data POT!"
+    """Load detector variation samples for a given run.
+    
+    This function is not compatible with the standard load_run function.
+    It is intended to be used with the `make_detsys.py` script.
+    A specialty of this function is that it returns the filter queries for
+    the input truth filtered samples. This is required to apply the same
+    filters when the uncertainties are calculated later when running the 
+    analysis, because the RunHistGenerator might now load the same 
+    truth-filtered sets.
+    """
     assert var in detector_variations 
    
     if verbose and run_number == 1 and var == "lydown":
         print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
  
     output = {}
-    weights = {}
-
+    filter_queries = {}
+    assert "mc" not in truth_filtered_sets, "Unfiltered MC should not be passed in truth_filtered_sets"
+    mc_sets = ["mc"] + truth_filtered_sets
     if load_lee:
         mc_sets.append("lee")
     for mc_set in mc_sets:
         mc_df = load_sample(run_number, "detvar", mc_set, variation=var, **load_sample_kwargs)
         mc_pot, _ = get_pot_trig(run_number, "detvar", mc_set)  # nu has no trigger number
-        weights[mc_set] = data_pot / mc_pot
         output[mc_set] = mc_df
+        mc_df["dataset"] = mc_set
+        # For detector systematics, we are using unweighted MC events. The uncertainty will be
+        # calculated as the relative difference between the CV and the detector variation.
+        mc_df["weights"] = np.ones(len(mc_df)) / mc_pot
+        mc_df["weights_no_tune"] = np.ones(len(mc_df)) / mc_pot
 
-    return output, weights, data_pot  # CT: Return the weight dict and data pot
+    # Remove the truth filtered events from "mc" to avoid double-counting
+    for truth_set in truth_filtered_sets:
+        if truth_set == "drt":
+            continue
+        else:
+            # The filters are all the same, so we just take them from run 1 here
+            rundict = get_rundict(1, "detvar")
+            filter_query = rundict[var][truth_set]["filter"]
+            df_temp = output["mc"].query(filter_query, engine="python")
+            logging.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
+            output["mc"].drop(index=df_temp.index, inplace=True)
+            filter_queries[truth_set] = filter_query
+    # output["data"] = None  # Key required by other code
+    # output["ext"] = None  # Key required by other code
+    return output, filter_queries
 
 
 def load_runs(run_numbers, **load_run_kwargs):
@@ -2511,7 +2510,7 @@ def get_run_variables(
     ALLVARS = VARIABLES
 
     # Weights are only available in MC runs.
-    if category in ["runs", "numupresel"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband"]:
+    if category in ["runs", "numupresel", "detvar"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband"]:
         if use_lee_weights:
             assert dataset == "nue", "LEE weights are only available for nue runs"
             ALLVARS += WEIGHTSLEE
@@ -2540,7 +2539,7 @@ def get_path(run_number, category, dataset, append=""):
 
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata","detvar"]
 
-    rundict = get_rundict(run_number, category, dataset)
+    rundict = get_rundict(run_number, category)
 
     # The path to the actual ROOT file
     return os.path.join(ls.ntuple_path, rundict["path"])
@@ -2551,7 +2550,7 @@ def get_filename(run_number, category, dataset, variation="cv", append=""):
 
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata","detvar"]
 
-    rundict = get_rundict(run_number, category, dataset)
+    rundict = get_rundict(run_number, category)
 
     # The path to the actual ROOT file
     if(category == "detvar"):
