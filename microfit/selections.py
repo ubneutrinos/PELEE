@@ -52,6 +52,7 @@ NPVLCUTQ_all_showers += ' and trkfit < 0.90'
 NPVLCUTQ_all_showers += ' and tksh_distance < 10.0'
 NPVLCUTQ_all_showers += ' and tksh_angle > -0.9'
 NPVLCUTQ = NPVLCUTQ_all_showers + ' and n_showers_contained == 1'
+NPVLCUTQ_two_shower = NPVLCUTQ_all_showers + ' and n_showers_contained > 1'
 #NPVLCUTQ = NPVLCUTQ_all_showers + ' and (n_showers_contained == 1 or (n_showers_contained>1 and shr12_cos_p1_dstart>0.99))'
 
 # loose box cuts
@@ -67,6 +68,7 @@ NPLCUTQ_all_showers += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0
 NPLCUTQ_all_showers += ' and tksh_angle > -0.9'
 NPLCUTQ_all_showers += ' and shr_trk_len < 300.' # new cut
 NPLCUTQ = NPLCUTQ_all_showers + ' and n_showers_contained == 1'
+NPLCUTQ_two_shower = NPLCUTQ_all_showers + ' and n_showers_contained > 1'
 
 # tight box cuts
 NPTCUTQ_all_showers = NPVLCUTQ_all_showers
@@ -85,6 +87,7 @@ NPTCUTQ_all_showers += ' and (secondshower_Y_nhit<=8 or secondshower_Y_dot<=0.8 
 NPTCUTQ_all_showers += ' and tksh_angle > -0.9 and tksh_angle < 0.70'
 NPTCUTQ_all_showers += ' and shr_trk_len < 300.'
 NPTCUTQ = NPTCUTQ_all_showers + ' and n_showers_contained == 1'
+NPTCUTQ_two_shower = NPTCUTQ_all_showers + ' and n_showers_contained > 1'
 #NPTCUTQ = NPTCUTQ_all_showers + ' and (n_showers_contained == 1 or (n_showers_contained>1 and shr12_cos_p1_dstart>0.99))'
 
 # box cuts, for aligned shower test
@@ -99,6 +102,7 @@ NPALTESTQ_all_showers += ' and trkfit < 0.70'
 NPALTESTQ_all_showers += ' and shr_trk_len < 300.'
 NPALTESTQ_all_showers += ' and topological_score > 0.8'
 NPALTESTQ = NPALTESTQ_all_showers + ' and n_showers_contained == 1'
+NPALTESTQ_two_showers = NPALTESTQ_all_showers + ' and n_showers_contained > 1'
 #NPALTESTQ = NPALTESTQ_all_showers + ' and (n_showers_contained == 1 or (n_showers_contained>1 and shr12_cos_p1_dstart>0.99))'
 
 # BDT cuts
@@ -106,6 +110,7 @@ NPALTESTQ = NPALTESTQ_all_showers + ' and n_showers_contained == 1'
 BDTCQ_all_showers = NPLCUTQ_all_showers
 BDTCQ_all_showers += ' and pi0_score > 0.67 and nonpi0_score > 0.70'
 BDTCQ = BDTCQ_all_showers + ' and n_showers_contained == 1'
+BDTCQ_two_shower = BDTCQ_all_showers + ' and n_showers_contained > 1'
 
 # CT: Adding inverted BDT cuts
 BDTCQ_all_showers_INV = NPLCUTQ_all_showers
@@ -299,8 +304,8 @@ BLIND = '(bnbdata == 0)'
 # CT Defining near and far sideband selection queries, these are what's used in the technote
 # Everything in the NP selection except the BDT cuts
 NP_SIDEBANDS_OTHERCRITERIA = "CosmicIPAll3D > 10. and trkpid < 0.02 and hits_ratio > 0.50 and shrmoliereavg < 9 and subcluster > 4 and trkfit < 0.65 and tksh_distance < 6.0 and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5) and tksh_angle > -0.9 and shr_trk_len < 300. and n_showers_contained == 1" 
-NP_FAR_SIDEBAND = NP_SIDEBANDS_OTHERCRITERIA + " and (reco_e > 0.85 or (pi0_score < 0.1 and nonpi0_score < 0.1))" 
-NP_NEAR_SIDEBAND = NP_SIDEBANDS_OTHERCRITERIA + " and ( (0.65 < reco_e < 0.85 and (pi0_score > 0.1 and nonpi0_score > 0.1)) or (reco_e < 0.85 and (0.1 < pi0_score < 0.67 and 0.1 < nonpi0_score < 0.7)) )" 
+NP_FAR_SIDEBAND = NP_SIDEBANDS_OTHERCRITERIA + " and (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1))" 
+NP_NEAR_SIDEBAND = NP_SIDEBANDS_OTHERCRITERIA + " and ( (0.75 < reco_e < 1.05 and (pi0_score > 0.1 and nonpi0_score > 0.1)) or (reco_e < 0.75 and (0.1 < pi0_score < 0.67 and 0.1 < nonpi0_score < 0.7)) )" 
 
 # Everything in the NP selection except the BDT cuts
 ZP_SIDEBANDS_OTHERCRITERIA="n_showers_contained == 1 and CosmicIPAll3D > 10. and CosmicDirAll3D > -0.9 and CosmicDirAll3D < 0.9 and shrmoliereavg < 15 and subcluster > 4 and trkfit < 0.65 and secondshower_Y_nhit < 50 and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 80 and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100  and shr_trk_len < 300. and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9)) and n_tracks_contained == 0 and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))"
@@ -309,6 +314,22 @@ ZP_NEAR_SIDEBAND = ZP_SIDEBANDS_OTHERCRITERIA + " and ( (0.65 < reco_e < 0.9 and
 
 #ZP_FAR_SIDEBAND = HIGH_ENERGY_ZP + " or " + LOW_PID_ZP 
 #ZP_NEAR_SIDEBAND = MEDIUM_ENERGY_ZP + " or " + MEDIUM_PID_ZP 
+
+# High and medium energy sidebands
+
+NP_HIGH_ENERGY = "reco_e > 1.05"
+NP_MEDIUM_ENERGY = "0.75 < reco_e < 1.05"
+
+ZP_HIGH_ENERGY = "reco_e > 0.90"
+ZP_MEDIUM_ENERGY = "0.65 < reco_e < 0.90"
+
+# Low and medium PID sidebands 
+
+NP_LOW_PID = "(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1))"
+NP_MEDIUM_PID = "(0.1 < pi0_score < 1.0) and (0.1 < nonpi0_score < 1.0) and ~((pi0_score > 0.67) and (nonpi0_score > 0.7))"
+
+ZP_LOW_PID = "(0.0 < bkg_score < 0.4)"
+ZP_MEDIUM_PID = "(0.4 < bkg_score < 0.72)" 
 
 # pi0 selection
 SCORECUT = 0.5 # 0.75 #75 # max track score
@@ -437,8 +458,6 @@ selection_categories = {
     'ZPLOOSESEL': {'query': ZPLOOSESEL, 'title': '1e0p Loose sel.', 'dir': 'ZPLOOSESEL'},
     'ZPONEGAMMA': {'query': ZPONEGAMMA, 'title': '1g1p sel.', 'dir': 'ZPONEGAMMA'},
     'ZPLAllTrk': {'query': ZPLOOSESEL_all_tracks, 'title': '1e0p Loose sel.', 'dir': 'ZPLAllTrk'},
-    'ZPLOOSETWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
-    'ZPBDTTWOSHR': {'query': ZPBDTLOOSE_two_shower, 'title': '1e0p BDT sel. 2+shr', 'dir': 'ZPBDT_two_shower'},
     'NUMUPRE': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'},
     'NUMU': {'query': NUMUSEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'},
@@ -483,11 +502,50 @@ selection_categories = {
     'SIGNAL_1MUNP': {'query': "Signal_1muNp == True", 'title': 'True 1muNp Events', 'dir': 'SIGNAL_1MUNP'},
     'SG_1MUNP': {'query': "sel_CCNp0pi == True", 'title': 'Selected 1muNp0pi Events', 'dir': 'SG_1MUNP'},
 
-    # Near and far sidebands
-    'NP_FAR_SIDEBAND': {'query': NP_FAR_SIDEBAND, 'title': '1eNp Far Sideband', 'dir': 'NP_FAR_SIDEBAND'},
-    'NP_NEAR_SIDEBAND': {'query': NP_NEAR_SIDEBAND, 'title': '1eNp Near Sideband', 'dir': 'NP_NEAR_SIDEBAND'},
-    'ZP_FAR_SIDEBAND': {'query': ZP_FAR_SIDEBAND, 'title': '1e0p Far Sideband', 'dir': 'ZP_FAR_SIDEBAND'},
-    'ZP_NEAR_SIDEBAND': {'query': ZP_NEAR_SIDEBAND, 'title': '1e0p Near Sideband', 'dir': 'ZP_NEAR_SIDEBAND'},
+    # Two Shower Selections
+    'ZPLOOSETWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
+    'ZPBDTTWOSHR': {'query': ZPBDTLOOSE_two_shower, 'title': '1e0p BDT sel. 2+shr', 'dir': 'ZPBDT_two_shower'},
+    'NPVLTWOSHR': {'query': NPVLCUTQ_two_shower, 'title': '1eNp VL cuts 2+shr', 'dir': 'NPVL_two_shower'},
+    'NPLTWOSHR': {'query': NPLCUTQ_two_shower, 'title': '1eNp Loose cuts 2+shr', 'dir': 'NPL_two_shower'},
+    'NPTTWOSHR': {'query': NPTCUTQ_two_shower, 'title': '1eNp Tight cuts 2+shr', 'dir': 'NPT_two_shower'},
+    'NPBDTTWOSHR': {'query': BDTCQ_two_shower, 'title': '1eNp BDT sel. 2+shr', 'dir': 'NPBDT_two_shower'},
+
+    # High Energy Sidebands
+    'NP_HIGH_ENERGY': {'query': NP_HIGH_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'NP_HIGH_ENERGY'},
+    'NPVL_HIGH_ENERGY': {'query': NPVLCUTQ+" and "+NP_HIGH_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'NPVL_HIGH_ENERGY'},
+    'NPL_HIGH_ENERGY': {'query': NPLCUTQ+" and "+NP_HIGH_ENERGY , 'title': '1eNp Loose cuts, High Energy', 'dir': 'NPL_HIGH_ENERGY'},
+    'NPT_HIGH_ENERGY': {'query': NPTCUTQ+" and "+NP_HIGH_ENERGY , 'title': '1eNp Tight cuts, High Energy', 'dir': 'NPT_HIGH_ENERGY'},
+    'NPBDT_HIGH_ENERGY': {'query': BDTCQ+" and "+NP_HIGH_ENERGY , 'title': '1eNp BDT sel., High Energy', 'dir': 'NPBDT_HIGH_ENERGY'},
+    'ZP_HIGH_ENERGY': {'query': ZP_HIGH_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'ZP_HIGH_ENERGY'},
+    'ZPLOOSESEL_HIGH_ENERGY': {'query': ZPLOOSESEL+" and "+ZP_HIGH_ENERGY , 'title': '1e0p Loose sel., High Energy', 'dir': 'ZPLOOSESEL_HIGH_ENERGY'},
+    'ZPBDT_HIGH_ENERGY': {'query': ZPBDTLOOSE+" and "+ZP_HIGH_ENERGY , 'title': '1e0p BDT sel., High Energy', 'dir': 'ZPBDT_HIGH_ENERGY'},
+
+    # Medium Energy Sidebands
+    'NP_MEDIUM_ENERGY': {'query': NP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'NP_MEDIUM_ENERGY'},
+    'NPVL_MEDIUM_ENERGY': {'query': NPVLCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'NPVL_MEDIUM_ENERGY'},
+    'NPL_MEDIUM_ENERGY': {'query': NPLCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp Loose cuts, High Energy', 'dir': 'NPL_MEDIUM_ENERGY'},
+    'NPT_MEDIUM_ENERGY': {'query': NPTCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp Tight cuts, High Energy', 'dir': 'NPT_MEDIUM_ENERGY'},
+    'NPBDT_MEDIUM_ENERGY': {'query': BDTCQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp BDT sel., High Energy', 'dir': 'NPBDT_MEDIUM_ENERGY'},
+    'ZP_MEDIUM_ENERGY': {'query': ZP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'ZP_MEDIUM_ENERGY'},
+    'ZPLOOSESEL_MEDIUM_ENERGY': {'query': ZPLOOSESEL+" and "+ZP_MEDIUM_ENERGY , 'title': '1e0p Loose sel., High Energy', 'dir': 'ZPLOOSESEL_MEDIUM_ENERGY'},
+    'ZPBDT_MEDIUM_ENERGY': {'query': ZPBDTLOOSE+" and "+ZP_MEDIUM_ENERGY , 'title': '1e0p BDT sel., High Energy', 'dir': 'ZPBDT_MEDIUM_ENERGY'},
+
+    # Low PID Sidebands 
+    'NP_LOW_PID': {'query': NP_LOW_PID , 'title': '1eNp VL cuts, Low PID', 'dir': 'NP_LOW_PID'},
+    'NPVL_LOW_PID': {'query': NPVLCUTQ+" and "+NP_LOW_PID , 'title': '1eNp VL cuts, Low PID', 'dir': 'NPVL_LOW_PID'},
+    'NPL_LOW_PID': {'query': NPLCUTQ+" and "+NP_LOW_PID , 'title': '1eNp Loose cuts, Low PID', 'dir': 'NPL_LOW_PID'},
+    'NPT_LOW_PID': {'query': NPTCUTQ+" and "+NP_LOW_PID , 'title': '1eNp Tight cuts, Low PID', 'dir': 'NPT_LOW_PID'},
+    'ZP_LOW_PID': {'query': ZP_LOW_PID , 'title': '1eNp VL cuts, Low PID', 'dir': 'ZP_LOW_PID'},
+    'ZPLOOSESEL_LOW_PID': {'query': ZPLOOSESEL+" and "+ZP_LOW_PID , 'title': '1e0p Loose sel., Low PID', 'dir': 'ZPLOOSESEL_LOW_PID'},
+
+    # Low PID Sidebands 
+    'NP_MEDIUM_PID': {'query': NP_MEDIUM_PID , 'title': '1eNp VL cuts, Medium PID', 'dir': 'NP_MEDIUM_PID'},
+    'NPVL_MEDIUM_PID': {'query': NPVLCUTQ+" and "+NP_MEDIUM_PID , 'title': '1eNp VL cuts, Medium PID', 'dir': 'NPVL_MEDIUM_PID'},
+    'NPL_MEDIUM_PID': {'query': NPLCUTQ+" and "+NP_MEDIUM_PID , 'title': '1eNp Loose cuts, Medium PID', 'dir': 'NPL_MEDIUM_PID'},
+    'NPT_MEDIUM_PID': {'query': NPTCUTQ+" and "+NP_MEDIUM_PID , 'title': '1eNp Tight cuts, Medium PID', 'dir': 'NPT_MEDIUM_PID'},
+    'ZP_MEDIUM_PID': {'query': ZP_MEDIUM_PID , 'title': '1eNp VL cuts, Medium PID', 'dir': 'ZP_MEDIUM_PID'},
+    'ZPLOOSESEL_MEDIUM_PID': {'query': ZPLOOSESEL+" and "+ZP_MEDIUM_PID , 'title': '1e0p Loose sel., Medium PID', 'dir': 'ZPLOOSESEL_MEDIUM_PID'},
+
 }
 
 stages_queries = {

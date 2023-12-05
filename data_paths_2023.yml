@@ -120,21 +120,33 @@ runs:
       pot: 3.27E+20
   - run_id: "4a"
     path: run4a/nuepresel/
-    bnb: 
-      pot: 5.54E+19  
-      trig: 12329277
+    bdt_sideband:
+      file: SignalRemoved_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 5.537e+19
+      trig: 12329277.0
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband: 
+      file: ShowerSideband_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 5.537e+19
+      trig: 12329277.0
+      sideband_def: shr_energy_tot_cali > 0.75
+    two_shr_sideband: 
+      file: TwoShowers_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 5.537e+19
+      trig: 12329277.0
+      sideband_def: n_showers_contained >= 2
     ext:
       file: Run4a_bnb_beamOff_PeLee_ntuples_run4a_ana 
-      trig: 35295091 
+      trig: 35295091
     mc:
       file: run4a_bnb_nu_overlay_unified_pandora_reco2_run4a_ana 
-      pot: 2.49E+20 
+      pot: 2.49E+20
     nue:
-      file: run4a_bnb_intrnue_overlay_unified_pandora_reco2_run4a_ana
+      file: run4a_bnb_intrnue_overlay_unified_pandora_reco2_run4a_ana 
       pot: 3.86E+22
       filter: abs(nu_pdg)==12 and ccnc == 0 
     drt:
-      file: Run4a_BNB_dirt_overlay_Pandora_Unified_Reco2_fixed_run4a_ana
+      file: Run4a_BNB_dirt_overlay_Pandora_Unified_Reco2_fixed_run4a_ana 
       pot: 1.10E+20
   - run_id: "4b"
     path: run4b/nuepresel/
@@ -242,25 +254,25 @@ runs:
       trig: 37159286
     bdt_sideband:
       file: SignalRemoved_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
-      pot: 1.301e+20  
-      trig: 31064575.0
+      pot: 1.55E+20   
+      trig: 37159286
       sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
     shr_energy_sideband:
       file: ShowerSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana
-      pot: 1.301e+20
-      trig: 31064575.0  
+      pot: 1.55E+20 
+      trig: 37159286   
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
       file: TwoShowers_run5_bnb_beamon_PeLEE_ntuples_run5_ana
-      pot: 1.301e+20
-      trig: 31064575.0  
+      pot: 1.55E+20   
+      trig: 37159286  
       sideband_def: n_showers_contained >= 2
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
-      trig: 115079907 
+      trig: 115079907   
     mc:
       file: run5_bnb_nu_overlay_ntuple_v08_00_00_67_run5_ana 
-      pot: 8.72E+20 
+      pot: 8.72E+20
     nue:
       file: run5_bnb_intrinsic_nue_overlay_pandora_unified_reco2_reco2_ana
       pot: 1.59E+23
@@ -395,6 +407,46 @@ numupresel:
     drt:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
       pot: 3.27E+20
+  - run_id: "4a"
+    path: run4a/numupresel/
+    bdt_sideband:
+      file: SignalRemoved_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 5.537e+19
+      trig: 12329277.0
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband: 
+      file: ShowerSideband_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 5.537e+19
+      trig: 12329277.0
+      sideband_def: shr_energy_tot_cali > 0.75
+    two_shr_sideband: 
+      file: TwoShowers_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 5.537e+19
+      trig: 12329277.0
+      sideband_def: n_showers_contained >= 2
+    #muon_sideband:
+    #  file: NuMuSideband_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+    #  pot: 5.537e+19
+    #  trig: 12329277.0
+    #  sideband_def: n_muons_tot > 0
+    muon_sideband:
+      file: NoBadRuns_NuMuSideband_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 4.814e+19 
+      trig: 10610945.0 
+      sideband_def: n_muons_tot > 0
+    ext:
+      file: Run4a_bnb_beamOff_PeLee_ntuples_run4a_ana 
+      trig: 35295091
+    mc:
+      file: run4a_bnb_nu_overlay_unified_pandora_reco2_run4a_ana 
+      pot: 2.49E+20
+    nue:
+      file: run4a_bnb_intrnue_overlay_unified_pandora_reco2_run4a_ana 
+      pot: 3.86E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: Run4a_BNB_dirt_overlay_Pandora_Unified_Reco2_fixed_run4a_ana 
+      pot: 1.10E+20
   - run_id: "4b"
     path: run4b/numupresel/
     bdt_sideband:
@@ -504,30 +556,30 @@ numupresel:
     path: run5/numupresel/
     bdt_sideband:
       file: SignalRemoved_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
-      pot: 1.301e+20  
-      trig: 31064575.0
+      pot: 1.55E+20   
+      trig: 37159286
       sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
     shr_energy_sideband:
       file: ShowerSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana
-      pot: 1.301e+20
-      trig: 31064575.0  
+      pot: 1.55E+20 
+      trig: 37159286   
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
       file: TwoShowers_run5_bnb_beamon_PeLEE_ntuples_run5_ana
-      pot: 1.301e+20
-      trig: 31064575.0  
+      pot: 1.55E+20   
+      trig: 37159286  
       sideband_def: n_showers_contained >= 2
     muon_sideband:
-      file: NuMuSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana
-      pot: 1.301e+20
-      trig: 31064575.0  
-      sideband_def: n_muons_tot > 0 
+      file: NuMuSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
+      pot: 1.55E+20   
+      trig: 37159286  
+      sideband_def: n_muons_tot > 0
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
-      trig: 115079907 
+      trig: 115079907   
     mc:
       file: run5_bnb_nu_overlay_ntuple_v08_00_00_67_run5_ana 
-      pot: 8.72E+20 
+      pot: 8.72E+20
     nue:
       file: run5_bnb_intrinsic_nue_overlay_pandora_unified_reco2_reco2_ana
       pot: 1.59E+23
