@@ -9,7 +9,7 @@ from microfit import selections
 # Draw a stack of plots for lots of variable/selection/dataset combinations
 # Author: C Thorpe (U of Manchester)
 
-def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,**dl_kwargs): 
+def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,sideband_title=None,**dl_kwargs): 
 
   for run_combo in RUN_COMBOS_vv:
       
@@ -34,7 +34,13 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,**
 
           selection = SELECTION_v[i]
           preselection = PRESELECTION_v[i]
-             
+               
+          if sideband_title != None and selection+"_"+DATASET not in selections.selection_categories.keys():
+              sel = selections.selection_categories[selection]
+              sel["title"] = sel["title"] + ", " + sideband_title 
+              selections.selection_categories[selection+"_"+DATASET] = sel
+
+            
           os.system("mkdir -p Plots/png/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
           os.system("mkdir -p Plots/pdf/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
 
@@ -46,7 +52,7 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,**
                   found_variable=True
                   for key in rundata.keys():                  
                       if binning_def[0] not in rundata[key].columns: found_variable=False
-                  
+        
                   # some binning definitions have more than 4 elements,
                   # we ignore the last ones for now
                   binning = hist.Binning.from_config(*binning_def[:4])
