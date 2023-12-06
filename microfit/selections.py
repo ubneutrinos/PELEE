@@ -567,3 +567,10 @@ def extract_variables_from_query(query):
     unique_variables = set(variables)
     return unique_variables
 
+def get_required_variables(preselections=None, selections=None):
+    required_variables = set()
+    for selection in preselections:
+        required_variables.update(extract_variables_from_query(preselection_categories[selection]["query"]))
+    for selection in selections:
+        required_variables.update(extract_variables_from_query(selection_categories[selection]["query"]))
+    return required_variables

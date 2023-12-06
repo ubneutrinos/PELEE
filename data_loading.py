@@ -23,6 +23,8 @@ from numu_tki import selection_1muNp
 from numu_tki import signal_1muNp 
 from numu_tki import tki_calculators 
 
+from microfit.selections import extract_variables_from_query
+
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 verbose=False
 
@@ -31,6 +33,13 @@ use_buggy_energy_estimator=False
 
 def generate_hash(*args, **kwargs):
     hash_obj = hashlib.md5()
+    # Even though the order should not matter in sets, it turns out that 
+    # the conversion into the string does depend on the order in which items
+    # were added to the set. To avoid this, we convert the sets into lists
+    # and sort them before hashing.
+    for key, value in kwargs.items():
+        if isinstance(value, set):
+            kwargs[key] = sorted(list(value))
     data = str(args) + str(kwargs)
     hash_obj.update(data.encode("utf-8"))
     return hash_obj.hexdigest()
@@ -65,11 +74,16 @@ def get_variables():
 
     VARIABLES = [
         "nu_pdg",
-        "mc_pdg",
-        "mc_px",
-        "mc_py",
-        "mc_pz",
-        "mc_E",
+        #############
+        # The variables below are not floating point numbers, but vectors of variable length
+        # that can only be stored in awkward arrays. These are very memory intensive, so we
+        # do not want to load them into the final dataframe.
+        # "mc_pdg",
+        # "mc_px",
+        # "mc_py",
+        # "mc_pz",
+        # "mc_E",
+        #############
         "slpdg",
         # "backtracked_pdg",
         # "trk_score_v",
@@ -85,9 +99,8 @@ def get_variables():
         "CosmicIPAll3D",
         # "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
         "flash_pe",
-        # The TRK scroe is a rugged array and we probably don't want it directly in the DataFrame.
-        # The processing functions pick out the relevant values from it.
-        "trk_llr_pid_score_v",  # trk-PID score
+        # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
+        # "trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
         "_opfilter_pe_veto",  # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x",
@@ -130,11 +143,13 @@ def get_variables():
         "theta",  # angle between incoming and outgoing leptons in radians
         # "nu_decay_mode","nu_hadron_pdg","nu_parent_pdg", # flux truth info
         # "shr_energy_tot_cali","selected","n_showers_contained",  # only if CC0piNp variables are saved!
-        "pfp_generation_v",
+        # We do not want to load "vector" variables into the final dataframe, as they take up 
+        # a lot of memory
+        # "pfp_generation_v",
         "shr_energy_cali",
-        "trk_dir_x_v",
-        "trk_dir_y_v",
-        "trk_dir_z_v",
+        # "trk_dir_x_v",
+        # "trk_dir_y_v",
+        # "trk_dir_z_v",
     ]
 
     VARDICT["VARIABLES"] = VARIABLES
@@ -321,7 +336,7 @@ def get_variables():
     VARDICT["NUEVARS"] = NUEVARS
 
     NUMUVARS = [
-    "trk_energy_proton_v"
+        # "trk_energy_proton_v"
     ]
 
     VARDICT["NUMUVARS"] = NUMUVARS
@@ -329,23 +344,26 @@ def get_variables():
     RCVRYVARS = [
         "shr_energy_tot",
         "trk_energy_tot",
-        "trk_end_x_v",
-        "trk_end_y_v",
-        "trk_end_z_v",
-        "trk_phi_v",
-        "trk_theta_v",
-        "trk_len_v",
+        # NOTE: Loading rugged vector columns like these directly into the dataframe is very memory intensive
+        # and tanks performance. We should avoid doing this. If these variables are needed for intermediate
+        # calculations, please load them from the root file manually in the processing function.
+        # "trk_end_x_v",
+        # "trk_end_y_v",
+        # "trk_end_z_v",
+        # "trk_phi_v",
+        # "trk_theta_v",
+        # "trk_len_v",
         "trk_id",
         "shr_start_x",
         "shr_start_y",
         "shr_start_z",
         "trk_hits_max",
-        "shr_tkfit_dedx_u_v",
-        "shr_tkfit_dedx_v_v",
-        "shr_tkfit_dedx_y_v",
-        "shr_tkfit_dedx_nhits_u_v",
-        "shr_tkfit_dedx_nhits_v_v",
-        "shr_tkfit_dedx_nhits_y_v",
+        # "shr_tkfit_dedx_u_v",
+        # "shr_tkfit_dedx_v_v",
+        # "shr_tkfit_dedx_y_v",
+        # "shr_tkfit_dedx_nhits_u_v",
+        # "shr_tkfit_dedx_nhits_v_v",
+        # "shr_tkfit_dedx_nhits_y_v",
         "trk2shrhitdist2",
         "trk1trk2hitdist2",
         "shr1shr2moliereavg",
@@ -1813,20 +1831,20 @@ def process_uproot_numu(up, df):
     pfp_pdg_v = up.array("backtracked_pdg")
 
     # CT: Adding track starts to the dataframe
-    df["trk_sce_start_x_v"] = trk_start_x_v
-    df["trk_sce_start_y_v"] = trk_start_y_v
-    df["trk_sce_start_z_v"] = trk_start_z_v
-    df["trk_sce_end_x_v"] = trk_end_x_v
-    df["trk_sce_end_y_v"] = trk_end_y_v
-    df["trk_sce_end_z_v"] = trk_end_z_v
-    df["trk_range_muon_mom_v"] = trk_range_muon_mom_v
-    df["trk_mcs_muon_mom_v"] = trk_mcs_muon_mom_v
+    # df["trk_sce_start_x_v"] = trk_start_x_v
+    # df["trk_sce_start_y_v"] = trk_start_y_v
+    # df["trk_sce_start_z_v"] = trk_start_z_v
+    # df["trk_sce_end_x_v"] = trk_end_x_v
+    # df["trk_sce_end_y_v"] = trk_end_y_v
+    # df["trk_sce_end_z_v"] = trk_end_z_v
+    # df["trk_range_muon_mom_v"] = trk_range_muon_mom_v
+    # df["trk_mcs_muon_mom_v"] = trk_mcs_muon_mom_v
 
     # CT: Adding pfp info to the dataframe
-    df["pfp_generation_v"] = pfp_generation_v
-    df["trk_score_v"] = trk_score_v
-    df["trk_distance_v"] = trk_distance_v
-    df["trk_len_v"] = trk_len_v
+    # df["pfp_generation_v"] = pfp_generation_v
+    # df["trk_score_v"] = trk_score_v
+    # df["trk_distance_v"] = trk_distance_v
+    # df["trk_len_v"] = trk_len_v
 
     trk_mask = trk_score_v > 0.0
     proton_mask = (trk_score_v > 0.5) & (trk_llr_pid_v < 0.0)
@@ -1897,27 +1915,6 @@ def process_uproot_numu(up, df):
 
     return
 
-def drop_vector_columns(df):
-    drop_columns = [
-            "trk_theta_v",
-            "trk_end_z_v",
-            #"trk_len_v",
-            "shr_tkfit_dedx_nhits_v_v",
-            "trk_phi_v",
-            "shr_tkfit_dedx_y_v",
-            "trk_end_y_v",
-            "shr_tkfit_dedx_v_v",
-            "trk_end_x_v",
-            "shr_tkfit_dedx_u_v",
-            "shr_tkfit_dedx_nhits_y_v",
-            "shr_tkfit_dedx_nhits_u_v",
-        ]
-    drop_columns = [col for col in drop_columns if col in df.columns]
-    df.drop(
-        columns=drop_columns,
-        inplace=True,
-    )
-
 # The following function should be aplied to the R3 CCPi0 sample when USEBDT and
 # loadtruthfilters are both set to True.
 # TODO: Use this function in the appropriate place in the code.
@@ -1983,9 +1980,9 @@ def load_sample(
     pi0scaling=0,
     load_crt_vars=False,
     load_numu_tki=False,
-    full_path=""
+    full_path="",
+    keep_columns=None,
 ):
-
     # Load the file from data_path.yml
     if full_path == "":
 
@@ -2030,66 +2027,67 @@ def load_sample(
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
-    logging.debug("Loading %s from %s", tree, data_path)
-    up = uproot.open(data_path)[fold][tree]
 
-    variables = get_run_variables(
-        run_number,
-        category,
-        dataset,
-        loadsystematics=loadsystematics,
-        loadpi0variables=loadpi0variables,
-        loadshowervariables=loadshowervariables,
-        loadrecoveryvars=loadrecoveryvars,
-        loadnumuvariables=loadnumuvariables,
-        use_lee_weights=use_lee_weights,
-        load_crt_vars=load_crt_vars,
-    )
+    with uproot.open(data_path) as up_file:
+        up = up_file[fold][tree]
 
-    df = up.pandas.df(variables, flatten=False)
+        variables = get_run_variables(
+            run_number,
+            category,
+            dataset,
+            loadsystematics=loadsystematics,
+            loadpi0variables=loadpi0variables,
+            loadshowervariables=loadshowervariables,
+            loadrecoveryvars=loadrecoveryvars,
+            loadnumuvariables=loadnumuvariables,
+            use_lee_weights=use_lee_weights,
+            load_crt_vars=load_crt_vars,
+        )
 
-    df["bnbdata"] = dataset in ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband"]
-    df["extdata"] = dataset == "ext"
+        df = up.pandas.df(variables, flatten=False)
 
-    # trk_energy_tot agrees here
-    # For runs before 3, we put zeros for the CRT variables
-    if int(run_number[0]) < 3:
-        vardict = get_variables()
-        crtvars = vardict["CRTVARS"]
-        for var in crtvars:
-            df[var] = 0.0
+        df["bnbdata"] = dataset in ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband"]
+        df["extdata"] = dataset == "ext"
 
-    # We also add some "one-hot" variables for the run number
-    # TODO: Do we need this?
-    df["run1"] = True if run_number == 1 else False
-    df["run2"] = True if run_number == 2 else False
-    df["run3"] = True if run_number == 3 else False
-    df["run30"] = True if run_number == 3 else False
-    df["run12"] = True if run_number in [1, 2] else False
-    # TODO: In the old code, the 'run2' flag was set to True for all runs for
-    # certain event types. Why??
-    if dataset in ["drt", "nc_pi0", "cc_pi0", "cc_nopi", "cc_cpi", "nc_nopi", "nc_cpi"]:
-        df["run2"] = True
+        # trk_energy_tot agrees here
+        # For runs before 3, we put zeros for the CRT variables
+        if int(run_number[0]) < 3:
+            vardict = get_variables()
+            crtvars = vardict["CRTVARS"]
+            for var in crtvars:
+                df[var] = 0.0
 
-    if dataset in ["nue", "drt", "lee", "nu", "ext"]:
-        df["pot_scale"] = 1.0
+        # We also add some "one-hot" variables for the run number
+        # TODO: Do we need this?
+        df["run1"] = True if run_number == 1 else False
+        df["run2"] = True if run_number == 2 else False
+        df["run3"] = True if run_number == 3 else False
+        df["run30"] = True if run_number == 3 else False
+        df["run12"] = True if run_number in [1, 2] else False
+        # TODO: In the old code, the 'run2' flag was set to True for all runs for
+        # certain event types. Why??
+        if dataset in ["drt", "nc_pi0", "cc_pi0", "cc_nopi", "cc_cpi", "nc_nopi", "nc_cpi"]:
+            df["run2"] = True
 
-    # If needed, load additional variables
+        if dataset in ["nue", "drt", "lee", "nu", "ext"]:
+            df["pot_scale"] = 1.0
 
-    if loadnumuvariables:
-        process_uproot_numu(up, df)
-    if loadshowervariables:
-        process_uproot_shower_variables(up, df)
-    if loadrecoveryvars:
-        if use_buggy_energy_estimator:
-            process_uproot_recoveryvars_old(up, df)
-        else:
-            process_uproot_recoveryvars(up, df)
-    if loadpi0variables:
-        process_uproot_ccncpi0vars(up, df)
-    if loadshowervariables:
-        # Some variables have to be calculated after the recovery has been done
-        post_process_shower_vars(up, df)
+        # If needed, load additional variables
+
+        if loadnumuvariables:
+            process_uproot_numu(up, df)
+        if loadshowervariables:
+            process_uproot_shower_variables(up, df)
+        if loadrecoveryvars:
+            if use_buggy_energy_estimator:
+                process_uproot_recoveryvars_old(up, df)
+            else:
+                process_uproot_recoveryvars(up, df)
+        if loadpi0variables:
+            process_uproot_ccncpi0vars(up, df)
+        if loadshowervariables:
+            # Some variables have to be calculated after the recovery has been done
+            post_process_shower_vars(up, df)
     if use_bdt:
         add_bdt_scores(df)
 
@@ -2125,12 +2123,19 @@ def load_sample(
     ] = 4
 
     add_paper_categories(df, dataset)
-    drop_vector_columns(df)
 
     # CT: For some reason this only run over the EXT and data in the old code
     if dataset == "ext" or dataset == "bnb":
         df = remove_duplicates(df)
 
+    if keep_columns is not None:
+        # We have to keep certain variables in order for everything to even function
+        vardict = get_variables()
+        minimum_columns = vardict["WEIGHTS"] + vardict["SYSTVARS"] + vardict["WEIGHTSLEE"]
+        minimum_columns += ["category", "paper_category", "paper_category_xsec", "category_1e1p", "interaction"]
+        keep_columns = set(keep_columns) | set(minimum_columns)
+        # drop all columns that are not in keep_columns in place
+        df.drop(columns=set(df.columns) - set(keep_columns), inplace=True)
     return df
 
 # CT: plotter currently requires the pot weights to be passed in as another dictionary
@@ -2146,6 +2151,18 @@ def _load_run(
 ):
 
     category = "numupresel" if numupresel else "runs"
+    # As a preparation step, we find out which variables we will need in order to do the truth-filtering
+    rundict = get_rundict(1, category)
+    filter_vars = set()
+    for truth_set in truth_filtered_sets:
+        if truth_set == "drt":
+            continue
+        filter_vars.update(extract_variables_from_query(rundict[truth_set]["filter"]))
+    keep_columns = load_sample_kwargs.pop("keep_columns", None)
+    if keep_columns is not None:
+        keep_columns = set(keep_columns) | filter_vars
+        print(f"Updating keep_columns with truth-filtering variables: {filter_vars}")
+        load_sample_kwargs["keep_columns"] = keep_columns
     output = {}
     weights = {}
     # At a minimum, we always need data, ext and nu (mc)
@@ -2180,6 +2197,9 @@ def _load_run(
             mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
             mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
         mc_df["dataset"] = mc_set
+        # For better performance, we want to convert the "dataset" column into a categorical column
+        # where the categories are all the entries in mc_sets
+        mc_df["dataset"] = pd.Categorical(mc_df["dataset"], categories=mc_sets + ["data", "ext"])
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
         # weights without the tune. We add this as a separate column here.
