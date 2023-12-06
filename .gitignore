@@ -30,3 +30,4 @@ mprofile_*.dat
 *.fls
 *.fdb_latexmk
 *.cpt
+*.toc
