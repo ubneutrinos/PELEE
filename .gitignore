@@ -17,3 +17,16 @@ scripts/test_output
 dataframes
 cached_dataframes
 plot_output/*
+
+# Ignore files from memory profiler
+mprofile_*.dat
+
+# Ignore Latex temporary files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.cpt
