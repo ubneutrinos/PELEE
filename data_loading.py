@@ -25,6 +25,7 @@ from numu_tki import tki_calculators
 
 from microfit.selections import extract_variables_from_query
 
+datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 verbose=False
 
@@ -2095,7 +2096,7 @@ def load_sample(
 
         df = up.pandas.df(variables, flatten=False)
 
-        df["bnbdata"] = dataset in ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband"]
+        df["bnbdata"] = dataset in datasets 
         df["extdata"] = dataset == "ext"
 
         # trk_energy_tot agrees here
@@ -2147,7 +2148,7 @@ def load_sample(
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category == "runs" and dataset not in ["bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","ext","opendata_bnb"]
+    is_mc = category == "runs" and dataset not in datasets 
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2584,7 +2585,7 @@ def get_run_variables(
     ALLVARS = VARIABLES
 
     # Weights are only available in MC runs.
-    if category in ["runs", "numupresel", "detvar"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband"]:
+    if category in ["runs", "numupresel", "detvar"] and dataset not in datasets + ["ext"]:
         if use_lee_weights:
             assert dataset == "nue", "LEE weights are only available for nue runs"
             ALLVARS += WEIGHTSLEE
