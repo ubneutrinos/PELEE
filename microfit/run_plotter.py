@@ -151,7 +151,7 @@ class RunHistPlotter:
         # with error bars.
         mc_nominal = total_mc_hist.nominal_values
         mc_error_band = total_mc_hist / mc_nominal
-        data_mc_ratio = data_hist / total_pred_hist
+        data_mc_ratio = data_hist / total_pred_hist.nominal_values
 
         self.plot_hist(
             mc_error_band,
