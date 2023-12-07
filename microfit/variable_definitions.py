@@ -355,12 +355,31 @@ tki_reco_variables_1mu1p = [
     ("RecoPNII_1mu1p", 10, (-0.5,0.75), "pnII"),
 ]
 
-# CT: Adding sideband variables
+# NP Far Sideband
+
 NP_far_sideband_variables = [
     ("shr_energy_tot_cali", 10, (0.05,0.4), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 0.8), "trk energy (range, P) [GeV]"),
 ] + bdt_common_variables_1eNp + bdt_1enp_variables 
+
+NP_high_energy_variables = [
+    ("shr_energy_tot_cali", 10, (0.35,2.05), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.85, 2.55), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.8), "trk energy (range, P) [GeV]"),
+    ("pi0_score",10,(0.0,1.0),"pi0 score"),
+    ("nonpi0_score",10,(0.0,1.0),"non-pi0 score"),
+] + bdt_common_variables_1eNp + bdt_1enp_variables 
+
+NP_low_pid_variables = [
+    ("shr_energy_tot_cali", 10, (0.35,2.05), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.8), "trk energy (range, P) [GeV]"),
+    ("pi0_score",10,(0.0,1.0),"pi0 score"),
+    ("nonpi0_score",10,(0.0,1.0),"non-pi0 score"),
+] + bdt_common_variables_1eNp + bdt_1enp_variables 
+
+# NP Near Sideband
 
 NP_near_sideband_variables = [
     ("shr_energy_tot_cali", 10, (0.05,0.7), "shr energy (calibrated) [GeV]"),
@@ -368,14 +387,58 @@ NP_near_sideband_variables = [
     ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
 ] + bdt_common_variables_1eNp + bdt_1enp_variables 
 
+NP_medium_energy_variables = [
+    ("shr_energy_tot_cali", 10, (0.05,0.9), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 5, (0.65, 0.85), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.8), "trk energy (range, P) [GeV]"),
+    ("pi0_score",10,(0.1,1.0),"pi0 score"),
+    ("nonpi0_score",10,(0.1,1.0),"non-pi0 score"),
+] + bdt_common_variables_1eNp + bdt_1enp_variables 
+
+NP_medium_pid_variables = [
+    ("shr_energy_tot_cali", 10, (0.05,0.7), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 5, (0.05, 0.85), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
+    ("pi0_score",10,(0.1,0.67),"pi0 score"),
+    ("nonpi0_score",10,(0.1,0.7),"non-pi0 score"),
+] + bdt_common_variables_1eNp + bdt_1enp_variables 
+
+# ZP Far Sideband
+
 ZP_far_sideband_variables = [
     ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
 ] + bdt_common_variables_1e0p + bdt_1e0p_variables
 
+ZP_high_energy_variables = [
+    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.0,1.0),"Background Score"),
+] + bdt_common_variables_1e0p + bdt_1e0p_variables
+
+ZP_low_pid_variables = [
+    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.0,0.4),"Background Score"),
+] + bdt_common_variables_1e0p + bdt_1e0p_variables
+
+# ZP Near Sideband
+
 ZP_near_sideband_variables = [
     ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.05, 0.90), r"Reconstructed Energy [GeV]", "note"),
+] + bdt_common_variables_1e0p + bdt_1e0p_variables
+
+ZP_medium_energy_variables = [
+    ("shr_energy_tot_cali", 10, (0.55,0.85), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.65, 0.90), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.4,1.0),"Background Score"),
+] + bdt_common_variables_1e0p + bdt_1e0p_variables
+
+ZP_medium_pid_variables = [
+    ("shr_energy_tot_cali", 10, (0.05,0.75), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.4,72),"Background Score"),
 ] + bdt_common_variables_1e0p + bdt_1e0p_variables
 
 plot_variables = basic_variables + evtsel_variabls + shrsel_variables + bdtscore_variables

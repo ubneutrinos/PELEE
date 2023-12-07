@@ -9,7 +9,7 @@ from microfit import selections
 # Draw a stack of plots for lots of variable/selection/dataset combinations
 # Author: C Thorpe (U of Manchester)
 
-verbose=True
+verb=True
 
 def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,sideband_title=None,**dl_kwargs): 
 
@@ -23,14 +23,14 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
       print("Making plots for runs",run_combo)
       
       # Load the data 
-      if verbose: print("Loading data")
+      if verb: print("Loading data")
       rundata, mc_weights, data_pot = dl.load_runs(
           run_combo,
           data=DATASET,
           truth_filtered_sets=["nue","drt"],
           **dl_kwargs
       ) 
-      if verbose: print("Finished loading data")
+      if verb: print("Finished loading data")
          
       # Choose a preselection/selection/variable list combination, draw
       # plots for each
@@ -39,7 +39,7 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
           selection = SELECTION_v[i]
           preselection = PRESELECTION_v[i]
 
-          if verbose: print("Making plots with preselection",preselection,"and selection",selection)
+          if verb: print("Making plots with preselection",preselection,"and selection",selection)
                
           if sideband_title != None and selection+"_"+DATASET not in selections.selection_categories.keys():
               sel = selections.selection_categories[selection]
@@ -54,7 +54,7 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
 
               for binning_def in variables:
 
-                  if verbose: print("Making plot of",binning_def[0])
+                  if verb: print("Making plot of",binning_def[0])
     
                   # Check the variable exists in the dataframes, skip this var if it doesn't
                   found_variable=True
