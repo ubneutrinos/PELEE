@@ -1,12 +1,15 @@
 from dataclasses import dataclass, fields, field
 import hashlib
 import os
-from typing import Any, Dict, List, Optional, Union
+from numpy import random
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import pandas as pd
+from scipy import integrate
 import logging
 
-from numbers import Number
+from numbers import Real, Real
+from sklearn.neighbors import KernelDensity
 from uncertainties import correlated_values, unumpy
 
 from microfit.fileio import from_json
@@ -74,7 +77,14 @@ class Binning:
         return self.n_bins
 
     @classmethod
-    def from_config(cls, variable, n_bins, limits, label=None, is_log=False):
+    def from_config(
+        cls,
+        variable: str,
+        n_bins: int,
+        limits: Tuple[float, float],
+        label: Optional[str] = None,
+        is_log: bool = False,
+    ):
         """Create a Binning object from a typical binning configuration
 
         Parameters:
@@ -82,7 +92,7 @@ class Binning:
         variable : str
             Name of the variable being binned
         n_bins : int
-            Number of bins
+            Real of bins
         limits : tuple
             Tuple of lower and upper limits
         label : str, optional
@@ -103,7 +113,7 @@ class Binning:
 
     @property
     def n_bins(self):
-        """Number of bins"""
+        """Real of bins"""
         return len(self.bin_edges) - 1
 
     @property
@@ -156,7 +166,7 @@ class Histogram:
             Color of the histogram, used for plotting.
         tex_string : str, optional
             TeX string used to label the histogram in a plot.
-        
+
         Notes
         -----
         The histograms defined by this class are strictly 1-dimensional. However, the binning
@@ -205,6 +215,8 @@ class Histogram:
 
         import matplotlib.pyplot as plt
 
+        if as_correlation and as_fractional:
+            raise ValueError("Cannot draw covariance matrix as correlation and as fractional.")
         if ax is None:
             ax = plt.gca()
         ax.set_title(f"{'Correlation' if as_correlation else 'Covariance'} matrix")
@@ -227,6 +239,9 @@ class Histogram:
             pc = ax.pcolormesh(X, Y, fractional_covar, cmap=colormap, **plot_kwargs)
             label = "Fractional covariance"
         else:
+            max_val = np.max(np.abs(self.covariance_matrix))
+            plot_kwargs["vmin"] = -max_val
+            plot_kwargs["vmax"] = max_val
             pc = ax.pcolormesh(X, Y, self.covariance_matrix, cmap=colormap, **plot_kwargs)
             label = "Covariance"
         cbar = plt.colorbar(pc, ax=ax)
@@ -301,7 +316,7 @@ class Histogram:
         fig, ax = plt.subplots()
         self.draw(ax)
         ax.legend()
-        return fig._repr_html_()
+        return fig._repr_html_()  # type: ignore
 
     def to_dict(self):
         """Convert the histogram to a dictionary.
@@ -559,7 +574,7 @@ class Histogram:
         return self.__class__.from_dict(state)
 
     def __truediv__(self, other):
-        if isinstance(other, Number):
+        if isinstance(other, Real):
             new_bin_counts = self.nominal_values / other
             new_cov_matrix = self.covariance_matrix / other ** 2
             state = self.to_dict()
@@ -610,7 +625,7 @@ class Histogram:
             state["bin_counts"] = new_bin_counts
             state["covariance_matrix"] = new_cov_matrix
             return self.__class__.from_dict(state)
-        elif isinstance(other, Number):
+        elif isinstance(other, Real):
             new_bin_counts = self.nominal_values * other
             new_cov_matrix = self.covariance_matrix * other ** 2
             state = self.to_dict()
@@ -640,7 +655,7 @@ class Histogram:
 
     def __rmul__(self, other):
         # we only support multiplication by numbers that scale the entire histogram
-        if isinstance(other, Number):
+        if isinstance(other, Real):
             new_bin_counts = self.nominal_values * other
             new_cov_matrix = self.covariance_matrix * other ** 2
             state = self.to_dict()
@@ -658,9 +673,9 @@ class MultiChannelBinning:
     """Binning for multiple channels.
 
     This can be used to define multi-channel binnings of the same data as well as
-    binnings for different selections. For every channel, we may have a different 
+    binnings for different selections. For every channel, we may have a different
     Binning that may have its own selection query. Using this binning definition,
-    the HistogramGenerator can make multi-channel histograms that may include 
+    the HistogramGenerator can make multi-channel histograms that may include
     correlations between bins and channels.
 
     Note that this is different from a multi-dimensional binning. The binnings
@@ -671,21 +686,25 @@ class MultiChannelBinning:
 
     binnings: List[Binning]
     is_log: bool = False
-    __iter_index: int = field(default=0, init=False, repr=False)
 
     @property
-    def labels(self) -> List[str]:
+    def label(self) -> str:
+        """Label of the unrolled binning."""
+        return "Global Bin Real"
+
+    @property
+    def labels(self) -> List[Union[str, None]]:
         """Labels of all channels."""
         return [b.label for b in self.binnings]
 
     @property
     def n_channels(self):
-        """Number of channels."""
+        """Real of channels."""
         return len(self.binnings)
 
     @property
     def n_bins(self):
-        """Number of bins in all channels."""
+        """Real of bins in all channels."""
         return sum([len(b) for b in self.binnings])
 
     @property
@@ -696,7 +715,7 @@ class MultiChannelBinning:
         into a single array, which can be passed to np.histogramdd as follows:
         >>> bin_edges = consecutive_bin_edges
         >>> hist, _ = np.histogramdd(data, bins=bin_edges)
-        
+
         Returns
         -------
         List[np.ndarray]
@@ -707,7 +726,7 @@ class MultiChannelBinning:
     @property
     def variables(self) -> List[str]:
         """Get the variables of all channels.
-        
+
         Returns
         -------
         List[str]
@@ -716,9 +735,9 @@ class MultiChannelBinning:
         return [b.variable for b in self.binnings]
 
     @property
-    def selection_queries(self) -> List[str]:
+    def selection_queries(self) -> List[Union[str, None]]:
         """Get the selection queries of all channels.
-        
+
         Returns
         -------
         List[str]
@@ -728,9 +747,9 @@ class MultiChannelBinning:
 
     def get_unrolled_binning(self) -> Binning:
         """Get an unrolled binning of all channels.
-        
-        The bins will just be labeled as 'Global bin number' and the 
-        variable will be 'none'. An unrolled binning cannot be used to 
+
+        The bins will just be labeled as 'Global bin number' and the
+        variable will be 'none'. An unrolled binning cannot be used to
         create a histogram directly, but it can be used for plotting.
         """
         bin_edges = np.arange(self.n_bins + 1)
@@ -739,7 +758,7 @@ class MultiChannelBinning:
     def _idx_channel(self, key: Union[int, str]) -> int:
         """Get the index of a channel from the key.
         The key may be a numeric index or a string label.
-        
+
         Parameters
         ----------
         key : int or str
@@ -759,14 +778,14 @@ class MultiChannelBinning:
         using these indices as follows:
         >>> idx = _channel_bin_idx(key)
         >>> channel_bin_counts = bin_counts[idx]
-        
+
         Parameters
         ----------
         key : int or str
             Index or label of the channel.
         bin_idx : int
             Index of the bin in the channel.
-        
+
         Returns
         -------
         List[int]
@@ -777,14 +796,14 @@ class MultiChannelBinning:
         start_idx = sum([len(b) for b in self.binnings[:idx]])
         return list(range(start_idx, start_idx + len(binning)))
 
-    def get_binning(self, key: Union[int, str]) -> Binning:
+    def __getitem__(self, key: Union[int, str]) -> Binning:
         """Get the binning of a given channel.
-        
+
         Parameters
         ----------
         key : int or str
             Index or label of the channel.
-        
+
         Returns
         -------
         Binning
@@ -793,16 +812,8 @@ class MultiChannelBinning:
         return self.binnings[self._idx_channel(key)]
 
     def __iter__(self):
-        self.__iter_index = 0
-        return self
-
-    def __next__(self) -> Binning:
-        if self.__iter_index >= len(self.binnings):
-            raise StopIteration
-        else:
-            binning = self.binnings[self.__iter_index]
-            self.__iter_index += 1
-            return binning
+        for binning in self.binnings:
+            yield binning
 
     def __len__(self):
         return self.n_channels
@@ -810,14 +821,14 @@ class MultiChannelBinning:
 
 class MultiChannelHistogram(Histogram):
     """A histogram that combines multiple channels with a single covariance matrix.
-    
+
     The purpose of this class is to hold several histograms that may be correlated,
     and to extract sub-channels from the full histogram.
     """
 
     def __init__(self, binning: MultiChannelBinning, *args, **kwargs) -> None:
         """Initialize a MultiChannelHistogram.
-        
+
         Parameters
         ----------
         binning : MultiChannelBinning
@@ -835,21 +846,24 @@ class MultiChannelHistogram(Histogram):
         """
 
         assert isinstance(binning, MultiChannelBinning), "binning must be a MultiChannelBinning."
-        super().__init__(binning, *args, **kwargs)
+        super().__init__(binning.get_unrolled_binning(), *args, **kwargs)
+        # The attribute self.binning is set in the Histogram constructor, but we overwrite
+        # it here again.
+        self.binning = binning
 
     @property
-    def channels(self) -> List[str]:
+    def channels(self) -> List[Union[str, None]]:
         """List of channels."""
         return self.binning.labels
 
     def channel_bin_counts(self, key: Union[int, str]) -> np.ndarray:
         """Get the bin counts of a given channel.
-        
+
         Parameters
         ----------
         key : int or str
             Index or label of the channel.
-        
+
         Returns
         -------
         np.ndarray
@@ -859,12 +873,12 @@ class MultiChannelHistogram(Histogram):
 
     def channel_covariance_matrix(self, key: Union[int, str]) -> np.ndarray:
         """Get the covariance matrix of a given channel.
-        
+
         Parameters
         ----------
         key : int or str
             Index or label of the channel.
-        
+
         Returns
         -------
         np.ndarray
@@ -876,12 +890,12 @@ class MultiChannelHistogram(Histogram):
 
     def __getitem__(self, key: Union[int, str]) -> Histogram:
         """Get the histogram of a given channel.
-        
+
         Parameters
         ----------
         key : int or str
             Index or label of the channel.
-        
+
         Returns
         -------
         Histogram
@@ -896,7 +910,7 @@ class MultiChannelHistogram(Histogram):
 
     def replace_channel_histogram(self, key: Union[int, str], histogram: Histogram) -> None:
         """Replace the histogram of a given channel.
-        
+
         This does not change the covariance _between_ channels.
 
         Parameters
@@ -907,14 +921,14 @@ class MultiChannelHistogram(Histogram):
             Histogram to replace the channel histogram with.
         """
         idx = self.binning._idx_channel(key)
-        self.bin_counts[self._channel_bin_idx(idx)] = histogram.bin_counts
+        self.bin_counts[self.binning._channel_bin_idx(idx)] = histogram.bin_counts
         self.covariance_matrix[
-            np.ix_(self._channel_bin_idx(idx), self._channel_bin_idx(idx))
+            np.ix_(self.binning._channel_bin_idx(idx), self.binning._channel_bin_idx(idx))
         ] = histogram.covariance_matrix
 
     def get_unrolled_histogram(self) -> Histogram:
         """Get an unrolled histogram of all channels.
-        
+
         Returns
         -------
         Histogram
@@ -1133,7 +1147,9 @@ class RunHistGenerator:
                 query = f"{query} and {q}"
         return query
 
-    def get_data_hist(self, type="data", add_error_floor=None, scale_to_pot=None):
+    def get_data_hist(
+        self, type="data", add_error_floor=None, scale_to_pot=None
+    ) -> Union[None, Histogram]:
         """Get the histogram for the data (or EXT).
 
         Parameters
@@ -1150,7 +1166,7 @@ class RunHistGenerator:
 
         Returns
         -------
-        data_hist : numpy.ndarray
+        data_hist : Histogram
             Histogram of the data.
         """
 
@@ -1189,7 +1205,7 @@ class RunHistGenerator:
         include_multisim_errors=None,
         scale_to_pot=None,
         channel=None,
-    ):
+    ) -> Dict[str, Histogram]:
         """Get MC histograms that are split by event category.
 
         Parameters
@@ -1216,7 +1232,7 @@ class RunHistGenerator:
             if include_multisim_errors is None
             else include_multisim_errors
         )
-        mc_hists = {}
+        mc_hists = {}  # type: Dict[str, Histogram]
         other_categories = []
         for category in self.mc_hist_generator.dataframe[category_column].unique():
             extra_query = f"{category_column} == '{category}'"
@@ -1236,7 +1252,9 @@ class RunHistGenerator:
         # before we return the histogram dict, we want to sum all categories together
         # that were labeled as "Other"
         if len(other_categories) > 0:
-            mc_hists["Other"] = sum([mc_hists.pop(cat) for cat in other_categories])
+            summed_other_hist = sum([mc_hists.pop(cat) for cat in other_categories])
+            assert isinstance(summed_other_hist, Histogram)
+            mc_hists["Other"] = summed_other_hist
             mc_hists["Other"].label = "Other"
             mc_hists["Other"].color = "gray"
         return mc_hists
@@ -1252,12 +1270,12 @@ class RunHistGenerator:
 
     def get_mc_hist(
         self,
-        include_multisim_errors=None,
-        extra_query=None,
-        scale_to_pot=None,
-        use_sideband=None,
-        add_precomputed_detsys=False,
-    ):
+        include_multisim_errors: Optional[bool] = None,
+        extra_query: Optional[str] = None,
+        scale_to_pot: Optional[float] = None,
+        use_sideband: Optional[bool] = None,
+        add_precomputed_detsys: bool = False,
+    ) -> Histogram:
         """Produce a histogram from the MC dataframe.
 
         Parameters
@@ -1293,6 +1311,7 @@ class RunHistGenerator:
         hist_generator = self.get_hist_generator(which="mc")
         use_sideband = use_sideband and self.sideband_generator is not None
         if use_sideband:
+            assert isinstance(self.sideband_generator, RunHistGenerator)
             sideband_generator = self.sideband_generator.get_hist_generator(which="mc")
             sideband_total_prediction = self.sideband_generator.get_total_prediction(
                 include_multisim_errors=True
@@ -1373,6 +1392,8 @@ class RunHistGenerator:
             Chi square between the data and the total prediction.
         """
         data_hist = self.get_data_hist(type="data")
+        if data_hist is None:
+            return np.nan
         total_prediction = self.get_total_prediction(**kwargs)
         chi_sq = chi_square(
             data_hist.nominal_values,
@@ -1401,7 +1422,7 @@ class HistogramGenerator:
         binning : Binning or MultiChannelBinning
             Binning object containing the binning of the histogram. If a MultiChannelBinning is
             passed, the histogram will be unrolled and the covariance matrix will contain
-            correlations between bins of different channels. The `generate` function will 
+            correlations between bins of different channels. The `generate` function will
             then return a MultiChannelHistogram.
         weight_column : str or list of str, optional
             Name of the column containing the weights of the data points. If more than one weight
@@ -1469,11 +1490,12 @@ class HistogramGenerator:
         self.multisim_hist_cache["weightsReint"] = dict()
         self.multisim_hist_cache["weightsFlux"] = dict()
         self.multisim_hist_cache["weightsGenie"] = dict()
+        assert isinstance(self.parameters, ParameterSet)
         self.parameters_last_evaluated = self.parameters.copy()
 
     def _return_empty_hist(self):
         """Return an empty histogram."""
-        if "binnings" in self.binning.__dict__:
+        if isinstance(self.binning, MultiChannelBinning):
             return MultiChannelHistogram(
                 self.binning,
                 np.zeros(self.binning.n_bins),
@@ -1492,7 +1514,7 @@ class HistogramGenerator:
 
     def _histogram_multi_channel(
         self, dataframe: pd.DataFrame, weight_column: Optional[Union[str, List[str]]] = None,
-    ) -> MultiChannelHistogram:
+    ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram for multiple channels from the dataframe.
 
         The histograms contained in the MultiChannelHistogram are linked by one large covariance
@@ -1514,13 +1536,13 @@ class HistogramGenerator:
 
         Returns
         -------
-        histogram : MultiChannelHistogram
-            MultiChannelHistogram object containing the binned data.
+        histogram : Histogram or MultiChannelHistogram
+            Histogram of the data.
         """
 
         binning = self.binning
         return_single_channel = False
-        if not hasattr(binning, "variables"):
+        if isinstance(binning, Binning):
             binning = MultiChannelBinning([binning])
             return_single_channel = True
         sample = dataframe[binning.variables].to_numpy()
@@ -1582,7 +1604,7 @@ class HistogramGenerator:
         base_weight_column: str,
         multisim_weight_column: str,
         weight_rescale: float = 1 / 1000.0,
-    ) -> List[np.ndarray]:
+    ) -> np.ndarray:
         """Generate histograms for each universe for multiple channels from the dataframe.
 
         Parameters
@@ -1597,12 +1619,12 @@ class HistogramGenerator:
 
         Returns
         -------
-        bin_counts : List[np.ndarray]
-            List of bin counts for each universe.
+        bin_counts : np.ndarray
+            Array of shape (n_universes, n_bins) containing the bin counts for each universe.
         """
 
         binning = self.binning
-        if not hasattr(binning, "variables"):
+        if isinstance(binning, Binning):
             binning = MultiChannelBinning([binning])
         sample = dataframe[binning.variables].to_numpy()
         selection_masks = []
@@ -1626,7 +1648,7 @@ class HistogramGenerator:
         universe_histograms = []
         for column in df.columns:
             # create a histogram for each universe
-            universe_weights = self._limit_weights(df[column].values * weight_rescale)
+            universe_weights = self._limit_weights(df[column].to_numpy() * weight_rescale)
             channel_bin_counts = []
             for i in range(binning.n_channels):
                 channel_sample = sample[selection_masks[i], i]
@@ -1639,16 +1661,210 @@ class HistogramGenerator:
             universe_histograms.append(np.concatenate(channel_bin_counts))
         return np.array(universe_histograms)
 
+    def _get_bootstrap_sample(
+        self,
+        data: np.ndarray,
+        weights: np.ndarray,
+        rng: Optional[np.random.Generator] = None,
+        method: str = "poisson",
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        # Initialize a new random number generator
+        if rng is None:
+            rng = random.default_rng()
+        bootstrap_data = None
+        bootstrap_weights = None
+        # Randomly sample the data with replacement
+        if method == "choice":
+            bootstrap_indices = rng.choice(range(len(data)), size=len(data))
+            bootstrap_data = data[bootstrap_indices]
+            bootstrap_weights = weights[bootstrap_indices]
+        elif method == "poisson":
+            bootstrap_weights = weights * np.random.poisson(1.0, size=len(weights))
+            bootstrap_data = data
+        else:
+            raise ValueError(f"Unknown bootstrap method {method}.")
+        return bootstrap_data, bootstrap_weights
+
+    def _integrate_kde(self, kde: KernelDensity, bin_edges: np.ndarray, points_per_bin: int = 10):
+        # To get smoothed bin counts, we want to integrate the PDF between bin edges.
+        # Fortunately, the KDE already comes with that functionality.
+        smoothed_hist = np.zeros(len(bin_edges) - 1)
+        for i in range(len(smoothed_hist)):
+            lower, upper = bin_edges[i], bin_edges[i + 1]
+
+            def integrand(x):
+                return np.exp(kde.score_samples(np.array(x).reshape(-1, 1)))
+
+            x = np.linspace(lower, upper, points_per_bin)
+            smoothed_hist[i] = integrate.trapz(integrand(x), x)
+        return smoothed_hist
+
+    def _get_smoothed_histogram(
+        self,
+        data: List[float],
+        weights: List[float],
+        bins: Union[int, np.ndarray],
+        density: bool = False,
+        bw_method: str = "silverman",
+        kernel_width_floor: float = 0.1,
+        points_per_bin: int = 10,
+    ) -> Tuple[np.ndarray, np.ndarray, float]:
+        hist, bin_edges = np.histogram(data, bins=bins, weights=weights, density=density)
+        X = np.array(data).reshape(-1, 1)
+        # Because we are using old scikit-learn, we have to apply scott and silverman
+        # rules by hand
+        data_std = np.std(data)
+        if isinstance(bw_method, str):
+            if bw_method == "scott":
+                bw_method_ = X.shape[0] ** (-1 / (X.shape[1] + 4))
+            elif bw_method == "silverman":
+                bw_method_ = (X.shape[0] * (X.shape[1] + 2) / 4) ** (-1 / (X.shape[1] + 4))
+            else:
+                raise ValueError(f"Unknown bw_method {bw_method}.")
+            # To deal with the case that the std is zero, add a floor
+            bandwidth = max(bw_method_ * data_std, kernel_width_floor)
+        else:
+            bandwidth = bw_method
+        kde = KernelDensity(bandwidth=bandwidth).fit(X, sample_weight=weights)
+        # To get smoothed bin counts, we want to integrate the PDF between bin edges.
+        smoothed_hist = self._integrate_kde(kde, bin_edges, points_per_bin=points_per_bin)
+        if not density:
+            smoothed_hist *= np.sum(hist)
+        return smoothed_hist, bin_edges, kde.bandwidth_
+
+    def _get_smoothed_histogram_bootstrap(
+        self,
+        dataframe: pd.DataFrame,
+        binning: Union[Binning, MultiChannelBinning],
+        weight_column: Optional[Union[str, List[str]]] = "weights",
+        n_samples: int = 100,
+        seed: int = 0,
+        method: str = "poisson",
+        **smooth_hist_kwargs,
+    ) -> Tuple[np.ndarray, np.ndarray, List[float]]:
+        return_kernel_width = smooth_hist_kwargs.pop("return_kernel_width", False)
+        bw_method = smooth_hist_kwargs.pop("bw_method", "silverman")
+        if isinstance(binning, Binning):
+            binning = MultiChannelBinning([binning])
+        selection_masks = []
+        for i, query in enumerate(binning.selection_queries):
+            selection_masks.append(self._get_query_mask(dataframe, query))
+        data = dataframe[binning.variables].values
+        weights = self.get_weights(dataframe, weight_column)
+        central_value, channel_bw = self._smooth_hist_multi_channel(
+            data,
+            weights,
+            binning,
+            return_kernel_width=True,
+            bw_method=bw_method,
+            selection_masks=selection_masks,
+            **smooth_hist_kwargs,
+        )
+        bootstrap_samples = []
+        # We set the seed once so that the bootstrap samples are reproducible,
+        # and reuse the same rng object to ensure that there is no collision between
+        # the bootstrap samples and the random numbers used in the smoothing.
+        rng = random.default_rng(seed)
+        for j in range(n_samples):
+            bootstrap_data, bootstrap_weights = self._get_bootstrap_sample(
+                data, weights, rng=rng, method=method
+            )
+            nonzero_mask = bootstrap_weights > 0
+            if sum(nonzero_mask) == 0:
+                bootstrap_samples.append(np.zeros_like(central_value))
+                continue
+            # The KDE bandwidth is set to be equal to the one used to create the central value
+            # histogram. This ensures that the bootstrap samples are smoothed in the same way
+            # and avoids pathological situations where, for instance, the bootstrap samples
+            # are all using the same index and therefore the spread is zero.
+            sample_selection_masks = [
+                selection_masks[i][nonzero_mask] for i in range(len(selection_masks))
+            ]
+            bootstrap_samples.append(
+                self._smooth_hist_multi_channel(
+                    bootstrap_data[nonzero_mask],
+                    bootstrap_weights[nonzero_mask],
+                    binning=binning,
+                    bw_method=channel_bw,
+                    selection_masks=sample_selection_masks,
+                    **smooth_hist_kwargs,
+                )
+            )
+        bootstrap_samples = np.array(bootstrap_samples)
+
+        covariance_matrix = covariance(
+            bootstrap_samples, central_value, allow_approximation=True, tolerance=1e-10
+        )
+        return central_value, covariance_matrix, channel_bw
+
+    def _smooth_hist_multi_channel(
+        self,
+        data: np.ndarray,
+        weights: np.ndarray,
+        binning: MultiChannelBinning,
+        selection_masks: Optional[Sequence[np.ndarray]] = None,
+        **smooth_hist_kwargs,
+    ) -> Union[np.ndarray, Tuple[np.ndarray, List[float]]]:
+        return_kernel_width = smooth_hist_kwargs.pop("return_kernel_width", False)
+        bw_method = smooth_hist_kwargs.pop("bw_method", "silverman")
+        if isinstance(bw_method, str):
+            bw_method = [bw_method] * len(binning)
+        elif isinstance(bw_method, float):
+            bw_method = [bw_method] * len(binning)
+        elif isinstance(bw_method, list):
+            assert len(bw_method) == len(binning)
+        if selection_masks is None:
+            selection_masks = [np.ones(len(data), dtype=bool)] * len(binning)
+        # To make a multi-channel histogram, we need to make a histogram for each channel
+        # and then concatenate them together.
+        central_value = []
+        channel_bw = []
+        for i, channel_binning in enumerate(binning):
+            channel_cv, _, kde_factor = self._get_smoothed_histogram(
+                data[:, i][selection_masks[i]],
+                weights[selection_masks[i]],
+                bins=channel_binning.bin_edges,
+                bw_method=bw_method[i],  # type: ignore
+                **smooth_hist_kwargs,
+            )
+            central_value.append(channel_cv)
+            channel_bw.append(kde_factor)
+        central_value = np.concatenate(central_value)
+        if return_kernel_width:
+            return central_value, channel_bw
+        return central_value
+
+    def _smoothed_histogram_multi_channel(
+        self,
+        dataframe: pd.DataFrame,
+        weight_column: Optional[Union[str, List[str]]] = None,
+        **smooth_hist_kwargs,
+    ) -> Union[Histogram, MultiChannelHistogram]:
+        binning = self.binning
+        return_single_channel = False
+        if isinstance(binning, Binning):
+            binning = MultiChannelBinning([binning])
+            return_single_channel = True
+        central_value, covariance_matrix, _ = self._get_smoothed_histogram_bootstrap(
+            dataframe, binning, weight_column=weight_column, **smooth_hist_kwargs
+        )
+        if return_single_channel:
+            return Histogram(
+                binning.binnings[0], central_value, covariance_matrix=covariance_matrix,
+            )
+        return MultiChannelHistogram(binning, central_value, covariance_matrix=covariance_matrix,)
+
     def generate(
         self,
-        include_multisim_errors=False,
-        use_sideband=False,
-        extra_query=None,
-        sideband_generator=None,
-        sideband_total_prediction=None,
-        sideband_observed_hist=None,
-        add_precomputed_detsys=False,
-    ):
+        include_multisim_errors: bool = False,
+        use_sideband: bool = False,
+        extra_query: Optional[str] = None,
+        sideband_generator: Optional[RunHistGenerator] = None,
+        sideband_total_prediction: Optional[Histogram] = None,
+        sideband_observed_hist: Optional[Histogram] = None,
+        add_precomputed_detsys: bool = False,
+        use_kde_smoothing: bool = False,
+    ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram from the dataframe.
 
         Parameters
@@ -1672,12 +1888,23 @@ class HistogramGenerator:
             data will be used to constrain multisim uncertainties.
         add_precomputed_detsys : bool, optional
             Whether to include the detector systematics in the covariance matrix.
+        use_kde_smoothing : bool, optional
+            Whether to use KDE smoothing to estimate the bin counts. This is useful for
+            histograms with few events per bin.
 
         Returns
         -------
         histogram : Histogram
             Histogram object containing the binned data.
         """
+
+        if use_kde_smoothing:
+            self.logger.debug("Using KDE smoothing.")
+            # The KDE smoothing option is incompatible with sidebands and multisim errors
+            assert (
+                not include_multisim_errors
+            ), "KDE smoothing is incompatible with multisim errors."
+            assert not use_sideband, "KDE smoothing is incompatible with sidebands."
 
         if use_sideband:
             assert sideband_generator is not None
@@ -1686,13 +1913,14 @@ class HistogramGenerator:
         if add_precomputed_detsys:
             assert self.detvar_data is not None, "No detector variations provided."
         calculate_hist = True
+        hash = self._generate_hash(
+            extra_query, add_precomputed_detsys, use_sideband, include_multisim_errors,
+        )
+        hist = None
         if self.enable_cache:
             if self.parameters != self.parameters_last_evaluated:
                 self.logger.debug("Parameters changed, invalidating cache.")
                 self._invalidate_cache()
-            hash = self._generate_hash(
-                extra_query, add_precomputed_detsys, use_sideband, include_multisim_errors,
-            )
             if hash in self.hist_cache:
                 self.logger.debug("Histogram found in cache.")
                 if self.cache_total_covariance:
@@ -1705,6 +1933,7 @@ class HistogramGenerator:
                 dataframe = self.dataframe.query(extra_query, engine="python")
             else:
                 dataframe = self.dataframe
+<<<<<<< HEAD
             if len(dataframe) == 0:
                 self.logger.debug("No events in dataframe, returning empty histogram.")
                 hist = self._return_empty_hist()
@@ -1712,14 +1941,24 @@ class HistogramGenerator:
                     self.hist_cache[hash] = hist.copy()
                 return hist
             hist = self._histogram_multi_channel(dataframe)
+=======
+            if use_kde_smoothing:
+                hist = self._smoothed_histogram_multi_channel(dataframe)
+            else:
+                hist = self._histogram_multi_channel(dataframe)
+>>>>>>> e08cbdc (EXT error smoothing and other goodies)
             if self.enable_cache:
                 self.hist_cache[hash] = hist.copy()
+        # if we reach this point without having a histogram, something went wrong
+        assert isinstance(hist, (Histogram, MultiChannelHistogram))
         self.logger.debug(f"Generated histogram: {hist}")
         if include_multisim_errors:
             self.logger.debug("Calculating multisim uncertainties")
+            extended_cov = None
             if use_sideband:
                 # initialize extended covariance matrix
                 n_bins = hist.n_bins
+                assert isinstance(sideband_observed_hist, Histogram)
                 sb_n_bins = sideband_observed_hist.n_bins
                 extended_cov = np.zeros((n_bins + sb_n_bins, n_bins + sb_n_bins))
 
@@ -1744,6 +1983,8 @@ class HistogramGenerator:
 
             if use_sideband:
                 # calculate constraint correction
+                assert isinstance(sideband_total_prediction, Histogram)
+                assert isinstance(sideband_observed_hist, Histogram)
                 mu_offset, cov_corr = sideband_constraint_correction(
                     sideband_measurement=sideband_observed_hist.nominal_values,
                     sideband_central_value=sideband_total_prediction.nominal_values,
@@ -2016,6 +2257,7 @@ class HistogramGenerator:
             weight_column = (
                 "weights_no_tune" if multisim_weight_column == "weightsGenie" else "weights"
             )
+        hash = None
         if self.enable_cache:
             if self.parameters != self.parameters_last_evaluated:
                 self._invalidate_cache()
@@ -2139,6 +2381,9 @@ class HistogramGenerator:
                     self.unisim_hist_cache[hash][knob] = observations
                     self.unisim_hist_cache[hash]["central_value"] = central_value_hist
             observation_dict[knob] = observations
+            # If we get to this point without having either calculated a central value hist
+            # or taken one from the cache, something is wrong
+            assert isinstance(central_value_hist, Histogram)
             # calculate the covariance matrix from the histograms
             cov = covariance(
                 observations,
@@ -2167,12 +2412,15 @@ class HistogramGenerator:
             difference between each sample and the central value in quadrature. An exception should be
             made to the recombination and wire modification dEdx variations. The recommendation is to
             use only the one that has the larger impact to obtain the uncertainty.
-        
+
         In newer samples, the dEdx variations are not included anymore, so we do not need to worry
         about them here.
         """
         if self.detvar_data is None:
             return None
+        # If we are at this point and somehow didn't get a dict, we must have forgotten to load it
+        # from json in the constructor.
+        assert isinstance(self.detvar_data, dict)
         variations = [
             "lydown",
             "lyatt",
@@ -2184,12 +2432,15 @@ class HistogramGenerator:
             "wiremodthetaxz",
             "wiremodthetayz",
         ]
-        variation_hist_data = self.detvar_data["variation_hist_data"]
+        variation_hist_data = self.detvar_data[
+            "variation_hist_data"
+        ]  # type: Dict[str, Dict[str, Histogram]]
         # Detector variations are calculated separately for each truth-filtered set. We can not
         # assume, however, that the truth-filtered sets are identical to those used in this RunHistGenerator.
         # Instead, we use the filter queries that are part of the detector variation data to select the
         # correct samples.
-        filter_queries = self.detvar_data["filter_queries"]
+        filter_queries = self.detvar_data["filter_queries"]  # type: Dict[str, str]
+        assert isinstance(filter_queries, dict)
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
         observation_dict = {}
 
