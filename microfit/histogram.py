@@ -1713,14 +1713,22 @@ class HistogramGenerator:
         bins: Union[int, np.ndarray],
         density: bool = False,
         bw_method: str = "silverman",
-        kernel_width_floor: float = 0.1,
+        kernel_width_floor: float = 0.0,
         points_per_bin: int = 10,
     ) -> Tuple[np.ndarray, np.ndarray, float]:
         hist, bin_edges = np.histogram(data, bins=bins, weights=weights, density=density)
-        X = np.array(data).reshape(-1, 1)
+        if sum(weights) == 0.0:
+            return hist, bin_edges, 0.0
+        nonzero_weights = weights[weights > 0]
+        X = np.array(data)[weights > 0].reshape(-1, 1)
         # Because we are using old scikit-learn, we have to apply scott and silverman
         # rules by hand
         data_std = np.std(data)
+        bin_width = bin_edges[1] - bin_edges[0]
+        # If we just have one sample, the std is zero and the KDE calculation would fail. 
+        # To deal with this, we will assume that the data_std is never smaller than one
+        # bin width.
+        data_std = max(data_std, bin_width)
         if isinstance(bw_method, str):
             if bw_method == "scott":
                 bw_method_ = X.shape[0] ** (-1 / (X.shape[1] + 4))
@@ -1732,7 +1740,7 @@ class HistogramGenerator:
             bandwidth = max(bw_method_ * data_std, kernel_width_floor)
         else:
             bandwidth = bw_method
-        kde = KernelDensity(bandwidth=bandwidth).fit(X, sample_weight=weights)
+        kde = KernelDensity(bandwidth=bandwidth).fit(X, sample_weight=nonzero_weights)
         # To get smoothed bin counts, we want to integrate the PDF between bin edges.
         smoothed_hist = self._integrate_kde(kde, bin_edges, points_per_bin=points_per_bin)
         if not density:
