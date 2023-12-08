@@ -1098,11 +1098,11 @@ class RunHistGenerator:
             **mc_hist_generator_kwargs,
         )
         if df_ext is not None:
-            self.ext_hist_generator = HistogramGenerator(df_ext, binning)
+            self.ext_hist_generator = HistogramGenerator(df_ext, binning, enable_cache=False)
         else:
             self.ext_hist_generator = None
         if df_data is not None:
-            self.data_hist_generator = HistogramGenerator(df_data, binning)
+            self.data_hist_generator = HistogramGenerator(df_data, binning, enable_cache=False)
         else:
             self.data_hist_generator = None
         self.sideband_generator = sideband_generator
@@ -1148,7 +1148,7 @@ class RunHistGenerator:
         return query
 
     def get_data_hist(
-        self, type="data", add_error_floor=None, scale_to_pot=None
+        self, type="data", add_error_floor=None, scale_to_pot=None, smooth_ext_histogram=False
     ) -> Union[None, Histogram]:
         """Get the histogram for the data (or EXT).
 
@@ -1176,9 +1176,12 @@ class RunHistGenerator:
             if add_error_floor is None
             else add_error_floor
         )
+        if smooth_ext_histogram:
+            assert not add_error_floor, "Cannot smooth and add error floor at the same time."
         # The error floor is never added for data, overriding anything else
         if type == "data":
             add_error_floor = False
+            smooth_ext_histogram = False
         scale_factor = 1.0
         if scale_to_pot is not None:
             if type == "data":
@@ -1188,7 +1191,7 @@ class RunHistGenerator:
         hist_generator = self.get_hist_generator(which=type)
         if hist_generator is None:
             return None
-        data_hist = hist_generator.generate()
+        data_hist = hist_generator.generate(use_kde_smoothing=smooth_ext_histogram)
         if add_error_floor:
             prior_errors = np.ones(data_hist.n_bins) * 1.4 ** 2
             prior_errors[data_hist.nominal_values > 0] = 0
@@ -1347,6 +1350,7 @@ class RunHistGenerator:
         use_sideband=None,
         add_ext_error_floor=None,
         add_precomputed_detsys=False,
+        smooth_ext_histogram=False,
     ):
         """Get the total prediction from MC and EXT.
 
@@ -1366,6 +1370,9 @@ class RunHistGenerator:
             Whether to add an error floor to the histogram in bins with zero entries.
         add_precomputed_detsys : bool, optional
             Whether to add the precomputed detector systematics to the histogram covariance.
+        smooth_ext_histogram : bool, optional
+            Whether to smooth the EXT histogram using a KDE. This is useful for low-statistics
+            EXT samples.
         """
         mc_prediction = self.get_mc_hist(
             include_multisim_errors=include_multisim_errors,
@@ -1376,7 +1383,7 @@ class RunHistGenerator:
         )
         if self.ext_hist_generator is not None:
             ext_prediction = self.get_data_hist(
-                type="ext", scale_to_pot=scale_to_pot, add_error_floor=add_ext_error_floor,
+                type="ext", scale_to_pot=scale_to_pot, add_error_floor=add_ext_error_floor, smooth_ext_histogram=smooth_ext_histogram
             )
             total_prediction = mc_prediction + ext_prediction
         else:
