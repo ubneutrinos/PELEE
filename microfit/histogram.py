@@ -1744,7 +1744,7 @@ class HistogramGenerator:
         # To get smoothed bin counts, we want to integrate the PDF between bin edges.
         smoothed_hist = self._integrate_kde(kde, bin_edges, points_per_bin=points_per_bin)
         if not density:
-            smoothed_hist *= np.sum(hist)
+            smoothed_hist *= np.sum(hist) / np.sum(smoothed_hist)
         # Ignore type of kde.bandwidth for now. We are using an older version of scikit-learn
         # that does have the attribute. In a newer version, the attribute should be kde.bandwidth_
         return smoothed_hist, bin_edges, kde.bandwidth  # type: ignore
