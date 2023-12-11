@@ -229,6 +229,18 @@ def get_cnp_covariance(expectation, observation):
 
     .. math::
         C_{ij} = 3 \\mu_i n_i \\delta_{ij} / \\left( \\mu_i + 2 n_i \\right)
+    
+    A special case we have to take care of is when the observation is zero. In this case,
+    we can recover the Poisson likelihood by setting the covariance to :math:`\mu_i / 2`. We 
+    can see this by considering
+
+    .. math::
+        \chi^2_{\\text{Poisson}} = 2 \sum_{i=1}^n \left( \mu - M_i + M_i \ln \\frac{M_i}{\mu} \\right)
+    
+    When the observation is zero, we have :math:`M_i = 0` and the chi-square reduces to
+    :math:`\chi^2_{\\text{Poisson}} = 2 \mu`. Since we calculate the chi-square as
+    :math:`\chi^2 = (n - \mu)^T C^{-1} (n - \mu)`, we need to set :math:`C = \mu / 2` to
+    recover the Poisson likelihood.
     """
 
     expectation = np.asarray(expectation)
@@ -241,7 +253,11 @@ def get_cnp_covariance(expectation, observation):
         raise ValueError("Expectation must be positive.")
     if np.any(observation < 0):
         raise ValueError("Observation must be non-negative.")
-    cnp_covariance = np.diag(3 * expectation * observation / (expectation + 2 * observation))
+    cnp_covariance = 3 * expectation * observation / (expectation + 2 * observation)
+    # set the covariance to mu / 2 where the observation is zero
+    if np.any(observation == 0):
+        cnp_covariance[observation == 0] = expectation[observation == 0] / 2
+    cnp_covariance = np.diag(cnp_covariance)
     return cnp_covariance
 
 
