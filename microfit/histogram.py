@@ -1703,14 +1703,14 @@ class HistogramGenerator:
         if calculate_hist:
             if extra_query is not None:
                 dataframe = self.dataframe.query(extra_query, engine="python")
-                if len(dataframe) == 0:
-                    self.logger.debug("Query returned no events, returning empty histogram.")
-                    hist = self._return_empty_hist()
-                    if self.enable_cache:
-                        self.hist_cache[hash] = hist.copy()
-                    return hist
             else:
                 dataframe = self.dataframe
+            if len(dataframe) == 0:
+                self.logger.debug("No events in dataframe, returning empty histogram.")
+                hist = self._return_empty_hist()
+                if self.enable_cache:
+                    self.hist_cache[hash] = hist.copy()
+                return hist
             hist = self._histogram_multi_channel(dataframe)
             if self.enable_cache:
                 self.hist_cache[hash] = hist.copy()
