@@ -320,19 +320,19 @@ FAR_SIDEBAND = "(" + NP_FAR_SIDEBAND + ") or (" + ZP_FAR_SIDEBAND + ")"
 
 # High and medium energy sidebands
 
-NP_HIGH_ENERGY = "reco_e > 1.05"
-NP_MEDIUM_ENERGY = "0.75 < reco_e < 1.05"
+NP_HIGH_ENERGY = "(reco_e > 1.05)"
+NP_MEDIUM_ENERGY = "(0.75 < reco_e < 1.05 and pi0_score > 0.1 and nonpi0_score > 0.1)"
 
-ZP_HIGH_ENERGY = "reco_e > 0.90"
-ZP_MEDIUM_ENERGY = "0.65 < reco_e < 0.90"
+ZP_HIGH_ENERGY = "(reco_e > 0.90)"
+ZP_MEDIUM_ENERGY = "(0.65 < reco_e < 0.90 and bkg_score > 0.4)"
 
 # Low and medium PID sidebands 
 
-NP_LOW_PID = "(0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1))"
-NP_MEDIUM_PID = "(0.1 < pi0_score < 1.0) and (0.1 < nonpi0_score < 1.0) and ~((pi0_score > 0.67) and (nonpi0_score > 0.7))"
+NP_LOW_PID = "((0.0 < pi0_score < 1.0) and (0.0 < nonpi0_score < 1.0) and ~((pi0_score > 0.1) and (nonpi0_score > 0.1)))"
+NP_MEDIUM_PID = "(0.1 < pi0_score < 0.67 and 0.1 < nonpi0_score < 0.7 and reco_e < 1.05)"
 
 ZP_LOW_PID = "(0.0 < bkg_score < 0.4)"
-ZP_MEDIUM_PID = "(0.4 < bkg_score < 0.72)" 
+ZP_MEDIUM_PID = "(0.4 < bkg_score < 0.72 and reco_e < 0.90)" 
 
 # pi0 selection
 SCORECUT = 0.5 # 0.75 #75 # max track score
@@ -513,7 +513,7 @@ selection_categories = {
     'SG_1MUNP': {'query': "sel_CCNp0pi == True", 'title': 'Selected 1muNp0pi Events', 'dir': 'SG_1MUNP'},
 
     # Two Shower Selections
-    'ZPLOOSETWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
+    'ZPLOOSESELTWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},
     'ZPBDTTWOSHR': {'query': ZPBDTLOOSE_two_shower, 'title': '1e0p BDT sel. 2+shr', 'dir': 'ZPBDT_two_shower'},
     'NPVLTWOSHR': {'query': NPVLCUTQ_two_shower, 'title': '1eNp VL cuts 2+shr', 'dir': 'NPVL_two_shower'},
     'NPLTWOSHR': {'query': NPLCUTQ_two_shower, 'title': '1eNp Loose cuts 2+shr', 'dir': 'NPL_two_shower'},
@@ -531,14 +531,14 @@ selection_categories = {
     'ZPBDT_HIGH_ENERGY': {'query': ZPBDTLOOSE+" and "+ZP_HIGH_ENERGY , 'title': '1e0p BDT sel., High Energy', 'dir': 'ZPBDT_HIGH_ENERGY'},
 
     # Medium Energy Sidebands
-    'NP_MEDIUM_ENERGY': {'query': NP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'NP_MEDIUM_ENERGY'},
-    'NPVL_MEDIUM_ENERGY': {'query': NPVLCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'NPVL_MEDIUM_ENERGY'},
-    'NPL_MEDIUM_ENERGY': {'query': NPLCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp Loose cuts, High Energy', 'dir': 'NPL_MEDIUM_ENERGY'},
-    'NPT_MEDIUM_ENERGY': {'query': NPTCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp Tight cuts, High Energy', 'dir': 'NPT_MEDIUM_ENERGY'},
-    'NPBDT_MEDIUM_ENERGY': {'query': BDTCQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp BDT sel., High Energy', 'dir': 'NPBDT_MEDIUM_ENERGY'},
-    'ZP_MEDIUM_ENERGY': {'query': ZP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, High Energy', 'dir': 'ZP_MEDIUM_ENERGY'},
-    'ZPLOOSESEL_MEDIUM_ENERGY': {'query': ZPLOOSESEL+" and "+ZP_MEDIUM_ENERGY , 'title': '1e0p Loose sel., High Energy', 'dir': 'ZPLOOSESEL_MEDIUM_ENERGY'},
-    'ZPBDT_MEDIUM_ENERGY': {'query': ZPBDTLOOSE+" and "+ZP_MEDIUM_ENERGY , 'title': '1e0p BDT sel., High Energy', 'dir': 'ZPBDT_MEDIUM_ENERGY'},
+    'NP_MEDIUM_ENERGY': {'query': NP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, Medium Energy', 'dir': 'NP_MEDIUM_ENERGY'},
+    'NPVL_MEDIUM_ENERGY': {'query': NPVLCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, Medium Energy', 'dir': 'NPVL_MEDIUM_ENERGY'},
+    'NPL_MEDIUM_ENERGY': {'query': NPLCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp Loose cuts, Medium Energy', 'dir': 'NPL_MEDIUM_ENERGY'},
+    'NPT_MEDIUM_ENERGY': {'query': NPTCUTQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp Tight cuts, Medium Energy', 'dir': 'NPT_MEDIUM_ENERGY'},
+    'NPBDT_MEDIUM_ENERGY': {'query': BDTCQ+" and "+NP_MEDIUM_ENERGY , 'title': '1eNp BDT sel., Medium Energy', 'dir': 'NPBDT_MEDIUM_ENERGY'},
+    'ZP_MEDIUM_ENERGY': {'query': ZP_MEDIUM_ENERGY , 'title': '1eNp VL cuts, Medium Energy', 'dir': 'ZP_MEDIUM_ENERGY'},
+    'ZPLOOSESEL_MEDIUM_ENERGY': {'query': ZPLOOSESEL+" and "+ZP_MEDIUM_ENERGY , 'title': '1e0p Loose sel., Medium Energy', 'dir': 'ZPLOOSESEL_MEDIUM_ENERGY'},
+    'ZPBDT_MEDIUM_ENERGY': {'query': ZPBDTLOOSE+" and "+ZP_MEDIUM_ENERGY , 'title': '1e0p BDT sel., Medium Energy', 'dir': 'ZPBDT_MEDIUM_ENERGY'},
 
     # Low PID Sidebands 
     'NP_LOW_PID': {'query': NP_LOW_PID , 'title': '1eNp Presel., Low PID', 'dir': 'NP_LOW_PID'},
