@@ -13,9 +13,9 @@ from sklearn.neighbors import KernelDensity
 from uncertainties import correlated_values, unumpy
 
 from microfit.fileio import from_json
-from . import selections
-from .category_definitions import get_category_label, get_category_color
-from .statistics import (
+from microfit import selections
+from microfit.category_definitions import get_category_label, get_category_color
+from microfit.statistics import (
     covariance,
     sideband_constraint_correction,
     error_propagation_division,
@@ -24,7 +24,7 @@ from .statistics import (
     is_psd,
     fronebius_nearest_psd,
 )
-from .parameters import Parameter, ParameterSet
+from microfit.parameters import Parameter, ParameterSet
 
 
 @dataclass
