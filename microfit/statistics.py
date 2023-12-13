@@ -321,6 +321,7 @@ def sideband_constraint_correction(
     if concat_covariance is None:
         assert observations is not None
         assert sideband_observations is not None
+        assert obs_central_value is not None
         # First, we concatenate the observations and the sideband observations.
         # These must come from the same "universes" and therefore have the same length.
         assert observations.shape[0] == sideband_observations.shape[0]
