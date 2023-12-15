@@ -702,7 +702,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         if central_value_hist is None:
             central_value_hist = self._histogram_multi_channel(dataframe)
         # calculate the covariance matrix from the histograms
-        cov = covariance(universe_histograms, central_value_hist.nominal_values)
+        cov = covariance(universe_histograms, central_value_hist.nominal_values, allow_approximation=True, tolerance=1e-10)
         self.logger.debug(f"Calculated covariance matrix for {multisim_weight_column}.")
         self.logger.debug(f"Bin-wise error contribution: {np.sqrt(np.diag(cov))}")
         if self.enable_cache:
