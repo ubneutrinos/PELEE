@@ -4,7 +4,8 @@
 \subsection{Systematics: unchanged}What is the same as Run 1-2-3 analysis: few sentences + reference past note.
 \subsection{Systematics: What's new}
 \subsubsection{GENIE FSI bug-fix} A few validation plots, e.g. Chris' validation work of GENIE weights.
-\subsubsection{EXT smoothing} (Alex)
+\subsubsection{EXT smoothing} (Alex, in progress)
+At the final level of the event selection, the number of EXT events is much too small to reliably produce a non-zero bin count in the analysis histograms. In the previous round of the analysis, an error of 1.4 events was assigned to any bin without any EXT events. This number was derived as the expected error given a uniform prior distribution between 0 and 1 on the expectation value. However, this error assignment could lead to an overly conservative error estimate. For this round, we instead use a KDE to produce a smoothed histogram and calculate the covariance matrix of the smoothed histogram using a bootstrapping technique.
 \subsubsection{DetVar systematics} Are we assuming Run123 detvars for Run 1-5? Probably true for first sensitivites. \\
 Include a table which lists MC stats available on DetVar samples.
 \subsubsection{Signal model systematics}
