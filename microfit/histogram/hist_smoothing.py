@@ -303,6 +303,7 @@ class SmoothHistogramMixin:
         seed: int = 0,
         method: str = "poisson",
         bound_transformation: str = "auto",
+        calculate_covariance: bool = True,
         **smooth_hist_kwargs,
     ) -> Tuple[np.ndarray, np.ndarray, List[float]]:
         """Get the smoothed histogram and covariance matrix using bootstrap resampling."""
@@ -335,6 +336,9 @@ class SmoothHistogramMixin:
             bound_transformation=bound_transformation,
             **smooth_hist_kwargs,
         )
+        if not calculate_covariance:
+            covariance_matrix = np.zeros((len(central_value), len(central_value)))
+            return central_value, covariance_matrix, channel_bw
         assert isinstance(channel_bw, list)
         bootstrap_samples = []
         # We set the seed once so that the bootstrap samples are reproducible,
@@ -436,6 +440,7 @@ class SmoothHistogramMixin:
         self,
         dataframe: pd.DataFrame,
         weight_column: Optional[Union[str, List[str]]] = None,
+        calculate_covariance: bool = True,
         **smooth_hist_kwargs,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """This function is actually called by the HistogramGenerator class."""
@@ -445,7 +450,7 @@ class SmoothHistogramMixin:
             binning = MultiChannelBinning([binning])
             return_single_channel = True
         central_value, covariance_matrix, _ = self._compute_kde_histogram_bootstrap(
-            dataframe, binning, weight_column=weight_column, **smooth_hist_kwargs
+            dataframe, binning, weight_column=weight_column, calculate_covariance=calculate_covariance, **smooth_hist_kwargs
         )
         if return_single_channel:
             return Histogram(
