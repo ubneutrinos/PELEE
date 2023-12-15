@@ -26,6 +26,7 @@ def make_variation_histograms(
     binning_def,
     truth_filtered_sets=["nue"],
     numu=False,
+    use_kde_smoothing=False
 ):
     binning = Binning.from_config(*binning_def)
     if numu:
@@ -53,10 +54,15 @@ def make_variation_histograms(
         **kwargs,
     )
     hist_dict = {}
+    if use_kde_smoothing:
+        # Skip covariance calculation for KDE smoothing since we only need the CV
+        options={"bound_transformation": "both", "calculate_covariance": False}
+    else:
+        options={}
     for dataset in rundata:
         df = rundata[dataset].query(selection_query, engine="python")
         generator = HistogramGenerator(df, binning)
-        hist_dict[dataset] = generator.generate()
+        hist_dict[dataset] = generator.generate(use_kde_smoothing=use_kde_smoothing, options=options)
     filter_queries["mc"] = _get_mc_filter_query(list(filter_queries.values()))
     return hist_dict, filter_queries
 
@@ -118,6 +124,7 @@ def main(args):
             binning_def,
             truth_filtered_sets=args.truth_filtered_sets,
             numu=args.numu,
+            use_kde_smoothing=args.kde_smoothing
         )
 
     # Switch ordering of keys in the variation_hist_data dict. Instead of
@@ -186,6 +193,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--numu", action="store_true", help="Use numu selection instead of nue",
+    )
+    parser.add_argument(
+        "--kde-smoothing", action="store_true", help="Use KDE smoothing",
     )
     args = parser.parse_args()
 

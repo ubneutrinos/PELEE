@@ -45,6 +45,7 @@ class RunHistPlotter:
         include_multisim_errors=None,
         show_chi_square=False,
         add_ext_error_floor=None,
+        smooth_ext_histogram=False,
         show_data_mc_ratio=False,
         use_sideband=None,
         ax=None,
@@ -78,7 +79,7 @@ class RunHistPlotter:
         if use_sideband is None:
             use_sideband = gen_defaults.get("use_sideband", False)
         ext_hist = gen.get_data_hist(
-            type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot
+            type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot, smooth_ext_histogram=smooth_ext_histogram
         )
         if ext_hist is not None:
             ext_hist.tex_string = "EXT"
