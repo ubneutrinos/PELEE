@@ -4,6 +4,7 @@ root_files
 *.root
 plots
 *.pdf
+!technote/**/*.pdf
 .ipynb_checkpoints/
 Background rejection.ipynb
 Sandbox.ipynb
