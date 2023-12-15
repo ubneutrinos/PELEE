@@ -1,10 +1,8 @@
 import hashlib
 import logging
-from typing import AnyStr, Dict, List, Optional, Sequence, Tuple, Union, cast
+from typing import Any, AnyStr, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
-from scipy import integrate
-from sklearn.neighbors import KernelDensity
 from microfit.fileio import from_json
 from microfit.parameters import ParameterSet
 from microfit.histogram import Binning, MultiChannelBinning
@@ -284,6 +282,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         sideband_observed_hist: Optional[Histogram] = None,
         add_precomputed_detsys: bool = False,
         use_kde_smoothing: bool = False,
+        options: Dict[str, Any] = {},
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram from the dataframe.
 
@@ -311,6 +310,10 @@ class HistogramGenerator(SmoothHistogramMixin):
         use_kde_smoothing : bool, optional
             Whether to use KDE smoothing to estimate the bin counts. This is useful for
             histograms with few events per bin.
+        options : dict, optional
+            Additional options that depend on the specific implementation of the histogram
+            generator. If `use_kde_smoothing` is True, options are passed as keyword arguments
+            to `_smoothed_histogram_multi_channel`.
 
         Returns
         -------
@@ -334,7 +337,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             assert self.detvar_data is not None, "No detector variations provided."
         calculate_hist = True
         hash = self._generate_hash(
-            extra_query, add_precomputed_detsys, use_sideband, include_multisim_errors,
+            extra_query, add_precomputed_detsys, use_sideband, include_multisim_errors, use_kde_smoothing, options
         )
         hist = None
         if self.enable_cache:
@@ -360,7 +363,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             else:
                 dataframe = self.dataframe
             if use_kde_smoothing:
-                hist = self._smoothed_histogram_multi_channel(dataframe)
+                hist = self._smoothed_histogram_multi_channel(dataframe, **options)
             else:
                 hist = self._histogram_multi_channel(dataframe)
             if self.enable_cache:
