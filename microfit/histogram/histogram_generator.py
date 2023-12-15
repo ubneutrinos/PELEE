@@ -354,14 +354,14 @@ class HistogramGenerator(SmoothHistogramMixin):
         if calculate_hist:
             if extra_query is not None:
                 dataframe = self.dataframe.query(extra_query, engine="python")
-                if len(dataframe) == 0:
-                    self.logger.debug("Query returned no events, returning empty histogram.")
-                    hist = self._return_empty_hist()
-                    if self.enable_cache:
-                        self.hist_cache[hash] = hist.copy()
-                    return hist
             else:
                 dataframe = self.dataframe
+            if len(dataframe) == 0:
+                self.logger.debug("Query returned no events, returning empty histogram.")
+                hist = self._return_empty_hist()
+                if self.enable_cache:
+                    self.hist_cache[hash] = hist.copy()
+                return hist
             if use_kde_smoothing:
                 hist = self._smoothed_histogram_multi_channel(dataframe, **options)
             else:
