@@ -233,7 +233,12 @@ class SmoothHistogramMixin:
     ) -> Tuple[np.ndarray, np.ndarray, float]:
         assert data.ndim == 1, "KDE only supports 1D data."
         hist, bin_edges = np.histogram(data, bins=bins, weights=weights, density=density)
-        if sum(weights) == 0.0:
+        # When the unsmoothed histogram has no entries, we always want to return zero. 
+        # There are some variables where an "invalid value" was actually a value just outside
+        # the binning range, for instance, an energy value that might be set to zero. If we
+        # were to let the KDE work on these, we would allow these invalid values to contribute
+        # to the smoothed histogram.
+        if sum(hist) == 0.0:
             return hist, bin_edges, 0.0
         mask = weights > 0
         assert bound_transformation in ["none", "lower", "upper", "both", "auto"]
@@ -252,7 +257,6 @@ class SmoothHistogramMixin:
             mask = np.logical_and(mask, data <= bin_edges[-1])
         else:
             bounds = (None, None)
-        # import pdb; pdb.set_trace()
         nonzero_weights = weights[mask]
         X = np.array(data)[mask].reshape(-1, 1)
         # To calculate the bandwidth of the KDE, we need to transform the data
@@ -261,8 +265,9 @@ class SmoothHistogramMixin:
         data_std = np.std(data_transformer.transform(X))
         transformed_bin_edges = data_transformer.transform(bin_edges)
         # For non-linear transformations, the bin width is not constant. We take
-        # the smallest to be conservative.
-        bin_width = np.min(np.diff(transformed_bin_edges))
+        # the smallest to be conservative. Note that the transformed bin edges
+        # may be in reversed order (when there is only an upper bound), so we take the absolute value.
+        bin_width = np.min(np.abs(np.diff(transformed_bin_edges)))
         # If we just have one sample, the std is zero and the KDE calculation would fail.
         # To deal with this, we will assume that the data_std is never smaller than one
         # bin width.
@@ -311,6 +316,11 @@ class SmoothHistogramMixin:
             selection_masks.append(self._get_query_mask(dataframe, query))
         data = dataframe[binning.variables].values
         weights = self.get_weights(dataframe, weight_column)
+        if np.sum(weights) == 0:
+            central_value = np.zeros(binning.n_bins)
+            covariance_matrix = np.zeros((binning.n_bins, binning.n_bins))
+            channel_bw = [0.0] * len(binning)
+            return central_value, covariance_matrix, channel_bw
         (
             central_value,
             channel_bw,
