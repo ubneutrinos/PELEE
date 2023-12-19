@@ -28,6 +28,7 @@ class RunHistGenerator:
         parameters: Optional[ParameterSet] = None,
         detvar_data_path: Optional[str] = None,
         mc_hist_generator_cls: Optional[type] = None,
+        showdata = True,
         **mc_hist_generator_kwargs,
     ) -> None:
         """Create a histogram generator for data and simulation runs.
@@ -72,7 +73,9 @@ class RunHistGenerator:
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
         self.data_pot = data_pot
-        query = self.get_selection_query(selection, preselection)
+        extraq = None
+        if showdata == False: extraq = ["bnbdata==0"]
+        query = self.get_selection_query(selection, preselection,extraq)
         self.selection = selection
         self.preselection = preselection
         self.binning = binning
