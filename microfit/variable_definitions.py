@@ -362,8 +362,7 @@ NP_far_sideband_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
     ("trk_energy_tot", 10, (0, 0.8), "trk energy (range, P) [GeV]"),
 ]
 
-#NP_high_energy_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
-NP_high_energy_variables = [
+NP_high_energy_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
     ("shr_energy_tot_cali", 10, (0.35,2.05), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (1.05, 2.55), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
@@ -371,8 +370,7 @@ NP_high_energy_variables = [
     ("nonpi0_score",10,(0.0,1.0),"non-pi0 score"),
 ]
 
-#NP_low_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
-NP_low_pid_variables = [
+NP_low_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
     ("shr_energy_tot_cali", 10, (0.05,1.05), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
@@ -388,8 +386,7 @@ NP_near_sideband_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
     ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
 ]
 
-#NP_medium_energy_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
-NP_medium_energy_variables = [
+NP_medium_energy_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
     ("shr_energy_tot_cali", 10, (0.25,0.9), "shr energy (calibrated) [GeV]"),
     ("reco_e", 5, (0.75, 1.05), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
@@ -397,8 +394,7 @@ NP_medium_energy_variables = [
     ("nonpi0_score",10,(0.1,1.0),"non-pi0 score"),
 ]
 
-#NP_medium_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
-NP_medium_pid_variables = [
+NP_medium_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
     ("shr_energy_tot_cali", 10, (0.05,0.7), "shr energy (calibrated) [GeV]"),
     ("reco_e", 5, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
