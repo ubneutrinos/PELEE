@@ -27,7 +27,7 @@ from microfit.selections import extract_variables_from_query
 
 datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-verbose=False
+verbose=True
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
@@ -2063,7 +2063,10 @@ def load_sample(
             data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
        
         if verbose: print("Loading ntuple file",data_path)
-        
+        if dataset in datasets:
+            print("Dataset",dataset,"is a data or EXT file")       
+
+ 
         # try returning an empty dataframe
         if os.path.basename(data_path) == "dummy.root":
             if verbose: print("Using dummy file for run",run_number,"dataset",dataset)
@@ -2148,7 +2151,8 @@ def load_sample(
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category == "runs" and dataset not in datasets 
+    is_mc = category == "runs" and dataset not in datasets and dataset != "ext" 
+    print("is_mc=",is_mc)
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)

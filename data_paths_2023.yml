@@ -107,37 +107,37 @@ runs:
       pot: 9.43E+18
       trig: 2271036
     bnb:
-      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3 
+      pot: 2.15E+20
+      trig: 51661509 
     bdt_sideband:
-      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: SignalRemoved_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
     shr_energy_sideband:
-      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: ShowerSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
-      file: TwoShowers_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: TwoShowers_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: n_showers_contained >= 2
     near_sideband:
-      file: NearSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: NearSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: ((0.75 < reco_e < 1.05 and (pi0_score > 0.1 and nonpi0_score > 0.1)) or (reco_e < 0.75 and (0.1 < pi0_score < 0.67 and 0.1 < nonpi0_score < 0.7))) or ((0.65 < reco_e < 0.9 and bkg_score > 0.4) or (reco_e < 0.65 and 0.4 < bkg_score < 0.72)) 
     far_sideband:
-      file: FarSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: FarSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
     ext:
-      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
-      trig: 207224641.0 
+      file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
+      trig: 191706142
     mc:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
       pot: 1.31E+21 
@@ -451,32 +451,32 @@ numupresel:
       pot: 9.43E+18
       trig: 2271036
     bnb:
-      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3 
+      pot: 2.15E+20
+      trig: 51661509 
     bdt_sideband:
-      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: SignalRemoved_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
     shr_energy_sideband:
-      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: ShowerSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
-      file: TwoShowers_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: TwoShowers_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: n_showers_contained >= 2
     muon_sideband:
-      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: NuMuSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: n_muons_tot > 0  
     ext:
-      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
-      trig: 207224641.0 
+      file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
+      trig: 191706142
     mc:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
       pot: 1.31E+21 
