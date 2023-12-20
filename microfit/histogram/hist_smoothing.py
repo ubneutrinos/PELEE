@@ -240,7 +240,7 @@ class SmoothHistogramMixin:
         # to the smoothed histogram.
         if sum(hist) == 0.0:
             return hist, bin_edges, 0.0
-        mask = weights > 0
+        mask = np.logical_and(weights > 0, np.isfinite(data))
         assert bound_transformation in ["none", "lower", "upper", "both", "auto"]
         if bound_transformation == "auto":
             bound_transformation = self._autoselect_bound_transformation(data, bin_edges)
