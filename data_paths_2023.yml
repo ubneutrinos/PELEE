@@ -250,8 +250,8 @@ runs:
       pot: 2.98E+19
       trig: 6.76E+06
     bnb: 
-      pot: 9.11E+19
-      trig: 20639283
+      pot: 
+      trig: 
     bdt_sideband:
       file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.04E+19 
