@@ -1,3 +1,7 @@
+normalization = [
+    ("dummy",1,(-0.5,0.5),"normalization")
+]
+
 basic_variables = [
     ("n_showers_contained", 1, (0.5, 1.5), "normalization", "onebin"),
     # ('n_showers_contained',10,(-0.5, 9.5),"n showers contained"),
@@ -438,6 +442,23 @@ ZP_medium_pid_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
     ("shr_energy_tot_cali", 10, (0.05,0.75), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
     ("bkg_score",10,(0.4,0.72),"Background Score"),
+]
+
+# Opendata variables
+
+ZP_opendata_variables = [
+    ("n_showers_contained", 1, (0.5, 1.5), "normalization", "onebin"),
+    ("n_tracks_contained", 6, (-0.5, 5.5), "n tracks contained"),
+    ("reco_e", 10, (0.15, 2.95), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.0,1.0),"Background Score"),
+]
+
+NP_opendata_variables = [
+    ("n_showers_contained", 1, (0.5, 1.5), "normalization", "onebin"),
+    ("n_tracks_contained", 6, (-0.5, 5.5), "n tracks contained"),
+    ("reco_e", 10, (0.15, 2.95), r"Reconstructed Energy [GeV]", "note"),
+    ("pi0_score",10,(0.0,1.0),"pi0 score"),
+    ("nonpi0_score",10,(0.0,1.0),"non-pi0 score"),
 ]
 
 plot_variables = basic_variables + evtsel_variabls + shrsel_variables + bdtscore_variables

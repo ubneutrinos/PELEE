@@ -61,6 +61,10 @@ runs:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
       trig: 61882791 
+    opendata_bnb:
+      file: OpenData_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 8.62E+19
+      trig: 2.04E+07
     bdt_sideband:
       file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
@@ -150,6 +154,10 @@ runs:
       pot: 3.27E+20
   - run_id: "4a"
     path: run4a/nuepresel/
+    opendata_bnb:
+      file: OpenData_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 1.48E+19
+      trig: 3266215.92
     bdt_sideband:
       file: SignalRemoved_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
       pot: 4.50E+19 
@@ -190,6 +198,10 @@ runs:
       pot: 1.10E+20
   - run_id: "4b"
     path: run4b/nuepresel/
+    opendata_bnb:
+      file: OpenData_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
+      pot: 4.59E+19
+      trig: 1.09E+07
     bnb: 
       pot: 1.47E+20
       trig: 34737600
@@ -233,9 +245,13 @@ runs:
       pot: 3.02E+20
   - run_id: "4c"
     path: run4c/nuepresel/
+    opendata_bnb:
+      file: OpenData_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana
+      pot: 2.98E+19
+      trig: 6.76E+06
     bnb: 
-      pot: 9.11E+19
-      trig: 20639283
+      pot: 
+      trig: 
     bdt_sideband:
       file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.04E+19 
@@ -276,6 +292,10 @@ runs:
       pot: 1.78E+20
   - run_id: "4d"
     path: run4d/nuepresel/
+    opendata_bnb:
+      file: OpenData_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
+      pot: 1.63E+19
+      trig: 3.69E+06
     bnb: 
       pot: 5.01E+19
       trig: 11391193
@@ -319,6 +339,10 @@ runs:
       pot: 2.01E+20
   - run_id: "5"
     path: run5/nuepresel/
+    opendata_bnb:
+      file: OpenData_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
+      pot: 4.87E+19
+      trig: 1.16E+07
     bnb: 
       pot: 1.55E+20  
       trig: 37159286
@@ -410,6 +434,10 @@ numupresel:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
       trig: 61882791 
+    opendata_bnb:
+      file: OpenData_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 8.62E+19
+      trig: 2.04E+07
     bdt_sideband:
       file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
@@ -489,6 +517,10 @@ numupresel:
       pot: 3.27E+20
   - run_id: "4a"
     path: run4a/numupresel/
+    opendata_bnb:
+      file: OpenData_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 1.48E+19
+      trig: 3266215.92
     bdt_sideband:
       file: SignalRemoved_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
       pot: 4.50E+19 
@@ -524,6 +556,10 @@ numupresel:
       pot: 1.10E+20
   - run_id: "4b"
     path: run4b/numupresel/
+    opendata_bnb:
+      file: OpenData_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
+      pot: 4.59E+19
+      trig: 1.09E+07
     bdt_sideband:
       file: SignalRemoved_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
       pot: 1.39E+20 
@@ -559,6 +595,10 @@ numupresel:
       pot: 3.02E+20
   - run_id: "4c"
     path: run4c/numupresel/
+    opendata_bnb:
+      file: OpenData_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana
+      pot: 2.98E+19
+      trig: 6.76E+06
     bdt_sideband:
       file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.04E+19 
@@ -594,6 +634,10 @@ numupresel:
       pot: 1.78E+20
   - run_id: "4d"
     path: run4d/numupresel/
+    opendata_bnb:
+      file: OpenData_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
+      pot: 1.63E+19
+      trig: 3.69E+06
     bdt_sideband:
       file: SignalRemoved_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
       pot: 4.93E+19
@@ -629,6 +673,10 @@ numupresel:
       pot: 2.01E+20
   - run_id: "5"
     path: run5/numupresel/
+    opendata_bnb:
+      file: OpenData_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
+      pot: 4.87E+19
+      trig: 1.16E+07
     bdt_sideband:
       file: SignalRemoved_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
       pot: 1.48E+20 

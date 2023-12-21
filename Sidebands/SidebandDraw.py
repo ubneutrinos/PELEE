@@ -13,6 +13,8 @@ verb=True
 
 def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,sideband_title=None,**dl_kwargs): 
 
+  VARIABLE_v = VARIABLE_v + [vdef.normalization]
+
   for run_combo in RUN_COMBOS_vv:
       
       # Make a directory to store the plots
@@ -31,6 +33,11 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
           **dl_kwargs
       ) 
       if verb: print("Finished loading data")
+
+      # Automatically draw a normalisation plot for every sideband
+      # and selection combination
+      for key in rundata.keys():
+          rundata[key]["dummy"] = 0.0
          
       # Choose a preselection/selection/variable list combination, draw
       # plots for each
@@ -60,7 +67,10 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                   found_variable=True
                   for key in rundata.keys():                  
                       if binning_def[0] not in rundata[key].columns: found_variable=False
-        
+       
+                  if found_variable == False:
+                      print("Variable",binning_def[0],"missing frome dataframes, not drawing")
+ 
                   # some binning definitions have more than 4 elements,
                   # we ignore the last ones for now
                   binning = hist.Binning.from_config(*binning_def[:4])
@@ -79,9 +89,10 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                   axes = plotter.plot(
                       category_column="paper_category",
                       include_multisim_errors=True,
-                      add_ext_error_floor=True,
+                      add_ext_error_floor=False,
                       show_data_mc_ratio=True,
                       show_chi_square=True,
+                      smooth_ext_histogram=False
                   )
                   
                   # Form a unique name for each plot
