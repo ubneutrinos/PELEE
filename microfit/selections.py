@@ -232,6 +232,9 @@ ZPLOOSESEL_two_shower += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_
 ZPLOOSESEL_two_shower += ' and n_tracks_contained == 0'
 ZPBDTLOOSE_two_shower = ZPLOOSESEL_two_shower + ' and bkg_score > 0.72'
 
+ZPPRESEL_two_shower_CRT = ZPPRESEL_two_shower + ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
+
+
 ZPXSLQ_all_showers = ZPPRESEL
 ZPXSLQ_all_showers += ' and shrmoliereavg < 10'
 ZPXSLQ_all_showers += ' and subcluster > 4'
@@ -367,14 +370,20 @@ NUMUCRT = ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
 NUMUPRESELCRT = NUMUPRESEL + NUMUCRT
 
 NUMUSEL = NUMUPRESEL + ' and n_muons_tot > 0'
+NUMUSEL0PI = NUMUSEL + ' and n_muons_tot == 1 and n_showers_tot == 0'
 
 NUMUSELNP = NUMUSEL + ' and n_protons_tot > 0'
 NUMUSEL0P = NUMUSEL + ' and n_protons_tot == 0'
+NUMUSELNP0PI = NUMUSEL0PI + ' and n_protons_tot > 0'
+NUMUSEL0P0PI = NUMUSEL0PI + ' and n_protons_tot == 0'
 
 NUMUSELCRT = NUMUSEL + NUMUCRT
+NUMUSELCRT0PI = NUMUSEL0PI + NUMUCRT
 
 NUMUSELCRTNP = NUMUSELCRT + ' and n_protons_tot > 0'
 NUMUSELCRT0P = NUMUSELCRT + ' and n_protons_tot == 0'
+NUMUSELCRTNP0PI = NUMUSELCRT0PI + ' and n_protons_tot > 0'
+NUMUSELCRT0P0PI = NUMUSELCRT0PI + ' and n_protons_tot == 0 and topological_score > 0.2'
 
 NUMUSEL1MU1P = NUMUSEL + ' and n_tracks_contained == 2 and trk2_pid < -0.2'
 
@@ -555,6 +564,15 @@ selection_categories = {
     'NPT_MEDIUM_PID': {'query': NPTCUTQ+" and "+NP_MEDIUM_PID , 'title': '1eNp Tight cuts, Medium PID', 'dir': 'NPT_MEDIUM_PID'},
     'ZP_MEDIUM_PID': {'query': ZP_MEDIUM_PID , 'title': '1e0p Presel., Medium PID', 'dir': 'ZP_MEDIUM_PID'},
     'ZPLOOSESEL_MEDIUM_PID': {'query': ZPLOOSESEL+" and "+ZP_MEDIUM_PID , 'title': '1e0p Loose sel., Medium PID', 'dir': 'ZPLOOSESEL_MEDIUM_PID'},
+
+    # Giuseppe's selections
+    'ZPTwoShrCRT': {'query': ZPPRESEL_two_shower_CRT, 'title': '1e0p Presel. w/ CRT, 2+ shower', 'dir': 'ZPTwoShrCRT'},
+    'NUMUCRT0PI': {'query': NUMUSELCRT0PI, 'title': r"$\nu_{\mu}$0$\pi$ selection w/ CRT", 'dir': 'NUMUCRT0PI'},
+    'NUMUCRTNP0PI': {'query': NUMUSELCRTNP0PI, 'title': r"$1\mu$Np0$\pi$ selection w/ CRT", 'dir': 'NUMUCRTNP0PI'},
+    'NUMUCRT0P0PI': {'query': NUMUSELCRT0P0PI, 'title': r"$1\mu$0p0$\pi$ selection w/ CRT", 'dir': 'NUMUCRT0P0PI'},
+    'NUMU0PI': {'query': NUMUSEL0PI, 'title': r"$\nu_{\mu}$0$\pi$ selection", 'dir': 'NUMU0PI'},
+    'NUMUNP0PI': {'query': NUMUSELNP0PI, 'title': r"$1\mu$Np0$\pi$ selection", 'dir': 'NUMUNP0PI'},
+    'NUMU0P0PI': {'query': NUMUSEL0P0PI, 'title': r"$1\mu$0p0$\pi$ selection", 'dir': 'NUMU0P0PI'},
 
 }
 
