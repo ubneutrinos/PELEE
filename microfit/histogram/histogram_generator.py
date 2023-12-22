@@ -118,9 +118,8 @@ class HistogramGenerator(SmoothHistogramMixin):
         """Get the boolean mask corresponding to the query."""
         if query is None:
             return np.ones(len(dataframe), dtype=bool)
-        query_df = dataframe.query(query)
-        query_indices = query_df.index
-        mask = dataframe.index.isin(query_indices)
+        mask = dataframe.eval(query, engine="python")
+        assert len(mask) == len(dataframe)
         return mask
 
     def _histogram_multi_channel(
