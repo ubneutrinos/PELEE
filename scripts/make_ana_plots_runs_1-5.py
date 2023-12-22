@@ -1,3 +1,4 @@
+# %%
 import sys, os
 sys.path.append(".")
 
@@ -32,6 +33,9 @@ fig.savefig("multiband_correlation_runs_1-5_weightsFlux.pdf")
 
 fig, ax = analysis.plot_correlation(ms_column="weightsReint")
 fig.savefig("multiband_correlation_runs_1-5_weightsReint.pdf")
+
+fig, ax = analysis.plot_correlation()
+fig.savefig("multiband_correlation_runs_1-5_total.pdf")
 
 # %%
 
