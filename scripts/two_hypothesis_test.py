@@ -40,8 +40,8 @@ def plot_results(args):
     two_hypo_results = from_json(os.path.join(args.output_dir, "two_hypothesis_test.json"))
     
     fig, ax = plt.subplots()
-    ax.hist(two_hypo_results["samples_h0"], bins=100, histtype="step", density=True, label="H0")
-    ax.hist(two_hypo_results["samples_h1"], bins=100, histtype="step", density=True, label="H1")
+    ax.hist(two_hypo_results["samples_h0"], bins=35, histtype="step", density=True, label="H0")
+    ax.hist(two_hypo_results["samples_h1"], bins=35, histtype="step", density=True, label="H1")
     ax.axvline(x=two_hypo_results["ts_median_h1"], color="k", linestyle="--", label=f"Median H1\np-val: {two_hypo_results['median_pval']:0.3f}")
     ax.legend()
     ax.set_xlabel("Test statistic")
