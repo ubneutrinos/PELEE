@@ -89,6 +89,7 @@ sideband_generator_NUMUCRT0P0PI = RunHistGenerator(
 sideband_plotter = RunHistPlotter(sideband_generator_NUMUCRT0P0PI)
 ax = sideband_plotter.plot(include_multisim_errors=True, show_data_mc_ratio=True, add_ext_error_floor=False,
                            category_column="category")[0]
+ax.set_ylim(0.0, ax.get_ylim()[1] * 1.5)
 plt.savefig("sideband_NUMUCRT0P0PI_runs_1-5.pdf")
 
 from microfit.analysis import MultibandAnalysis
