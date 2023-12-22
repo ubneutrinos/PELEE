@@ -49,3 +49,29 @@ python -m unittest discover
 
 ## Tutorial
 Run the `MicroFit Tutorial.ipynb` notebook to familiarize yourself with the MicroFit framework and how to run a basic two-hypothesis test.
+
+## Technote plots
+
+### Plots of the signal and sideband spectra with correlations
+Run the following to make the spectra plots:
+```
+python scripts/make_ana_plots_runs_1-5.py
+```
+### Plots of Giuseppe's new sidebands with their correlations
+```
+python scripts/plot_three_sidebands.py
+```
+### First sensitivities with all runs
+To run the two-hypothesis test: 
+```
+python scripts/two_hypothesis_test.py run_analysis --configuration /nashome/a/atrettin/PELEE/config_files/first_round_
+analysis_runs_1-5.toml --output-dir ana_output_runs_1-5_with_crt --sensitivity-only
+```
+To make the plots:
+```
+python scripts/two_hypothesis_test.py plot_results --configuration /nashome/a/atrettin/PELEE/config_files/first_round_
+analysis_runs_1-5.toml --output-dir ana_output_runs_1-5_with_crt --sensitivity-only
+```
+This should run the two-hypothesis test and estimate the median sensitivity.
+
+
