@@ -1,5 +1,6 @@
 from dataclasses import dataclass, fields
 from typing import List, Optional, Tuple, Union
+from microfit.selections import find_common_selection
 
 import numpy as np
 
@@ -14,7 +15,11 @@ class Binning:
     bin_edges : np.ndarray
         Array of bin edges
     label : str
-        Label for the binned variable. This will be used to label the x-axis in plots.
+        Label of the binning. In a multi-dimensional binning, this should be 
+        a unique key.
+    variable_tex : str, optional
+        LaTeX representation of the variable (default is None) that can be used
+        in plots.
     is_log : bool, optional
         Whether the binning is logarithmic or not (default is False)
     selection_query : str, optional
@@ -24,6 +29,7 @@ class Binning:
     variable: str
     bin_edges: np.ndarray
     label: Optional[str] = None
+    variable_tex: Optional[str] = None
     is_log: bool = False
     selection_query: Optional[str] = None
 
@@ -48,6 +54,9 @@ class Binning:
     def __post_init__(self):
         if isinstance(self.bin_edges, list):
             self.bin_edges = np.array(self.bin_edges)
+        if self.variable_tex is None:
+            self.variable_tex = self.variable
+        assert self.variable_tex is not None
 
     def __len__(self):
         return self.n_bins
@@ -58,8 +67,9 @@ class Binning:
         variable: str,
         n_bins: int,
         limits: Tuple[float, float],
-        label: Optional[str] = None,
+        variable_tex: Optional[str] = None,
         is_log: bool = False,
+        label: Optional[str] = None,
     ):
         """Create a Binning object from a typical binning configuration
 
@@ -71,10 +81,13 @@ class Binning:
             Real of bins
         limits : tuple
             Tuple of lower and upper limits
-        label : str, optional
+        variable_tex : str, optional
             Label for the binned variable. This will be used to label the x-axis in plots.
         is_log : bool, optional
             Whether the binning is logarithmic or not (default is False)
+        label : str, optional
+            Label of the binning. In a multi-dimensional binning, this should be
+            a unique key.
 
         Returns:
         --------
@@ -85,7 +98,8 @@ class Binning:
             bin_edges = np.geomspace(*limits, n_bins + 1)
         else:
             bin_edges = np.linspace(*limits, n_bins + 1)
-        return cls(variable, bin_edges, label, is_log=is_log)
+        label = variable if label is None else label
+        return cls(variable, bin_edges, label, variable_tex, is_log=is_log)
 
     @property
     def n_bins(self):
@@ -108,6 +122,10 @@ class Binning:
     def from_dict(cls, state):
         """Create a Binning object from a dictionary representation of the binning."""
         return cls(**state)
+
+    def copy(self):
+        """Create a copy of the binning."""
+        return Binning(**self.to_dict())
     
 
 @dataclass
@@ -128,6 +146,35 @@ class MultiChannelBinning:
 
     binnings: List[Binning]
     is_log: bool = False
+
+    def __post_init__(self):
+        self.ensure_unique_labels()
+
+    def ensure_unique_labels(self):
+        """Ensure that the `label` properties of the binnings in a MultiChannelBinning are unique."""
+        used_labels = set()
+        counter = 0
+        for binning in self.binnings:
+            if binning.label in used_labels:
+                binning.label = f"{binning.label}_{counter}"
+                counter += 1
+            used_labels.add(binning.label)
+
+    def reduce_selection(self):
+        """Extract the common selection query from all channels and reduce the
+        selection queries of all channels to only include the unique selections.
+
+        Returns
+        -------
+        str
+            A single selection query that can be applied to the dataframe before
+            making the histogram.
+        """
+        selection_queries = [b.selection_query for b in self.binnings]
+        common_selection, unique_selections = find_common_selection(selection_queries)
+        for binning, unique_selection in zip(self.binnings, unique_selections):
+            binning.selection_query = unique_selection
+        return common_selection
 
     @property
     def label(self) -> str:
@@ -195,7 +242,7 @@ class MultiChannelBinning:
         create a histogram directly, but it can be used for plotting.
         """
         bin_edges = np.arange(self.n_bins + 1)
-        return Binning("none", bin_edges, "Global bin number")
+        return Binning("none", bin_edges, label="unrolled", variable_tex="Global bin number")
 
     def _idx_channel(self, key: Union[int, str]) -> int:
         """Get the index of a channel from the key.
@@ -259,3 +306,7 @@ class MultiChannelBinning:
 
     def __len__(self):
         return self.n_channels
+    
+    def copy(self):
+        """Create a copy of the binning."""
+        return MultiChannelBinning([b.copy() for b in self.binnings], self.is_log)

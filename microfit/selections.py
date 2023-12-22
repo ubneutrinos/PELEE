@@ -686,3 +686,112 @@ def get_required_variables(preselections=None, selections=None):
         for selection in selections:
             required_variables.update(extract_variables_from_query(selection_categories[selection]["query"]))
     return required_variables
+
+
+def get_selection_query(selection, preselection, extra_queries=None):
+    """Get the query for the given selection and preselection.
+
+    Optionally, add any extra queries to the selection query. These will
+    be joined with an 'and' operator.
+
+    Parameters
+    ----------
+    selection : str
+        Name of the selection category.
+    preselection : str
+        Name of the preselection category.
+    extra_queries : list of str, optional
+        List of additional queries to apply to the dataframe.
+
+    Returns
+    -------
+    query : str
+        Query to apply to the dataframe.
+    """
+
+    if selection is None and preselection is None:
+        if extra_queries is not None:
+            return " and ".join(extra_queries)
+        return None
+    presel_query = preselection_categories[preselection]["query"]
+    sel_query = selection_categories[selection]["query"]
+
+    if presel_query is None:
+        query = sel_query
+    elif sel_query is None:
+        query = presel_query
+    else:
+        query = f"{presel_query} and {sel_query}"
+
+    if extra_queries is not None:
+        for q in extra_queries:
+            query = f"{query} and {q}"
+    return query
+
+def _find_parentheses_groups(s):
+    stack = []
+    result = []
+    open_count = 0
+    for i, c in enumerate(s):
+        if c == '(':
+            if open_count == 0:
+                stack.append(i)
+            open_count += 1
+        elif c == ')' and stack:
+            open_count -= 1
+            if open_count == 0:
+                start = stack.pop()
+                result.append(s[start:i+1])
+    return result
+
+def _replace_parentheses_groups(s):
+    matches = _find_parentheses_groups(s)
+    replacements = {}
+    for match in matches:
+        group_id = f'group_{hash(match.replace(" ", "").strip())}'
+        s = s.replace(match, group_id)
+        replacements[group_id] = match
+    return s, replacements
+
+def _find_common_selection(s1, s2):
+    # Replace parentheses groups with unique identifiers
+    s1, replacements1 = _replace_parentheses_groups(s1)
+    s2, replacements2 = _replace_parentheses_groups(s2)
+    
+    # Split the strings into sets of conditions
+    conditions1 = set(s1.split(' and '))
+    conditions2 = set(s2.split(' and '))
+    
+    # Find the intersection and differences of the sets
+    common_conditions = conditions1 & conditions2
+    unique_conditions1 = conditions1 - conditions2
+    unique_conditions2 = conditions2 - conditions1
+    
+    # Sort the conditions and join them back into strings
+    common_selection = ' and '.join(sorted(common_conditions))
+    unique_selection1 = ' and '.join(sorted(unique_conditions1))
+    unique_selection2 = ' and '.join(sorted(unique_conditions2))
+    
+    # Replace the identifiers with their corresponding parentheses groups
+    for group_id, group in replacements1.items():
+        common_selection = common_selection.replace(group_id, group)
+        unique_selection1 = unique_selection1.replace(group_id, group)
+    for group_id, group in replacements2.items():
+        unique_selection2 = unique_selection2.replace(group_id, group)
+    
+    return common_selection, unique_selection1, unique_selection2
+
+def find_common_selection(strings):
+    """Find the common selection between a list of selection strings."""
+    if len(strings) == 0:
+        return "", []
+    elif len(strings) == 1:
+        return strings[0], [""]
+    common = strings[0]
+    unique = [""] * len(strings)
+    for i in range(1, len(strings)):
+        common, *_ = _find_common_selection(common, strings[i])
+    for i in range(len(strings)):
+        _, _, unique[i] = _find_common_selection(common, strings[i])
+
+    return common, unique

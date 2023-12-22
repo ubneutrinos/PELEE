@@ -1,4 +1,5 @@
-from typing import  List, Union
+from typing import  List, Optional, Union
+from matplotlib.axes import Axes
 import numpy as np
 
 from numbers import Real, Real
@@ -39,11 +40,13 @@ class Histogram:
             Covariance matrix of the bin counts.
         label : str, optional
             Label of the histogram. This is distinct from the label of the x-axis, which is
-            set in the Binning object that is passed to the constructor.
+            set in the Binning object that is passed to the constructor. This label should 
+            represent the category of the histogram, e.g. "Signal" or "Background" and
+            will be used in the legend of a plot (unless a tex_string is provided).
         plot_color : str, optional
             Color of the histogram, used for plotting.
         tex_string : str, optional
-            TeX string used to label the histogram in a plot.
+            TeX string used to label the histogram in the legend of a plot.
 
         Notes
         -----
@@ -124,18 +127,28 @@ class Histogram:
             label = "Covariance"
         cbar = plt.colorbar(pc, ax=ax)
         cbar.set_label(label)
-        ax.set_xlabel(self.binning.label)
-        ax.set_ylabel(self.binning.label)
+        ax.set_xlabel(self.binning.variable_tex) # type: ignore
+        ax.set_ylabel(self.binning.variable_tex) # type: ignore
+        return ax
 
-    def draw(self, ax, as_errorbars=False, show_errors=True, **plot_kwargs):
+    def draw(
+        self,
+        ax: Optional[Axes] = None,
+        as_errorbars: bool = False,
+        show_errors: bool = True,
+        with_ylabel: bool = True,
+        **plot_kwargs,
+    ) -> Axes:
         """Draw the histogram on a matplotlib axis.
 
         Parameters
         ----------
-        ax : matplotlib.axes.Axes
+        ax : Axes
             Axis to draw the histogram on.
         as_errorbars : bool, optional
             Whether to draw the histogram as errorbars.
+        with_ylabel : bool, optional
+            Whether to draw the y-axis label.
         plot_kwargs : dict, optional
             Additional keyword arguments passed to the matplotlib step function.
         """
@@ -143,15 +156,18 @@ class Histogram:
 
         if ax is None:
             ax = plt.gca()
+        assert ax is not None
         if self.binning.is_log:
             ax.set_yscale("log")
-        ax.set_xlabel(self.binning.label)
-        ax.set_ylabel("Events")
+        ax.set_xlabel(self.binning.variable_tex) # type: ignore
+        if with_ylabel:
+            ax.set_ylabel("Events")
         bin_counts = self.nominal_values
         bin_edges = self.binning.bin_edges
         label = plot_kwargs.pop("label", self.tex_string)
         color = plot_kwargs.pop("color", self.color)
         hatch = plot_kwargs.pop("hatch", self.hatch)
+        ax.set_xlim((bin_edges[0], bin_edges[-1]))
         if as_errorbars:
             ax.errorbar(
                 self.binning.bin_centers,
@@ -633,6 +649,10 @@ class MultiChannelHistogram(Histogram):
             self.binning.binnings[idx],
             unumpy.nominal_values(self.channel_bin_counts(idx)),
             covariance_matrix=self.channel_covariance_matrix(idx),
+            plot_color=self.color,
+            plot_hatch=self.hatch,
+            label=self.label,
+            tex_string=self.tex_string,
         )
 
     def replace_channel_histogram(self, key: Union[int, str], histogram: Histogram) -> None:
@@ -671,12 +691,35 @@ class MultiChannelHistogram(Histogram):
 
     def draw(self, ax, as_errorbars=False, show_errors=True, **plot_kwargs):
         # call the draw method of the unrolled histogram
-        return self.get_unrolled_histogram().draw(ax, as_errorbars, show_errors, **plot_kwargs)
+        unrolled_hist = self.get_unrolled_histogram()
+        ax = unrolled_hist.draw(ax, as_errorbars, show_errors, **plot_kwargs)
+        channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
+        channel_labels = [b.label for b in self.binning]
+        for n_bins in channel_n_bins[1:-1]:
+            ax.axvline(n_bins, color="k", linestyle="--")
+
+        # Add text boxes for each channel label
+        for i, label in enumerate(channel_labels):
+            ax.text((channel_n_bins[i] + channel_n_bins[i+1]) / 2, 0.0, label, ha='center', va="bottom")
+
+        return ax
 
     def draw_covariance_matrix(self, ax=None, as_correlation=True, **plot_kwargs):
-        return self.get_unrolled_histogram().draw_covariance_matrix(
+        ax = self.get_unrolled_histogram().draw_covariance_matrix(
             ax, as_correlation, **plot_kwargs
         )
+        channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
+        channel_labels = [b.label for b in self.binning]
+        for n_bins in channel_n_bins[1:-1]:
+            ax.axvline(n_bins, color="k", linestyle="--")
+            ax.axhline(n_bins, color="k", linestyle="--")
+        
+        # Add text boxes for each channel label
+        for i, label in enumerate(channel_labels):
+            ax.text((channel_n_bins[i] + channel_n_bins[i+1]) / 2, 0.5, label, ha='center', va="bottom")
+            ax.text(0.5, (channel_n_bins[i] + channel_n_bins[i+1]) / 2, label, ha='left', va="center", rotation=90)
+
+        return ax
 
     @classmethod
     def from_dict(cls, dictionary, check_psd=True):

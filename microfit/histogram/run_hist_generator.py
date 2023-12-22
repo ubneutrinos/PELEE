@@ -1,10 +1,11 @@
 import os
 from typing import Dict, Optional, Union
+from microfit.histogram.histogram import MultiChannelHistogram
 
-from microfit import selections
+from microfit.selections import get_selection_query
 from microfit.category_definitions import get_category_color, get_category_label
 from microfit.statistics import chi_square
-from microfit.histogram import Binning
+from microfit.histogram import Binning, MultiChannelBinning
 from microfit.histogram import Histogram, HistogramGenerator
 from microfit.parameters import ParameterSet
 from microfit.fileio import from_json
@@ -12,6 +13,7 @@ from microfit.fileio import from_json
 import logging
 import pandas as pd
 import numpy as np
+import warnings
 
 class RunHistGenerator:
     """Histogram generator for data and simulation runs."""
@@ -72,10 +74,13 @@ class RunHistGenerator:
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
         self.data_pot = data_pot
-        query = self.get_selection_query(selection, preselection)
+        query = get_selection_query(selection, preselection)
         self.selection = selection
         self.preselection = preselection
-        self.binning = binning
+        self.binning = binning.copy()
+        # if isinstance(self.binning, MultiChannelBinning):
+        #     common_selection = self.binning.reduce_selection()
+        #     query = get_selection_query(selection, preselection, extra_queries=[common_selection])
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
         if detvar_data_path is not None:
@@ -152,46 +157,15 @@ class RunHistGenerator:
 
     @classmethod
     def get_selection_query(cls, selection, preselection, extra_queries=None):
-        """Get the query for the given selection and preselection.
-
-        Optionally, add any extra queries to the selection query. These will
-        be joined with an 'and' operator.
-
-        Parameters
-        ----------
-        selection : str
-            Name of the selection category.
-        preselection : str
-            Name of the preselection category.
-        extra_queries : list of str, optional
-            List of additional queries to apply to the dataframe.
-
-        Returns
-        -------
-        query : str
-            Query to apply to the dataframe.
-        """
-
-        if selection is None and preselection is None:
-            return None
-        presel_query = selections.preselection_categories[preselection]["query"]
-        sel_query = selections.selection_categories[selection]["query"]
-
-        if presel_query is None:
-            query = sel_query
-        elif sel_query is None:
-            query = presel_query
-        else:
-            query = f"{presel_query} and {sel_query}"
-
-        if extra_queries is not None:
-            for q in extra_queries:
-                query = f"{query} and {q}"
-        return query
+        warnings.warn(
+            "The method get_selection_query will no longer exist as a class method in the future. Use the function get_selection_query from the microfit.selections module instead.",
+            DeprecationWarning
+        )
+        return get_selection_query(selection, preselection, extra_queries)
 
     def get_data_hist(
         self, type="data", add_error_floor=None, scale_to_pot=None, smooth_ext_histogram=False
-    ) -> Union[None, Histogram]:
+    ) -> Union[None, Histogram, MultiChannelHistogram]:
         """Get the histogram for the data (or EXT).
 
         Parameters
@@ -320,7 +294,7 @@ class RunHistGenerator:
         scale_to_pot: Optional[float] = None,
         use_sideband: Optional[bool] = None,
         add_precomputed_detsys: bool = False,
-    ) -> Histogram:
+    ) -> Union[Histogram, MultiChannelHistogram]:
         """Produce a histogram from the MC dataframe.
 
         Parameters

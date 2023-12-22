@@ -66,6 +66,13 @@ class TestMultiChannelBinning(unittest.TestCase):
         # Test iteration
         for channel in binning:
             self.assertTrue(channel in binning)
+    
+    def test_copy(self):
+        binning = self.make_test_binning(multichannel=True)
+        binning2 = binning.copy()
+        self.assertEqual(binning, binning2)
+        binning2[0].bin_edges = np.array([1, 2, 3, 4])
+        self.assertNotEqual(binning, binning2)
 
 
 if __name__ == '__main__':
