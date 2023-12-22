@@ -58,7 +58,9 @@ if __name__ == "__main__":
     parser.add_argument("--sensitivity-only", action="store_true", help="Only calculate sensitivity")
     args = parser.parse_args()
     if args.configuration is not None:
+        assert os.path.exists(args.configuration), f"Configuration file {args.configuration} does not exist"
         args.configuration = toml.load(args.configuration)
+        assert args.configuration, "Configuration file is empty"
     
     if args.function == "run_analysis":
         run_analysis(args)
