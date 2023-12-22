@@ -254,14 +254,14 @@ class MultibandAnalysis(object):
     def plot_correlation(self, ms_column=None, ax=None, with_unisim=False):
         hist_generators = []
         hist_gen_labels = []
+        hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
+        hist_gen_labels.extend(self.signal_names)
         if self._sideband_generator is not None:
             hist_generators.append(self._sideband_generator.mc_hist_generator)
             hist_gen_labels.append(self.sideband_name)
-        hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
-        hist_gen_labels.extend(self.signal_names)
 
         if ms_column is None:
-            multiband_covariance = self._get_total_multiband_covariance(with_unisim=with_unisim)
+            multiband_covariance = self._get_total_multiband_covariance(with_unisim=with_unisim, include_sideband=True)
         else:
             multiband_covariance = HistogramGenerator.multiband_covariance(hist_generators, ms_column=ms_column)
             if with_unisim:
