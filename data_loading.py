@@ -345,7 +345,7 @@ def get_variables():
       "trk_energy_proton_v"
     ]
 
-    VARDICT["NUMU_TKI_VARS"] = NUMU_TKI_VARS
+    #VARDICT["NUMU_TKI_VARS"] = NUMU_TKI_VARS
 
     VARDICT["NUMUVARS"] = []
 
@@ -2094,7 +2094,7 @@ def load_sample(
             loadnumuvariables=loadnumuvariables,
             use_lee_weights=use_lee_weights,
             load_crt_vars=load_crt_vars,
-            load_numu_tki=load_numu_tki
+            load_numu_tki=load_numu_tki,
         )
 
         df = up.pandas.df(variables, flatten=False)
@@ -2141,13 +2141,13 @@ def load_sample(
         if loadshowervariables:
             # Some variables have to be calculated after the recovery has been done
             post_process_shower_vars(up, df)
+        if load_numu_tki:
+            print("LOADING NUMU TKI")
+            df = signal_1muNp.set_Signal1muNp(up,df)
+            #df = selection_1muNp.apply_selection_1muNp(df) 
+
     if use_bdt:
         add_bdt_scores(df)
-
-    if load_numu_tki:
-        df = signal_1muNp.set_Signal1muNp(df)
-        df = selection_1muNp.apply_selection_1muNp(df) 
-
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
@@ -2557,7 +2557,7 @@ def get_run_variables(
     loadnumuvariables=False,
     use_lee_weights=False,
     load_crt_vars=False,
-    load_numu_tki=False
+    load_numu_tki=False,
 ):
     assert category in ["runs","numupresel","detvar"]
 
@@ -2570,7 +2570,7 @@ def get_run_variables(
     NUMUVARS = VARDICT["NUMUVARS"]
     RCVRYVARS = VARDICT["RCVRYVARS"]
     PI0VARS = VARDICT["PI0VARS"]
-    NUMU_TKI_VARS = VARDICT["NUMU_TKI_VARS"]
+    #NUMU_TKI_VARS = VARDICT["NUMU_TKI_VARS"]
 
     if loadsystematics:
         WEIGHTS += SYSTVARS
@@ -2583,8 +2583,8 @@ def get_run_variables(
         VARIABLES += RCVRYVARS
     if loadnumuvariables:
         VARIABLES += NUMUVARS
-    if load_numu_tki:
-        VARIABLES += NUMU_TKI_VARS
+    #if load_numu_tki:
+    #    VARIABLES += NUMU_TKI_VARS
 
     ALLVARS = VARIABLES
 
