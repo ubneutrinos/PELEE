@@ -7,10 +7,8 @@ from numu_tki import tki_calculators
 # Author: C Thorpe
 
 TRACK_SCORE_CUT = 0.5
-
 MUON_P_MIN_MOM_CUT = 0.100
 MUON_P_MAX_MOM_CUT = 1.200
-
 LEAD_P_MIN_MOM_CUT = 0.250
 LEAD_P_MAX_MOM_CUT = 1.
 
@@ -19,6 +17,7 @@ LEAD_P_MAX_MOM_CUT = 1.
 # for completeness
 
 # Definitions from SG's code
+'''
 FV_X_MIN = 21.5
 FV_X_MAX = 234.85
 FV_Y_MIN = -95.0
@@ -37,7 +36,7 @@ FV_Z_MIN =   20.0
 FV_Z_MAX =  986.0
 DEAD_Z_MIN = 675 # SG's code does not cut dead region 
 DEAD_Z_MAX = 775
-'''
+
 def sel_reco_vertex_in_FV(reco_nu_vtx_sce_x,reco_nu_vtx_sce_y,reco_nu_vtx_sce_z):
     
     return reco_nu_vtx_sce_x > FV_X_MIN and reco_nu_vtx_sce_x < FV_X_MAX and\

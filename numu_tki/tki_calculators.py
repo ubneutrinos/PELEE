@@ -228,6 +228,6 @@ def pn_T(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
 # p n (paral) 
 
 def pn_II(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z):
-    q = unit_vec(vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z))
+    uq = unit_vec(vec_q(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z))
     p = vec_pn(Lep_E,LepMom_x,LepMom_y,LepMom_z,Had_E,HadMom_x,HadMom_y,HadMom_z)
-    return q.dot(p) 
+    return uq.dot(p) 

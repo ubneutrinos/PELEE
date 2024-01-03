@@ -72,6 +72,7 @@ def has_no_mesons(mc_pdg,mc_E):
 ################################################################################
 # True primary vertex is in the fiducial volume
 
+'''
 # Definitions from SG's code
 FV_X_MIN = 21.5
 FV_X_MAX = 234.85
@@ -91,7 +92,7 @@ FV_Z_MIN =   20.0
 FV_Z_MAX =  986.0
 DEAD_Z_MIN = 675 # SG's code does not cut dead region 
 DEAD_Z_MAX = 775
-'''
+
 def in_fiducial_volume(true_nu_vtx_x,true_nu_vtx_y,true_nu_vtx_z):
 
     return true_nu_vtx_x > FV_X_MIN and true_nu_vtx_x < FV_X_MAX and\
