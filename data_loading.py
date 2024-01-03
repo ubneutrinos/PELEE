@@ -2142,7 +2142,6 @@ def load_sample(
             # Some variables have to be calculated after the recovery has been done
             post_process_shower_vars(up, df)
         if load_numu_tki:
-            print("LOADING NUMU TKI")
             df = signal_1muNp.set_Signal1muNp(up,df)
             df = selection_1muNp.apply_selection_1muNp(up,df) 
 
