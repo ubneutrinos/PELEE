@@ -269,9 +269,28 @@ def is_sel_1muNp(PassNuMuCCSelection_1muNp,NoRecoShowers_1muNp,MuonContained_1mu
 ################################################################################
 # Add a column to the dataframe indicating whether event passed the 1muNp selection
 
-def apply_selection_1muNp(df,filter=False):
+def apply_selection_1muNp(up,df,filter=False):
+
     print("Applying SG's selection")
-    print(len(df))
+
+    # Load any branches not already loaded
+    df["pfp_generation_v"] = up.array("pfp_generation_v")
+    df["trk_score_v"] = up.array("trk_score_v")
+    df["trk_distance_v"] = up.array("trk_distance_v")
+    df["trk_len_v"] = up.array("trk_len_v")
+    df["trk_llr_pid_score_v"] = up.array("trk_llr_pid_score_v")
+    df["trk_sce_start_x_v"] = up.array("trk_sce_start_x_v")
+    df["trk_sce_start_y_v"] = up.array("trk_sce_start_y_v")
+    df["trk_sce_start_z_v"] = up.array("trk_sce_start_z_v")
+    df["trk_sce_end_x_v"] = up.array("trk_sce_end_x_v")
+    df["trk_sce_end_y_v"] = up.array("trk_sce_end_y_v")
+    df["trk_sce_end_z_v"] = up.array("trk_sce_end_z_v")
+    df["trk_range_muon_mom_v"] = up.array("trk_range_muon_mom_v")
+    df["trk_mcs_muon_mom_v"] = up.array("trk_mcs_muon_mom_v")
+    df["trk_energy_proton_v"] = up.array("trk_energy_proton_v")
+    df["trk_dir_x_v"] = up.array("trk_dir_x_v")
+    df["trk_dir_y_v"] = up.array("trk_dir_y_v")
+    df["trk_dir_z_v"] = up.array("trk_dir_z_v")
 
     df["MuonCandidateIdx_1muNp"] = df.apply(lambda x: (find_muon_candidate(x["pfp_generation_v"],x["trk_score_v"],x["trk_distance_v"],x["trk_len_v"],x["trk_llr_pid_score_v"])),axis=1)
     if filter: df = df.query("MuonCandidateIdx_1muNp != -1")
@@ -302,6 +321,9 @@ def apply_selection_1muNp(df,filter=False):
     df["sel_CCNp0pi"] = df.apply(lambda x: (is_sel_1muNp(x["PassNuMuCCSelection_1muNp"],x["NoRecoShowers_1muNp"],x["MuonContained_1muNp"],x["PassMuonMomentumCut_1muNp"],x["PassMuonQualCut_1muNp"],x["LeadProtonPassMomentumCut_1muNp"])),axis=1)
     if filter: df = df.query("sel_CCNp0pi == True")
 
+    print(df[["run","sub","evt","PassNuMuCCSelection_1muNp"]].to_string())
+
+
      # If the event passes the selection, set the various momentum/tki variables     
     df["RecoMuonE_1muNp"] = df.apply(lambda x: (get_reco_muon_E(x["RecoMuonMomentum_1muNp"])),axis=1)
     df["RecoMuonMomX_1muNp"] = df.apply(lambda x: (get_reco_muon_mom_comp(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"],x["trk_dir_x_v"])),axis=1)
@@ -319,6 +341,23 @@ def apply_selection_1muNp(df,filter=False):
     df["RecoProtonMomZ_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_z_v"])),axis=1)
 
     # Drop all of the temporary columns added to the dataframe to save space
+    df.drop("pfp_generation_v",inplace=True,axis=1)
+    df.drop("trk_score_v",inplace=True,axis=1)
+    df.drop("trk_distance_v",inplace=True,axis=1)
+    df.drop("trk_len_v",inplace=True,axis=1)
+    df.drop("trk_llr_pid_score_v",inplace=True,axis=1)
+    df.drop("trk_sce_start_x_v",inplace=True,axis=1)
+    df.drop("trk_sce_start_y_v",inplace=True,axis=1)
+    df.drop("trk_sce_start_z_v",inplace=True,axis=1)
+    df.drop("trk_sce_end_x_v",inplace=True,axis=1)
+    df.drop("trk_sce_end_y_v",inplace=True,axis=1)
+    df.drop("trk_sce_end_z_v",inplace=True,axis=1)
+    df.drop("trk_range_muon_mom_v",inplace=True,axis=1)
+    df.drop("trk_mcs_muon_mom_v",inplace=True,axis=1)
+    df.drop("trk_energy_proton_v",inplace=True,axis=1)
+    df.drop("trk_dir_x_v",inplace=True,axis=1)
+    df.drop("trk_dir_y_v",inplace=True,axis=1)
+    df.drop("trk_dir_z_v",inplace=True,axis=1)
     df.drop("MuonCandidateIdx_1muNp",inplace=True,axis=1) 
     df.drop("IsContained_1muNp",inplace=True,axis=1) 
     df.drop("PassNuMuCCSelection_1muNp",inplace=True,axis=1)
@@ -364,7 +403,11 @@ def apply_selection_1muNp(df,filter=False):
     df["RecoPNT_1muNp"] = df.apply(lambda x: (tki_calculators.pn_T(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
     df["RecoPNII_1muNp"] = df.apply(lambda x: (tki_calculators.pn_II(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
 
-
+    df.drop("RecoMuonE_1muNp",inplace=True,axis=1)
+    df.drop("RecoMuonMomentum_1muNp",inplace=True,axis=1)
+    df.drop("RecoMuonMomX_1muNp",inplace=True,axis=1)
+    df.drop("RecoMuonMomY_1muNp",inplace=True,axis=1)
+    df.drop("RecoMuonMomZ_1muNp",inplace=True,axis=1)
     df.drop("RecoProtonE_1muNp",inplace=True,axis=1)
     df.drop("RecoProtonMomentum_1muNp",inplace=True,axis=1)
     df.drop("RecoProtonMomX_1muNp",inplace=True,axis=1)
