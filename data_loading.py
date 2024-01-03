@@ -2144,7 +2144,7 @@ def load_sample(
         if load_numu_tki:
             print("LOADING NUMU TKI")
             df = signal_1muNp.set_Signal1muNp(up,df)
-            #df = selection_1muNp.apply_selection_1muNp(df) 
+            df = selection_1muNp.apply_selection_1muNp(up,df) 
 
     if use_bdt:
         add_bdt_scores(df)
