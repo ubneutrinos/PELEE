@@ -292,6 +292,12 @@ def find_leading_proton_candidate(ProtonCandidateIdx_1muNp,trk_len_v):
     return longest_idx
 
 ################################################################################
+# Count the number of proton tracks 
+
+def n_protons(ProtonCandidateIdx_1muNp):
+    return len(ProtonCandidateIdx_1muNp)
+
+################################################################################
 # Apply the whole selection
 
 def is_sel_1muNp(PassNuMuCCSelection_1muNp,NoRecoShowers_1muNp,MuonContained_1muNp,PassMuonMomentumCut_1muNp,PassMuonQualCut_1muNp,LeadProtonPassMomentumCut_1muNp):
@@ -357,10 +363,13 @@ def apply_selection_1muNp(up,df,filter=False):
     df["RecoLeadProtonMomentum_1muNp"] = df.apply(lambda x: (get_reco_proton_mom(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"])),axis=1)
     df["RecoProtonMomentum_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"])),axis=1)
     df["LeadProtonPassMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoLeadProtonMomentum_1muNp"],LEAD_P_MIN_MOM_CUT,LEAD_P_MAX_MOM_CUT)),axis=1)
+    df["NProtons_1muNp"] = df.apply(lambda x: (n_protons(x["ProtonCandidateIdx_1muNp"])),axis=1)
     if filter: df = df.query("LeadProtonPassMomentumCut_1muNp == True")  
 
     df.loc[((df["PassNuMuCCSelection_1muNp"] == True) & (df["NoRecoShowers_1muNp"] == True) & (df["MuonContained_1muNp"] == True) & (df["PassMuonMomentumCut_1muNp"] == True) & (df["PassMuonQualCut_1muNp"] == True) & (df["LeadProtonPassMomentumCut_1muNp"] == True)), "sel_CCNp0pi"] = True 
     df.loc[((df["PassNuMuCCSelection_1muNp"] != True) | (df["NoRecoShowers_1muNp"] != True) | (df["MuonContained_1muNp"] != True) | (df["PassMuonMomentumCut_1muNp"] != True) | (df["PassMuonQualCut_1muNp"] != True) | (df["LeadProtonPassMomentumCut_1muNp"] != True)), "sel_CCNp0pi"] = False 
+    df.loc[((df["PassNuMuCCSelection_1muNp"] == True) & (df["NoRecoShowers_1muNp"] == True) & (df["MuonContained_1muNp"] == True) & (df["PassMuonMomentumCut_1muNp"] == True) & (df["PassMuonQualCut_1muNp"] == True) & (df["LeadProtonPassMomentumCut_1muNp"] == True) & (df["NProtons_1muNp"] == 1)), "sel_CC1p0pi"] = True 
+    df.loc[((df["PassNuMuCCSelection_1muNp"] != True) | (df["NoRecoShowers_1muNp"] != True) | (df["MuonContained_1muNp"] != True) | (df["PassMuonMomentumCut_1muNp"] != True) | (df["PassMuonQualCut_1muNp"] != True) | (df["LeadProtonPassMomentumCut_1muNp"] != True) | (df["NProtons_1muNp"] != 1)), "sel_CC1p0pi"] = False 
     if filter: df = df.query("sel_CCNp0pi == True")
 
      # If the event passes the selection, set the various momentum/tki variables     
