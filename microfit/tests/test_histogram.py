@@ -1,7 +1,8 @@
 """Unit Tests for plotting.histogram module"""
 import unittest
+from unittest.mock import patch
 
-from ..histogram import (
+from microfit.histogram import (
     Histogram,
     HistogramGenerator,
     Binning,
@@ -9,12 +10,26 @@ from ..histogram import (
     MultiChannelBinning,
     MultiChannelHistogram,
 )
-from ..parameters import Parameter, ParameterSet
+from microfit.parameters import Parameter, ParameterSet
 import numpy as np
 import pandas as pd
 import uncertainties.unumpy as unumpy
 import logging
-from ..statistics import fronebius_nearest_psd
+from microfit.statistics import fronebius_nearest_psd
+
+
+def assert_called_with_np(mock, *expected_args, **expected_kwargs):
+    actual_args, actual_kwargs = mock.call_args
+    for actual, expected in zip(actual_args, expected_args):
+        if isinstance(expected, np.ndarray):
+            np.testing.assert_array_equal(actual, expected)
+        else:
+            assert actual == expected
+    for key in expected_kwargs:
+        if isinstance(expected_kwargs[key], np.ndarray):
+            np.testing.assert_array_equal(actual_kwargs[key], expected_kwargs[key])
+        else:
+            assert actual_kwargs[key] == expected_kwargs[key]
 
 
 class TestHistogram(unittest.TestCase):
@@ -36,17 +51,15 @@ class TestHistogram(unittest.TestCase):
             # Add more tuples as needed
         ]
 
-    def make_test_binning(
-        self, multichannel=False, with_query=False, second_query="matching"
-    ):
+    def make_test_binning(self, multichannel=False, with_query=False, second_query="matching"):
         bin_edges = np.array([0, 1, 2, 3])
-        first_channel_binning = Binning("x", bin_edges, "x-axis label")
+        first_channel_binning = Binning("x", bin_edges, "x")
         if with_query:
             first_channel_binning.selection_query = "bdt > 0.5"
         if not multichannel:
             return first_channel_binning
 
-        second_channel_binning = Binning("y", bin_edges, "y-axis label")
+        second_channel_binning = Binning("y", bin_edges, "y", variable_tex="y-axis label")
         second_query_string = {
             "matching": "bdt > 0.5",
             "non_matching": "bdt < 0.5",
@@ -101,9 +114,7 @@ class TestHistogram(unittest.TestCase):
             with self.subTest(HistogramClass=HistogramClass, binning=binning):
                 bin_counts1 = self.make_test_bincounts(binning)
                 bin_counts2 = bin_counts1 + 3
-                covariance_matrix = self.make_test_covariance_matrix(
-                    binning, diagonal=True
-                )
+                covariance_matrix = self.make_test_covariance_matrix(binning, diagonal=True)
                 uncertainties1 = np.sqrt(np.diag(covariance_matrix))
                 uncertainties2 = np.sqrt(np.diag(covariance_matrix))
 
@@ -127,9 +138,7 @@ class TestHistogram(unittest.TestCase):
 
                 self.assertIsExactInstance(hist_sum, HistogramClass)
                 self.assertIsExactInstance(hist_diff, HistogramClass)
-                expected_uncertainties = np.sqrt(
-                    uncertainties1 ** 2 + uncertainties2 ** 2
-                )
+                expected_uncertainties = np.sqrt(uncertainties1**2 + uncertainties2**2)
 
                 np.testing.assert_array_almost_equal(
                     unumpy.nominal_values(hist_sum.bin_counts),
@@ -151,9 +160,7 @@ class TestHistogram(unittest.TestCase):
             with self.subTest(HistogramClass=HistogramClass, binning=binning):
                 bin_counts1 = self.make_test_bincounts(binning)
                 bin_counts2 = bin_counts1 + 3
-                covariance_matrix = self.make_test_covariance_matrix(
-                    binning, diagonal=False
-                )
+                covariance_matrix = self.make_test_covariance_matrix(binning, diagonal=False)
                 uncertainties1 = np.sqrt(np.diag(covariance_matrix))
                 uncertainties2 = np.sqrt(np.diag(covariance_matrix))
 
@@ -177,9 +184,7 @@ class TestHistogram(unittest.TestCase):
 
                 self.assertIsExactInstance(hist_sum, HistogramClass)
                 self.assertIsExactInstance(hist_diff, HistogramClass)
-                expected_uncertainties = np.sqrt(
-                    uncertainties1 ** 2 + uncertainties2 ** 2
-                )
+                expected_uncertainties = np.sqrt(uncertainties1**2 + uncertainties2**2)
 
                 np.testing.assert_array_almost_equal(
                     unumpy.nominal_values(hist_sum.bin_counts),
@@ -254,7 +259,7 @@ class TestHistogram(unittest.TestCase):
 
                 expected_uncertainties = np.sqrt(
                     (uncertainties1 / bin_counts2) ** 2
-                    + (uncertainties2 * bin_counts1 / bin_counts2 ** 2) ** 2
+                    + (uncertainties2 * bin_counts1 / bin_counts2**2) ** 2
                 )
 
                 np.testing.assert_array_almost_equal(
@@ -373,8 +378,7 @@ class TestHistogram(unittest.TestCase):
                 self.assertIsExactInstance(hist_mult, HistogramClass)
 
                 expected_uncertainties = np.sqrt(
-                    (uncertainties1 * bin_counts2) ** 2
-                    + (uncertainties2 * bin_counts1) ** 2
+                    (uncertainties1 * bin_counts2) ** 2 + (uncertainties2 * bin_counts1) ** 2
                 )
 
                 np.testing.assert_array_almost_equal(
@@ -396,12 +400,8 @@ class TestHistogram(unittest.TestCase):
                     self.assertIsExactInstance(fluctuated_hist1, HistogramClass)
                     self.assertIsExactInstance(fluctuated_hist2, HistogramClass)
                     fluctuated_multiplication = fluctuated_hist1 * fluctuated_hist2
-                    self.assertIsExactInstance(
-                        fluctuated_multiplication, HistogramClass
-                    )
-                    fluctuated_multiplications.append(
-                        fluctuated_multiplication.nominal_values
-                    )
+                    self.assertIsExactInstance(fluctuated_multiplication, HistogramClass)
+                    fluctuated_multiplications.append(fluctuated_multiplication.nominal_values)
                 fluctuated_multiplications = np.array(fluctuated_multiplications)
 
                 # calculate covariance matrix of fluctuated multiplications with numpy
@@ -421,9 +421,132 @@ class TestHistogram(unittest.TestCase):
                 )
 
 
+class TestMultiChannelHistogram(unittest.TestCase):
+    def make_bin_edges(self, length):
+        return np.arange(length + 1)
+
+    def make_test_histogram(self):
+        first_channel_binning = Binning(
+            "x", self.make_bin_edges(2), "xaxis", variable_tex="x-axis label"
+        )
+        second_channel_binning = Binning(
+            "y", self.make_bin_edges(3), "yaxis", variable_tex="y-axis label"
+        )
+        third_channel_binning = Binning(
+            "z", self.make_bin_edges(4), "zaxis", variable_tex="z-axis label"
+        )
+        binning = MultiChannelBinning(
+            [first_channel_binning, second_channel_binning, third_channel_binning]
+        )
+        bin_counts = np.arange(binning.n_bins) + 10
+        covariance_matrix = np.zeros((binning.n_bins, binning.n_bins))
+        for i in range(binning.n_bins):
+            covariance_matrix[i, i] = (i + 1) * 0.01
+        # add some off-diagonal elements
+        np.random.seed(0)
+        covariance_matrix += np.random.rand(binning.n_bins, binning.n_bins) * 0.01
+        # make it PSD
+        covariance_matrix = fronebius_nearest_psd(covariance_matrix)
+        return MultiChannelHistogram(
+            binning,
+            bin_counts,
+            covariance_matrix=covariance_matrix,
+            label="hist",
+            tex_string="hist",
+        )
+
+    def test_copy(self):
+        hist = self.make_test_histogram()
+        hist_copy = hist.copy()
+        self.assertEqual(hist, hist_copy)
+        self.assertIsNot(hist, hist_copy)
+        # assert that the type is correct
+        self.assertIsInstance(hist_copy, MultiChannelHistogram)
+
+    def test_roll_channels(self):
+        hist = self.make_test_histogram()
+        original_channels = [h.copy() for h in hist]
+        hist.roll_channels(1)
+        new_channels = [h.copy() for h in hist]
+        self.assertEqual(original_channels[-1], new_channels[0])
+        for i in range(len(original_channels) - 1):
+            self.assertEqual(original_channels[i], new_channels[i + 1])
+
+    def test_roll_channel_to_first(self):
+        hist = self.make_test_histogram()
+        original_channels = [h.copy() for h in hist]
+        hist.roll_channel_to_first("yaxis")
+        new_channels = [h.copy() for h in hist]
+        self.assertEqual(original_channels[1], new_channels[0])
+        self.assertEqual(original_channels[0], new_channels[2])
+
+    def test_roll_channel_to_last(self):
+        hist = self.make_test_histogram()
+        original_channels = [h.copy() for h in hist]
+        hist.roll_channel_to_last("xaxis")
+        new_channels = [h.copy() for h in hist]
+        self.assertEqual(original_channels[0], new_channels[2])
+        self.assertEqual(original_channels[1], new_channels[0])
+
+    def test_delitem(self):
+        hist = self.make_test_histogram()
+        yhist = hist["yaxis"]
+        del hist["xaxis"]
+        self.assertEqual(len(hist.binning), 2)
+        self.assertEqual(hist.binning[0].label, "yaxis")
+        self.assertEqual(hist.binning[0], yhist.binning)
+        self.assertEqual(hist.binning[1].label, "zaxis")
+
+    @patch("microfit.histogram.histogram.sideband_constraint_correction")
+    def test_update_with_measurement(self, mock_correction):
+        # Create a MultiChannelHistogram instance
+        hist = self.make_test_histogram()
+
+        # Define the channels and corresponding measurements
+        channels = ["xaxis", "yaxis", "zaxis"]
+        measurements = [np.array([1, 2]), np.array([1, 2, 3]), np.array([1, 2, 3, 4])]
+
+        for channel, measurement in zip(channels, measurements):
+            # Reset the histogram for each channel
+            hist = self.make_test_histogram()
+            # Mock the sideband_constraint_correction function to return a known output
+            remaining_bins = hist.n_bins - len(measurement)
+            delta_mu = np.ones(remaining_bins) * 0.1
+            delta_cov = np.eye(remaining_bins) * 0.01
+            # Add some off-diagonal elements
+            np.random.seed(0)
+            delta_cov += np.random.rand(remaining_bins, remaining_bins) * 0.01
+            # Make it PSD
+            delta_cov = fronebius_nearest_psd(delta_cov)
+            mock_correction.return_value = delta_mu, delta_cov
+
+            # We also want to check that the sideband_constraint_correction function is called with the correct arguments which are
+            hist_copy = hist.copy()
+            hist_copy.roll_channel_to_last(channel)
+            expected_args = (measurement, hist_copy.nominal_values[remaining_bins:])
+            # The covariance matrix that should be passed into the function is the
+            # concatenated covariance of all channels including the one that is being updated
+            expected_kwargs = {"concat_covariance": hist_copy.covariance_matrix}
+            # Update the histogram with the measurement
+            updated_hist = hist.update_with_measurement(channel, measurement)
+            # Check that the sideband_constraint_correction function was called with the correct arguments
+            assert_called_with_np(mock_correction, *expected_args, **expected_kwargs)
+
+            # Check that the updated histogram's bin counts and covariance matrix have been updated correctly
+            hist.roll_channel_to_last(channel)
+            expected_bin_counts = hist.nominal_values[:remaining_bins] + delta_mu
+            expected_covariance_matrix = (
+                hist.covariance_matrix[:remaining_bins, :remaining_bins] + delta_cov
+            )
+            np.testing.assert_array_almost_equal(updated_hist.nominal_values, expected_bin_counts)
+            np.testing.assert_array_almost_equal(
+                updated_hist.covariance_matrix, expected_covariance_matrix
+            )
+
+
 class TestHistogramGenerator(unittest.TestCase):
     """Test the HistogramGenerator class.
-    
+
     Functionality is tested for single-channel and multi-channel binning.
     """
 
@@ -452,9 +575,7 @@ class TestHistogramGenerator(unittest.TestCase):
         ]
         return df
 
-    def make_test_binning(
-        self, multichannel=False, with_query=False, second_query="matching"
-    ):
+    def make_test_binning(self, multichannel=False, with_query=False, second_query="matching"):
         first_channel_binning = Binning.from_config("energy", 10, (0, 100), "Energy")
         if with_query:
             first_channel_binning.selection_query = "bdt > 0.5"
@@ -486,7 +607,6 @@ class TestHistogramGenerator(unittest.TestCase):
                 self.assertEqual(len(histogram.std_devs), binning.n_bins)
 
     def test_subchannel_extraction(self):
-
         df = self.make_dataframe()
         for second_query in ["matching", "non_matching", "overlapping"]:
             mc_binning = self.make_test_binning(
@@ -519,17 +639,13 @@ class TestHistogramGenerator(unittest.TestCase):
                         return base_weights * dataframe["energy"] ** delta_gamma
 
                 # Create a ParameterSet with a single parameter
-                parameters = ParameterSet(
-                    [Parameter("delta_gamma", 0.5, bounds=(-1, 1))]
-                )
+                parameters = ParameterSet([Parameter("delta_gamma", 0.5, bounds=(-1, 1))])
                 # Initialize the HistogramGenerator
                 generator = SpectralIndexGenerator(df, binning, parameters=parameters)
                 # To cross-check, we create a dataframe where we already apply the re-weighting
                 # and create a histogram from that
                 df_reweighted = df.copy()
-                df_reweighted["weights"] = (
-                    df_reweighted["weights"] * df_reweighted["energy"] ** 0.5
-                )
+                df_reweighted["weights"] = df_reweighted["weights"] * df_reweighted["energy"] ** 0.5
                 generator_reweighted = HistogramGenerator(df_reweighted, binning)
                 # Generate the histogram
                 histogram = generator.generate()
@@ -554,9 +670,7 @@ class TestHistogramGenerator(unittest.TestCase):
                         return base_weights * dataframe["energy"] ** delta_gamma
 
                 # Create a ParameterSet with a single parameter
-                parameters = ParameterSet(
-                    [Parameter("delta_gamma", 0.5, bounds=(-1, 1))]
-                )
+                parameters = ParameterSet([Parameter("delta_gamma", 0.5, bounds=(-1, 1))])
                 # Initialize the HistogramGenerator
                 generator_cached = SpectralIndexGenerator(
                     df, binning, parameters=parameters, enable_cache=True

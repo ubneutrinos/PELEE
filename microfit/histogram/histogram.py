@@ -1,4 +1,4 @@
-from typing import  List, Optional, Union
+from typing import List, Optional, Union
 from matplotlib.axes import Axes
 import numpy as np
 
@@ -9,6 +9,7 @@ from microfit.statistics import (
     error_propagation_division,
     error_propagation_multiplication,
     is_psd,
+    sideband_constraint_correction,
 )
 from microfit.histogram import Binning, MultiChannelBinning
 
@@ -40,7 +41,7 @@ class Histogram:
             Covariance matrix of the bin counts.
         label : str, optional
             Label of the histogram. This is distinct from the label of the x-axis, which is
-            set in the Binning object that is passed to the constructor. This label should 
+            set in the Binning object that is passed to the constructor. This label should
             represent the category of the histogram, e.g. "Signal" or "Background" and
             will be used in the legend of a plot (unless a tex_string is provided).
         plot_color : str, optional
@@ -127,8 +128,8 @@ class Histogram:
             label = "Covariance"
         cbar = plt.colorbar(pc, ax=ax)
         cbar.set_label(label)
-        ax.set_xlabel(self.binning.variable_tex) # type: ignore
-        ax.set_ylabel(self.binning.variable_tex) # type: ignore
+        ax.set_xlabel(self.binning.variable_tex)  # type: ignore
+        ax.set_ylabel(self.binning.variable_tex)  # type: ignore
         return ax
 
     def draw(
@@ -159,7 +160,7 @@ class Histogram:
         assert ax is not None
         if self.binning.is_log:
             ax.set_yscale("log")
-        ax.set_xlabel(self.binning.variable_tex) # type: ignore
+        ax.set_xlabel(self.binning.variable_tex)  # type: ignore
         if with_ylabel:
             ax.set_ylabel("Events")
         bin_counts = self.nominal_values
@@ -222,7 +223,7 @@ class Histogram:
         """
 
         return {
-            "binning": self.binning.__dict__,
+            "binning": self.binning.to_dict(),
             "bin_counts": self.nominal_values,
             "covariance_matrix": self.covariance_matrix,
             "label": self._label,
@@ -392,7 +393,9 @@ class Histogram:
         # clip bin counts from below
         fluctuated_bin_counts[fluctuated_bin_counts < 0] = 0
         return self.__class__(
-            self.binning, fluctuated_bin_counts, covariance_matrix=self.covariance_matrix,
+            self.binning,
+            fluctuated_bin_counts,
+            covariance_matrix=self.covariance_matrix,
         )
 
     def fluctuate_poisson(self, seed=None):
@@ -400,7 +403,9 @@ class Histogram:
         rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.poisson(unumpy.nominal_values(self.bin_counts))
         return self.__class__(
-            self.binning, fluctuated_bin_counts, uncertainties=np.sqrt(fluctuated_bin_counts),
+            self.binning,
+            fluctuated_bin_counts,
+            uncertainties=np.sqrt(fluctuated_bin_counts),
         )
 
     def __repr__(self):
@@ -470,7 +475,7 @@ class Histogram:
     def __truediv__(self, other):
         if isinstance(other, Real):
             new_bin_counts = self.nominal_values / other
-            new_cov_matrix = self.covariance_matrix / other ** 2
+            new_cov_matrix = self.covariance_matrix / other**2
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
             state["covariance_matrix"] = new_cov_matrix
@@ -521,7 +526,7 @@ class Histogram:
             return self.__class__.from_dict(state)
         elif isinstance(other, Real):
             new_bin_counts = self.nominal_values * other
-            new_cov_matrix = self.covariance_matrix * other ** 2
+            new_cov_matrix = self.covariance_matrix * other**2
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
             state["covariance_matrix"] = new_cov_matrix
@@ -551,7 +556,7 @@ class Histogram:
         # we only support multiplication by numbers that scale the entire histogram
         if isinstance(other, Real):
             new_bin_counts = self.nominal_values * other
-            new_cov_matrix = self.covariance_matrix * other ** 2
+            new_cov_matrix = self.covariance_matrix * other**2
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
             state["covariance_matrix"] = new_cov_matrix
@@ -593,6 +598,99 @@ class MultiChannelHistogram(Histogram):
         # The attribute self.binning is set in the Histogram constructor, but we overwrite
         # it here again.
         self.binning = binning
+
+    def roll_channels(self, shift: int) -> None:
+        """Roll the channels of the histogram.
+
+        Parameters
+        ----------
+        shift : int
+            Number of channels to roll. Positive values roll the channels to the right,
+            negative values roll the channels to the left.
+        """
+        # We roll the bins sequentially because the number of bins in each channel may be different.
+        sign = np.sign(shift)
+        for i in range(abs(shift)):
+            # If the sign is positive, we need to roll the bin counts by the
+            # number of bins in the last channel. If it is negative, we need to
+            # roll by the number of bins in the first channel.
+            first_last = 0 if sign < 0 else -1
+            shift_bins = self.binning[first_last].n_bins * sign
+            self.bin_counts = np.roll(self.bin_counts, shift_bins)
+            # We also need to roll the covariance matrix accordingly in 2D
+            self.covariance_matrix = np.roll(self.covariance_matrix, shift_bins, axis=0)
+            self.covariance_matrix = np.roll(self.covariance_matrix, shift_bins, axis=1)
+            self.binning.roll_channels(sign)
+
+    def roll_channel_to_first(self, key: Union[int, str]) -> None:
+        """Roll a given channel to the first position.
+
+        Parameters
+        ----------
+        key : int or str
+            Index or label of the channel.
+        """
+        idx = self.binning._idx_channel(key)
+        self.roll_channels(-idx)
+
+    def roll_channel_to_last(self, key: Union[int, str]) -> None:
+        """Roll a given channel to the last position.
+
+        Parameters
+        ----------
+        key : int or str
+            Index or label of the channel.
+        """
+        idx = self.binning._idx_channel(key)
+        # We have to keep in mind that the index of the last channel is len(self.binning) - 1,
+        # so we need to roll by len(self.binning) - (idx + 1) bins.
+        # For example, if the binning is already at the last position, then idx = len(self.binning) - 1,
+        # and we need to roll by 0 bins.
+        shift = len(self.binning) - (idx + 1)
+        if shift != 0:
+            self.roll_channels(shift)
+
+    def update_with_measurement(
+        self, key: Union[int, str], measurement: np.ndarray
+    ) -> "MultiChannelHistogram":
+        """Perform the Bayesian update of the histogram given a measurement of one channel.
+
+        Parameters
+        ----------
+        key : int or str
+            Index or label of the channel.
+        measurement : np.ndarray
+            Measurement of the channel.
+
+        Returns
+        -------
+        MultiChannelHistogram
+            Updated histogram containing all channels except the one that was measured.
+        """
+
+        # By construction, the constraint correction function expects the sideband to be the
+        # last block of bins in the histogram. We therefore roll the channel to the last position.
+        self.roll_channel_to_last(key)
+        idx = self.binning._idx_channel(key)
+        # This should always be the case, since we use the function above to roll the channel to the last position.
+        assert idx == len(self.binning) - 1, "Channel must be the last channel in the histogram."
+        sideband_central_value = self[idx].nominal_values
+        concat_covariance_matrix = self.covariance_matrix
+        assert len(measurement) == len(
+            sideband_central_value
+        ), "Measurement must have the same length as the bin counts of the channel."
+        delta_mu, delta_cov = sideband_constraint_correction(
+            measurement,
+            sideband_central_value,
+            concat_covariance=concat_covariance_matrix,
+        )
+        # We need to generate a new MultiChannelHistogram where we have removed the channel that we measured.
+        constrained_histogram = self.copy()
+        del constrained_histogram[idx]
+        # Update bin counts and covariance
+        constrained_histogram.bin_counts += delta_mu
+        constrained_histogram.covariance_matrix += delta_cov
+        return constrained_histogram
 
     @property
     def channels(self) -> List[Union[str, None]]:
@@ -655,6 +753,24 @@ class MultiChannelHistogram(Histogram):
             tex_string=self.tex_string,
         )
 
+    def __delitem__(self, key: Union[int, str]) -> None:
+        """Delete the histogram of a given channel.
+
+        Parameters
+        ----------
+        key : int or str
+            Index or label of the channel.
+        """
+        idx = self.binning._idx_channel(key)
+        self.bin_counts = np.delete(self.bin_counts, self.binning._channel_bin_idx(idx))
+        self.covariance_matrix = np.delete(
+            self.covariance_matrix, self.binning._channel_bin_idx(idx), axis=0
+        )
+        self.covariance_matrix = np.delete(
+            self.covariance_matrix, self.binning._channel_bin_idx(idx), axis=1
+        )
+        self.binning.delete_channel(idx)
+
     def replace_channel_histogram(self, key: Union[int, str], histogram: Histogram) -> None:
         """Replace the histogram of a given channel.
 
@@ -683,7 +799,7 @@ class MultiChannelHistogram(Histogram):
         """
 
         state = self.to_dict()
-        state["binning"] = self.binning.get_unrolled_binning().__dict__
+        state["binning"] = self.binning.get_unrolled_binning().to_dict()
         return Histogram.from_dict(state)
 
     def __repr__(self):
@@ -700,26 +816,57 @@ class MultiChannelHistogram(Histogram):
 
         # Add text boxes for each channel label
         for i, label in enumerate(channel_labels):
-            ax.text((channel_n_bins[i] + channel_n_bins[i+1]) / 2, 0.0, label, ha='center', va="bottom")
+            ax.text(
+                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                0.0,
+                label,
+                ha="center",
+                va="bottom",
+            )
 
         return ax
 
     def draw_covariance_matrix(self, ax=None, as_correlation=True, **plot_kwargs):
-        ax = self.get_unrolled_histogram().draw_covariance_matrix(
-            ax, as_correlation, **plot_kwargs
-        )
+        ax = self.get_unrolled_histogram().draw_covariance_matrix(ax, as_correlation, **plot_kwargs)
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
         channel_labels = [b.label for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
             ax.axvline(n_bins, color="k", linestyle="--")
             ax.axhline(n_bins, color="k", linestyle="--")
-        
+
         # Add text boxes for each channel label
         for i, label in enumerate(channel_labels):
-            ax.text((channel_n_bins[i] + channel_n_bins[i+1]) / 2, 0.5, label, ha='center', va="bottom")
-            ax.text(0.5, (channel_n_bins[i] + channel_n_bins[i+1]) / 2, label, ha='left', va="center", rotation=90)
+            ax.text(
+                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                0.5,
+                label,
+                ha="center",
+                va="bottom",
+            )
+            ax.text(
+                0.5,
+                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                label,
+                ha="left",
+                va="center",
+                rotation=90,
+            )
 
         return ax
+
+    def copy(self) -> "MultiChannelHistogram":
+        """Create a copy of the MultiChannelHistogram object.
+
+        Returns
+        -------
+        MultiChannelHistogram
+            Copied MultiChannelHistogram object.
+        """
+        return MultiChannelHistogram.from_dict(self.to_dict())
+
+    def __iter__(self):
+        for i in range(len(self.binning)):
+            yield self[i]
 
     @classmethod
     def from_dict(cls, dictionary, check_psd=True):
@@ -736,8 +883,6 @@ class MultiChannelHistogram(Histogram):
             MultiChannelHistogram object.
         """
 
-        dictionary["binning"] = MultiChannelBinning(**dictionary["binning"])
+        dictionary["binning"] = MultiChannelBinning.from_dict(dictionary["binning"])
         dictionary["check_psd"] = check_psd
         return cls(**dictionary)
-
-

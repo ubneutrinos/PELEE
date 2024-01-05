@@ -176,6 +176,16 @@ class MultiChannelBinning:
             binning.selection_query = unique_selection
         return common_selection
 
+    def to_dict(self):
+        """Return a dictionary representation of the binning."""
+        return {"binnings": [b.to_dict() for b in self.binnings], "is_log": self.is_log}
+    
+    @classmethod
+    def from_dict(cls, state):
+        """Create a MultiChannelBinning object from a dictionary representation of the binning."""
+        state["binnings"] = [Binning.from_dict(b) for b in state["binnings"]]
+        return cls(**state)
+
     @property
     def label(self) -> str:
         """Label of the unrolled binning."""
@@ -233,6 +243,17 @@ class MultiChannelBinning:
             List of selection queries of all channels.
         """
         return [b.selection_query for b in self.binnings]
+
+    def delete_channel(self, key: Union[int, str]):
+        """Delete a channel from the binning.
+
+        Parameters
+        ----------
+        key : int or str
+            Index or label of the channel.
+        """
+        idx = self._idx_channel(key)
+        del self.binnings[idx]
 
     def get_unrolled_binning(self) -> Binning:
         """Get an unrolled binning of all channels.
@@ -309,4 +330,26 @@ class MultiChannelBinning:
     
     def copy(self):
         """Create a copy of the binning."""
-        return MultiChannelBinning([b.copy() for b in self.binnings], self.is_log)
+        return MultiChannelBinning.from_dict(self.to_dict())
+    
+    def roll_channels(self, shift: int):
+        """Roll the channels by a given number of steps.
+
+        Parameters
+        ----------
+        shift : int
+            Number of steps to roll the channels.
+        """
+        self.binnings = np.roll(self.binnings, shift).tolist()
+        self.ensure_unique_labels()
+    
+    def roll_to_first(self, label: str):
+        """Roll the channels such that the channel with the given label is first.
+
+        Parameters
+        ----------
+        label : str
+            Label of the channel to be rolled to first.
+        """
+        idx = self.labels.index(label)
+        self.roll_channels(-idx)

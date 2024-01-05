@@ -22,7 +22,10 @@ class TestMultiChannelBinning(unittest.TestCase):
         }[second_query]
         if with_query:
             second_channel_binning.selection_query = second_query_string
-        binning = MultiChannelBinning([first_channel_binning, second_channel_binning])
+        third_channel_binning = Binning("z", bin_edges, "z-axis label")
+        third_channel_binning.selection_query = "bdt > 0.5"
+
+        binning = MultiChannelBinning([first_channel_binning, second_channel_binning, third_channel_binning])
         return binning
     
     def test_binning_to_from_dict(self):
@@ -56,13 +59,13 @@ class TestMultiChannelBinning(unittest.TestCase):
         assert isinstance(binning, MultiChannelBinning)
         assert isinstance(binning2, MultiChannelBinning)
         self.assertEqual(binning, binning2)
-        binning_from_dict = MultiChannelBinning(**binning.__dict__)
+        binning_from_dict = MultiChannelBinning.from_dict(binning.to_dict())
         self.assertEqual(binning, binning_from_dict)
 
         # test __getitem__
         self.assertEqual(binning[0], binning["x-axis label"])
         # Test __len__
-        self.assertEqual(len(binning), 2)
+        self.assertEqual(len(binning), 3)
         # Test iteration
         for channel in binning:
             self.assertTrue(channel in binning)
@@ -73,6 +76,47 @@ class TestMultiChannelBinning(unittest.TestCase):
         self.assertEqual(binning, binning2)
         binning2[0].bin_edges = np.array([1, 2, 3, 4])
         self.assertNotEqual(binning, binning2)
+
+    def test_roll_channels(self):
+        binning = self.make_test_binning(multichannel=True)
+        original_order = binning.binnings.copy()
+        binning.roll_channels(1)
+        new_order = binning.binnings
+        self.assertEqual(original_order[-1], new_order[0])
+        for i in range(len(original_order) - 1):
+            self.assertEqual(original_order[i], new_order[i + 1])
+
+    def test_roll_to_first(self):
+        binning = self.make_test_binning(multichannel=True)
+        original_order = binning.binnings.copy()
+        binning.roll_to_first("y-axis label")
+        new_order = binning.binnings
+        self.assertEqual(original_order[1], new_order[0])
+        self.assertEqual(original_order[0], new_order[2])
+    
+    def test_delete_channel(self):
+        binning = self.make_test_binning(multichannel=True)
+        original_order = binning.binnings.copy()
+        binning.delete_channel("y-axis label")
+        new_order = binning.binnings
+        self.assertEqual(len(original_order) - 1, len(new_order))
+        self.assertEqual(original_order[0], new_order[0])
+        self.assertNotEqual(original_order[1], new_order[1])
+
+    
+    def test_deep_copy(self):
+        binning = self.make_test_binning(multichannel=True)
+        binning_copy = binning.copy()
+
+        # Check if the copy is a MultiChannelBinning object
+        self.assertIsInstance(binning_copy, MultiChannelBinning)
+
+        # Check if the copy is a distinct object from the original
+        self.assertIsNot(binning, binning_copy)
+
+        # Check if each binning in the copy is a distinct object from the original
+        for original_binning, copied_binning in zip(binning.binnings, binning_copy.binnings):
+            self.assertIsNot(original_binning, copied_binning)
 
 
 if __name__ == '__main__':
