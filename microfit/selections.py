@@ -520,6 +520,7 @@ selection_categories = {
     'SIGNAL_1MU1P': {'query': "Signal_1mu1p == True", 'title': 'True 1mu1p Events', 'dir': 'SIGNAL_1MU1P'},
     'SIGNAL_1MUNP': {'query': "Signal_1muNp == True", 'title': 'True 1muNp Events', 'dir': 'SIGNAL_1MUNP'},
     'SG_1MUNP': {'query': "sel_CCNp0pi == True", 'title': 'Selected 1muNp0pi Events', 'dir': 'SG_1MUNP'},
+    'SG_1MU1P': {'query': "sel_CC1p0pi == True", 'title': 'Selected 1mu1p0pi Events', 'dir': 'SG_1MU1P'},
 
     # Two Shower Selections
     'ZPLOOSESELTWOSHR': {'query': ZPLOOSESEL_two_shower, 'title': '1e0p loose sel. 2+ shr', 'dir': 'ZPLOOSE_two_shower'},

@@ -336,16 +336,6 @@ def get_variables():
     VARDICT["NUEVARS"] = NUEVARS
 
     NUMUVARS = []
-    NUMU_TKI_VARS = [
-      "mc_pdg",
-      "mc_px",
-      "mc_py",
-      "mc_pz",
-      "mc_E",
-      "trk_energy_proton_v"
-    ]
-
-    #VARDICT["NUMU_TKI_VARS"] = NUMU_TKI_VARS
 
     VARDICT["NUMUVARS"] = []
 
@@ -2094,7 +2084,6 @@ def load_sample(
             loadnumuvariables=loadnumuvariables,
             use_lee_weights=use_lee_weights,
             load_crt_vars=load_crt_vars,
-            load_numu_tki=load_numu_tki,
         )
 
         df = up.pandas.df(variables, flatten=False)
@@ -2556,7 +2545,6 @@ def get_run_variables(
     loadnumuvariables=False,
     use_lee_weights=False,
     load_crt_vars=False,
-    load_numu_tki=False,
 ):
     assert category in ["runs","numupresel","detvar"]
 
@@ -2569,7 +2557,6 @@ def get_run_variables(
     NUMUVARS = VARDICT["NUMUVARS"]
     RCVRYVARS = VARDICT["RCVRYVARS"]
     PI0VARS = VARDICT["PI0VARS"]
-    #NUMU_TKI_VARS = VARDICT["NUMU_TKI_VARS"]
 
     if loadsystematics:
         WEIGHTS += SYSTVARS
@@ -2582,8 +2569,6 @@ def get_run_variables(
         VARIABLES += RCVRYVARS
     if loadnumuvariables:
         VARIABLES += NUMUVARS
-    #if load_numu_tki:
-    #    VARIABLES += NUMU_TKI_VARS
 
     ALLVARS = VARIABLES
 
