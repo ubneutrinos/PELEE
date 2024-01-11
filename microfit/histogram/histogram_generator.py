@@ -123,7 +123,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         return mask
 
     def _histogram_multi_channel(
-        self, dataframe: pd.DataFrame, weight_column: Optional[Union[str, List[str]]] = None,
+        self, dataframe: pd.DataFrame, weight_column: Optional[Union[str, List[str]]] = None, flatten_single_channel: bool = True,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram for multiple channels from the dataframe.
 
@@ -154,7 +154,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         return_single_channel = False
         if isinstance(binning, Binning):
             binning = MultiChannelBinning([binning])
-            return_single_channel = True
+            return_single_channel = flatten_single_channel
         sample = dataframe[binning.variables].to_numpy()
         selection_masks = []
         for i, query in enumerate(binning.selection_queries):
@@ -281,6 +281,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         sideband_observed_hist: Optional[Histogram] = None,
         add_precomputed_detsys: bool = False,
         use_kde_smoothing: bool = False,
+        flatten_single_channel: bool = True,
         options: Dict[str, Any] = {},
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram from the dataframe.
@@ -309,6 +310,9 @@ class HistogramGenerator(SmoothHistogramMixin):
         use_kde_smoothing : bool, optional
             Whether to use KDE smoothing to estimate the bin counts. This is useful for
             histograms with few events per bin.
+        flatten_single_channel : bool, optional
+            If True, return a Histogram instead of a MultiChannelHistogram if the binning
+            is one-dimensional.
         options : dict, optional
             Additional options that depend on the specific implementation of the histogram
             generator. If `use_kde_smoothing` is True, options are passed as keyword arguments
@@ -362,9 +366,9 @@ class HistogramGenerator(SmoothHistogramMixin):
                     self.hist_cache[hash] = hist.copy()
                 return hist
             if use_kde_smoothing:
-                hist = self._smoothed_histogram_multi_channel(dataframe, **options)
+                hist = self._smoothed_histogram_multi_channel(dataframe, flatten_single_channel=flatten_single_channel, **options)
             else:
-                hist = self._histogram_multi_channel(dataframe)
+                hist = self._histogram_multi_channel(dataframe, flatten_single_channel=flatten_single_channel)
             if self.enable_cache:
                 self.hist_cache[hash] = hist.copy()
         # if we reach this point without having a histogram, something went wrong
@@ -423,6 +427,33 @@ class HistogramGenerator(SmoothHistogramMixin):
         if self.enable_cache and self.cache_total_covariance:
             self.hist_cache[hash] = hist.copy()
         return hist
+
+    @classmethod
+    def generate_joint_histogram(cls, hist_generators, include_multisim_errors=True):
+        """Generate a joint histogram from multiple histogram generators.
+        
+        The result is a MultiChannelHistogram object with covariance matrix that contains
+        correlations between bins of different channels.
+        """
+
+        generate_kwargs = {
+            "include_multisim_errors": False,
+            # Ensure that the output is always a MultiChannelHistogram
+            "flatten_single_channel": False,
+        }
+        # We want these histograms to only contain the statistical covariance matrix (which may include correlations
+        # in case of overlapping selections between channels).
+        # The resulting covariance is block-diagonal, with each block corresponding to the output of one histogram
+        # generator.
+        histogram = MultiChannelHistogram.from_histograms([h.generate(**generate_kwargs) for h in hist_generators])
+        if not include_multisim_errors:
+            return histogram
+        covariance_matrix = np.zeros((histogram.n_bins, histogram.n_bins))
+        for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
+            covariance_matrix += HistogramGenerator.multiband_covariance(hist_generators, ms_column)
+        covariance_matrix += HistogramGenerator.multiband_unisim_covariance(hist_generators)
+        histogram.add_covariance(covariance_matrix)
+        return histogram
 
     @classmethod
     def multiband_covariance(cls, hist_generators, ms_column, extra_queries=None):

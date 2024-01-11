@@ -1,6 +1,7 @@
 from typing import List, Optional, Union
 from matplotlib.axes import Axes
 import numpy as np
+from scipy.linalg import block_diag
 
 from numbers import Real, Real
 from uncertainties import correlated_values, unumpy
@@ -888,3 +889,24 @@ class MultiChannelHistogram(Histogram):
         dictionary["binning"] = MultiChannelBinning.from_dict(dictionary["binning"])
         dictionary["check_psd"] = check_psd
         return cls(**dictionary)
+
+    @classmethod
+    def from_histograms(cls, histograms: List[Union[Histogram, "MultiChannelHistogram"]]):
+        """Create a MultiChannelHistogram from a list of Histograms.
+
+        Parameters
+        ----------
+        binning : MultiChannelBinning
+            Binning of the histogram.
+        histograms : list
+            List of Histograms.
+
+        Returns
+        -------
+        MultiChannelHistogram
+            MultiChannelHistogram object.
+        """
+        binning = MultiChannelBinning.join(*[h.binning for h in histograms])
+        bin_counts = np.concatenate([h.nominal_values for h in histograms])
+        covariance_matrix = block_diag(*[h.covariance_matrix for h in histograms])
+        return cls(binning, bin_counts, covariance_matrix=covariance_matrix)

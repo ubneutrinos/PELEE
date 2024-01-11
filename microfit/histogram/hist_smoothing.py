@@ -441,6 +441,7 @@ class SmoothHistogramMixin:
         dataframe: pd.DataFrame,
         weight_column: Optional[Union[str, List[str]]] = None,
         calculate_covariance: bool = True,
+        flatten_single_channel: bool = True,
         **smooth_hist_kwargs,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """This function is actually called by the HistogramGenerator class."""
@@ -448,7 +449,7 @@ class SmoothHistogramMixin:
         return_single_channel = False
         if isinstance(binning, Binning):
             binning = MultiChannelBinning([binning])
-            return_single_channel = True
+            return_single_channel = flatten_single_channel
         central_value, covariance_matrix, _ = self._compute_kde_histogram_bootstrap(
             dataframe, binning, weight_column=weight_column, calculate_covariance=calculate_covariance, **smooth_hist_kwargs
         )
