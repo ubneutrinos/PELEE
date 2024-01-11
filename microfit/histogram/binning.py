@@ -332,6 +332,9 @@ class MultiChannelBinning:
         """Create a copy of the binning."""
         return MultiChannelBinning.from_dict(self.to_dict())
     
+    def _roll_list(self, lst, shift):
+        return lst[-shift:] + lst[:-shift]
+
     def roll_channels(self, shift: int):
         """Roll the channels by a given number of steps.
 
@@ -340,7 +343,7 @@ class MultiChannelBinning:
         shift : int
             Number of steps to roll the channels.
         """
-        self.binnings = np.roll(self.binnings, shift).tolist()
+        self.binnings = self._roll_list(self.binnings, shift)
         self.ensure_unique_labels()
     
     def roll_to_first(self, label: str):
