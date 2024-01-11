@@ -1,4 +1,5 @@
 import re
+from typing import List, Tuple
 
 
 # pi0 preselection
@@ -781,7 +782,7 @@ def _find_common_selection(s1, s2):
     
     return common_selection, unique_selection1, unique_selection2
 
-def find_common_selection(strings):
+def find_common_selection(strings: List[str]) -> Tuple[str, List[str]]:
     """Find the common selection between a list of selection strings."""
     if len(strings) == 0:
         return "", []
