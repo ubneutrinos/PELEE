@@ -1,10 +1,9 @@
 """Module to define parameters of an analysis."""
 
 from dataclasses import dataclass, asdict
-from typing import Union, List, Tuple
+from numbers import Real
+from typing import Optional, Union, List, Tuple
 from unitpy import Unit, Quantity
-import toml
-from numbers import Number
 import numpy as np
 
 
@@ -28,8 +27,8 @@ class Parameter:
 
     name: str
     value: Union[bool, Quantity]
-    is_discrete: bool = None  # Automatically assigned in constructor
-    bounds: Tuple[Quantity] = None
+    is_discrete: bool = False  # Automatically assigned in constructor
+    bounds: Optional[Tuple[Quantity, Quantity]] = None
     _post_init_finished: bool = False
 
     def __post_init__(self):
@@ -38,15 +37,22 @@ class Parameter:
         else:
             self.is_discrete = False
         # convert float to Quantity
-        if isinstance(self.value, Number) and not isinstance(self.value, bool):
+        if isinstance(self.value, Real) and not isinstance(self.value, bool):
+            assert isinstance(self.value, float) or isinstance(self.value, int)
             self.value = Quantity(self.value, Unit())
         # if bounds are given, convert to Quantity if needed, assuming the same units as value
         if self.bounds is not None:
-            if isinstance(self.bounds[0], Number):
-                self.bounds = [Quantity(b, self.value.unit) for b in self.bounds]
+            if isinstance(self.value, bool):
+                raise TypeError("Cannot assign bounds to a discrete parameter.")
+            if isinstance(self.bounds[0], float) or isinstance(self.bounds[0], int):
+                assert isinstance(self.bounds[1], float) or isinstance(self.bounds[1], int)
+                self.bounds = (
+                    Quantity(self.bounds[0], self.value.unit),
+                    Quantity(self.bounds[1], self.value.unit),
+                )
             # make sure bounds are sorted
             if self.bounds[0] > self.bounds[1]:
-                self.bounds = [self.bounds[1], self.bounds[0]]
+                self.bounds = (self.bounds[1], self.bounds[0])
         self._post_init_finished = True
 
     @property
@@ -58,7 +64,11 @@ class Parameter:
     @property
     def m(self):
         """Magnitude of the parameter value."""
-        return self.value.value
+        if self.is_discrete:
+            return self.value
+        else:
+            assert isinstance(self.value, Quantity)
+            return self.value.value
 
     def to_dict(self):
         d = asdict(self)
@@ -76,10 +86,15 @@ class Parameter:
                 elif not self.is_discrete and isinstance(value, bool):
                     raise TypeError("Cannot assign boolean value to a continuous parameter.")
                 # if generic number, convert to Quantity, assuming the same units as value
-                if isinstance(value, Number) and not isinstance(value, bool):
+                if isinstance(value, Real) and not isinstance(value, bool):
+                    assert isinstance(value, float) or isinstance(value, int)
+                    assert isinstance(self.value, Quantity)
                     value = Quantity(value, self.value.unit)
+                assert isinstance(value, Quantity) or isinstance(value, bool)
                 # make sure new value is within bounds
-                if self.bounds is not None:
+                if self.bounds is not None and not self.is_discrete:
+                    assert isinstance(self.value, Quantity)
+                    assert isinstance(value, Quantity)
                     if value < self.bounds[0] or value > self.bounds[1]:
                         raise ValueError(
                             f"New value is not within {self.bounds[0].value, self.bounds[1].value} {self.value.unit}."
@@ -142,11 +157,11 @@ class ParameterSet:
     def __add__(self, other):
         parameter_list = self.parameters + other.parameters
         new_parameter_set = ParameterSet(parameter_list, strict_duplicate_checking=False)
-        # before we return, we set the parameter objects in the other set to the 
+        # before we return, we set the parameter objects in the other set to the
         # parameter objects in the new set
         new_parameter_set.synchronize(other)
         return new_parameter_set
-    
+
     def synchronize(self, other):
         duplicate_names = list(set(self.names).intersection(other.names))
         for name in duplicate_names:
@@ -171,11 +186,11 @@ class ParameterSet:
     @property
     def values(self):
         return [p.value for p in self.parameters]
-    
+
     @property
     def magnitudes(self):
         return [p.m for p in self.parameters]
-    
+
     @property
     def magnitude_bounds(self):
         return [p.magnitude_bounds for p in self.parameters]
@@ -194,19 +209,6 @@ class ParameterSet:
     @classmethod
     def from_dict(cls, d):
         return cls([Parameter.from_dict(p) for p in d])
-
-    @classmethod
-    def from_toml(cls, toml_path):
-        if isinstance(toml_path, str):
-            with open(toml_path, "r") as f:
-                dict_from_toml = toml.load(f)
-        else:
-            dict_from_toml = toml_path
-        return cls.from_dict(dict_from_toml)
-
-    def to_toml(self, toml_path):
-        with open(toml_path, "w") as f:
-            toml.dump(self.to_dict(), f)
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -242,6 +244,7 @@ class ParameterSet:
                 print_unit = ""
                 print_bounds = ""
             else:
+                assert isinstance(param.value, Quantity)
                 print_value = param.value.value
                 print_unit = param.value.unit
                 if param.bounds is not None:
@@ -270,5 +273,3 @@ class ParameterSet:
 
     def copy(self):
         return ParameterSet([p.copy() for p in self.parameters])
-
-
