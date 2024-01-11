@@ -816,6 +816,8 @@ class MultiChannelHistogram(Histogram):
 
         # Add text boxes for each channel label
         for i, label in enumerate(channel_labels):
+            if label is None:
+                continue
             ax.text(
                 (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
                 0.0,
