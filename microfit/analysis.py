@@ -17,61 +17,38 @@ from microfit.statistics import sideband_constraint_correction, chi_square
 
 
 class MultibandAnalysis(object):
-    def __init__(self, configuration=None, sideband_generator=None, sideband_name=None, signal_generators=None, signal_names=None):
+    def __init__(self, configuration=None, run_hist_generators=None, constraint_channels=[]):
         self.logger = logging.getLogger(__name__)
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
         if configuration is None:
-            self._init_from_generators(sideband_generator, sideband_name, signal_generators, signal_names)
+            self._init_from_generators(run_hist_generators, constraint_channels)
         else:
             self._init_from_config(configuration)
 
-    def _init_from_generators(self, sideband_generator, sideband_name, signal_generators, signal_names):
-        self._sideband_generator = sideband_generator
-        self.sideband_name = sideband_name
-        self._signal_generators = signal_generators
-        self.signal_names = signal_names
-        self.parameters = sum([g.parameters for g in self._signal_generators])
-        for gen in self._signal_generators:
+    def _init_from_generators(self, run_hist_generators, constraint_channels):
+        self._run_hist_generators = run_hist_generators
+        self.constraint_channels = constraint_channels
+        self.parameters = sum([g.parameters for g in self._run_hist_generators])
+        for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
-        self._check_shared_params([g.parameters for g in self._signal_generators])
+        self._check_shared_params([g.parameters for g in self._run_hist_generators])
 
     def _init_from_config(self, configuration):
-        # The analysis may use several signal bands, but only one sideband.
-        # For every signal band and the sideband, we are going to create a
-        # RunHistGenerator object that can create histograms from the data.
-        signal_configurations = configuration["signal"]
-        self._sideband_generator = None
-        self.sideband_name = None
-        if "sideband" in configuration:
-            sideband_configuration = configuration["sideband"]
-            if "name" in sideband_configuration:
-                self.sideband_name = sideband_configuration["name"]
-            else:
-                self.sideband_name = sideband_configuration["selection"]
-            sideband_data, sideband_weights, sideband_pot = load_runs(**configuration["sideband_data"])
-            self._sideband_generator = self.run_hist_generator_from_config(
-                sideband_data, sideband_weights, sideband_pot, sideband_configuration, is_signal=False
-            )
-        else:
-            sideband_configuration = None
-            self._sideband_generator = None
-
-        for config in signal_configurations + [sideband_configuration]:
+        # The analysis may use several generators to produce a multi-channel histogram
+        generator_configurations = configuration["generator"]
+        for config in generator_configurations:
             self._check_config(config)
-
-        self._signal_configurations = signal_configurations
-        self.signal_names = [config.get("name", config["selection"]) for config in signal_configurations]
-        rundata, weights, data_pot = load_runs(**configuration["signal_data"])
+        rundata, weights, data_pot = load_runs(**configuration["data_loading"])
         self.data_pot = data_pot
-        self._signal_generators = [
-            self.run_hist_generator_from_config(rundata, weights, data_pot, config) for config in signal_configurations
+        self._run_hist_generators = [
+            self.run_hist_generator_from_config(rundata, weights, data_pot, config) for config in generator_configurations
         ]
-        self.parameters = sum([g.parameters for g in self._signal_generators])
-        for gen in self._signal_generators:
+        self.parameters = sum([g.parameters for g in self._run_hist_generators])
+        for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
-        self._check_shared_params([g.parameters for g in self._signal_generators])
+        self._check_shared_params([g.parameters for g in self._run_hist_generators])
 
     def _check_shared_params(self, param_sets: List[ParameterSet]):
         shared_names = list(set(param_sets[0].names).intersection(*[set(ps.names) for ps in param_sets[1:]]))
@@ -86,32 +63,33 @@ class MultibandAnalysis(object):
         return True  # TODO: implement
 
     def run_hist_generator_from_config(self, rundata, weights, data_pot, config, is_signal=True) -> RunHistGenerator:
-        binning = Binning.from_config(**config["binning"])
-        print(f"Making generator for selection {config['selection']} and preselection {config['preselection']}")
-        parameters = ParameterSet.from_dict(config["parameter"]) if "parameter" in config else None
-        if "mc_hist_generator_cls" in config:
-            try:
-                mc_hist_generator_cls = getattr(signal_generators, config["mc_hist_generator_cls"])
-            except AttributeError:
-                # try globals instead
-                mc_hist_generator_cls = globals()[config["mc_hist_generator_cls"]]
-            mc_hist_generator_kwargs = config.get("mc_hist_generator_kwargs", {})
-        else:
-            mc_hist_generator_cls = None
-            mc_hist_generator_kwargs = {}
-        run_generator = RunHistGenerator(
-            rundata,
-            binning,
-            data_pot=data_pot,
-            selection=config["selection"],
-            preselection=config["preselection"],
-            sideband_generator=self._sideband_generator,
-            uncertainty_defaults=config["uncertainties"],
-            mc_hist_generator_cls=mc_hist_generator_cls if is_signal else None,
-            parameters=parameters,
-            **mc_hist_generator_kwargs,
-        )
-        return run_generator
+        raise NotImplementedError("TODO: update implementation for configuration loading")
+        # binning = Binning.from_config(**config["binning"])
+        # print(f"Making generator for selection {config['selection']} and preselection {config['preselection']}")
+        # parameters = ParameterSet.from_dict(config["parameter"]) if "parameter" in config else None
+        # if "mc_hist_generator_cls" in config:
+        #     try:
+        #         mc_hist_generator_cls = getattr(signal_generators, config["mc_hist_generator_cls"])
+        #     except AttributeError:
+        #         # try globals instead
+        #         mc_hist_generator_cls = globals()[config["mc_hist_generator_cls"]]
+        #     mc_hist_generator_kwargs = config.get("mc_hist_generator_kwargs", {})
+        # else:
+        #     mc_hist_generator_cls = None
+        #     mc_hist_generator_kwargs = {}
+        # run_generator = RunHistGenerator(
+        #     rundata,
+        #     binning,
+        #     data_pot=data_pot,
+        #     selection=config["selection"],
+        #     preselection=config["preselection"],
+        #     sideband_generator=self._sideband_generator,
+        #     uncertainty_defaults=config["uncertainties"],
+        #     mc_hist_generator_cls=mc_hist_generator_cls if is_signal else None,
+        #     parameters=parameters,
+        #     **mc_hist_generator_kwargs,
+        # )
+        # return run_generator
 
     def generate_multiband_histogram(
         self,
@@ -119,17 +97,16 @@ class MultibandAnalysis(object):
         use_sideband=False,
         strict_covar_checking=False,
         scale_to_pot=None,
-        check_covar=True,
     ):
         """Generate a combined histogram from all signal bands."""
 
-        total_nbins = sum([g.binning.n_bins for g in self._signal_generators])
+        total_nbins = sum([g.binning.n_bins for g in self._run_hist_generators])
         # make a Binning of the global bin number
         bin_edges = np.arange(total_nbins + 1)
         global_binning = Binning("None", bin_edges, label="Global bin number")
         stat_only_signal_hists = [
             g.mc_hist_generator.generate(include_multisim_errors=False, use_sideband=False)
-            for g in self._signal_generators
+            for g in self._run_hist_generators
         ]
         if not include_multisim_errors:
             # If we don't include the multisim errors, we are done
@@ -148,7 +125,7 @@ class MultibandAnalysis(object):
             # sanity check: the diagonal blocks of the combined covariance should be the same
             # as if we had calculated the histograms with multisim separately
             pos = 0
-            for i, g in enumerate(self._signal_generators):
+            for i, g in enumerate(self._run_hist_generators):
                 n_bins = g.binning.n_bins
                 signal_hist = g.mc_hist_generator.generate(include_multisim_errors=True, use_sideband=False)
                 covar = signal_hist.covariance_matrix
@@ -196,15 +173,15 @@ class MultibandAnalysis(object):
     def generate_multiband_data_histogram(self):
         """Generate a combined histogram from all signal bands."""
 
-        total_nbins = sum([g.binning.n_bins for g in self._signal_generators])
+        total_nbins = sum([g.binning.n_bins for g in self._run_hist_generators])
         # make a Binning of the global bin number
         bin_edges = np.arange(total_nbins + 1)
         global_binning = Binning("None", bin_edges, label="Global bin number")
         
         # If any of the data hist generators is None, we return None
-        if any([g.data_hist_generator is None for g in self._signal_generators]):
+        if any([g.data_hist_generator is None for g in self._run_hist_generators]):
             return None
-        data_hists = [g.data_hist_generator.generate() for g in self._signal_generators]
+        data_hists = [g.data_hist_generator.generate() for g in self._run_hist_generators]
         # if any of the produced histograms is None, we return None
         if any([h is None for h in data_hists]):
             return None
@@ -215,9 +192,9 @@ class MultibandAnalysis(object):
 
     def plot_signals(self, category_column="paper_category", **kwargs):
         # make sub-plot for each signal in a horizontal arrangement
-        n_signals = len(self._signal_generators)
+        n_signals = len(self._run_hist_generators)
         fig, axes = plt.subplots(1, n_signals, figsize=(n_signals * 8, 5), squeeze=False)
-        for i, generator in enumerate(self._signal_generators):
+        for i, generator in enumerate(self._run_hist_generators):
             plotter = RunHistPlotter(generator)
             plotter.plot(category_column=category_column, ax=axes[0, i], **kwargs)
         return fig, axes
@@ -226,35 +203,10 @@ class MultibandAnalysis(object):
         plotter = RunHistPlotter(self._sideband_generator)
         return plotter.plot(category_column=category_column, **kwargs)
 
-    def _get_total_multiband_covariance(self, with_unisim=False, with_stat_only=False, include_sideband=False):
-        hist_generators = []
-        hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
-        if self._sideband_generator is not None and include_sideband:
-            hist_generators.append(self._sideband_generator.mc_hist_generator)
-        total_nbins = sum([g.binning.n_bins for g in hist_generators])
-        combined_covar = np.zeros((total_nbins, total_nbins))
-        for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
-            multiband_covariance = HistogramGenerator.multiband_covariance(hist_generators, ms_column=ms_column)
-            combined_covar += multiband_covariance
-        if with_unisim:
-            combined_covar += HistogramGenerator.multiband_unisim_covariance(hist_generators)
-        if with_stat_only:
-            combined_covar += self._get_multiband_stat_only_covariance(include_sideband=include_sideband)
-        return combined_covar
-
-    def _get_multiband_stat_only_covariance(self, include_sideband=False):
-        hist_generators = []
-        hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
-        if self._sideband_generator is not None and include_sideband:
-            hist_generators.append(self._sideband_generator.mc_hist_generator)
-        stat_only_histograms = [g.generate(include_multisim_errors=False, use_sideband=False) for g in hist_generators]
-        stat_only_covariance = np.diag(np.concatenate([h.std_devs**2 for h in stat_only_histograms]))
-        return stat_only_covariance
-
     def plot_correlation(self, ms_column=None, ax=None, with_unisim=False):
         hist_generators = []
         hist_gen_labels = []
-        hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
+        hist_generators.extend([g.mc_hist_generator for g in self._run_hist_generators])
         hist_gen_labels.extend(self.signal_names)
         if self._sideband_generator is not None:
             hist_generators.append(self._sideband_generator.mc_hist_generator)
