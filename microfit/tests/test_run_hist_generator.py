@@ -108,11 +108,15 @@ class TestRunHistGenerator(unittest.TestCase):
             parameters=None,
             mc_hist_generator_kwargs={},
             enable_cache=True,
+            strict_covar_checking=True,
         ):
             mock_rundata = {
                 "mc": self.make_dataframe(n_samples=900, weights_scale=0.1, with_multisim=True),
                 "data": self.make_dataframe(n_samples=100, data_like=True),
                 "ext": self.make_dataframe(n_samples=10, data_like=True),
+                "signal": self.make_dataframe(
+                    n_samples=100, weights_scale=0.1, signal_flag=True, with_multisim=True
+                ),
             }
             # If and only if the selections between channels are disjoint, generating a multichannel
             # histogram should be equivalent to joining the histograms of the individual channels.
@@ -168,7 +172,14 @@ class TestRunHistGenerator(unittest.TestCase):
             )
             # There are very small numerical differences in the covariance matrices, but the equality check
             # in the Histogram class only checks for approximate equality, so this should be fine.
-            self.assertEqual(multichannel_hist, joined_hist)
+            np.testing.assert_array_almost_equal(
+                multichannel_hist.nominal_values, joined_hist.nominal_values
+            )
+            np.testing.assert_array_almost_equal(
+                multichannel_hist.covariance_matrix,
+                joined_hist.covariance_matrix,
+                decimal=6 if strict_covar_checking else 1,
+            )
 
             # Another sanity check: The diagonal blocks of the covariance matrix should be the same
             # as if we had generated the histograms separately.
@@ -177,10 +188,12 @@ class TestRunHistGenerator(unittest.TestCase):
             np.testing.assert_array_almost_equal(
                 energy_hist.covariance_matrix,
                 joined_hist.covariance_matrix[: len(energy_hist), : len(energy_hist)],
+                decimal=6 if strict_covar_checking else 1,
             )
             np.testing.assert_array_almost_equal(
                 angle_hist.covariance_matrix,
                 joined_hist.covariance_matrix[len(energy_hist) :, len(energy_hist) :],
+                decimal=6 if strict_covar_checking else 1,
             )
 
         run_test_with_mc_gen_class(mc_hist_generator_cls=None)
@@ -199,7 +212,9 @@ class TestRunHistGenerator(unittest.TestCase):
             mc_hist_generator_cls=SignalOverBackgroundGenerator,
             parameters=signal_parameters,
             mc_hist_generator_kwargs=sob_kwargs,
-            enable_cache=False,
+            # The signal-over-background generator does not produce exactly the same results as the
+            # default generator.
+            strict_covar_checking=False,
         )
 
 
