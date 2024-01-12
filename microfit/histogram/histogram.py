@@ -426,6 +426,7 @@ class Histogram:
             return self.__class__.from_dict(state)
 
         # otherwise, if other is also a Histogram
+        assert isinstance(other, Histogram), "Can only add Histograms or np.ndarrays to Histograms."
         assert self.binning == other.binning, (
             "Cannot add histograms with different binning. "
             f"self.binning = {self.binning}, other.binning = {other.binning}"
