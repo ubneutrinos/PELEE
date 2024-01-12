@@ -5,9 +5,10 @@ import numpy as np
 from microfit.histogram import Binning
 from microfit.histogram import RunHistGenerator
 from microfit.histogram import MultiChannelBinning
+from microfit.signal_generators import SignalOverBackgroundGenerator
+
 
 class TestRunHistGenerator(unittest.TestCase):
-
     def make_test_binning(
         self, multichannel: bool = False, with_query: bool = False, second_query: str = "matching"
     ) -> Union[Binning, MultiChannelBinning]:
@@ -29,7 +30,14 @@ class TestRunHistGenerator(unittest.TestCase):
         binning = MultiChannelBinning([first_channel_binning, second_channel_binning])
         return binning
 
-    def make_dataframe(self, n_samples=1000, data_like=False, with_multisim=False):
+    def make_dataframe(
+        self,
+        n_samples=1000,
+        data_like=False,
+        with_multisim=False,
+        weights_scale=1.0,
+        signal_flag=False,
+    ):
         df = pd.DataFrame()
         np.random.seed(0)
         # sampling energy from a slightly more realistic distribution
@@ -42,16 +50,17 @@ class TestRunHistGenerator(unittest.TestCase):
             return df
         else:
             df["weights"] = np.random.uniform(0, 1, n_samples)
+            df["weights"] *= weights_scale / df["weights"].mean()
+        df["is_signal"] = signal_flag
         if not with_multisim:
             return df
         # The 'weights_no_tune' column is used to calculate multisim uncertainties for GENIE
         # variables. For testing purposes, we just set it to the same as 'weights'.
         df["weights_no_tune"] = df["weights"]
-        n_universes = 100
+        n_universes = 11
         for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
             df[ms_column] = [
-                n_samples * np.random.normal(loc=1, size=n_universes, scale=0.1)
-                for _ in range(len(df))
+                1000 * np.random.normal(loc=1, size=n_universes, scale=0.1) for _ in range(len(df))
             ]
         # Also add unisim "knob" weights
         knob_v = [
@@ -63,8 +72,8 @@ class TestRunHistGenerator(unittest.TestCase):
             "knobThetaDelta2Npi",
         ]
         for knob in knob_v:
-            df[f"{knob}up"] = 1.1
-            df[f"{knob}dn"] = 0.9
+            df[f"{knob}up"] = 1.01
+            df[f"{knob}dn"] = 0.99
         return df
 
     def test_get_data_hist(self):
@@ -91,6 +100,70 @@ class TestRunHistGenerator(unittest.TestCase):
         ext_hist_scaled = generator.get_data_hist(type="ext", scale_to_pot=2)
         assert ext_hist_scaled is not None
         np.testing.assert_array_equal(ext_hist_scaled.nominal_values, [0, 2, 2, 2])
+
+    def test_multiband_histogram_equivalence(self):
+        mock_rundata = {
+            "mc": self.make_dataframe(n_samples=900, weights_scale=0.1, with_multisim=True),
+            "data": self.make_dataframe(n_samples=100, data_like=True),
+            "ext": self.make_dataframe(n_samples=10, data_like=True),
+        }
+        # If and only if the selections between channels are disjoint, generating a multichannel
+        # histogram should be equivalent to joining the histograms of the individual channels.
+        # This will carry over those bin-to-bin correlations that are induced by the multisim weights.
+        multi_binning = self.make_test_binning(
+            multichannel=True, with_query=True, second_query="non_matching"
+        )
+        assert isinstance(multi_binning, MultiChannelBinning)
+
+        run_hist_generator = RunHistGenerator(
+            mock_rundata,
+            multi_binning,
+            data_pot=1.0,
+            sideband_generator=None,
+            uncertainty_defaults=None,
+        )
+        run_hist_generator_energy = RunHistGenerator(
+            mock_rundata,
+            multi_binning["energy"],
+            data_pot=1.0,
+            sideband_generator=None,
+            uncertainty_defaults=None,
+        )
+        run_hist_generator_angle = RunHistGenerator(
+            mock_rundata,
+            multi_binning["angle"],
+            data_pot=1.0,
+            sideband_generator=None,
+            uncertainty_defaults=None,
+        )
+
+        from microfit.histogram import HistogramGenerator
+
+        mc_hist_gen_multichannel = run_hist_generator.mc_hist_generator
+        multichannel_hist = mc_hist_gen_multichannel.generate(include_multisim_errors=True)
+
+        mc_hist_gen_energy = run_hist_generator_energy.mc_hist_generator
+        mc_hist_gen_angle = run_hist_generator_angle.mc_hist_generator
+        joined_hist = HistogramGenerator.generate_joint_histogram(
+            [mc_hist_gen_energy, mc_hist_gen_angle], include_multisim_errors=True
+        )
+        # There are very small numerical differences in the covariance matrices, but the equality check
+        # in the Histogram class only checks for approximate equality, so this should be fine.
+        self.assertEqual(multichannel_hist, joined_hist)
+
+        # Another sanity check: The diagonal blocks of the covariance matrix should be the same
+        # as if we had generated the histograms separately.
+        energy_hist = mc_hist_gen_energy.generate(include_multisim_errors=True)
+        angle_hist = mc_hist_gen_angle.generate(include_multisim_errors=True)
+        np.testing.assert_array_almost_equal(
+            energy_hist.covariance_matrix,
+            joined_hist.covariance_matrix[: len(energy_hist), : len(energy_hist)],
+        )
+        np.testing.assert_array_almost_equal(
+            angle_hist.covariance_matrix,
+            joined_hist.covariance_matrix[len(energy_hist) :, len(energy_hist) :],
+        )
+
 
 if __name__ == "__main__":
     unittest.main(argv=[""], verbosity=2, exit=False)

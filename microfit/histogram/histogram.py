@@ -567,6 +567,8 @@ class Histogram:
                 "Histogram multiplication is only supported for numeric types."
             )
 
+    def __len__(self):
+        return self.n_bins
 
 class MultiChannelHistogram(Histogram):
     """A histogram that combines multiple channels with a single covariance matrix.
