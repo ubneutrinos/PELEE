@@ -266,7 +266,7 @@ class RunHistGenerator:
         )
         mc_hists = {}  # type: Dict[str, Histogram]
         other_categories = []
-        for category in self.mc_hist_generator.dataframe[category_column].unique():
+        for i, category in enumerate(self.mc_hist_generator.dataframe[category_column].unique()):
             extra_query = f"{category_column} == '{category}'"
             hist = self.get_mc_hist(
                 include_multisim_errors=include_multisim_errors,
@@ -275,6 +275,7 @@ class RunHistGenerator:
             )
             if category_column == "dataset_name":
                 hist.label = str(category)
+                hist.color = "C{}".format(i)
             else:
                 hist.label = get_category_label(category_column, category)
                 hist.color = get_category_color(category_column, category)
