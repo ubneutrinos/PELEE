@@ -5,6 +5,7 @@ import numpy as np
 from microfit.histogram import Binning
 from microfit.histogram import RunHistGenerator
 from microfit.histogram import MultiChannelBinning
+from microfit.parameters import ParameterSet, Parameter
 from microfit.signal_generators import SignalOverBackgroundGenerator
 
 
@@ -102,66 +103,103 @@ class TestRunHistGenerator(unittest.TestCase):
         np.testing.assert_array_equal(ext_hist_scaled.nominal_values, [0, 2, 2, 2])
 
     def test_multiband_histogram_equivalence(self):
-        mock_rundata = {
-            "mc": self.make_dataframe(n_samples=900, weights_scale=0.1, with_multisim=True),
-            "data": self.make_dataframe(n_samples=100, data_like=True),
-            "ext": self.make_dataframe(n_samples=10, data_like=True),
+        def run_test_with_mc_gen_class(
+            mc_hist_generator_cls=None,
+            parameters=None,
+            mc_hist_generator_kwargs={},
+            enable_cache=True,
+        ):
+            mock_rundata = {
+                "mc": self.make_dataframe(n_samples=900, weights_scale=0.1, with_multisim=True),
+                "data": self.make_dataframe(n_samples=100, data_like=True),
+                "ext": self.make_dataframe(n_samples=10, data_like=True),
+            }
+            # If and only if the selections between channels are disjoint, generating a multichannel
+            # histogram should be equivalent to joining the histograms of the individual channels.
+            # This will carry over those bin-to-bin correlations that are induced by the multisim weights.
+            multi_binning = self.make_test_binning(
+                multichannel=True, with_query=True, second_query="non_matching"
+            )
+            assert isinstance(multi_binning, MultiChannelBinning)
+
+            run_hist_generator = RunHistGenerator(
+                mock_rundata,
+                multi_binning,
+                data_pot=1.0,
+                sideband_generator=None,
+                uncertainty_defaults=None,
+                mc_hist_generator_cls=mc_hist_generator_cls,
+                parameters=parameters,
+                enable_cache=enable_cache,
+                **mc_hist_generator_kwargs,
+            )
+            run_hist_generator_energy = RunHistGenerator(
+                mock_rundata,
+                multi_binning["energy"],
+                data_pot=1.0,
+                sideband_generator=None,
+                uncertainty_defaults=None,
+                mc_hist_generator_cls=mc_hist_generator_cls,
+                parameters=parameters,
+                enable_cache=enable_cache,
+                **mc_hist_generator_kwargs,
+            )
+            run_hist_generator_angle = RunHistGenerator(
+                mock_rundata,
+                multi_binning["angle"],
+                data_pot=1.0,
+                sideband_generator=None,
+                uncertainty_defaults=None,
+                mc_hist_generator_cls=mc_hist_generator_cls,
+                parameters=parameters,
+                enable_cache=enable_cache,
+                **mc_hist_generator_kwargs,
+            )
+
+            from microfit.histogram import HistogramGenerator
+
+            mc_hist_gen_multichannel = run_hist_generator.mc_hist_generator
+            multichannel_hist = mc_hist_gen_multichannel.generate(include_multisim_errors=True)
+
+            mc_hist_gen_energy = run_hist_generator_energy.mc_hist_generator
+            mc_hist_gen_angle = run_hist_generator_angle.mc_hist_generator
+            joined_hist = HistogramGenerator.generate_joint_histogram(
+                [mc_hist_gen_energy, mc_hist_gen_angle], include_multisim_errors=True
+            )
+            # There are very small numerical differences in the covariance matrices, but the equality check
+            # in the Histogram class only checks for approximate equality, so this should be fine.
+            self.assertEqual(multichannel_hist, joined_hist)
+
+            # Another sanity check: The diagonal blocks of the covariance matrix should be the same
+            # as if we had generated the histograms separately.
+            energy_hist = mc_hist_gen_energy.generate(include_multisim_errors=True)
+            angle_hist = mc_hist_gen_angle.generate(include_multisim_errors=True)
+            np.testing.assert_array_almost_equal(
+                energy_hist.covariance_matrix,
+                joined_hist.covariance_matrix[: len(energy_hist), : len(energy_hist)],
+            )
+            np.testing.assert_array_almost_equal(
+                angle_hist.covariance_matrix,
+                joined_hist.covariance_matrix[len(energy_hist) :, len(energy_hist) :],
+            )
+
+        run_test_with_mc_gen_class(mc_hist_generator_cls=None)
+        run_test_with_mc_gen_class(enable_cache=False)
+
+        signal_parameters = ParameterSet(
+            [
+                Parameter("signal_strength", 1.0, bounds=(0, 10)),  # type: ignore
+            ]
+        )
+        sob_kwargs = {
+            "signal_query": "is_signal",
+            "background_query": "not is_signal",
         }
-        # If and only if the selections between channels are disjoint, generating a multichannel
-        # histogram should be equivalent to joining the histograms of the individual channels.
-        # This will carry over those bin-to-bin correlations that are induced by the multisim weights.
-        multi_binning = self.make_test_binning(
-            multichannel=True, with_query=True, second_query="non_matching"
-        )
-        assert isinstance(multi_binning, MultiChannelBinning)
-
-        run_hist_generator = RunHistGenerator(
-            mock_rundata,
-            multi_binning,
-            data_pot=1.0,
-            sideband_generator=None,
-            uncertainty_defaults=None,
-        )
-        run_hist_generator_energy = RunHistGenerator(
-            mock_rundata,
-            multi_binning["energy"],
-            data_pot=1.0,
-            sideband_generator=None,
-            uncertainty_defaults=None,
-        )
-        run_hist_generator_angle = RunHistGenerator(
-            mock_rundata,
-            multi_binning["angle"],
-            data_pot=1.0,
-            sideband_generator=None,
-            uncertainty_defaults=None,
-        )
-
-        from microfit.histogram import HistogramGenerator
-
-        mc_hist_gen_multichannel = run_hist_generator.mc_hist_generator
-        multichannel_hist = mc_hist_gen_multichannel.generate(include_multisim_errors=True)
-
-        mc_hist_gen_energy = run_hist_generator_energy.mc_hist_generator
-        mc_hist_gen_angle = run_hist_generator_angle.mc_hist_generator
-        joined_hist = HistogramGenerator.generate_joint_histogram(
-            [mc_hist_gen_energy, mc_hist_gen_angle], include_multisim_errors=True
-        )
-        # There are very small numerical differences in the covariance matrices, but the equality check
-        # in the Histogram class only checks for approximate equality, so this should be fine.
-        self.assertEqual(multichannel_hist, joined_hist)
-
-        # Another sanity check: The diagonal blocks of the covariance matrix should be the same
-        # as if we had generated the histograms separately.
-        energy_hist = mc_hist_gen_energy.generate(include_multisim_errors=True)
-        angle_hist = mc_hist_gen_angle.generate(include_multisim_errors=True)
-        np.testing.assert_array_almost_equal(
-            energy_hist.covariance_matrix,
-            joined_hist.covariance_matrix[: len(energy_hist), : len(energy_hist)],
-        )
-        np.testing.assert_array_almost_equal(
-            angle_hist.covariance_matrix,
-            joined_hist.covariance_matrix[len(energy_hist) :, len(energy_hist) :],
+        run_test_with_mc_gen_class(
+            mc_hist_generator_cls=SignalOverBackgroundGenerator,
+            parameters=signal_parameters,
+            mc_hist_generator_kwargs=sob_kwargs,
+            enable_cache=False,
         )
 
 

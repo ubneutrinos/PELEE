@@ -11,7 +11,12 @@ from microfit.histogram import SmoothHistogramMixin
 
 import pandas as pd
 
-from microfit.statistics import fronebius_nearest_psd, covariance, is_psd, sideband_constraint_correction
+from microfit.statistics import (
+    fronebius_nearest_psd,
+    covariance,
+    is_psd,
+    sideband_constraint_correction,
+)
 
 
 class HistogramGenerator(SmoothHistogramMixin):
@@ -123,7 +128,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         return mask
 
     def _histogram_multi_channel(
-        self, dataframe: pd.DataFrame, weight_column: Optional[Union[str, List[str]]] = None, flatten_single_channel: bool = True,
+        self, dataframe: pd.DataFrame, weight_column: Optional[Union[str, List[str]]] = None,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram for multiple channels from the dataframe.
 
@@ -152,9 +157,10 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         binning = self.binning
         return_single_channel = False
-        if isinstance(binning, Binning):
+        # If we were to check for "Binning", this would also return True for MultiChannelBinning
+        if not isinstance(binning, MultiChannelBinning):
             binning = MultiChannelBinning([binning])
-            return_single_channel = flatten_single_channel
+            return_single_channel = True
         sample = dataframe[binning.variables].to_numpy()
         selection_masks = []
         for i, query in enumerate(binning.selection_queries):
@@ -234,7 +240,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         """
 
         binning = self.binning
-        if isinstance(binning, Binning):
+        if not isinstance(binning, MultiChannelBinning):
             binning = MultiChannelBinning([binning])
         sample = dataframe[binning.variables].to_numpy()
         selection_masks = []
@@ -281,7 +287,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         sideband_observed_hist: Optional[Histogram] = None,
         add_precomputed_detsys: bool = False,
         use_kde_smoothing: bool = False,
-        flatten_single_channel: bool = True,
         options: Dict[str, Any] = {},
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram from the dataframe.
@@ -310,9 +315,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         use_kde_smoothing : bool, optional
             Whether to use KDE smoothing to estimate the bin counts. This is useful for
             histograms with few events per bin.
-        flatten_single_channel : bool, optional
-            If True, return a Histogram instead of a MultiChannelHistogram if the binning
-            is one-dimensional.
         options : dict, optional
             Additional options that depend on the specific implementation of the histogram
             generator. If `use_kde_smoothing` is True, options are passed as keyword arguments
@@ -340,7 +342,12 @@ class HistogramGenerator(SmoothHistogramMixin):
             assert self.detvar_data is not None, "No detector variations provided."
         calculate_hist = True
         hash = self._generate_hash(
-            extra_query, add_precomputed_detsys, use_sideband, include_multisim_errors, use_kde_smoothing, options
+            extra_query,
+            add_precomputed_detsys,
+            use_sideband,
+            include_multisim_errors,
+            use_kde_smoothing,
+            options,
         )
         hist = None
         if self.enable_cache:
@@ -366,9 +373,9 @@ class HistogramGenerator(SmoothHistogramMixin):
                     self.hist_cache[hash] = hist.copy()
                 return hist
             if use_kde_smoothing:
-                hist = self._smoothed_histogram_multi_channel(dataframe, flatten_single_channel=flatten_single_channel, **options)
+                hist = self._smoothed_histogram_multi_channel(dataframe, **options)
             else:
-                hist = self._histogram_multi_channel(dataframe, flatten_single_channel=flatten_single_channel)
+                hist = self._histogram_multi_channel(dataframe)
             if self.enable_cache:
                 self.hist_cache[hash] = hist.copy()
         # if we reach this point without having a histogram, something went wrong
@@ -438,14 +445,14 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         generate_kwargs = {
             "include_multisim_errors": False,
-            # Ensure that the output is always a MultiChannelHistogram
-            "flatten_single_channel": False,
         }
         # We want these histograms to only contain the statistical covariance matrix (which may include correlations
         # in case of overlapping selections between channels).
         # The resulting covariance is block-diagonal, with each block corresponding to the output of one histogram
         # generator.
-        histogram = MultiChannelHistogram.from_histograms([h.generate(**generate_kwargs) for h in hist_generators])
+        histogram = MultiChannelHistogram.from_histograms(
+            [h.generate(**generate_kwargs) for h in hist_generators]
+        )
         if not include_multisim_errors:
             return histogram
         covariance_matrix = np.zeros((histogram.n_bins, histogram.n_bins))
@@ -726,13 +733,24 @@ class HistogramGenerator(SmoothHistogramMixin):
             dataframe = self.dataframe.query(extra_query, engine="python")
         else:
             dataframe = self.dataframe
+        if len(dataframe) == 0:
+            cov = np.zeros((self.binning.n_bins, self.binning.n_bins))
+            if return_histograms:
+                return cov, None
+            else:
+                return cov
         universe_histograms = self._multi_channel_universes(
             dataframe, weight_column, multisim_weight_column, weight_rescale=weight_rescale,
         )
         if central_value_hist is None:
             central_value_hist = self._histogram_multi_channel(dataframe)
         # calculate the covariance matrix from the histograms
-        cov = covariance(universe_histograms, central_value_hist.nominal_values, allow_approximation=True, tolerance=1e-10)
+        cov = covariance(
+            universe_histograms,
+            central_value_hist.nominal_values,
+            allow_approximation=True,
+            tolerance=1e-10,
+        )
         self.logger.debug(f"Calculated covariance matrix for {multisim_weight_column}.")
         self.logger.debug(f"Bin-wise error contribution: {np.sqrt(np.diag(cov))}")
         if self.enable_cache:
@@ -881,7 +899,9 @@ class HistogramGenerator(SmoothHistogramMixin):
             "wiremodthetaxz",
             "wiremodthetayz",
         ]
-        variation_hist_data = cast(Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"])
+        variation_hist_data = cast(
+            Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"]
+        )
         # Detector variations are calculated separately for each truth-filtered set. We can not
         # assume, however, that the truth-filtered sets are identical to those used in this RunHistGenerator.
         # Instead, we use the filter queries that are part of the detector variation data to select the
