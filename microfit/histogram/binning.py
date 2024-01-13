@@ -43,6 +43,10 @@ class Binning:
                 # the labels.
                 if attr_self is None or attr_other is None:
                     continue
+            if field.name == "variable_tex":
+                # It really doesn't matter if the variable_tex is different, as it is 
+                # only used for plotting. So we can just skip it.
+                continue
             if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
                 if not np.array_equal(attr_self, attr_other):
                     return False
