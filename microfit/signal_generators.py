@@ -85,6 +85,13 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
             self.parameters["signal_strength"].m ** 2 * signal_result[0]
             + background_result[0]
         )
+        signal_universes = signal_result[1]
+        background_universes = background_result[1]
+        if signal_universes is None:
+            return summed_cov, background_universes
+        if background_universes is None:
+            return summed_cov, signal_universes
+        # If we get here, both signal and background have universes.
         assert len(signal_result[1]) == len(
             background_result[1]
         ), "Number of universes must be the same for signal and background"

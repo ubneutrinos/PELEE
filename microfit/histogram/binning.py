@@ -1,6 +1,6 @@
 from dataclasses import dataclass, fields
 from typing import List, Optional, Tuple, Union
-from microfit.selections import find_common_selection
+from microfit.selections import find_common_selection, get_selection_query
 
 import numpy as np
 
@@ -64,6 +64,10 @@ class Binning:
 
     def __len__(self):
         return self.n_bins
+
+    def set_selection(self, selection=None, preselection=None):
+        """Set the selection query of the binning given the preselection and the selection."""
+        self.selection_query = get_selection_query(selection, preselection)
 
     @classmethod
     def from_config(
@@ -175,10 +179,11 @@ class MultiChannelBinning:
             making the histogram.
         """
         selection_queries = [b.selection_query for b in self.binnings]
+        selection_queries = [s if s is not None else "" for s in selection_queries]
         common_selection, unique_selections = find_common_selection(selection_queries)
         for binning, unique_selection in zip(self.binnings, unique_selections):
-            binning.selection_query = unique_selection
-        return common_selection
+            binning.selection_query = unique_selection if len(unique_selection) > 0 else None
+        return common_selection if len(common_selection) > 0 else None
 
     def to_dict(self):
         """Return a dictionary representation of the binning."""
@@ -336,6 +341,9 @@ class MultiChannelBinning:
         """Create a copy of the binning."""
         return MultiChannelBinning.from_dict(self.to_dict())
     
+    def _roll_list(self, lst, shift):
+        return lst[-shift:] + lst[:-shift]
+
     def roll_channels(self, shift: int):
         """Roll the channels by a given number of steps.
 
@@ -344,7 +352,7 @@ class MultiChannelBinning:
         shift : int
             Number of steps to roll the channels.
         """
-        self.binnings = np.roll(self.binnings, shift).tolist()
+        self.binnings = self._roll_list(self.binnings, shift)
         self.ensure_unique_labels()
     
     def roll_to_first(self, label: str):
@@ -357,3 +365,25 @@ class MultiChannelBinning:
         """
         idx = self.labels.index(label)
         self.roll_channels(-idx)
+    
+    @classmethod
+    def join(cls, *args):
+        """Join multiple MultiChannelBinning or Binning objects into a single MultiChannelBinning.
+
+        Parameters
+        ----------
+        *args : MultiChannelBinning or Binning
+            Multiple MultiChannelBinning or Binning objects to be joined.
+
+        Returns
+        -------
+        MultiChannelBinning
+            A single MultiChannelBinning object containing all the binnings.
+        """
+        binnings = []
+        for mcb in args:
+            if not isinstance(mcb, MultiChannelBinning):
+                binnings.append(mcb)
+            else:
+                binnings.extend(mcb.binnings)
+        return cls(binnings)

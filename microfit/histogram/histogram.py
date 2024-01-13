@@ -1,6 +1,7 @@
 from typing import List, Optional, Union
 from matplotlib.axes import Axes
 import numpy as np
+from scipy.linalg import block_diag
 
 from numbers import Real, Real
 from uncertainties import correlated_values, unumpy
@@ -425,6 +426,7 @@ class Histogram:
             return self.__class__.from_dict(state)
 
         # otherwise, if other is also a Histogram
+        assert isinstance(other, Histogram), "Can only add Histograms or np.ndarrays to Histograms."
         assert self.binning == other.binning, (
             "Cannot add histograms with different binning. "
             f"self.binning = {self.binning}, other.binning = {other.binning}"
@@ -566,6 +568,8 @@ class Histogram:
                 "Histogram multiplication is only supported for numeric types."
             )
 
+    def __len__(self):
+        return self.n_bins
 
 class MultiChannelHistogram(Histogram):
     """A histogram that combines multiple channels with a single covariance matrix.
@@ -816,6 +820,8 @@ class MultiChannelHistogram(Histogram):
 
         # Add text boxes for each channel label
         for i, label in enumerate(channel_labels):
+            if label is None:
+                continue
             ax.text(
                 (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
                 0.0,
@@ -886,3 +892,24 @@ class MultiChannelHistogram(Histogram):
         dictionary["binning"] = MultiChannelBinning.from_dict(dictionary["binning"])
         dictionary["check_psd"] = check_psd
         return cls(**dictionary)
+
+    @classmethod
+    def from_histograms(cls, histograms: List[Union[Histogram, "MultiChannelHistogram"]]):
+        """Create a MultiChannelHistogram from a list of Histograms.
+
+        Parameters
+        ----------
+        binning : MultiChannelBinning
+            Binning of the histogram.
+        histograms : list
+            List of Histograms.
+
+        Returns
+        -------
+        MultiChannelHistogram
+            MultiChannelHistogram object.
+        """
+        binning = MultiChannelBinning.join(*[h.binning for h in histograms])
+        bin_counts = np.concatenate([h.nominal_values for h in histograms])
+        covariance_matrix = block_diag(*[h.covariance_matrix for h in histograms])
+        return cls(binning, bin_counts, covariance_matrix=covariance_matrix)

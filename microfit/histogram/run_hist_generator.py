@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 from microfit.histogram.histogram import MultiChannelHistogram
 
 from microfit.selections import get_selection_query
@@ -21,7 +21,7 @@ class RunHistGenerator:
     def __init__(
         self,
         rundata_dict: Dict[str, pd.DataFrame],
-        binning: Binning,
+        binning: Union[Binning, MultiChannelBinning],
         selection: Optional[str] = None,
         preselection: Optional[str] = None,
         data_pot: Optional[float] = None,
@@ -34,7 +34,7 @@ class RunHistGenerator:
     ) -> None:
         """Create a histogram generator for data and simulation runs.
 
-        This combines data and MC appropriately for the given run. It assumes also that,
+        This combines data and MC appropriately for the given run(s). It assumes also that,
         if truth-filtered samples are present, that the corresponding event types have
         already been removed from the 'mc' dataframe. It also assumes that the background sets
         have been scaled to the same POT as the data.
@@ -45,8 +45,10 @@ class RunHistGenerator:
             Dictionary containing the dataframes for this run. The keys are the names of the
             datasets and the values are the dataframes. This must at least contain the keys
             "data", "mc", and "ext". This dictionary should be returned by the data_loader.
-        binning : Binning
-            Binning object containing the binning of the histogram.
+        binning : Binning or MultiChannelBinning
+            Binning object containing the binning of the histogram. If a MultiChannelBinning
+            is passed, it is assumed that the query string is already present in all channels.
+            Therefore, the `selection` and `preselection` arguments can no longer be used.
         selection : str, optional
             Query to be applied to the dataframe before generating the histogram.
         preselection : str, optional
@@ -78,9 +80,19 @@ class RunHistGenerator:
         self.selection = selection
         self.preselection = preselection
         self.binning = binning.copy()
-        # if isinstance(self.binning, MultiChannelBinning):
-        #     common_selection = self.binning.reduce_selection()
-        #     query = get_selection_query(selection, preselection, extra_queries=[common_selection])
+        if isinstance(self.binning, MultiChannelBinning):
+            if self.selection is not None:
+                raise ValueError(
+                    "Cannot use selection with MultiChannelBinning. The selection must be applied to each channel individually."
+                )
+            if self.preselection is not None:
+                raise ValueError(
+                    "Cannot use preselection with MultiChannelBinning. The preselection must be applied to each channel individually."
+                )
+            # This query is the common selection that is applied to all channels. We can safely apply it to 
+            # the overall dataframe to reduce the number of events that need to be processed.
+            query = self.binning.reduce_selection()
+
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
         if detvar_data_path is not None:
@@ -132,11 +144,11 @@ class RunHistGenerator:
             # the query has already been applied, so we can set it to None
             query = None
 
-        self.parameters = parameters
-        if self.parameters is None:
+        if parameters is None:
             self.parameters = ParameterSet([])  # empty parameter set
         else:
-            assert isinstance(self.parameters, ParameterSet), "parameters must be a ParameterSet."
+            self.parameters = parameters
+        assert isinstance(self.parameters, ParameterSet), "parameters must be a ParameterSet."
         self.mc_hist_generator = mc_hist_generator_cls(
             df_mc,
             binning,
@@ -158,7 +170,8 @@ class RunHistGenerator:
     @classmethod
     def get_selection_query(cls, selection, preselection, extra_queries=None):
         warnings.warn(
-            "The method get_selection_query will no longer exist as a class method in the future. Use the function get_selection_query from the microfit.selections module instead.",
+            "The method get_selection_query will no longer exist as a class method in the future. Use the function get_selection_query "
+            "from the microfit.selections module instead.",
             DeprecationWarning
         )
         return get_selection_query(selection, preselection, extra_queries)
@@ -253,7 +266,7 @@ class RunHistGenerator:
         )
         mc_hists = {}  # type: Dict[str, Histogram]
         other_categories = []
-        for category in self.mc_hist_generator.dataframe[category_column].unique():
+        for i, category in enumerate(self.mc_hist_generator.dataframe[category_column].unique()):
             extra_query = f"{category_column} == '{category}'"
             hist = self.get_mc_hist(
                 include_multisim_errors=include_multisim_errors,
@@ -262,6 +275,7 @@ class RunHistGenerator:
             )
             if category_column == "dataset_name":
                 hist.label = str(category)
+                hist.color = "C{}".format(i)
             else:
                 hist.label = get_category_label(category_column, category)
                 hist.color = get_category_color(category_column, category)

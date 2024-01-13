@@ -2,11 +2,12 @@ import unittest
 
 import numpy as np
 from microfit.histogram import MultiChannelBinning, Binning
+from typing import Union, List, cast
 
 class TestMultiChannelBinning(unittest.TestCase):
     def make_test_binning(
-        self, multichannel=False, with_query=False, second_query="matching"
-    ):
+        self, multichannel: bool = False, with_query: bool = False, second_query: str = "matching"
+    ) -> Union[Binning, MultiChannelBinning]:
         bin_edges = np.array([0, 1, 2, 3])
         first_channel_binning = Binning("x", bin_edges, "x-axis label")
         if with_query:
@@ -72,6 +73,7 @@ class TestMultiChannelBinning(unittest.TestCase):
     
     def test_copy(self):
         binning = self.make_test_binning(multichannel=True)
+        assert isinstance(binning, MultiChannelBinning)
         binning2 = binning.copy()
         self.assertEqual(binning, binning2)
         binning2[0].bin_edges = np.array([1, 2, 3, 4])
@@ -79,6 +81,7 @@ class TestMultiChannelBinning(unittest.TestCase):
 
     def test_roll_channels(self):
         binning = self.make_test_binning(multichannel=True)
+        assert isinstance(binning, MultiChannelBinning)
         original_order = binning.binnings.copy()
         binning.roll_channels(1)
         new_order = binning.binnings
@@ -88,6 +91,7 @@ class TestMultiChannelBinning(unittest.TestCase):
 
     def test_roll_to_first(self):
         binning = self.make_test_binning(multichannel=True)
+        assert isinstance(binning, MultiChannelBinning)
         original_order = binning.binnings.copy()
         binning.roll_to_first("y-axis label")
         new_order = binning.binnings
@@ -96,6 +100,7 @@ class TestMultiChannelBinning(unittest.TestCase):
     
     def test_delete_channel(self):
         binning = self.make_test_binning(multichannel=True)
+        assert isinstance(binning, MultiChannelBinning)
         original_order = binning.binnings.copy()
         binning.delete_channel("y-axis label")
         new_order = binning.binnings
@@ -106,6 +111,7 @@ class TestMultiChannelBinning(unittest.TestCase):
     
     def test_deep_copy(self):
         binning = self.make_test_binning(multichannel=True)
+        assert isinstance(binning, MultiChannelBinning)
         binning_copy = binning.copy()
 
         # Check if the copy is a MultiChannelBinning object
@@ -117,6 +123,50 @@ class TestMultiChannelBinning(unittest.TestCase):
         # Check if each binning in the copy is a distinct object from the original
         for original_binning, copied_binning in zip(binning.binnings, binning_copy.binnings):
             self.assertIsNot(original_binning, copied_binning)
+    
+    def test_reduce_selection(self):
+        # First, test the case where the selection queries are all equal
+        binning = self.make_test_binning(multichannel=True, with_query=True, second_query="matching")
+        assert isinstance(binning, MultiChannelBinning)
+        self.assertEqual(binning.binnings[0].selection_query, binning.binnings[1].selection_query)
+        original_query_strings = [b.selection_query for b in binning]
+        common_query = binning.reduce_selection()
+        # in the case where the selection queries are the same, the common query should be the same
+        self.assertEqual(common_query, original_query_strings[0])
+        # And the queries in the individual binnings should be None
+        for b in binning:
+            self.assertIsNone(b.selection_query)
+        
+        # Now test the case where the selection queries are different
+        binning = self.make_test_binning(multichannel=True, with_query=True, second_query="non_matching")
+        assert isinstance(binning, MultiChannelBinning)
+        original_query_strings = [b.selection_query for b in binning]
+        common_query = binning.reduce_selection()
+        # in the case where the selection queries are different, the common query should be None
+        self.assertIsNone(common_query)
+        # And the queries in the individual binnings should be the same as before
+        for b, original_query in zip(binning, original_query_strings):
+            self.assertEqual(b.selection_query, original_query)
+
+    def test_join(self):
+        # Create multiple MultiChannelBinning objects
+        binning1 = self.make_test_binning(multichannel=True)
+        binning2 = self.make_test_binning(multichannel=True)
+        binning3 = self.make_test_binning(multichannel=True)
+
+        # Join the MultiChannelBinning objects
+        joined_binning = MultiChannelBinning.join(binning1, binning2, binning3)
+
+        # Check if the joined binning is a MultiChannelBinning object
+        self.assertIsInstance(joined_binning, MultiChannelBinning)
+
+        # Check if the joined binning has the correct number of channels
+        self.assertEqual(len(joined_binning), len(binning1) + len(binning2) + len(binning3))
+
+        # Check if the joined binning contains all the channels from the original binnings
+        for original_binning in [binning1, binning2, binning3]:
+            for channel in original_binning:  # type: ignore
+                self.assertIn(channel, joined_binning)
 
 
 if __name__ == '__main__':

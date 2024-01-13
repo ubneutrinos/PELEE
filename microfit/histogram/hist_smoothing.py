@@ -446,7 +446,7 @@ class SmoothHistogramMixin:
         """This function is actually called by the HistogramGenerator class."""
         binning = self.binning
         return_single_channel = False
-        if isinstance(binning, Binning):
+        if not isinstance(binning, MultiChannelBinning):
             binning = MultiChannelBinning([binning])
             return_single_channel = True
         central_value, covariance_matrix, _ = self._compute_kde_histogram_bootstrap(

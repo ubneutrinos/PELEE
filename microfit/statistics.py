@@ -2,12 +2,13 @@
 
 import numpy as np
 import logging
+from typing import Union
 import scipy.linalg as lin
 
 logger = logging.getLogger(__name__)
 
 
-def is_psd(A, ignore_zeros=False):
+def is_psd(A: np.ndarray, ignore_zeros: bool = False) -> bool:
     """Test whether a matrix is positive semi-definite.
 
     Test is done via attempted Cholesky decomposition as suggested in [1]_.
@@ -43,7 +44,7 @@ def is_psd(A, ignore_zeros=False):
         return False
 
 
-def fronebius_nearest_psd(A, return_distance=False):
+def fronebius_nearest_psd(A: np.ndarray, return_distance: bool = False) -> Union[np.ndarray, tuple]:
     """Find the positive semi-definite matrix closest to `A`.
 
     The closeness to `A` is measured by the Fronebius norm. The matrix closest to `A`
@@ -93,14 +94,14 @@ def fronebius_nearest_psd(A, return_distance=False):
         k = 1
         while not is_psd(X):
             mineig = np.min(np.real(lin.eigvals(X)))
-            X += I * (-mineig * k**2 + spacing)
+            X += I * (-mineig * k ** 2 + spacing)
             k += 1
     if return_distance:
         C = (A - A.T) / 2.0
         lam = lin.eigvalsh(B)
         # pylint doesn't know that numpy.sum takes the "where" argument
         # pylint: disable=unexpected-keyword-arg
-        dist = np.sqrt(np.sum(lam**2, where=lam < 0.0) + lin.norm(C, ord="fro") ** 2)
+        dist = np.sqrt(np.sum(lam ** 2, where=lam < 0.0) + lin.norm(C, ord="fro") ** 2)
         return X, dist
     return X
 
@@ -123,7 +124,9 @@ def check_frob_psd(A):
     assert np.isclose(xdist, actual_dist), "actual distance differs from expectation"
 
 
-def covariance(observations, central_value=None, allow_approximation=False, debug_name=None, tolerance=0.0):
+def covariance(
+    observations, central_value=None, allow_approximation=False, debug_name=None, tolerance=0.0
+):
     """Calculate the covariance matrix of the given observations.
 
     Optionally, a central value can be given that will be used instead of the mean of the
@@ -178,7 +181,8 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
             name_str = f"for {debug_name}" if debug_name is not None else ""
             logger.debug(f"Covariance matrix{name_str} is not positive semi-definite. ")
             logger.debug(
-                "Using nearest positive semi-definite matrix instead. " "Distance to original matrix: %s",
+                "Using nearest positive semi-definite matrix instead. "
+                "Distance to original matrix: %s",
                 dist,
             )
             if dist > tolerance:
@@ -187,7 +191,9 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
                     f"Distance: {dist} > {tolerance}"
                 )
         else:
-            raise ValueError(f"Non-zero part of covariance matrix is not positive semi-definite. Matrix is: {cov}")
+            raise ValueError(
+                f"Non-zero part of covariance matrix is not positive semi-definite. Matrix is: {cov}"
+            )
 
     # Now we need to add back the rows and columns that we deleted before.
     # We do this by adding back zero rows and columns.
@@ -261,7 +267,9 @@ def get_cnp_covariance(expectation, observation):
     return cnp_covariance
 
 
-def chi_square(observation: np.ndarray, expectation: np.ndarray, systematic_covariance: np.ndarray) -> float:
+def chi_square(
+    observation: np.ndarray, expectation: np.ndarray, systematic_covariance: np.ndarray
+) -> float:
     """
     Calculate the chi-square value for a given observation, expectation, and systematic covariance.
 
@@ -460,5 +468,3 @@ def error_propagation_multiplication(x1, x2, C1, C2):
     if not is_psd(Cy):
         Cy = fronebius_nearest_psd(Cy)
     return y, Cy
-
-
