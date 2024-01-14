@@ -128,7 +128,9 @@ class HistogramGenerator(SmoothHistogramMixin):
         return mask
 
     def _histogram_multi_channel(
-        self, dataframe: pd.DataFrame, weight_column: Optional[Union[str, List[str]]] = None,
+        self,
+        dataframe: pd.DataFrame,
+        weight_column: Optional[Union[str, List[str]]] = None,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram for multiple channels from the dataframe.
 
@@ -178,7 +180,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 np.histogram(channel_sample, bins=bin_edges[i], weights=channel_weights)[0]
             )
             channel_bin_variances.append(
-                np.histogram(channel_sample, bins=bin_edges[i], weights=channel_weights ** 2)[0]
+                np.histogram(channel_sample, bins=bin_edges[i], weights=channel_weights**2)[0]
             )
         # now we build the covariance
         covariance_matrix = np.diag(np.concatenate(channel_bin_variances))
@@ -208,10 +210,14 @@ class HistogramGenerator(SmoothHistogramMixin):
             raise RuntimeError(f"Nearest PSD distance is {dist} away, which is too large.")
         if return_single_channel:
             return Histogram(
-                binning.binnings[0], channel_bin_counts[0], covariance_matrix=covariance_matrix,
+                binning.binnings[0],
+                channel_bin_counts[0],
+                covariance_matrix=covariance_matrix,
             )
         return MultiChannelHistogram(
-            binning, np.concatenate(channel_bin_counts), covariance_matrix=covariance_matrix,
+            binning,
+            np.concatenate(channel_bin_counts),
+            covariance_matrix=covariance_matrix,
         )
 
     def _multi_channel_universes(
@@ -394,13 +400,17 @@ class HistogramGenerator(SmoothHistogramMixin):
             # calculate multisim histograms
             for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
                 cov_mat, universe_hists = self.calculate_multisim_uncertainties(
-                    ms_column, extra_query=extra_query, return_histograms=True,
+                    ms_column,
+                    extra_query=extra_query,
+                    return_histograms=True,
                 )
                 hist.add_covariance(cov_mat)
 
                 if use_sideband:
                     extended_cov += self.multiband_covariance(
-                        [self, sideband_generator], ms_column, extra_queries=[extra_query, None],
+                        [self, sideband_generator],
+                        ms_column,
+                        extra_queries=[extra_query, None],
                     )
 
             # calculate unisim histograms
@@ -436,9 +446,16 @@ class HistogramGenerator(SmoothHistogramMixin):
         return hist
 
     @classmethod
-    def generate_joint_histogram(cls, hist_generators, include_multisim_errors=True):
+    def generate_joint_histogram(
+        cls,
+        hist_generators,
+        include_multisim_errors=True,
+        ms_columns=["weightsGenie", "weightsFlux", "weightsReint"],
+        include_unisim_errors=True,
+        include_stat_errors=True,
+    ):
         """Generate a joint histogram from multiple histogram generators.
-        
+
         The result is a MultiChannelHistogram object with covariance matrix that contains
         correlations between bins of different channels.
         """
@@ -453,12 +470,15 @@ class HistogramGenerator(SmoothHistogramMixin):
         histogram = MultiChannelHistogram.from_histograms(
             [h.generate(**generate_kwargs) for h in hist_generators]
         )
+        if not include_stat_errors:
+            histogram.covariance_matrix = np.zeros_like(histogram.covariance_matrix)
         if not include_multisim_errors:
             return histogram
         covariance_matrix = np.zeros((histogram.n_bins, histogram.n_bins))
-        for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
+        for ms_column in ms_columns:
             covariance_matrix += HistogramGenerator.multiband_covariance(hist_generators, ms_column)
-        covariance_matrix += HistogramGenerator.multiband_unisim_covariance(hist_generators)
+        if include_unisim_errors:
+            covariance_matrix += HistogramGenerator.multiband_unisim_covariance(hist_generators)
         histogram.add_covariance(covariance_matrix)
         return histogram
 
@@ -501,7 +521,10 @@ class HistogramGenerator(SmoothHistogramMixin):
         concatenated_cv = np.concatenate(central_values)
         concatenated_universes = np.concatenate(universe_hists, axis=1)
         cov_mat = covariance(
-            concatenated_universes, concatenated_cv, allow_approximation=True, tolerance=1e-10,
+            concatenated_universes,
+            concatenated_cv,
+            allow_approximation=True,
+            tolerance=1e-10,
         )
         return cov_mat
 
@@ -545,7 +568,10 @@ class HistogramGenerator(SmoothHistogramMixin):
                 [hist_dict[knob] for hist_dict in universe_hist_dicts], axis=1
             )
             cov_mat = covariance(
-                concatenated_universes, concatenated_cv, allow_approximation=True, tolerance=1e-10,
+                concatenated_universes,
+                concatenated_cv,
+                allow_approximation=True,
+                tolerance=1e-10,
             )
             summed_cov_mat += cov_mat
         return summed_cov_mat
@@ -588,7 +614,8 @@ class HistogramGenerator(SmoothHistogramMixin):
                     knob in hist_dict[dataset] for hist_dict in universe_hist_dicts
                 ), f"Knob {knob} not found in all histograms."
                 concatenated_universes = np.concatenate(
-                    [hist_dict[dataset][knob] for hist_dict in universe_hist_dicts], axis=1,
+                    [hist_dict[dataset][knob] for hist_dict in universe_hist_dicts],
+                    axis=1,
                 )
                 # The detector universes are special, because the central value has already been subtracted
                 # by construction. Therefore, we can use the zero vector as the central value.
@@ -740,7 +767,10 @@ class HistogramGenerator(SmoothHistogramMixin):
             else:
                 return cov
         universe_histograms = self._multi_channel_universes(
-            dataframe, weight_column, multisim_weight_column, weight_rescale=weight_rescale,
+            dataframe,
+            weight_column,
+            multisim_weight_column,
+            weight_rescale=weight_rescale,
         )
         if central_value_hist is None:
             central_value_hist = self._histogram_multi_channel(dataframe)
