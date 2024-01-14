@@ -4,6 +4,7 @@ from microfit.selections import find_common_selection, get_selection_query
 
 import numpy as np
 
+
 @dataclass
 class Binning:
     """Binning for a variable
@@ -15,7 +16,7 @@ class Binning:
     bin_edges : np.ndarray
         Array of bin edges
     label : str
-        Label of the binning. In a multi-dimensional binning, this should be 
+        Label of the binning. In a multi-dimensional binning, this should be
         a unique key.
     variable_tex : str, optional
         LaTeX representation of the variable (default is None) that can be used
@@ -44,7 +45,7 @@ class Binning:
                 if attr_self is None or attr_other is None:
                     continue
             if field.name == "variable_tex":
-                # It really doesn't matter if the variable_tex is different, as it is 
+                # It really doesn't matter if the variable_tex is different, as it is
                 # only used for plotting. So we can just skip it.
                 continue
             if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
@@ -134,7 +135,7 @@ class Binning:
     def copy(self):
         """Create a copy of the binning."""
         return Binning(**self.to_dict())
-    
+
 
 @dataclass
 class MultiChannelBinning:
@@ -188,7 +189,7 @@ class MultiChannelBinning:
     def to_dict(self):
         """Return a dictionary representation of the binning."""
         return {"binnings": [b.to_dict() for b in self.binnings], "is_log": self.is_log}
-    
+
     @classmethod
     def from_dict(cls, state):
         """Create a MultiChannelBinning object from a dictionary representation of the binning."""
@@ -336,11 +337,11 @@ class MultiChannelBinning:
 
     def __len__(self):
         return self.n_channels
-    
+
     def copy(self):
         """Create a copy of the binning."""
         return MultiChannelBinning.from_dict(self.to_dict())
-    
+
     def _roll_list(self, lst, shift):
         return lst[-shift:] + lst[:-shift]
 
@@ -354,7 +355,7 @@ class MultiChannelBinning:
         """
         self.binnings = self._roll_list(self.binnings, shift)
         self.ensure_unique_labels()
-    
+
     def roll_to_first(self, label: str):
         """Roll the channels such that the channel with the given label is first.
 
@@ -365,7 +366,7 @@ class MultiChannelBinning:
         """
         idx = self.labels.index(label)
         self.roll_channels(-idx)
-    
+
     @classmethod
     def join(cls, *args):
         """Join multiple MultiChannelBinning or Binning objects into a single MultiChannelBinning.
