@@ -107,9 +107,11 @@ class Histogram:
         colormap = plot_kwargs.pop("cmap", "RdBu_r")
         label = None
         if as_correlation:
-            plot_kwargs["vmin"] = -1
-            plot_kwargs["vmax"] = 1
-            pc = ax.pcolormesh(X, Y, self.correlation_matrix, cmap=colormap, **plot_kwargs)
+            vmin = plot_kwargs.pop("vmin", -1)
+            vmax = plot_kwargs.pop("vmax", 1)
+            pc = ax.pcolormesh(
+                X, Y, self.correlation_matrix, cmap=colormap, vmin=vmin, vmax=vmax, **plot_kwargs
+            )
             label = "Correlation"
         elif as_fractional:
             # plot fractional covariance matrix
@@ -117,15 +119,19 @@ class Histogram:
                 self.nominal_values, self.nominal_values
             )
             max_val = np.max(np.abs(fractional_covar))
-            plot_kwargs["vmin"] = -max_val
-            plot_kwargs["vmax"] = max_val
-            pc = ax.pcolormesh(X, Y, fractional_covar, cmap=colormap, **plot_kwargs)
+            vmin = plot_kwargs.pop("vmin", -max_val)
+            vmax = plot_kwargs.pop("vmax", max_val)
+            pc = ax.pcolormesh(
+                X, Y, fractional_covar, cmap=colormap, vmin=vmin, vmax=vmax, **plot_kwargs
+            )
             label = "Fractional covariance"
         else:
             max_val = np.max(np.abs(self.covariance_matrix))
-            plot_kwargs["vmin"] = -max_val
-            plot_kwargs["vmax"] = max_val
-            pc = ax.pcolormesh(X, Y, self.covariance_matrix, cmap=colormap, **plot_kwargs)
+            vmin = plot_kwargs.pop("vmin", -max_val)
+            vmax = plot_kwargs.pop("vmax", max_val)
+            pc = ax.pcolormesh(
+                X, Y, self.covariance_matrix, cmap=colormap, vmin=vmin, vmax=vmax, **plot_kwargs
+            )
             label = "Covariance"
         cbar = plt.colorbar(pc, ax=ax)
         cbar.set_label(label)
@@ -571,6 +577,7 @@ class Histogram:
     def __len__(self):
         return self.n_bins
 
+
 class MultiChannelHistogram(Histogram):
     """A histogram that combines multiple channels with a single covariance matrix.
 
@@ -733,8 +740,8 @@ class MultiChannelHistogram(Histogram):
             np.ix_(self.binning._channel_bin_idx(key), self.binning._channel_bin_idx(key))
         ]
 
-    def __getitem__(self, key: Union[int, str]) -> Histogram:
-        """Get the histogram of a given channel.
+    def __getitem__(self, key: Union[int, str, List[Union[int, str]]]) -> Histogram:
+        """Get the histogram of a given channel or a list of channels.
 
         Parameters
         ----------
@@ -743,9 +750,51 @@ class MultiChannelHistogram(Histogram):
 
         Returns
         -------
-        Histogram
-            Histogram of the channel.
+        Histogram or MultiChannelHistogram
+            Histogram of the channel(s). If a single channel is requested, a Histogram is returned.
+            If a list of channels is requested, a MultiChannelHistogram is returned containing
+            only the requested channels with their correlations.
         """
+        if isinstance(key, list):
+            # If we request a list of channels, we return a MultiChannelHistogram containing only
+            # the requested channels.
+            new_binning = MultiChannelBinning(
+                [self.binning[i] for i in key],
+            )
+            new_bin_counts = np.concatenate(
+                [unumpy.nominal_values(self.channel_bin_counts(i)) for i in key]
+            )
+            new_covariance_matrix = block_diag(
+                *[self.channel_covariance_matrix(i) for i in key],
+            )
+            # Now we need to also fill in the off-diagonal blocks of the covariance matrix,
+            # which correspond to the correlations between the channels.
+            # We do this by looping over all pairs of channels and filling in the corresponding
+            # block of the covariance matrix.
+            for i, channel_i in enumerate(key):
+                for j, channel_j in enumerate(key):
+                    if i == j:
+                        continue
+                    # We can make use of the Binning to translate the indices from one
+                    # covariance matrix to the other.
+                    new_covariance_matrix[
+                        np.ix_(
+                            new_binning._channel_bin_idx(channel_i),
+                            new_binning._channel_bin_idx(channel_j),
+                        )
+                    ] += self.covariance_matrix[
+                        np.ix_(
+                            self.binning._channel_bin_idx(channel_i),
+                            self.binning._channel_bin_idx(channel_j),
+                        )
+                    ]
+            return MultiChannelHistogram(
+                new_binning,
+                new_bin_counts,
+                covariance_matrix=new_covariance_matrix,
+                label=self.label,
+                tex_string=self.tex_string,
+            )
         idx = self.binning._idx_channel(key)
         return Histogram(
             self.binning.binnings[idx],
@@ -839,21 +888,30 @@ class MultiChannelHistogram(Histogram):
         for n_bins in channel_n_bins[1:-1]:
             ax.axvline(n_bins, color="k", linestyle="--")
             ax.axhline(n_bins, color="k", linestyle="--")
-
+        # turn off tick labels
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+        # set tick marks at every bin
+        ax.set_xticks(np.arange(self.n_bins) + 0.5, minor=False)
+        ax.set_yticks(np.arange(self.n_bins) + 0.5, minor=False)
+        ax.tick_params(axis="both", which="both", direction="in")
+        # remove labels for x and y axes
+        ax.set_xlabel("")
+        ax.set_ylabel("")
         # Add text boxes for each channel label
         for i, label in enumerate(channel_labels):
             ax.text(
                 (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
-                0.5,
+                -0.5,
                 label,
                 ha="center",
-                va="bottom",
+                va="top",
             )
             ax.text(
-                0.5,
+                -0.5,
                 (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
                 label,
-                ha="left",
+                ha="right",
                 va="center",
                 rotation=90,
             )
