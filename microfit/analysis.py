@@ -9,7 +9,13 @@ import numpy as np
 from scipy.linalg import block_diag
 import toml
 from data_loading import load_runs
-from microfit.histogram import Binning, HistogramGenerator, RunHistGenerator, Histogram
+from microfit.histogram import (
+    Binning,
+    HistogramGenerator,
+    RunHistGenerator,
+    Histogram,
+    MultiChannelBinning,
+)
 from microfit.parameters import ParameterSet
 from microfit.run_plotter import RunHistPlotter
 from microfit import signal_generators
@@ -26,8 +32,18 @@ class MultibandAnalysis(object):
             self._init_from_generators(run_hist_generators, constraint_channels)
         else:
             self._init_from_config(configuration)
+        self.channels = []
+        for gen in self._run_hist_generators:
+            if isinstance(gen.binning, MultiChannelBinning):
+                self.channels.extend(gen.binning.labels)
+            else:
+                self.channels.append(gen.binning.label)
+        for ch in constraint_channels:
+            assert ch in self.channels, f"Constraint channel {ch} not found in analysis channels"
 
-    def _init_from_generators(self, run_hist_generators, constraint_channels):
+    def _init_from_generators(
+        self, run_hist_generators: List[RunHistGenerator], constraint_channels: List[str]
+    ):
         self._run_hist_generators = run_hist_generators
         self.constraint_channels = constraint_channels
         self.parameters = sum([g.parameters for g in self._run_hist_generators])
@@ -43,7 +59,8 @@ class MultibandAnalysis(object):
         rundata, weights, data_pot = load_runs(**configuration["data_loading"])
         self.data_pot = data_pot
         self._run_hist_generators = [
-            self.run_hist_generator_from_config(rundata, weights, data_pot, config) for config in generator_configurations
+            self.run_hist_generator_from_config(rundata, weights, data_pot, config)
+            for config in generator_configurations
         ]
         self.parameters = sum([g.parameters for g in self._run_hist_generators])
         for gen in self._run_hist_generators:
@@ -51,18 +68,24 @@ class MultibandAnalysis(object):
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
 
     def _check_shared_params(self, param_sets: List[ParameterSet]):
-        shared_names = list(set(param_sets[0].names).intersection(*[set(ps.names) for ps in param_sets[1:]]))
+        shared_names = list(
+            set(param_sets[0].names).intersection(*[set(ps.names) for ps in param_sets[1:]])
+        )
         # Reference ParameterSet
         ref_set = param_sets[0]
         for name in shared_names:
             ref_param = ref_set[name]
             for ps in param_sets[1:]:
-                assert ref_param is ps[name], f"Parameter {name} is not the same object in all ParameterSets"
+                assert (
+                    ref_param is ps[name]
+                ), f"Parameter {name} is not the same object in all ParameterSets"
 
     def _check_config(self, config):
         return True  # TODO: implement
 
-    def run_hist_generator_from_config(self, rundata, weights, data_pot, config, is_signal=True) -> RunHistGenerator:
+    def run_hist_generator_from_config(
+        self, rundata, weights, data_pot, config, is_signal=True
+    ) -> RunHistGenerator:
         raise NotImplementedError("TODO: update implementation for configuration loading")
         # binning = Binning.from_config(**config["binning"])
         # print(f"Making generator for selection {config['selection']} and preselection {config['preselection']}")
@@ -91,170 +114,94 @@ class MultibandAnalysis(object):
         # )
         # return run_generator
 
+    def _apply_constraints(self, hist, constraint_channels=None):
+        """Apply the sideband constraint to the given histogram."""
+
+        data_hist = self.generate_multiband_data_histogram()
+        if data_hist is None:
+            return hist
+        constraint_channels = constraint_channels or self.constraint_channels
+        for constraint_channel in constraint_channels:
+            constraint_hist = data_hist[constraint_channel]
+            hist = hist.update_with_measurement(constraint_channel, constraint_hist.nominal_values)
+        return hist
+
     def generate_multiband_histogram(
         self,
         include_multisim_errors=False,
         use_sideband=False,
-        strict_covar_checking=False,
         scale_to_pot=None,
     ):
-        """Generate a combined histogram from all signal bands."""
+        """Generate the combined MC histogram from all channels."""
 
-        total_nbins = sum([g.binning.n_bins for g in self._run_hist_generators])
-        # make a Binning of the global bin number
-        bin_edges = np.arange(total_nbins + 1)
-        global_binning = Binning("None", bin_edges, label="Global bin number")
-        stat_only_signal_hists = [
-            g.mc_hist_generator.generate(include_multisim_errors=False, use_sideband=False)
-            for g in self._run_hist_generators
-        ]
-        if not include_multisim_errors:
-            # If we don't include the multisim errors, we are done
-            combined_nominal_values = np.concatenate([h.nominal_values for h in stat_only_signal_hists])
-            combined_uncertainty = np.concatenate([h.std_devs for h in stat_only_signal_hists])
-            output_hist = Histogram(global_binning, combined_nominal_values, uncertainties=combined_uncertainty)
-            if scale_to_pot is not None:
-                output_hist *= scale_to_pot / self.data_pot
-            return output_hist
-        # combine the histograms
-        combined_nominal_values = np.concatenate([h.nominal_values for h in stat_only_signal_hists])
-        combined_covariance = self._get_total_multiband_covariance(
-            with_stat_only=True, with_unisim=True, include_sideband=False
+        mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
+        output_hist = HistogramGenerator.generate_joint_histogram(
+            mc_hist_generators, include_multisim_errors=include_multisim_errors
         )
-        if check_covar:
-            # sanity check: the diagonal blocks of the combined covariance should be the same
-            # as if we had calculated the histograms with multisim separately
-            pos = 0
-            for i, g in enumerate(self._run_hist_generators):
-                n_bins = g.binning.n_bins
-                signal_hist = g.mc_hist_generator.generate(include_multisim_errors=True, use_sideband=False)
-                covar = signal_hist.covariance_matrix
-                # for testing purposes, we divide the covariance by the square of the nominal values to get
-                # the relative covariance
-                covar = covar / np.outer(signal_hist.nominal_values, signal_hist.nominal_values)
-                reference_covar = combined_covariance[pos : pos + n_bins, pos : pos + n_bins] / np.outer(
-                    combined_nominal_values[pos : pos + n_bins], combined_nominal_values[pos : pos + n_bins]
-                )
-                # When we are using non-standard histogram generators such as the signal-over-background generator,
-                # it is possible that the block matrices are not equivalent. In that case, we only check for
-                # loose agreement. However, when the standard HistogramGenerator class is used, this really should
-                # work correctly.
-                np.testing.assert_allclose(reference_covar, covar, atol=1e-6 if strict_covar_checking else 1e-1)
-                pos += n_bins
-        if not use_sideband:
-            output_hist = Histogram(global_binning, combined_nominal_values, covariance_matrix=combined_covariance)
-            if scale_to_pot is not None:
-                output_hist *= scale_to_pot / self.data_pot
-            return output_hist
-        sideband_prediction = self._sideband_generator.get_total_prediction()
-        sideband_observation = self._sideband_generator.data_hist_generator.generate()
-        # To make the covariance matrix, we need to first generate the full multiband covariance
-        # and then apply the sideband constraint.
-        multiband_covariance_multisim = self._get_total_multiband_covariance(
-            with_stat_only=False, with_unisim=False, include_sideband=True
-        )
-        # Now we can calculate the sideband correction. This is done only for multisim errors.
-        delta_mu, delta_covar = sideband_constraint_correction(
-            sideband_measurement=sideband_observation.nominal_values,
-            sideband_central_value=sideband_prediction.nominal_values,
-            concat_covariance=multiband_covariance_multisim,
-            sideband_covariance=sideband_prediction.covariance_matrix,
-        )
-        self.logger.debug(f"Sideband constraint correction: {delta_mu}")
-        self.logger.debug(f"Sideband constraint correction covariance: {delta_covar}")
-        combined_nominal_values += delta_mu
-        combined_covariance += delta_covar
-
-        output_hist = Histogram(global_binning, combined_nominal_values, covariance_matrix=combined_covariance)
+        if use_sideband:
+            output_hist = self._apply_constraints(output_hist)
         if scale_to_pot is not None:
             output_hist *= scale_to_pot / self.data_pot
         return output_hist
 
     def generate_multiband_data_histogram(self):
-        """Generate a combined histogram from all signal bands."""
+        """Generate a combined histogram from all unblinded data channels."""
 
-        total_nbins = sum([g.binning.n_bins for g in self._run_hist_generators])
-        # make a Binning of the global bin number
-        bin_edges = np.arange(total_nbins + 1)
-        global_binning = Binning("None", bin_edges, label="Global bin number")
-        
-        # If any of the data hist generators is None, we return None
-        if any([g.data_hist_generator is None for g in self._run_hist_generators]):
+        unblinded_generators = [
+            g.data_hist_generator for g in self._run_hist_generators if not g.is_blinded
+        ]
+        if len(unblinded_generators) == 0:
             return None
-        data_hists = [g.data_hist_generator.generate() for g in self._run_hist_generators]
-        # if any of the produced histograms is None, we return None
-        if any([h is None for h in data_hists]):
-            return None
-        # combine the histograms
-        combined_nominal_values = np.concatenate([h.nominal_values for h in data_hists])
-        combined_uncertainty = np.concatenate([h.std_devs for h in data_hists])
-        return Histogram(global_binning, combined_nominal_values, uncertainties=combined_uncertainty)
+        return HistogramGenerator.generate_joint_histogram(
+            unblinded_generators, include_multisim_errors=False
+        )
 
     def plot_signals(self, category_column="paper_category", **kwargs):
-        # make sub-plot for each signal in a horizontal arrangement
-        n_signals = len(self._run_hist_generators)
+        # make sub-plot for each channel in a horizontal arrangement
+        n_signals = len(self.channels)
         fig, axes = plt.subplots(1, n_signals, figsize=(n_signals * 8, 5), squeeze=False)
-        for i, generator in enumerate(self._run_hist_generators):
+        idx = 0
+        for generator in self._run_hist_generators:
             plotter = RunHistPlotter(generator)
-            plotter.plot(category_column=category_column, ax=axes[0, i], **kwargs)
+            if isinstance(generator.binning, MultiChannelBinning):
+                for ch in generator.binning.labels:
+                    plotter.plot(
+                        category_column=category_column, ax=axes[0, idx], channel=ch, **kwargs
+                    )
+                    idx += 1
+            else:
+                plotter.plot(category_column=category_column, ax=axes[0, idx], **kwargs)
+                idx += 1
         return fig, axes
 
     def plot_sideband(self, category_column="category", **kwargs):
-        plotter = RunHistPlotter(self._sideband_generator)
-        return plotter.plot(category_column=category_column, **kwargs)
+        raise NotImplementedError("TODO: implement")
 
-    def plot_correlation(self, ms_column=None, ax=None, with_unisim=False):
+    def plot_correlation(
+        self,
+        ms_columns=["weightsGenie", "weightsFlux", "weightsReint"],
+        ax=None,
+        include_unisim_errors=True,
+        **draw_kwargs,
+    ):
         hist_generators = []
-        hist_gen_labels = []
         hist_generators.extend([g.mc_hist_generator for g in self._run_hist_generators])
-        hist_gen_labels.extend(self.signal_names)
-        if self._sideband_generator is not None:
-            hist_generators.append(self._sideband_generator.mc_hist_generator)
-            hist_gen_labels.append(self.sideband_name)
-
-        if ms_column is None:
-            multiband_covariance = self._get_total_multiband_covariance(with_unisim=with_unisim, include_sideband=True)
-        else:
-            multiband_covariance = HistogramGenerator.multiband_covariance(hist_generators, ms_column=ms_column)
-            if with_unisim:
-                multiband_covariance += HistogramGenerator.multiband_unisim_covariance(hist_generators)
-        # convert to correlation matrix
-        multiband_covariance = multiband_covariance / np.sqrt(
-            np.outer(np.diag(multiband_covariance), np.diag(multiband_covariance))
+        histogram = HistogramGenerator.generate_joint_histogram(
+            hist_generators,
+            include_multisim_errors=True,
+            ms_columns=ms_columns,
+            include_unisim_errors=include_unisim_errors,
         )
         if ax is None:
             fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)
         else:
             fig = ax.figure
-        # show the covariance matrix as a heatmap
-        X, Y = np.meshgrid(np.arange(multiband_covariance.shape[0] + 1), np.arange(multiband_covariance.shape[1] + 1))
-        p = ax.pcolormesh(X, Y, multiband_covariance.T, cmap="coolwarm", shading="flat", vmin=-1, vmax=1)
-        # colorbar
-        cbar = fig.colorbar(p, ax=ax)
-        cbar.set_label("correlation")
-        if ms_column is None:
-            ax.set_title("Total Multiband Correlation")
-        else:
-            ax.set_title(f"Multiband Correlation: {ms_column}")
-        # turn off tick labels
-        ax.set_yticklabels([])
-        ax.set_xticklabels([])
-        # set tick marks at every bin
-        ax.set_xticks(np.arange(multiband_covariance.shape[0]) + 0.5, minor=False)
-        ax.set_yticks(np.arange(multiband_covariance.shape[1]) + 0.5, minor=False)
-        ax.tick_params(axis="both", which="both", direction="in")
-        # draw vertical and horizontal lines splitting the different histograms that went
-        # into the covariance matrix
-        pos = 0
-        for hist_gen, label in zip(hist_generators, hist_gen_labels):
-            pos += hist_gen.binning.n_bins
-            ax.axvline(pos, color="k", linestyle="--")
-            ax.axhline(pos, color="k", linestyle="--")
-            ax.text(pos - hist_gen.binning.n_bins / 2, -1, label, ha="center", va="top", fontsize=12)
-            ax.text(-1, pos - hist_gen.binning.n_bins / 2, label, ha="right", va="center", fontsize=12)
+        histogram.draw_covariance_matrix(ax=ax, **draw_kwargs)
         return fig, ax
 
-    def two_hypothesis_test(self, h0_params, h1_params, sensitivity_only=False, n_trials=1000, scale_to_pot=None):
+    def two_hypothesis_test(
+        self, h0_params, h1_params, sensitivity_only=False, n_trials=1000, scale_to_pot=None
+    ):
         """Perform a two hypothesis test between two parameter sets.
 
         For each hypothesis, pseudo-experiments are generated by sampling
@@ -305,7 +252,9 @@ class MultibandAnalysis(object):
 
         if scale_to_pot is not None:
             assert sensitivity_only, "Can only scale to POT when calculating sensitivity"
-        assert set(h0_params.names) == set(h1_params.names), "Parameter sets must have the same parameters"
+        assert set(h0_params.names) == set(
+            h1_params.names
+        ), "Parameter sets must have the same parameters"
         self.set_parameters(h0_params, check_matching=True)
         # generate the multiband histogram
         h0_hist = self.generate_multiband_histogram(
@@ -321,8 +270,12 @@ class MultibandAnalysis(object):
         test_stat_h1 = []
 
         def test_statistic(observation):
-            chi2_h0 = chi_square(observation.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix)
-            chi2_h1 = chi_square(observation.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix)
+            chi2_h0 = chi_square(
+                observation.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix
+            )
+            chi2_h1 = chi_square(
+                observation.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix
+            )
             return chi2_h0 - chi2_h1
 
         for i in range(n_trials):
@@ -353,10 +306,14 @@ class MultibandAnalysis(object):
             return results
         # calculate the p-value of the observed data under H0
         real_data_ts = test_statistic(data_hist)
-        results["chi2_h0"] = chi_square(data_hist.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix)
+        results["chi2_h0"] = chi_square(
+            data_hist.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix
+        )
         results["pval_h0"] = np.sum(test_stat_h0 > real_data_ts) / n_trials
         # calculate the p-value of the observed data under H1
-        results["chi2_h1"] = chi_square(data_hist.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix)
+        results["chi2_h1"] = chi_square(
+            data_hist.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix
+        )
         results["pval_h1"] = np.sum(test_stat_h1 > real_data_ts) / n_trials
 
         return results
@@ -379,8 +336,8 @@ class MultibandAnalysis(object):
         from iminuit import Minuit
 
         # if scale_to_pot is not None:
-            # Warn the user that this should only be used when calculating a sensitivity
-            # self.logger.warning("Scaling MC to non-default POT. This should only be used when calculating a sensitivity.")
+        # Warn the user that this should only be used when calculating a sensitivity
+        # self.logger.warning("Scaling MC to non-default POT. This should only be used when calculating a sensitivity.")
 
         def loss(*args):
             # set the parameters
@@ -388,19 +345,29 @@ class MultibandAnalysis(object):
                 self.parameters[name].value = args[i]
             # generate the histogram
             generated_hist = self.generate_multiband_histogram(
-                include_multisim_errors=True, use_sideband=True, check_covar=False, scale_to_pot=scale_to_pot
+                include_multisim_errors=True,
+                use_sideband=True,
+                check_covar=False,
+                scale_to_pot=scale_to_pot,
             )
             # calculate the chi-square
-            return chi_square(observed_hist.nominal_values, generated_hist.nominal_values, generated_hist.covariance_matrix)
+            return chi_square(
+                observed_hist.nominal_values,
+                generated_hist.nominal_values,
+                generated_hist.covariance_matrix,
+            )
 
         # TODO: This is the syntax for the old Minuit 1.5.4 version. We should upgrade to the new version
         # at some point.
         initial_value_kwargs = {name: self.parameters[name].m for name in self.parameters.names}
-        limit_kwargs = {f"limit_{name}": self.parameters[name].magnitude_bounds for name in self.parameters.names}
+        limit_kwargs = {
+            f"limit_{name}": self.parameters[name].magnitude_bounds
+            for name in self.parameters.names
+        }
         minuit_kwargs = {**initial_value_kwargs, **limit_kwargs}
         m = Minuit(loss, name=self.parameters.names, errordef=Minuit.LEAST_SQUARES, **minuit_kwargs)
         return m
-    
+
     def fit_to_data(self, return_migrad=True):
         m = self._get_minuit(self.generate_multiband_data_histogram())
         m.migrad()
@@ -408,28 +375,37 @@ class MultibandAnalysis(object):
         if return_migrad:
             return best_fit_parameters, m
         return best_fit_parameters
-    
+
     def fc_scan(self, parameter_name, scan_points, n_trials=100, scale_to_pot=None):
         """Perform a Feldman-Cousins scan of the given parameter."""
         from tqdm import tqdm
+
         # For every point in the scan, we assume that it is the truth and
         # then create pseudo-experiments by sampling from the covariance
         # matrix. Then, we calculate the best fit for every pseudo-experiment
-        # and record the difference in chi-square between the best fit and 
+        # and record the difference in chi-square between the best fit and
         # a fit where the parameter in question is fixed to the assumed truth.
         results = []
         print(f"Running FC scan over {len(scan_points)} points in {parameter_name}...")
         number_of_samples = len(scan_points) * n_trials
         for i, scan_point in enumerate(tqdm(scan_points)):
             self.parameters[parameter_name].value = scan_point
-            expectation = self.generate_multiband_histogram(scale_to_pot=scale_to_pot, include_multisim_errors=True, use_sideband=True)
+            expectation = self.generate_multiband_histogram(
+                scale_to_pot=scale_to_pot, include_multisim_errors=True, use_sideband=True
+            )
             delta_chi2 = []
             for j in range(n_trials):
                 global_trial_index = n_trials * i + j
                 # the seeds are chosen such that no seed is used twice
-                pseudo_data = expectation.fluctuate(seed=global_trial_index).fluctuate_poisson(seed=global_trial_index + number_of_samples)
+                pseudo_data = expectation.fluctuate(seed=global_trial_index).fluctuate_poisson(
+                    seed=global_trial_index + number_of_samples
+                )
                 self.parameters[parameter_name].value = scan_point
-                chi2_at_truth = chi_square(pseudo_data.nominal_values, expectation.nominal_values, expectation.covariance_matrix)
+                chi2_at_truth = chi_square(
+                    pseudo_data.nominal_values,
+                    expectation.nominal_values,
+                    expectation.covariance_matrix,
+                )
                 m = self._get_minuit(pseudo_data, scale_to_pot=scale_to_pot)
                 m.migrad()
                 chi2_at_best_fit = m.fval

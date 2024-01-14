@@ -92,6 +92,16 @@ class RunHistGenerator:
             # This query is the common selection that is applied to all channels. We can safely apply it to 
             # the overall dataframe to reduce the number of events that need to be processed.
             query = self.binning.reduce_selection()
+        elif isinstance(self.binning, Binning):
+            if self.binning.selection_query is not None:
+                if self.selection is not None or self.preselection is not None:
+                    raise ValueError(
+                        "Cannot use selection or preselection when the Binning already "
+                        "contains a selection query."
+                    )
+                # We apply the query to the dataframe and remove the query string from the binning
+                query = self.binning.selection_query
+                self.binning.selection_query = None
 
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
@@ -160,10 +170,12 @@ class RunHistGenerator:
             self.ext_hist_generator = HistogramGenerator(df_ext, binning, enable_cache=False)
         else:
             self.ext_hist_generator = None
+        self.is_blinded = False
         if df_data is not None:
             self.data_hist_generator = HistogramGenerator(df_data, binning, enable_cache=False)
         else:
             self.data_hist_generator = None
+            self.is_blinded = True
         self.sideband_generator = sideband_generator
         self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
 
