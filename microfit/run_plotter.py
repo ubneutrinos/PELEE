@@ -31,11 +31,14 @@ class RunHistPlotter:
         title = f"{presel_title} and {sel_title}"
         return title
 
-    def get_pot_label(self, scale_to_pot):
+    def get_pot_label(self, scale_to_pot, has_data=True):
         if self.run_hist_generator.data_pot is None:
             return ""
         if scale_to_pot is None:
-            return f"Data POT: {self.run_hist_generator.data_pot:.1e}"
+            if has_data:
+                return f"Data POT: {self.run_hist_generator.data_pot:.1e}"
+            else:
+                return f"MC POT: {self.run_hist_generator.data_pot:.1e}"
         else:
             return f"MC Scaled to {scale_to_pot:.1e} POT"
 
@@ -56,6 +59,7 @@ class RunHistPlotter:
         channel=None,
         add_precomputed_detsys=False,
         print_tot_pred_norm=False,
+        title=None,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -105,11 +109,12 @@ class RunHistPlotter:
         if ext_hist is not None:
             total_pred_hist += ext_hist
         data_hist = flatten(gen.get_data_hist())
-        if self.title is None:
-            selection, preselection = gen.selection, gen.preselection
-            title = self.get_selection_title(selection, preselection)
-        else:
-            title = self.title
+        if title is None:
+            if self.title is None:
+                selection, preselection = gen.selection, gen.preselection
+                title = self.get_selection_title(selection, preselection)
+            else:
+                title = self.title
 
         if print_tot_pred_norm: print('print_tot_pred_norm:',total_mc_hist.nominal_values/np.sum(total_mc_hist.nominal_values))
 
@@ -144,10 +149,8 @@ class RunHistPlotter:
             **kwargs,
         )
         if not show_data_mc_ratio:
-            ax.set_xlabel(total_pred_hist.binning.label)
+            ax.set_xlabel(total_pred_hist.binning.variable_tex)
             return ax
-
-        ax.set_ylim(0.0, ax.get_ylim()[1] * 1.7)
 
         # plot data/mc ratio
         # The way this is typically shown is to have the MC prediction divided by its central
@@ -174,8 +177,7 @@ class RunHistPlotter:
         )
 
         ax_ratio.set_ylabel("Data/MC")
-        ax_ratio.set_xlabel(total_pred_hist.binning.label)
-        # ax_ratio.set_ylim(0, 5)
+        ax_ratio.set_xlabel(total_pred_hist.binning.variable_tex)
 
         return ax, ax_ratio
 
@@ -229,7 +231,7 @@ class RunHistPlotter:
                     **kwargs,
                 )
         # make text label for the POT
-        pot_label = self.get_pot_label(scale_to_pot)
+        pot_label = self.get_pot_label(scale_to_pot, has_data=data_hist is not None)
         if chi_square is not None:
             n_bins = total_pred_hist.binning.n_bins
             pot_label += f"\n$\chi^2$ = {chi_square:.1f} / {n_bins}"

@@ -25,8 +25,9 @@ from numu_tki import tki_calculators
 
 from microfit.selections import extract_variables_from_query
 
+datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-verbose=False
+verbose=True
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
@@ -111,7 +112,6 @@ def get_variables():
         "nu_e",
         # "hits_u", "hits_v", "hits_y",
         "nneutron",
-        # "mc_pdg",  # this is an array
         "slnunhits",
         "slnhits",
         "true_e_visible",
@@ -335,11 +335,9 @@ def get_variables():
 
     VARDICT["NUEVARS"] = NUEVARS
 
-    NUMUVARS = [
-        # "trk_energy_proton_v"
-    ]
+    NUMUVARS = []
 
-    VARDICT["NUMUVARS"] = NUMUVARS
+    VARDICT["NUMUVARS"] = []
 
     RCVRYVARS = [
         "shr_energy_tot",
@@ -1915,6 +1913,47 @@ def process_uproot_numu(up, df):
 
     return
 
+def drop_vector_columns(df):
+    drop_columns = [
+            "mc_pdg",
+            "mc_E",
+            "mc_px",
+            "mc_py",
+            "mc_pz",
+            "trk_theta_v",
+            "trk_end_z_v",
+            "trk_len_v",
+            "shr_tkfit_dedx_nhits_v_v",
+            "trk_phi_v",
+            "shr_tkfit_dedx_y_v",
+            "trk_end_y_v",
+            "shr_tkfit_dedx_v_v",
+            "trk_end_x_v",
+            "shr_tkfit_dedx_u_v",
+            "shr_tkfit_dedx_nhits_y_v",
+            "shr_tkfit_dedx_nhits_u_v",
+            "trk_range_muon_mom_v",
+            "trk_mcs_muon_mom_v" 
+            "pfp_generation_v",
+            "trk_dir_x_v",
+            "trk_dir_y_v",
+            "trk_dir_z_v",
+            "trk_sce_start_x_v",
+            "trk_sce_start_y_v",
+            "trk_sce_start_z_v",
+            "trk_sce_end_x_v",
+            "trk_sce_end_y_v",
+            "trk_sce_end_z_v",
+            "trk_llr_pid_score_v",
+            "trk_distance_v",
+            "trk_score_v",
+        ]
+    drop_columns = [col for col in drop_columns if col in df.columns]
+    df.drop(
+        columns=drop_columns,
+        inplace=True,
+    )
+
 # The following function should be aplied to the R3 CCPi0 sample when USEBDT and
 # loadtruthfilters are both set to True.
 # TODO: Use this function in the appropriate place in the code.
@@ -2014,7 +2053,10 @@ def load_sample(
             data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
        
         if verbose: print("Loading ntuple file",data_path)
-        
+        if dataset in datasets:
+            print("Dataset",dataset,"is a data or EXT file")       
+
+ 
         # try returning an empty dataframe
         if os.path.basename(data_path) == "dummy.root":
             if verbose: print("Using dummy file for run",run_number,"dataset",dataset)
@@ -2046,7 +2088,7 @@ def load_sample(
 
         df = up.pandas.df(variables, flatten=False)
 
-        df["bnbdata"] = dataset in ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband"]
+        df["bnbdata"] = dataset in datasets 
         df["extdata"] = dataset == "ext"
 
         # trk_energy_tot agrees here
@@ -2088,16 +2130,17 @@ def load_sample(
         if loadshowervariables:
             # Some variables have to be calculated after the recovery has been done
             post_process_shower_vars(up, df)
+        if load_numu_tki:
+            df = signal_1muNp.set_Signal1muNp(up,df)
+            df = selection_1muNp.apply_selection_1muNp(up,df) 
+
     if use_bdt:
         add_bdt_scores(df)
 
-    if load_numu_tki:
-        signal_1muNp.set_Signal1muNp(df)
-        selection_1muNp.apply_selection_1muNp(df) 
-
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category == "runs" and dataset not in ["bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","ext","opendata_bnb","muon_sideband"]
+    is_mc = category == "runs" and dataset not in datasets and dataset != "ext" 
+    print("is_mc=",is_mc)
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2530,7 +2573,7 @@ def get_run_variables(
     ALLVARS = VARIABLES
 
     # Weights are only available in MC runs.
-    if category in ["runs", "numupresel", "detvar"] and dataset not in ["bnb", "ext", "opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband"]:
+    if category in ["runs", "numupresel", "detvar"] and dataset not in datasets + ["ext"]:
         if use_lee_weights:
             assert dataset == "nue", "LEE weights are only available for nue runs"
             ALLVARS += WEIGHTSLEE

@@ -1,3 +1,7 @@
+normalization = [
+    ("dummy",1,(-0.5,0.5),"normalization")
+]
+
 basic_variables = [
     ("n_showers_contained", 1, (0.5, 1.5), "normalization", "onebin"),
     # ('n_showers_contained',10,(-0.5, 9.5),"n showers contained"),
@@ -131,6 +135,7 @@ energy_variables = [
     # ('NeutrinoEnergy1', 20, (0,2000), r"Reconstructed Calorimetric Energy V [MeV]"),
     # ('NeutrinoEnergy2', 20, (0,2000), r"Reconstructed Calorimetric Energy Y [MeV]"),
 ]
+
 kinematic_variables = [
     ("protonenergy", 12, (0, 0.6), "proton kinetic energy [GeV]"),
     ("pt", 10, (0, 2), "pt [GeV]"),
@@ -175,6 +180,7 @@ other_variables = [
     ("shrPCA1CMed_5cm", 10, (0.5, 1), "Median of 1st component of shr PCA (5cm window)"),
 ]
 pi0_variables = [
+    ("reco_e",20, (0.0,2.0), "Reconstructed Energy [GeV]"),
     ("pi0_gammadot", 20, (-1, 1), "$\pi^0$ $\gamma_{\\theta\\theta}$"),
     ("pi0energy", 20, (135, 1135), "$\pi^0$ Energy [MeV]"),
     ("pi0energyraw", 20, (0, 1135), "$\pi^0$ Calorimeric Energy $E_1 + E_2$ [MeV]"),
@@ -319,6 +325,144 @@ vtx_variables = [
     ("reco_nu_vtx_sce_z", 5, (0, 1030), "reco neutrino vertex z [cm]"),
 ]
 
+tki_truth_variables_1mu1p = [
+    ("TrueDeltaPT_1mu1p", 10, (0.0,1.2), "delta pT"),
+    ("TrueDeltaPhiT_1mu1p", 10, (0.0,3.142), "delta phiT"),
+    ("TrueDeltaAlphaT_1mu1p", 10, (0.0,3.142), "delta alphaT"),
+    ("TrueECal_1mu1p", 10, (0.1,2.0), "Ecal"),
+    ("TruePL_1mu1p", 10, (0.0,0.75), "pL"),
+    ("TrueDeltaPL_1mu1p", 10, (-0.5,0.5), "delta pL"),
+    ("TruePN_1mu1p", 10, (0.0,1.0), "pn"),
+    ("TrueAlpha3D_1mu1p", 10, (0.0,3.142), "alpha 3D"),
+    ("TruePhi3D_1mu1p", 10, (0.0,3.142), "phi 3D"),
+    ("TrueDeltaPTX_1mu1p", 10, (-0.5,0.5), "delta pTX"),
+    ("TrueDeltaPTY_1mu1p", 10, (-0.5,0.5), "delta pTY"),
+    ("TruePNTX_1mu1p", 10, (-0.3,0.3), "pnTx"),
+    ("TruePNTY_1mu1p", 10, (-0.5,0.5), "pnTy"),
+    ("TruePNT_1mu1p", 10, (0.0,0.5), "pnT"),
+    ("TruePNII_1mu1p", 10, (-0.5,0.75), "pnII"),
+]
+
+tki_reco_variables_1mu1p = [
+    ("RecoDeltaPT_1mu1p", 10, (0.0,1.2), "delta pT"),
+    ("RecoDeltaPhiT_1mu1p", 10, (0.0,3.142), "delta phiT"),
+    ("RecoDeltaAlphaT_1mu1p", 10, (0.0,3.142), "delta alphaT"),
+    ("RecoECal_1mu1p", 10, (0.1,2.0), "Ecal"),
+    ("RecoPL_1mu1p", 10, (0.0,0.75), "pL"),
+    ("RecoDeltaPL_1mu1p", 10, (-0.5,0.5), "delta pL"),
+    ("RecoPN_1mu1p", 10, (0.0,1.0), "pn"),
+    ("RecoAlpha3D_1mu1p", 10, (0.0,3.142), "alpha 3D"),
+    ("RecoPhi3D_1mu1p", 10, (0.0,3.142), "phi 3D"),
+    ("RecoDeltaPTX_1mu1p", 10, (-0.5,0.5), "delta pTX"),
+    ("RecoDeltaPTY_1mu1p", 10, (-0.5,0.5), "delta pTY"),
+    ("RecoPNTX_1mu1p", 10, (-0.3,0.3), "pnTx"),
+    ("RecoPNTY_1mu1p", 10, (-0.5,0.5), "pnTy"),
+    ("RecoPNT_1mu1p", 10, (0.0,0.5), "pnT"),
+    ("RecoPNII_1mu1p", 10, (-0.5,0.75), "pnII"),
+]
+
+# NP Far Sideband
+NP_far_sideband_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,0.4), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.8), "trk energy (range, P) [GeV]"),
+]
+
+NP_high_energy_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
+    ("shr_energy_tot_cali", 10, (0.35,2.05), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (1.05, 2.55), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
+    ("pi0_score",10,(0.0,1.0),"pi0 score"),
+    ("nonpi0_score",10,(0.0,1.0),"non-pi0 score"),
+]
+
+NP_low_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,1.05), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
+    ("pi0_score",10,(0.0,0.1),"pi0 score"),
+    ("nonpi0_score",10,(0.0,0.1),"non-pi0 score"),
+] 
+
+# NP Near Sideband
+
+NP_near_sideband_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,0.7), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
+]
+
+NP_medium_energy_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
+    ("shr_energy_tot_cali", 10, (0.25,0.9), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 5, (0.75, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
+    ("pi0_score",10,(0.1,1.0),"pi0 score"),
+    ("nonpi0_score",10,(0.1,1.0),"non-pi0 score"),
+]
+
+NP_medium_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,0.7), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 5, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
+    ("pi0_score",10,(0.1,0.67),"pi0 score"),
+    ("nonpi0_score",10,(0.1,0.7),"non-pi0 score"),
+]
+
+# ZP Far Sideband
+
+ZP_far_sideband_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
+] 
+
+ZP_high_energy_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.90, 2.55), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.0,1.0),"Background Score"),
+]
+
+ZP_low_pid_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.0,0.4),"Background Score"),
+] 
+
+# ZP Near Sideband
+
+ZP_near_sideband_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 0.90), r"Reconstructed Energy [GeV]", "note"),
+]
+
+ZP_medium_energy_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
+    ("shr_energy_tot_cali", 10, (0.55,0.85), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.65, 0.90), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.4,1.0),"Background Score"),
+]
+
+ZP_medium_pid_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
+    ("shr_energy_tot_cali", 10, (0.05,0.75), "shr energy (calibrated) [GeV]"),
+    ("reco_e", 10, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.4,0.72),"Background Score"),
+]
+
+# Opendata variables
+
+ZP_opendata_variables = [
+    ("n_showers_contained", 1, (0.5, 1.5), "normalization", "onebin"),
+    ("n_tracks_contained", 6, (-0.5, 5.5), "n tracks contained"),
+    ("reco_e", 10, (0.15, 2.95), r"Reconstructed Energy [GeV]", "note"),
+    ("bkg_score",10,(0.0,1.0),"Background Score"),
+]
+
+NP_opendata_variables = [
+    ("n_showers_contained", 1, (0.5, 1.5), "normalization", "onebin"),
+    ("n_tracks_contained", 6, (-0.5, 5.5), "n tracks contained"),
+    ("reco_e", 10, (0.15, 2.95), r"Reconstructed Energy [GeV]", "note"),
+    ("pi0_score",10,(0.0,1.0),"pi0 score"),
+    ("nonpi0_score",10,(0.0,1.0),"non-pi0 score"),
+]
 
 plot_variables = basic_variables + evtsel_variabls + shrsel_variables + bdtscore_variables
 plot_variables += kinematic_variables
+plot_variables += tki_truth_variables_1mu1p

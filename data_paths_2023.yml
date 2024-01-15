@@ -61,6 +61,10 @@ runs:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
       trig: 61882791 
+    opendata_bnb:
+      file: OpenData_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 8.62E+19
+      trig: 2.04E+07
     bdt_sideband:
       file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
@@ -107,37 +111,37 @@ runs:
       pot: 9.43E+18
       trig: 2271036
     bnb:
-      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3 
+      pot: 2.15E+20
+      trig: 51661509 
     bdt_sideband:
-      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: SignalRemoved_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
     shr_energy_sideband:
-      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: ShowerSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
-      file: TwoShowers_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: TwoShowers_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: n_showers_contained >= 2
     near_sideband:
-      file: NearSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: NearSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: ((0.75 < reco_e < 1.05 and (pi0_score > 0.1 and nonpi0_score > 0.1)) or (reco_e < 0.75 and (0.1 < pi0_score < 0.67 and 0.1 < nonpi0_score < 0.7))) or ((0.65 < reco_e < 0.9 and bkg_score > 0.4) or (reco_e < 0.65 and 0.4 < bkg_score < 0.72)) 
     far_sideband:
-      file: FarSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: FarSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
     ext:
-      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
-      trig: 207224641.0 
+      file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
+      trig: 191706142
     mc:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
       pot: 1.31E+21 
@@ -171,6 +175,10 @@ runs:
       pot: 3.27E+20
   - run_id: "4a"
     path: run4a/nuepresel/
+    opendata_bnb:
+      file: OpenData_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 1.48E+19
+      trig: 3266215.92
     bdt_sideband:
       file: SignalRemoved_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
       pot: 4.50E+19 
@@ -211,6 +219,10 @@ runs:
       pot: 1.10E+20
   - run_id: "4b"
     path: run4b/nuepresel/
+    opendata_bnb:
+      file: OpenData_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
+      pot: 4.59E+19
+      trig: 1.09E+07
     bnb: 
       pot: 1.47E+20
       trig: 34737600
@@ -254,9 +266,13 @@ runs:
       pot: 3.02E+20
   - run_id: "4c"
     path: run4c/nuepresel/
+    opendata_bnb:
+      file: OpenData_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana
+      pot: 2.98E+19
+      trig: 6.76E+06
     bnb: 
-      pot: 9.11E+19
-      trig: 20639283
+      pot: 
+      trig: 
     bdt_sideband:
       file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.04E+19 
@@ -297,6 +313,10 @@ runs:
       pot: 1.78E+20
   - run_id: "4d"
     path: run4d/nuepresel/
+    opendata_bnb:
+      file: OpenData_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
+      pot: 1.63E+19
+      trig: 3.69E+06
     bnb: 
       pot: 5.01E+19
       trig: 11391193
@@ -340,6 +360,10 @@ runs:
       pot: 2.01E+20
   - run_id: "5"
     path: run5/nuepresel/
+    opendata_bnb:
+      file: OpenData_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
+      pot: 4.87E+19
+      trig: 1.16E+07
     bnb: 
       pot: 1.55E+20  
       trig: 37159286
@@ -431,6 +455,10 @@ numupresel:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
       trig: 61882791 
+    opendata_bnb:
+      file: OpenData_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 8.62E+19
+      trig: 2.04E+07
     bdt_sideband:
       file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
@@ -472,32 +500,32 @@ numupresel:
       pot: 9.43E+18
       trig: 2271036
     bnb:
-      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3 
+      pot: 2.15E+20
+      trig: 51661509 
     bdt_sideband:
-      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: SignalRemoved_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
     shr_energy_sideband:
-      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: ShowerSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: shr_energy_tot_cali > 0.75
     two_shr_sideband:
-      file: TwoShowers_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: TwoShowers_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: n_showers_contained >= 2
     muon_sideband:
-      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.57E+20
-      trig: 61326657
+      file: NuMuSideband_PostCRTFix_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 51661509 
       sideband_def: n_muons_tot > 0  
     ext:
-      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
-      trig: 207224641.0 
+      file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
+      trig: 191706142
     mc:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
       pot: 1.31E+21 
@@ -531,6 +559,10 @@ numupresel:
       pot: 3.27E+20
   - run_id: "4a"
     path: run4a/numupresel/
+    opendata_bnb:
+      file: OpenData_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 1.48E+19
+      trig: 3266215.92
     bdt_sideband:
       file: SignalRemoved_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
       pot: 4.50E+19 
@@ -566,6 +598,10 @@ numupresel:
       pot: 1.10E+20
   - run_id: "4b"
     path: run4b/numupresel/
+    opendata_bnb:
+      file: OpenData_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
+      pot: 4.59E+19
+      trig: 1.09E+07
     bdt_sideband:
       file: SignalRemoved_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
       pot: 1.39E+20 
@@ -601,6 +637,10 @@ numupresel:
       pot: 3.02E+20
   - run_id: "4c"
     path: run4c/numupresel/
+    opendata_bnb:
+      file: OpenData_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana
+      pot: 2.98E+19
+      trig: 6.76E+06
     bdt_sideband:
       file: SignalRemoved_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.04E+19 
@@ -636,6 +676,10 @@ numupresel:
       pot: 1.78E+20
   - run_id: "4d"
     path: run4d/numupresel/
+    opendata_bnb:
+      file: OpenData_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
+      pot: 1.63E+19
+      trig: 3.69E+06
     bdt_sideband:
       file: SignalRemoved_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
       pot: 4.93E+19
@@ -671,6 +715,10 @@ numupresel:
       pot: 2.01E+20
   - run_id: "5"
     path: run5/numupresel/
+    opendata_bnb:
+      file: OpenData_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
+      pot: 4.87E+19
+      trig: 1.16E+07
     bdt_sideband:
       file: SignalRemoved_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
       pot: 1.48E+20 

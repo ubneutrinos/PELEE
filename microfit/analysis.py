@@ -17,8 +17,27 @@ from microfit.statistics import sideband_constraint_correction, chi_square
 
 
 class MultibandAnalysis(object):
-    def __init__(self, configuration):
+    def __init__(self, configuration=None, sideband_generator=None, sideband_name=None, signal_generators=None, signal_names=None):
         self.logger = logging.getLogger(__name__)
+        # The analysis may use several signal bands, but only one sideband.
+        # For every signal band and the sideband, we are going to create a
+        # RunHistGenerator object that can create histograms from the data.
+        if configuration is None:
+            self._init_from_generators(sideband_generator, sideband_name, signal_generators, signal_names)
+        else:
+            self._init_from_config(configuration)
+
+    def _init_from_generators(self, sideband_generator, sideband_name, signal_generators, signal_names):
+        self._sideband_generator = sideband_generator
+        self.sideband_name = sideband_name
+        self._signal_generators = signal_generators
+        self.signal_names = signal_names
+        self.parameters = sum([g.parameters for g in self._signal_generators])
+        for gen in self._signal_generators:
+            gen.mc_hist_generator._resync_parameters()
+        self._check_shared_params([g.parameters for g in self._signal_generators])
+
+    def _init_from_config(self, configuration):
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
@@ -197,14 +216,15 @@ class MultibandAnalysis(object):
     def plot_signals(self, category_column="paper_category", **kwargs):
         # make sub-plot for each signal in a horizontal arrangement
         n_signals = len(self._signal_generators)
-        fig, axes = plt.subplots(1, n_signals, figsize=(n_signals * 5, 5), squeeze=False)
+        fig, axes = plt.subplots(1, n_signals, figsize=(n_signals * 8, 5), squeeze=False)
         for i, generator in enumerate(self._signal_generators):
             plotter = RunHistPlotter(generator)
             plotter.plot(category_column=category_column, ax=axes[0, i], **kwargs)
+        return fig, axes
 
     def plot_sideband(self, category_column="category", **kwargs):
         plotter = RunHistPlotter(self._sideband_generator)
-        plotter.plot(category_column=category_column, **kwargs)
+        return plotter.plot(category_column=category_column, **kwargs)
 
     def _get_total_multiband_covariance(self, with_unisim=False, with_stat_only=False, include_sideband=False):
         hist_generators = []
@@ -231,19 +251,21 @@ class MultibandAnalysis(object):
         stat_only_covariance = np.diag(np.concatenate([h.std_devs**2 for h in stat_only_histograms]))
         return stat_only_covariance
 
-    def plot_correlation(self, ms_column=None, ax=None):
+    def plot_correlation(self, ms_column=None, ax=None, with_unisim=False):
         hist_generators = []
         hist_gen_labels = []
+        hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
+        hist_gen_labels.extend(self.signal_names)
         if self._sideband_generator is not None:
             hist_generators.append(self._sideband_generator.mc_hist_generator)
             hist_gen_labels.append(self.sideband_name)
-        hist_generators.extend([g.mc_hist_generator for g in self._signal_generators])
-        hist_gen_labels.extend(self.signal_names)
 
         if ms_column is None:
-            multiband_covariance = self._get_total_multiband_covariance()
+            multiband_covariance = self._get_total_multiband_covariance(with_unisim=with_unisim, include_sideband=True)
         else:
             multiband_covariance = HistogramGenerator.multiband_covariance(hist_generators, ms_column=ms_column)
+            if with_unisim:
+                multiband_covariance += HistogramGenerator.multiband_unisim_covariance(hist_generators)
         # convert to correlation matrix
         multiband_covariance = multiband_covariance / np.sqrt(
             np.outer(np.diag(multiband_covariance), np.diag(multiband_covariance))
@@ -254,7 +276,7 @@ class MultibandAnalysis(object):
             fig = ax.figure
         # show the covariance matrix as a heatmap
         X, Y = np.meshgrid(np.arange(multiband_covariance.shape[0] + 1), np.arange(multiband_covariance.shape[1] + 1))
-        p = ax.pcolormesh(X, Y, multiband_covariance.T, cmap="Spectral_r", shading="flat")
+        p = ax.pcolormesh(X, Y, multiband_covariance.T, cmap="coolwarm", shading="flat", vmin=-1, vmax=1)
         # colorbar
         cbar = fig.colorbar(p, ax=ax)
         cbar.set_label("correlation")

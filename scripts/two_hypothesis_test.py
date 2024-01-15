@@ -40,8 +40,8 @@ def plot_results(args):
     two_hypo_results = from_json(os.path.join(args.output_dir, "two_hypothesis_test.json"))
     
     fig, ax = plt.subplots()
-    ax.hist(two_hypo_results["samples_h0"], bins=100, histtype="step", density=True, label="H0")
-    ax.hist(two_hypo_results["samples_h1"], bins=100, histtype="step", density=True, label="H1")
+    ax.hist(two_hypo_results["samples_h0"], bins=35, histtype="step", density=True, label="H0")
+    ax.hist(two_hypo_results["samples_h1"], bins=35, histtype="step", density=True, label="H1")
     ax.axvline(x=two_hypo_results["ts_median_h1"], color="k", linestyle="--", label=f"Median H1\np-val: {two_hypo_results['median_pval']:0.3f}")
     ax.legend()
     ax.set_xlabel("Test statistic")
@@ -58,7 +58,9 @@ if __name__ == "__main__":
     parser.add_argument("--sensitivity-only", action="store_true", help="Only calculate sensitivity")
     args = parser.parse_args()
     if args.configuration is not None:
+        assert os.path.exists(args.configuration), f"Configuration file {args.configuration} does not exist"
         args.configuration = toml.load(args.configuration)
+        assert args.configuration, "Configuration file is empty"
     
     if args.function == "run_analysis":
         run_analysis(args)
