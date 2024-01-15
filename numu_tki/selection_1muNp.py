@@ -7,10 +7,8 @@ from numu_tki import tki_calculators
 # Author: C Thorpe
 
 TRACK_SCORE_CUT = 0.5
-
 MUON_P_MIN_MOM_CUT = 0.100
 MUON_P_MAX_MOM_CUT = 1.200
-
 LEAD_P_MIN_MOM_CUT = 0.250
 LEAD_P_MAX_MOM_CUT = 1.
 
@@ -18,12 +16,33 @@ LEAD_P_MAX_MOM_CUT = 1.
 # Fiducial volume cut is already applied by preselection filter - repeated here
 # for completeness
 
+# Definitions from SG's code
+'''
+FV_X_MIN = 21.5
+FV_X_MAX = 234.85
+FV_Y_MIN = -95.0
+FV_Y_MAX = 95.0
+FV_Z_MIN = 21.5
+FV_Z_MAX = 966.8
+DEAD_Z_MIN = 10000 # SG's code does not cut dead region 
+DEAD_Z_MAX = 10000
+'''
+# Definitions in other PeLEE code
+FV_X_MIN =   5.0
+FV_X_MAX =  251.0
+FV_Y_MIN = -111.0
+FV_Y_MAX =  111.0
+FV_Z_MIN =   20.0
+FV_Z_MAX =  986.0
+DEAD_Z_MIN = 675 # SG's code does not cut dead region 
+DEAD_Z_MAX = 775
+
 def sel_reco_vertex_in_FV(reco_nu_vtx_sce_x,reco_nu_vtx_sce_y,reco_nu_vtx_sce_z):
     
-    return reco_nu_vtx_sce_x > 5.0 and reco_nu_vtx_sce_x < 251.0 and\
-           abs(reco_nu_vtx_sce_y) < 111.0 and\
-           reco_nu_vtx_sce_z > 20.0 and reco_nu_vtx_sce_z < 986.0 and\
-           not (reco_nu_vtx_sce_z > 675 and reco_nu_vtx_sce_z < 775) 
+    return reco_nu_vtx_sce_x > FV_X_MIN and reco_nu_vtx_sce_x < FV_X_MAX and\
+           reco_nu_vtx_sce_y > FV_Y_MIN and reco_nu_vtx_sce_y < FV_Y_MAX and\
+           reco_nu_vtx_sce_z > FV_Z_MIN and reco_nu_vtx_sce_z < FV_Z_MAX and\
+           not (reco_nu_vtx_sce_z > DEAD_Z_MIN and reco_nu_vtx_sce_z < DEAD_Z_MAX) 
 
 ################################################################################
 # Point located in proton containment volume
@@ -50,15 +69,25 @@ def is_contained(track_end_sce_x_v,track_end_sce_y_v,track_end_sce_z_v):
          contained.append(in_proton_containment_vol(track_end_sce_x_v[i],track_end_sce_y_v[i],track_end_sce_z_v[i]))
 
     return contained
+################################################################################
+# Returns true if all tracks are contained 
+
+def pfp_starts_in_PCV(pfp_generation_v,trk_sce_start_x_v,trk_sce_start_y_v,trk_sce_start_z_v):
+    
+    for i in range(0,len(pfp_generation_v)):
+        if pfp_generation_v[i] == 2 and not in_proton_containment_vol(trk_sce_start_x_v[i],trk_sce_start_y_v[i],trk_sce_start_z_v[i]):
+            return False
+
+    return True
 
 ################################################################################
 # Apply generic numu cc selection
 
-TOPOLOGICAL_SCORE_CUT=0.1
+TOPO_SCORE_CUT=0.1
 
 def pass_numu_CC_selection(topological_score,pfp_generation_v,track_start_sce_x_v,track_start_sce_y_v,track_start_sce_z_v,MuonCandidateIdx1muNp):
     
-    if topological_score > TOPOLOGICAL_SCORE_CUT: return False
+    if topological_score > TOPO_SCORE_CUT: return False
        
     sel_pfp_starts_in_PCV = True;
     
@@ -104,7 +133,8 @@ def sel_reco_showers(pfp_generation_v,trk_score_v):
 ################################################################################
 # Check muon track is contained
 
-def is_muon_contianed(MuonCandidateIdx_1muNp,IsContained_1muNp):
+def is_muon_contained(MuonCandidateIdx_1muNp,IsContained_1muNp):
+    if MuonCandidateIdx_1muNp == -1: return False
     return IsContained_1muNp[MuonCandidateIdx_1muNp]
 
 ################################################################################
@@ -142,6 +172,7 @@ MASS_PROTON = 0.93827
 
 def get_reco_proton_mom(LeadProtonIdx_1muNp,trk_energy_proton_v):
 
+    if LeadProtonIdx_1muNp == -1: return np.nan
     ke = trk_energy_proton_v[LeadProtonIdx_1muNp]
     return math.sqrt(ke*ke + 2*MASS_PROTON*ke)
 
@@ -217,8 +248,9 @@ def get_reco_proton_E_v(RecoProtonMomentum_1muNp):
 ################################################################################
 # Muon track momentun cuts 
 
-def pass_mom_cut(RecoMuonMomentum_1muNp,CUT_LOW,CUT_HIGH):
-    return RecoMuonMomentum_1muNp > CUT_LOW and RecoMuonMomentum_1muNp < CUT_HIGH 
+def pass_mom_cut(RecoMomentum_1muNp,CUT_LOW,CUT_HIGH):
+    if math.isnan(RecoMomentum_1muNp): return False
+    return RecoMomentum_1muNp > CUT_LOW and RecoMomentum_1muNp < CUT_HIGH 
 
 ################################################################################
 # Check selected muon candidate passes momentum consistency check
@@ -260,6 +292,12 @@ def find_leading_proton_candidate(ProtonCandidateIdx_1muNp,trk_len_v):
     return longest_idx
 
 ################################################################################
+# Count the number of proton tracks 
+
+def n_protons(ProtonCandidateIdx_1muNp):
+    return len(ProtonCandidateIdx_1muNp)
+
+################################################################################
 # Apply the whole selection
 
 def is_sel_1muNp(PassNuMuCCSelection_1muNp,NoRecoShowers_1muNp,MuonContained_1muNp,PassMuonMomentumCut_1muNp,PassMuonQualCut_1muNp,LeadProtonPassMomentumCut_1muNp):
@@ -269,21 +307,49 @@ def is_sel_1muNp(PassNuMuCCSelection_1muNp,NoRecoShowers_1muNp,MuonContained_1mu
 ################################################################################
 # Add a column to the dataframe indicating whether event passed the 1muNp selection
 
-def apply_selection_1muNp(df,filter=False):
-    print("Applying SG's selection")
-    print(len(df))
+def apply_selection_1muNp(up,df,filter=False):
 
+    print("Applying SG's selection")
+
+    # Load any branches not already loaded
+    df["pfp_generation_v"] = up.array("pfp_generation_v")
+    df["trk_score_v"] = up.array("trk_score_v")
+    df["trk_distance_v"] = up.array("trk_distance_v")
+    df["trk_len_v"] = up.array("trk_len_v")
+    df["trk_llr_pid_score_v"] = up.array("trk_llr_pid_score_v")
+    df["trk_sce_start_x_v"] = up.array("trk_sce_start_x_v")
+    df["trk_sce_start_y_v"] = up.array("trk_sce_start_y_v")
+    df["trk_sce_start_z_v"] = up.array("trk_sce_start_z_v")
+    df["trk_sce_end_x_v"] = up.array("trk_sce_end_x_v")
+    df["trk_sce_end_y_v"] = up.array("trk_sce_end_y_v")
+    df["trk_sce_end_z_v"] = up.array("trk_sce_end_z_v")
+    df["trk_range_muon_mom_v"] = up.array("trk_range_muon_mom_v")
+    df["trk_mcs_muon_mom_v"] = up.array("trk_mcs_muon_mom_v")
+    df["trk_energy_proton_v"] = up.array("trk_energy_proton_v")
+    df["trk_dir_x_v"] = up.array("trk_dir_x_v")
+    df["trk_dir_y_v"] = up.array("trk_dir_y_v")
+    df["trk_dir_z_v"] = up.array("trk_dir_z_v")
+
+    df["InFV_1muNp"] = df.apply(lambda x: (sel_reco_vertex_in_FV(x["reco_nu_vtx_sce_x"],x["reco_nu_vtx_sce_y"],x["reco_nu_vtx_sce_z"])),axis=1)
+    df["PFPStartsInPCV_1muNp"] = df.apply(lambda x: (pfp_starts_in_PCV(x["pfp_generation_v"],x["trk_sce_start_x_v"],x["trk_sce_start_y_v"],x["trk_sce_start_z_v"])),axis=1)
     df["MuonCandidateIdx_1muNp"] = df.apply(lambda x: (find_muon_candidate(x["pfp_generation_v"],x["trk_score_v"],x["trk_distance_v"],x["trk_len_v"],x["trk_llr_pid_score_v"])),axis=1)
     if filter: df = df.query("MuonCandidateIdx_1muNp != -1")
-  
-    df["IsContained_1muNp"] = df.apply(lambda x: (is_contained(x["trk_sce_end_x_v"],x["trk_sce_end_y_v"],x["trk_sce_end_z_v"])),axis=1)
-    df["PassNuMuCCSelection_1muNp"] = df.apply(lambda x: (pass_numu_CC_selection(x["topological_score"],x["pfp_generation_v"],x["trk_sce_start_x_v"],x["trk_sce_start_y_v"],x["trk_sce_start_z_v"],x["MuonCandidateIdx_1muNp"])),axis=1)
+
+    df.loc[((df["topological_score"] > TOPO_SCORE_CUT)), "PassTopoScoreCut_1muNp"] = True 
+    df.loc[((df["topological_score"] <= TOPO_SCORE_CUT)), "PassTopoScoreCut_1muNp"] = False 
+
+    #df["PassNuMuCCSelection_1muNp"] = df.apply(lambda x: (pass_numu_CC_selection(x["topological_score"],x["pfp_generation_v"],x["trk_sce_start_x_v"],x["trk_sce_start_y_v"],x["trk_sce_start_z_v"],x["MuonCandidateIdx_1muNp"])),axis=1)
+
+    df.loc[((df["InFV_1muNp"] == True) & (df["PFPStartsInPCV_1muNp"] == True) & (df["MuonCandidateIdx_1muNp"] != -1) & (df["PassTopoScoreCut_1muNp"] == True)), "PassNuMuCCSelection_1muNp"] = True 
+    df.loc[((df["InFV_1muNp"] != True) | (df["PFPStartsInPCV_1muNp"] != True) | (df["MuonCandidateIdx_1muNp"] == -1) | (df["PassTopoScoreCut_1muNp"] != True)), "PassNuMuCCSelection_1muNp"] = False
+
     if filter: df = df.query("PassNuMuCCSelection_1muNp == True")    
 
+    df["IsContained_1muNp"] = df.apply(lambda x: (is_contained(x["trk_sce_end_x_v"],x["trk_sce_end_y_v"],x["trk_sce_end_z_v"])),axis=1)
     df["NoRecoShowers_1muNp"] = df.apply(lambda x: (sel_reco_showers(x["pfp_generation_v"],x["trk_score_v"]) == 0),axis=1)
     if filter: df = df.query("NoRecoShowers_1muNp == True")
 
-    df["MuonContained_1muNp"] = df.apply(lambda x: (is_muon_contianed(x["MuonCandidateIdx_1muNp"],x["IsContained_1muNp"])),axis=1)
+    df["MuonContained_1muNp"] = df.apply(lambda x: (is_muon_contained(x["MuonCandidateIdx_1muNp"],x["IsContained_1muNp"])),axis=1)
     df["RecoMuonMomentum_1muNp"] = df.apply(lambda x: (get_reco_muon_mom(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"])),axis=1)
     df["PassMuonMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoMuonMomentum_1muNp"],MUON_P_MIN_MOM_CUT,MUON_P_MAX_MOM_CUT)),axis=1) 
     if filter: df = df.query("PassMuonMomentumCut_1muNp == True")
@@ -291,15 +357,19 @@ def apply_selection_1muNp(df,filter=False):
     df["PassMuonQualCut_1muNp"] = df.apply(lambda x: (pass_muon_qual_cut(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"])),axis=1)
     if filter: df = df.query("PassMuonQualCut_1muNp == True")
 
+
     df["ProtonCandidateIdx_1muNp"] = df.apply(lambda x: (find_proton_candidates(x["MuonCandidateIdx_1muNp"],x["pfp_generation_v"],x["trk_score_v"],x["trk_len_v"],x["trk_llr_pid_score_v"],x["IsContained_1muNp"])),axis=1)
-    
     df["LeadProtonIdx_1muNp"] = df.apply(lambda x: (find_leading_proton_candidate(x["ProtonCandidateIdx_1muNp"],x["trk_len_v"])),axis=1)
     df["RecoLeadProtonMomentum_1muNp"] = df.apply(lambda x: (get_reco_proton_mom(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"])),axis=1)
     df["RecoProtonMomentum_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"])),axis=1)
     df["LeadProtonPassMomentumCut_1muNp"] = df.apply(lambda x: (pass_mom_cut(x["RecoLeadProtonMomentum_1muNp"],LEAD_P_MIN_MOM_CUT,LEAD_P_MAX_MOM_CUT)),axis=1)
+    df["NProtons_1muNp"] = df.apply(lambda x: (n_protons(x["ProtonCandidateIdx_1muNp"])),axis=1)
     if filter: df = df.query("LeadProtonPassMomentumCut_1muNp == True")  
 
-    df["sel_CCNp0pi"] = df.apply(lambda x: (is_sel_1muNp(x["PassNuMuCCSelection_1muNp"],x["NoRecoShowers_1muNp"],x["MuonContained_1muNp"],x["PassMuonMomentumCut_1muNp"],x["PassMuonQualCut_1muNp"],x["LeadProtonPassMomentumCut_1muNp"])),axis=1)
+    df.loc[((df["PassNuMuCCSelection_1muNp"] == True) & (df["NoRecoShowers_1muNp"] == True) & (df["MuonContained_1muNp"] == True) & (df["PassMuonMomentumCut_1muNp"] == True) & (df["PassMuonQualCut_1muNp"] == True) & (df["LeadProtonPassMomentumCut_1muNp"] == True)), "sel_CCNp0pi"] = True 
+    df.loc[((df["PassNuMuCCSelection_1muNp"] != True) | (df["NoRecoShowers_1muNp"] != True) | (df["MuonContained_1muNp"] != True) | (df["PassMuonMomentumCut_1muNp"] != True) | (df["PassMuonQualCut_1muNp"] != True) | (df["LeadProtonPassMomentumCut_1muNp"] != True)), "sel_CCNp0pi"] = False 
+    df.loc[((df["PassNuMuCCSelection_1muNp"] == True) & (df["NoRecoShowers_1muNp"] == True) & (df["MuonContained_1muNp"] == True) & (df["PassMuonMomentumCut_1muNp"] == True) & (df["PassMuonQualCut_1muNp"] == True) & (df["LeadProtonPassMomentumCut_1muNp"] == True) & (df["NProtons_1muNp"] == 1)), "sel_CC1p0pi"] = True 
+    df.loc[((df["PassNuMuCCSelection_1muNp"] != True) | (df["NoRecoShowers_1muNp"] != True) | (df["MuonContained_1muNp"] != True) | (df["PassMuonMomentumCut_1muNp"] != True) | (df["PassMuonQualCut_1muNp"] != True) | (df["LeadProtonPassMomentumCut_1muNp"] != True) | (df["NProtons_1muNp"] != 1)), "sel_CC1p0pi"] = False 
     if filter: df = df.query("sel_CCNp0pi == True")
 
      # If the event passes the selection, set the various momentum/tki variables     
@@ -307,18 +377,37 @@ def apply_selection_1muNp(df,filter=False):
     df["RecoMuonMomX_1muNp"] = df.apply(lambda x: (get_reco_muon_mom_comp(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"],x["trk_dir_x_v"])),axis=1)
     df["RecoMuonMomY_1muNp"] = df.apply(lambda x: (get_reco_muon_mom_comp(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"],x["trk_dir_y_v"])),axis=1)
     df["RecoMuonMomZ_1muNp"] = df.apply(lambda x: (get_reco_muon_mom_comp(x["MuonCandidateIdx_1muNp"],x["trk_range_muon_mom_v"],x["trk_mcs_muon_mom_v"],x["MuonContained_1muNp"],x["trk_dir_z_v"])),axis=1)
-
     df["RecoLeadProtonE_1muNp"] = df.apply(lambda x: (get_reco_proton_E(x["RecoLeadProtonMomentum_1muNp"])),axis=1)
     df["RecoLeadProtonMomX_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_x_v"])),axis=1)
     df["RecoLeadProtonMomY_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_y_v"])),axis=1)
     df["RecoLeadProtonMomZ_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["LeadProtonIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_z_v"])),axis=1)
-
     df["RecoProtonE_1muNp"] = df.apply(lambda x: (get_reco_proton_E_v(x["RecoProtonMomentum_1muNp"])),axis=1)
     df["RecoProtonMomX_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_x_v"])),axis=1)
     df["RecoProtonMomY_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_y_v"])),axis=1)
     df["RecoProtonMomZ_1muNp"] = df.apply(lambda x: (get_reco_proton_mom_comp_v(x["ProtonCandidateIdx_1muNp"],x["trk_energy_proton_v"],x["trk_dir_z_v"])),axis=1)
 
     # Drop all of the temporary columns added to the dataframe to save space
+    df.drop("pfp_generation_v",inplace=True,axis=1)
+    df.drop("trk_score_v",inplace=True,axis=1)
+    df.drop("trk_distance_v",inplace=True,axis=1)
+    df.drop("trk_len_v",inplace=True,axis=1)
+    df.drop("trk_llr_pid_score_v",inplace=True,axis=1)
+    df.drop("trk_sce_start_x_v",inplace=True,axis=1)
+    df.drop("trk_sce_start_y_v",inplace=True,axis=1)
+    df.drop("trk_sce_start_z_v",inplace=True,axis=1)
+    df.drop("trk_sce_end_x_v",inplace=True,axis=1)
+    df.drop("trk_sce_end_y_v",inplace=True,axis=1)
+    df.drop("trk_sce_end_z_v",inplace=True,axis=1)
+    df.drop("trk_range_muon_mom_v",inplace=True,axis=1)
+    df.drop("trk_mcs_muon_mom_v",inplace=True,axis=1)
+    df.drop("trk_energy_proton_v",inplace=True,axis=1)
+    df.drop("trk_dir_x_v",inplace=True,axis=1)
+    df.drop("trk_dir_y_v",inplace=True,axis=1)
+    df.drop("trk_dir_z_v",inplace=True,axis=1)
+
+    df.drop("InFV_1muNp",inplace=True,axis=1) 
+    df.drop("PFPStartsInPCV_1muNp",inplace=True,axis=1) 
+    df.drop("PassTopoScoreCut_1muNp",inplace=True,axis=1) 
     df.drop("MuonCandidateIdx_1muNp",inplace=True,axis=1) 
     df.drop("IsContained_1muNp",inplace=True,axis=1) 
     df.drop("PassNuMuCCSelection_1muNp",inplace=True,axis=1)
@@ -337,6 +426,7 @@ def apply_selection_1muNp(df,filter=False):
     df["RecoDeltaAlphaT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
     df["RecoECal_1mu1p"] = df.apply(lambda x: (tki_calculators.Ecal(x["RecoMuonE_1muNp"],x["RecoLeadProtonE_1muNp"])),axis=1)
     df["RecoPL_1mu1p"] = df.apply(lambda x: (tki_calculators.pL(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
+    df["RecoDeltaPL_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_pL(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
     df["RecoPN_1mu1p"] = df.apply(lambda x: (tki_calculators.pn(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
     df["RecoAlpha3D_1mu1p"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
     df["RecoPhi3D_1mu1p"] = df.apply(lambda x: (tki_calculators.phi_3D(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoLeadProtonE_1muNp"],x["RecoLeadProtonMomX_1muNp"],x["RecoLeadProtonMomY_1muNp"],x["RecoLeadProtonMomZ_1muNp"])),axis=1)
@@ -364,11 +454,15 @@ def apply_selection_1muNp(df,filter=False):
     df["RecoPNT_1muNp"] = df.apply(lambda x: (tki_calculators.pn_T(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
     df["RecoPNII_1muNp"] = df.apply(lambda x: (tki_calculators.pn_II(x["RecoMuonE_1muNp"],x["RecoMuonMomX_1muNp"],x["RecoMuonMomY_1muNp"],x["RecoMuonMomZ_1muNp"],x["RecoProtonE_1muNp"],x["RecoProtonMomX_1muNp"],x["RecoProtonMomY_1muNp"],x["RecoProtonMomZ_1muNp"])),axis=1)
 
-
+    df.drop("RecoMuonE_1muNp",inplace=True,axis=1)
+    df.drop("RecoMuonMomentum_1muNp",inplace=True,axis=1)
+    df.drop("RecoMuonMomX_1muNp",inplace=True,axis=1)
+    df.drop("RecoMuonMomY_1muNp",inplace=True,axis=1)
+    df.drop("RecoMuonMomZ_1muNp",inplace=True,axis=1)
     df.drop("RecoProtonE_1muNp",inplace=True,axis=1)
     df.drop("RecoProtonMomentum_1muNp",inplace=True,axis=1)
     df.drop("RecoProtonMomX_1muNp",inplace=True,axis=1)
     df.drop("RecoProtonMomY_1muNp",inplace=True,axis=1)
     df.drop("RecoProtonMomZ_1muNp",inplace=True,axis=1)
-   
+ 
     return df
