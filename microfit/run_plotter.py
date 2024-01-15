@@ -157,8 +157,8 @@ class RunHistPlotter:
         # data with error bands to show the MC uncertainty, and then to overlay the data points
         # with error bars.
         mc_nominal = total_mc_hist.nominal_values
-        mc_error_band = total_mc_hist / mc_nominal
-        data_mc_ratio = data_hist / total_pred_hist.nominal_values
+        mc_error_band = flatten(total_mc_hist / mc_nominal)
+        data_mc_ratio = flatten(data_hist / total_pred_hist.nominal_values)
         
         self.plot_hist(
             mc_error_band,
