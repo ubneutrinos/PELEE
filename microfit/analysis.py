@@ -53,6 +53,7 @@ class MultibandAnalysis(object):
 
     def _init_from_config(self, configuration):
         # The analysis may use several generators to produce a multi-channel histogram
+        raise NotImplementedError("TODO: update implementation for configuration loading")
         generator_configurations = configuration["generator"]
         for config in generator_configurations:
             self._check_config(config)

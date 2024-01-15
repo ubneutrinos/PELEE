@@ -858,7 +858,7 @@ class MultiChannelHistogram(Histogram):
     def __repr__(self):
         return f"MultiChannelHistogram(binning={self.binning}, bin_counts={self.bin_counts}, label={self.label}, tex={self.tex_string})"
 
-    def draw(self, ax, as_errorbars=False, show_errors=True, **plot_kwargs):
+    def draw(self, ax=None, as_errorbars=False, show_errors=True, **plot_kwargs):
         # call the draw method of the unrolled histogram
         unrolled_hist = self.get_unrolled_histogram()
         ax = unrolled_hist.draw(ax, as_errorbars, show_errors, **plot_kwargs)
