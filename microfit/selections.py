@@ -234,7 +234,6 @@ ZPBDTLOOSE_two_shower = ZPLOOSESEL_two_shower + ' and bkg_score > 0.72'
 
 ZPPRESEL_two_shower_CRT = ZPPRESEL_two_shower + ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
 
-
 ZPXSLQ_all_showers = ZPPRESEL
 ZPXSLQ_all_showers += ' and shrmoliereavg < 10'
 ZPXSLQ_all_showers += ' and subcluster > 4'
@@ -372,16 +371,26 @@ NUMUPRESELCRT = NUMUPRESEL + NUMUCRT
 NUMUSEL = NUMUPRESEL + ' and n_muons_tot > 0'
 NUMUSEL0PI = NUMUSEL + ' and n_muons_tot == 1 and n_showers_tot == 0'
 
+NUMUSEL0PI = NUMUSEL + ' and n_muons_tot == 1 and n_showers_tot == 0'
+
 NUMUSELNP = NUMUSEL + ' and n_protons_tot > 0'
 NUMUSEL0P = NUMUSEL + ' and n_protons_tot == 0'
+NUMUSELNP0PI = NUMUSEL0PI + ' and n_protons_tot > 0'
+NUMUSEL0P0PI = NUMUSEL0PI + ' and n_protons_tot == 0'
+
 NUMUSELNP0PI = NUMUSEL0PI + ' and n_protons_tot > 0'
 NUMUSEL0P0PI = NUMUSEL0PI + ' and n_protons_tot == 0'
 
 NUMUSELCRT = NUMUSEL + NUMUCRT
 NUMUSELCRT0PI = NUMUSEL0PI + NUMUCRT
 
+NUMUSELCRT0PI = NUMUSEL0PI + NUMUCRT
+
 NUMUSELCRTNP = NUMUSELCRT + ' and n_protons_tot > 0'
 NUMUSELCRT0P = NUMUSELCRT + ' and n_protons_tot == 0'
+NUMUSELCRTNP0PI = NUMUSELCRT0PI + ' and n_protons_tot > 0'
+NUMUSELCRT0P0PI = NUMUSELCRT0PI + ' and n_protons_tot == 0 and topological_score > 0.2'
+
 NUMUSELCRTNP0PI = NUMUSELCRT0PI + ' and n_protons_tot > 0'
 NUMUSELCRT0P0PI = NUMUSELCRT0PI + ' and n_protons_tot == 0 and topological_score > 0.2'
 
@@ -436,6 +445,7 @@ preselection_categories = {
     'ZPOneShr': {'query': ZPPRESEL_one_shower, 'title': '1e0p Presel., 1 shower', 'dir': 'ZPOneShr'},
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'ZPTwoShr': {'query': ZPPRESEL_two_shower, 'title': '1e0p Presel., 2+ shower', 'dir': 'ZPTwoShr'},
+    'ZPTwoShrCRT': {'query': ZPPRESEL_two_shower_CRT, 'title': '1e0p Presel. w/ CRT, 2+ shower', 'dir': 'ZPTwoShrCRT'},
     'None': {'query': None, 'title': None, 'dir': 'None'},
     'NSLICE': {'query': 'nslice==1', 'title': r"SliceID selection", 'dir': 'NSLICE'},
     'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
@@ -473,6 +483,7 @@ selection_categories = {
     'NUMUPRE': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ pre-selection", 'dir': 'NUMU'},
     'NUMU': {'query': NUMUSEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'},
+    'NUMUCRT0PI': {'query': NUMUSELCRT0PI, 'title': r"$\nu_{\mu}$0$\pi$ selection w/ CRT", 'dir': 'NUMUCRT0PI'},
     'NUMU1MU1P': {'query': NUMUSEL1MU1P, 'title': r"$\nu_{\mu}$ 1$\mu$1$p$ selection", 'dir': 'NUMU1MU1P'},
     'PI0SEL': {'query': PI0SEL,'title': r"$\pi^0$ selection",'dir':"PI0"},
     'CCNCPI0': {'query': CCNCPI0SEL, 'title': r"CC/NC pi0 selection", 'dir': 'CCNCPI0'},
@@ -481,6 +492,8 @@ selection_categories = {
     'PI0': {'query': PI0SEL, 'title': r"$\pi^0$ selection", 'dir': 'PI0'},
     'NUMUCRTNP': {'query': NUMUSELCRTNP, 'title': r"$1\mu$Np selection w/ CRT", 'dir': 'NUMUCRTNP'},
     'NUMUCRT0P': {'query': NUMUSELCRT0P, 'title': r"$1\mu$0p selection w/ CRT", 'dir': 'NUMUCRT0P'},
+    'NUMUCRTNP0PI': {'query': NUMUSELCRTNP0PI, 'title': r"$1\mu$Np0$\pi$ selection w/ CRT", 'dir': 'NUMUCRTNP0PI'},
+    'NUMUCRT0P0PI': {'query': NUMUSELCRT0P0PI, 'title': r"$1\mu$0p0$\pi$ selection w/ CRT", 'dir': 'NUMUCRT0P0PI'},
     'NUMUNP': {'query': NUMUSELNP, 'title': r"$1\mu$Np selection", 'dir': 'NUMUNP'},
     'NUMU0P': {'query': NUMUSEL0P, 'title': r"$1\mu$0p selection", 'dir': 'NUMU0P'},
     'ETATWOSHR': {'query': ETATWOSHRQUERY, 'title': r"$\eta$ selection - two-shower cuts",'dir': 'ETATWOSHR' },

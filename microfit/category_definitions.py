@@ -8,6 +8,8 @@ def get_category_label(category_column, category):
         return category_labels.get(category, "Other")
     elif category_column == "paper_category":
         return paper_labels.get(category, "Other")
+    elif category_column == "paper_category_numu":
+        return paper_labels_numu.get(category, "Other")
     elif category_column == "paper_category_xsec":
         return paper_labels_xsec.get(category, "Other")
     elif category_column == "category_1e1p":
@@ -24,6 +26,8 @@ def get_categories(category_column):
         return list(category_labels.keys())
     elif category_column == "paper_category":
         return list(paper_labels.keys())
+    elif category_column == "paper_category_numu":
+        return list(paper_labels_numu.keys())
     elif category_column == "paper_category_xsec":
         return list(paper_labels_xsec.keys())
     elif category_column == "category_1e1p":

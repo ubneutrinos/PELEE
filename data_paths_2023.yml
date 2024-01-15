@@ -152,6 +152,27 @@ runs:
     drt:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
       pot: 3.27E+20
+  - run_id: "3b"
+    path: run3/nuepresel/
+    two_shr_sideband:
+      file: TwoShowers_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 5.17E+07
+      sideband_def: n_showers_contained >= 2 and run>=14114
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
+      trig: 1.92E+08
+      sideband_def: n_showers_contained >= 2 and run>=14114
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
+      pot: 1.31E+21
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
+      pot: 7.77E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
+      pot: 3.27E+20
   - run_id: "4a"
     path: run4a/nuepresel/
     opendata_bnb:
@@ -505,6 +526,27 @@ numupresel:
     ext:
       file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 191706142
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
+      pot: 1.31E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
+      pot: 7.77E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
+      pot: 3.27E+20
+  - run_id: "3b"
+    path: run3/numupresel/
+    muon_sideband:
+      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.15E+20
+      trig: 5.17E+07
+      sideband_def: n_muons_tot > 0 and run>=14114
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
+      trig: 1.92E+08
+      sideband_def: n_muons_tot > 0 and run>=14114
     mc:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
       pot: 1.31E+21 

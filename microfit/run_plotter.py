@@ -58,6 +58,7 @@ class RunHistPlotter:
         show_total=True,
         channel=None,
         add_precomputed_detsys=False,
+        print_tot_pred_norm=False,
         title=None,
         **kwargs,
     ):
@@ -115,6 +116,8 @@ class RunHistPlotter:
             else:
                 title = self.title
 
+        if print_tot_pred_norm: print('print_tot_pred_norm:',total_mc_hist.nominal_values/np.sum(total_mc_hist.nominal_values))
+
         if show_data_mc_ratio:
             # TODO: implement plotting within inset axes
             assert ax is None, "Can't plot within an ax when showing data/mc ratio"
@@ -156,7 +159,7 @@ class RunHistPlotter:
         mc_nominal = total_mc_hist.nominal_values
         mc_error_band = total_mc_hist / mc_nominal
         data_mc_ratio = data_hist / total_pred_hist.nominal_values
-
+        
         self.plot_hist(
             mc_error_band,
             ax=ax_ratio,

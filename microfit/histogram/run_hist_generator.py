@@ -30,6 +30,7 @@ class RunHistGenerator:
         parameters: Optional[ParameterSet] = None,
         detvar_data_path: Optional[str] = None,
         mc_hist_generator_cls: Optional[type] = None,
+        showdata = True,
         **mc_hist_generator_kwargs,
     ) -> None:
         """Create a histogram generator for data and simulation runs.
@@ -70,6 +71,9 @@ class RunHistGenerator:
         mc_hist_generator_cls : type, optional
             Class to use for the MC histogram generator. If None, the default HistogramGenerator
             class is used.
+        showdata : bool, optional 
+            Whether to show data in the plot. If False, only MC is shown. Internally, this removes the
+            dataframe for the real data entirely.
         **mc_hist_generator_kwargs
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
@@ -120,7 +124,7 @@ class RunHistGenerator:
         # make one dataframe for all mc events
         df_mc = pd.concat([df for k, df in rundata_dict.items() if k not in ["data", "ext"]])
         df_ext = rundata_dict["ext"]
-        df_data = rundata_dict["data"]
+        df_data = rundata_dict["data"] if showdata else None
         if query is not None:
             # The Python engine is necessary because the queries tend to have too many inputs
             # for numexpr to handle.
