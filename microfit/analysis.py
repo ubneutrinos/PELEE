@@ -23,13 +23,13 @@ from microfit.statistics import sideband_constraint_correction, chi_square
 
 
 class MultibandAnalysis(object):
-    def __init__(self, configuration=None, run_hist_generators=None, constraint_channels=[]):
+    def __init__(self, configuration=None, run_hist_generators=None, constraint_channels=[], signal_channels=[]):
         self.logger = logging.getLogger(__name__)
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
         if configuration is None:
-            self._init_from_generators(run_hist_generators, constraint_channels)
+            self._init_from_generators(run_hist_generators, constraint_channels, signal_channels)
         else:
             self._init_from_config(configuration)
         self.channels = []
@@ -42,10 +42,11 @@ class MultibandAnalysis(object):
             assert ch in self.channels, f"Constraint channel {ch} not found in analysis channels"
 
     def _init_from_generators(
-        self, run_hist_generators: List[RunHistGenerator], constraint_channels: List[str]
+        self, run_hist_generators: List[RunHistGenerator], constraint_channels: List[str], signal_channels: List[str]
     ):
         self._run_hist_generators = run_hist_generators
         self.constraint_channels = constraint_channels
+        self.signal_channels = signal_channels
         self.parameters = sum([g.parameters for g in self._run_hist_generators])
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
@@ -132,6 +133,9 @@ class MultibandAnalysis(object):
         include_multisim_errors=False,
         use_sideband=False,
         scale_to_pot=None,
+        constraint_channels=None,
+        signal_channels=None,
+        include_non_signal_channels=False,
     ):
         """Generate the combined MC histogram from all channels."""
 
@@ -139,8 +143,19 @@ class MultibandAnalysis(object):
         output_hist = HistogramGenerator.generate_joint_histogram(
             mc_hist_generators, include_multisim_errors=include_multisim_errors
         )
+        ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
+        joint_ext_hist = HistogramGenerator.generate_joint_histogram(
+            ext_hist_generators, include_multisim_errors=False
+        )
+        output_hist += joint_ext_hist
+        constraint_channels = constraint_channels or self.constraint_channels
+        signal_channels = signal_channels or self.signal_channels
+        all_channels = signal_channels + constraint_channels
+        output_hist = output_hist[all_channels]
         if use_sideband:
-            output_hist = self._apply_constraints(output_hist)
+            output_hist = self._apply_constraints(output_hist, constraint_channels=constraint_channels)
+        if not include_non_signal_channels:
+            output_hist = output_hist[signal_channels]
         if scale_to_pot is not None:
             output_hist *= scale_to_pot / self.data_pot
         return output_hist
@@ -183,6 +198,7 @@ class MultibandAnalysis(object):
         ms_columns=["weightsGenie", "weightsFlux", "weightsReint"],
         ax=None,
         include_unisim_errors=True,
+        channels=None,
         **draw_kwargs,
     ):
         hist_generators = []
@@ -193,6 +209,9 @@ class MultibandAnalysis(object):
             ms_columns=ms_columns,
             include_unisim_errors=include_unisim_errors,
         )
+        all_channels = self.signal_channels + self.constraint_channels
+        channels = channels or all_channels
+        histogram = histogram[channels]
         if ax is None:
             fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)
         else:
