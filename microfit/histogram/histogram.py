@@ -662,7 +662,7 @@ class MultiChannelHistogram(Histogram):
             self.roll_channels(shift)
 
     def update_with_measurement(
-        self, key: Union[int, str], measurement: np.ndarray
+        self, key: Union[int, str], measurement: np.ndarray, central_value: Optional[np.ndarray] = None
     ) -> "MultiChannelHistogram":
         """Perform the Bayesian update of the histogram given a measurement of one channel.
 
@@ -672,6 +672,9 @@ class MultiChannelHistogram(Histogram):
             Index or label of the channel.
         measurement : np.ndarray
             Measurement of the channel.
+        central_value : np.ndarray, optional
+            Central value of the sideband. If provided, this overrides the expectation value
+            of the sideband that is stored in the histogram.
 
         Returns
         -------
@@ -685,7 +688,7 @@ class MultiChannelHistogram(Histogram):
         idx = self.binning._idx_channel(key)
         # This should always be the case, since we use the function above to roll the channel to the last position.
         assert idx == len(self.binning) - 1, "Channel must be the last channel in the histogram."
-        sideband_central_value = self[idx].nominal_values
+        sideband_central_value = self[idx].nominal_values if central_value is None else central_value
         concat_covariance_matrix = self.covariance_matrix
         assert len(measurement) == len(
             sideband_central_value
@@ -794,6 +797,8 @@ class MultiChannelHistogram(Histogram):
                 covariance_matrix=new_covariance_matrix,
                 label=self.label,
                 tex_string=self.tex_string,
+                plot_color=self.color,
+                plot_hatch=self.hatch,
             )
         idx = self.binning._idx_channel(key)
         return Histogram(
@@ -841,6 +846,19 @@ class MultiChannelHistogram(Histogram):
         self.covariance_matrix[
             np.ix_(self.binning._channel_bin_idx(idx), self.binning._channel_bin_idx(idx))
         ] = histogram.covariance_matrix
+    
+    def append_empty_channel(self, binning: Binning) -> None:
+        """Append an empty channel to the histogram.
+
+        Parameters
+        ----------
+        binning : Binning
+            Binning of the new channel.
+        """
+        assert not isinstance(binning, MultiChannelBinning), "Cannot append a MultiChannelBinning."
+        self.binning.binnings.append(binning)
+        self.bin_counts = np.append(self.bin_counts, np.zeros(binning.n_bins))
+        self.covariance_matrix = block_diag(self.covariance_matrix, np.zeros((binning.n_bins, binning.n_bins)))
 
     def get_unrolled_histogram(self) -> Histogram:
         """Get an unrolled histogram of all channels.
@@ -970,4 +988,12 @@ class MultiChannelHistogram(Histogram):
         binning = MultiChannelBinning.join(*[h.binning for h in histograms])
         bin_counts = np.concatenate([h.nominal_values for h in histograms])
         covariance_matrix = block_diag(*[h.covariance_matrix for h in histograms])
-        return cls(binning, bin_counts, covariance_matrix=covariance_matrix)
+        combined_hist = cls(binning, bin_counts, covariance_matrix=covariance_matrix)
+        properties = ["label", "color", "hatch", "tex_string"]
+        # For every property that is shared between all input histograms, set
+        # the corresponding property of the combined histogram.
+        for prop in properties:
+            values = [getattr(h, prop) for h in histograms]
+            if len(set(values)) == 1:
+                setattr(combined_hist, prop, values[0])
+        return combined_hist

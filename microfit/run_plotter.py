@@ -73,8 +73,6 @@ class RunHistPlotter:
             else:
                 return hist
 
-        if use_sideband:
-            assert gen.sideband_generator is not None
         # we want the uncertainty defaults of the generator to be used if the user doesn't specify
         gen_defaults = gen.uncertainty_defaults
         if include_multisim_errors is None:
@@ -106,8 +104,12 @@ class RunHistPlotter:
             add_precomputed_detsys=add_precomputed_detsys,
         )
         total_pred_hist = flatten(total_mc_hist)
+        total_pred_hist.tex_string = "Total Pred. (MC)"
         if ext_hist is not None:
             total_pred_hist += ext_hist
+            total_pred_hist.tex_string = "Total Pred. (MC + EXT)"
+        if use_sideband:
+            total_pred_hist.tex_string += "\n constrained"
         data_hist = flatten(gen.get_data_hist())
         if title is None:
             if self.title is None:

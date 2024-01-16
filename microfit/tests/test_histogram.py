@@ -554,6 +554,9 @@ class TestMultiChannelHistogram(unittest.TestCase):
         histograms = [
             self._hist_from_binning(b) for b in [first_binning, second_binning, third_binning]
         ]
+        for i, (color, hatch) in enumerate(zip(["red", "blue", "green"], ["///", "///", "///"])):
+            histograms[i].color = color
+            histograms[i].hatch = hatch
         hist = MultiChannelHistogram.from_histograms(histograms)
         assert isinstance(hist, MultiChannelHistogram)
         assert len(hist.channels) == 6
@@ -567,6 +570,10 @@ class TestMultiChannelHistogram(unittest.TestCase):
         ]
         for h, b in zip(hist, consecutive_binnings):
             assert h.binning == b
+        # color should have been set to None, since it is not the same for all input histograms
+        assert hist.color is None
+        # hatch should be set to "///", since it is the same for all input histograms
+        assert hist.hatch == "///"
 
 
 class TestHistogramGenerator(unittest.TestCase):

@@ -2,7 +2,7 @@
 
 
 import logging
-from typing import List
+from typing import List, Optional, Union
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -15,21 +15,32 @@ from microfit.histogram import (
     RunHistGenerator,
     Histogram,
     MultiChannelBinning,
+    MultiChannelHistogram,
 )
 from microfit.parameters import ParameterSet
 from microfit.run_plotter import RunHistPlotter
 from microfit import signal_generators
 from microfit.statistics import sideband_constraint_correction, chi_square
+from microfit import category_definitions
 
 
 class MultibandAnalysis(object):
-    def __init__(self, configuration=None, run_hist_generators=None, constraint_channels=[], signal_channels=[]):
+    def __init__(
+        self,
+        configuration=None,
+        run_hist_generators=None,
+        constraint_channels=[],
+        signal_channels=[],
+        uncertainty_defaults=None,
+    ):
         self.logger = logging.getLogger(__name__)
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
         if configuration is None:
-            self._init_from_generators(run_hist_generators, constraint_channels, signal_channels)
+            self._init_from_generators(
+                run_hist_generators, constraint_channels, signal_channels, uncertainty_defaults
+            )
         else:
             self._init_from_config(configuration)
         self.channels = []
@@ -40,12 +51,20 @@ class MultibandAnalysis(object):
                 self.channels.append(gen.binning.label)
         for ch in constraint_channels:
             assert ch in self.channels, f"Constraint channel {ch} not found in analysis channels"
+        # Adding the data_pot property just for compatibility with the RunHistPlotter
+        self.data_pot = None
+        self.plot_sideband = False
 
     def _init_from_generators(
-        self, run_hist_generators: List[RunHistGenerator], constraint_channels: List[str], signal_channels: List[str]
+        self,
+        run_hist_generators: List[RunHistGenerator],
+        constraint_channels: List[str],
+        signal_channels: List[str],
+        uncertainty_defaults=None,
     ):
         self._run_hist_generators = run_hist_generators
         self.constraint_channels = constraint_channels
+        self.uncertainty_defaults = uncertainty_defaults or {}
         self.signal_channels = signal_channels
         self.parameters = sum([g.parameters for g in self._run_hist_generators])
         for gen in self._run_hist_generators:
@@ -116,16 +135,24 @@ class MultibandAnalysis(object):
         # )
         # return run_generator
 
-    def _apply_constraints(self, hist, constraint_channels=None):
+    def _apply_constraints(
+        self, hist: MultiChannelHistogram, constraint_channels=None, total_prediction_hist=None
+    ):
         """Apply the sideband constraint to the given histogram."""
 
         data_hist = self.generate_multiband_data_histogram()
         if data_hist is None:
             return hist
         constraint_channels = constraint_channels or self.constraint_channels
+        total_prediction_hist = total_prediction_hist or hist
         for constraint_channel in constraint_channels:
             constraint_hist = data_hist[constraint_channel]
-            hist = hist.update_with_measurement(constraint_channel, constraint_hist.nominal_values)
+            prediction_hist = total_prediction_hist[constraint_channel]
+            hist = hist.update_with_measurement(
+                constraint_channel,
+                measurement=constraint_hist.nominal_values,
+                central_value=prediction_hist.nominal_values,
+            )
         return hist
 
     def generate_multiband_histogram(
@@ -136,31 +163,196 @@ class MultibandAnalysis(object):
         constraint_channels=None,
         signal_channels=None,
         include_non_signal_channels=False,
+        include_ext=True,
     ):
         """Generate the combined MC histogram from all channels."""
 
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
-        output_hist = HistogramGenerator.generate_joint_histogram(
+        mc_hist = HistogramGenerator.generate_joint_histogram(
             mc_hist_generators, include_multisim_errors=include_multisim_errors
         )
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
         joint_ext_hist = HistogramGenerator.generate_joint_histogram(
             ext_hist_generators, include_multisim_errors=False
         )
-        output_hist += joint_ext_hist
+        
         constraint_channels = constraint_channels or self.constraint_channels
         signal_channels = signal_channels or self.signal_channels
         all_channels = signal_channels + constraint_channels
-        output_hist = output_hist[all_channels]
+        mc_hist = mc_hist[all_channels]
+        joint_ext_hist = joint_ext_hist[all_channels]
+
+        total_prediction = mc_hist + joint_ext_hist
         if use_sideband:
-            output_hist = self._apply_constraints(output_hist, constraint_channels=constraint_channels)
+            # We have to be careful here to use the *full* prediction as the central 
+            # value when applying the constraint, not just the MC prediction.
+            mc_hist = self._apply_constraints(
+                mc_hist,
+                constraint_channels=constraint_channels,
+                total_prediction_hist=total_prediction,
+            )
+        if include_ext:
+            output_hist = mc_hist + joint_ext_hist[mc_hist.channels]
+        else:
+            output_hist = mc_hist
         if not include_non_signal_channels:
             output_hist = output_hist[signal_channels]
         if scale_to_pot is not None:
-            output_hist *= scale_to_pot / self.data_pot
+            raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
         return output_hist
 
-    def generate_multiband_data_histogram(self):
+    def get_mc_hist(
+        self,
+        include_multisim_errors: Optional[bool] = None,
+        extra_query: Optional[str] = None,
+        scale_to_pot: Optional[float] = None,
+        use_sideband: Optional[bool] = None,
+        add_precomputed_detsys: bool = False,
+    ) -> Union[Histogram, MultiChannelHistogram]:
+        """Get the MC histogram. This function is solely for plotting purposes.
+
+        The function is built to be compatible with the function of the same name in
+        the RunHistGenerator class, so that the analysis can be dropped into the
+        RunHistPlotter.
+        """
+        if extra_query is not None:
+            raise NotImplementedError("extra_query not implemented in the Analysis class.")
+        if add_precomputed_detsys:
+            raise NotImplementedError(
+                "add_precomputed_detsys not implemented in the Analysis class."
+            )
+        output = self.generate_multiband_histogram(
+            include_multisim_errors=include_multisim_errors,
+            use_sideband=use_sideband,
+            scale_to_pot=scale_to_pot,
+            include_ext=False,
+            include_non_signal_channels=True,
+        )
+        channels = self.constraint_channels if self.plot_sideband else self.signal_channels
+        return output[channels]
+
+    def get_data_hist(self, type="data", add_error_floor=False, scale_to_pot=None, smooth_ext_histogram=False):
+        """Get the data histogram. This function is solely for plotting purposes.
+
+        The function is built to be compatible with the function of the same name in
+        the RunHistGenerator class, so that the analysis can be dropped into the
+        RunHistPlotter.
+        """
+        if smooth_ext_histogram:
+            raise NotImplementedError("smooth_ext_histogram not implemented in the Analysis class.")
+        if type == "data":
+            data_hist = self.generate_multiband_data_histogram(
+                impute_blinded_channels=True
+            )
+        elif type == "ext":
+            data_hist = self.generate_multiband_ext_histogram()
+        else:
+            raise ValueError(f"Invalid data type {type}")
+        if data_hist is None:
+            return None
+        if add_error_floor:
+            prior_errors = np.ones(data_hist.n_bins) * 1.4**2
+            prior_errors[data_hist.nominal_values > 0] = 0
+            data_hist.add_covariance(np.diag(prior_errors))
+        if scale_to_pot is not None:
+            raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
+        channels = self.constraint_channels if self.plot_sideband else self.signal_channels
+        return data_hist[channels]
+
+    def get_mc_hists(self, category_column="dataset_name", include_multisim_errors=False, scale_to_pot=None):
+        """Get the MC histograms, split by category. This function is solely for plotting purposes.
+
+        The function is built to be compatible with the function of the same name in
+        the RunHistGenerator class, so that the analysis can be dropped into the
+        RunHistPlotter.
+        """
+
+        if scale_to_pot is not None:
+            raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
+        # I almost want to apologize for how complicated this function is. One issue is that
+        # not all channels will have every category of events, so we have to carefully impute
+        # the missing histograms. We also can't directly go in and grab the dataframes from
+        # inside the histogram generators, because they might be sub-classes of the default
+        # ones that work differently.
+        histograms = [
+            g.get_mc_hists(
+                category_column=category_column, include_multisim_errors=include_multisim_errors
+            )
+            for g in self._run_hist_generators
+        ]
+        # We should now have a list of dicts of histograms, where each dict is keyed by category
+        # and each histogram is a MultiChannelHistogram. The issue now is that not every category
+        # might be present in every dict. What we need to do is to impute empty histograms for
+        # missing categories.
+        # First we need the superset of keys of all the dictionaries.
+        all_keys = set()
+        for hist_dict in histograms:
+            all_keys.update(hist_dict.keys())
+        reference_states = dict()
+        for key in all_keys:
+            for hist_dict in histograms:
+                if key in hist_dict:
+                    reference_states[key] = hist_dict[key].to_dict()
+                    break
+        for hist_dict in histograms:
+            empty_hist_state = hist_dict[list(hist_dict.keys())[0]].to_dict()
+            empty_hist_state["bin_counts"] = np.zeros_like(empty_hist_state["bin_counts"])
+            empty_hist_state["covariance_matrix"] = np.zeros_like(
+                empty_hist_state["covariance_matrix"]
+            )
+            for key in all_keys:
+                if key not in hist_dict:
+                    # This is a bit of a Frankenstein monster: We use the binning of this channel, but
+                    # apply the label, color, etc. of the reference channel.
+                    empty_hist_state["label"] = reference_states[key]["label"]
+                    empty_hist_state["plot_color"] = reference_states[key]["plot_color"]
+                    empty_hist_state["plot_hatch"] = reference_states[key]["plot_hatch"]
+                    empty_hist_state["tex_string"] = reference_states[key]["tex_string"]
+                    try:
+                        hist_dict[key] = MultiChannelHistogram.from_dict(empty_hist_state)
+                    except KeyError:
+                        # An error indicates that the state was not a MultiChannelHistogram,
+                        # but a Histogram.
+                        hist_dict[key] = Histogram.from_dict(empty_hist_state)
+        # Now, all the dicts should have the same keys, assert this
+        for hist_dict in histograms:
+            assert set(hist_dict.keys()) == set(all_keys)
+        combined_channels = dict()
+        if category_column != "dataset_name":
+            all_categories = category_definitions.get_categories(category_column)
+        else:
+            all_categories = all_keys
+        channels = self.constraint_channels if self.plot_sideband else self.signal_channels
+        for key in all_categories:
+            if key not in all_keys:
+                continue
+            combined_channels[key] = MultiChannelHistogram.from_histograms(
+                [hist_dict[key] for hist_dict in histograms]
+            )
+            combined_channels[key] = combined_channels[key][channels]
+            combined_channels[key].color = category_definitions.get_category_color(
+                category_column, key
+            )
+            combined_channels[key].tex_string = category_definitions.get_category_label(
+                category_column, key
+            )
+        return combined_channels
+
+    def generate_multiband_ext_histogram(self):
+        """Generate a combined histogram from all ext channels."""
+
+        ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
+        if len(ext_hist_generators) == 0:
+            return None
+        ext_hist = HistogramGenerator.generate_joint_histogram(
+            ext_hist_generators, include_multisim_errors=False
+        )
+        ext_hist.color = "k"
+        ext_hist.tex_string = "EXT"
+        ext_hist.hatch = "///"
+        return ext_hist
+
+    def generate_multiband_data_histogram(self, impute_blinded_channels=False):
         """Generate a combined histogram from all unblinded data channels."""
 
         unblinded_generators = [
@@ -168,30 +360,52 @@ class MultibandAnalysis(object):
         ]
         if len(unblinded_generators) == 0:
             return None
-        return HistogramGenerator.generate_joint_histogram(
+        data_hist = HistogramGenerator.generate_joint_histogram(
             unblinded_generators, include_multisim_errors=False
         )
+        if not impute_blinded_channels:
+            return data_hist
+        # If we need to impute the blinded channels, we generate a histogram with all channels,
+        # set everything to zero and then update the channels that are not blinded.
+        full_hist = self.generate_multiband_histogram()
+        for channel in full_hist.channels:
+            if channel not in data_hist.channels:
+                data_hist.append_empty_channel(full_hist[channel].binning)
+        return data_hist
 
-    def plot_signals(self, category_column="paper_category", **kwargs):
+    def plot_signals(self, category_column="paper_category", signals=None, **kwargs):
         # make sub-plot for each channel in a horizontal arrangement
-        n_signals = len(self.channels)
+        signals = signals or self.signal_channels
+        n_signals = len(signals)
         fig, axes = plt.subplots(1, n_signals, figsize=(n_signals * 8, 5), squeeze=False)
-        idx = 0
-        for generator in self._run_hist_generators:
-            plotter = RunHistPlotter(generator)
-            if isinstance(generator.binning, MultiChannelBinning):
-                for ch in generator.binning.labels:
-                    plotter.plot(
-                        category_column=category_column, ax=axes[0, idx], channel=ch, **kwargs
-                    )
-                    idx += 1
-            else:
-                plotter.plot(category_column=category_column, ax=axes[0, idx], **kwargs)
-                idx += 1
+        plotter = RunHistPlotter(self)
+        self.plot_sideband = False
+        for signal in signals:
+            plotter.plot(
+                category_column=category_column,
+                ax=axes[0, signals.index(signal)],
+                channel=signal,
+                title=signal,
+                **kwargs,
+            )
         return fig, axes
 
-    def plot_sideband(self, category_column="category", **kwargs):
-        raise NotImplementedError("TODO: implement")
+    def plot_sidebands(self, category_column="category", **kwargs):
+        n_signals = len(self.constraint_channels)
+        if n_signals == 0:
+            return None
+        fig, axes = plt.subplots(1, n_signals, figsize=(n_signals * 8, 5), squeeze=False)
+        plotter = RunHistPlotter(self)
+        self.plot_sideband = True
+        for signal in self.constraint_channels:
+            plotter.plot(
+                category_column=category_column,
+                ax=axes[0, self.constraint_channels.index(signal)],
+                channel=signal,
+                title=signal,
+                **kwargs,
+            )
+        return fig, axes
 
     def plot_correlation(
         self,

@@ -106,6 +106,11 @@ class RunHistGenerator:
                 # We apply the query to the dataframe and remove the query string from the binning
                 query = self.binning.selection_query
                 self.binning.selection_query = None
+            elif binning.label is None:
+                # If we reach this point, we are working in "simplified" mode: There is only one channel
+                # and the binning does not contain a selection query. If no label is given, we just
+                # use the selection as the label.
+                binning.label = self.selection
 
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
