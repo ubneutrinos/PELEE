@@ -1,6 +1,6 @@
 from dataclasses import dataclass, fields
 from typing import List, Optional, Tuple, Union
-from microfit.selections import find_common_selection, get_selection_query
+from microfit.selections import find_common_selection, get_selection_query, get_selection_title
 
 import numpy as np
 
@@ -33,18 +33,19 @@ class Binning:
     variable_tex: Optional[str] = None
     is_log: bool = False
     selection_query: Optional[str] = None
+    selection_key: Optional[str] = None
+    preselection_key: Optional[str] = None
+    selection_tex: Optional[str] = None
 
     def __eq__(self, other):
         for field in fields(self):
             attr_self = getattr(self, field.name)
             attr_other = getattr(other, field.name)
-            if field.name == "label":
-                # There may be situations where a label is undefined (for instance, when
-                # loading detector systematics). In this case, we don't want to compare
-                # the labels.
-                if attr_self is None or attr_other is None:
-                    continue
-            if field.name == "variable_tex":
+            # The "label" property *does* have to match now, because we use it to 
+            # uniquely identify the channel in the MultiChannelBinning.
+            # But the TeX strings don't have to match, because they are only used
+            # for plotting.
+            if field.name in ["variable_tex", "selection_tex"]:
                 # It really doesn't matter if the variable_tex is different, as it is
                 # only used for plotting. So we can just skip it.
                 continue
@@ -69,6 +70,9 @@ class Binning:
     def set_selection(self, selection=None, preselection=None):
         """Set the selection query of the binning given the preselection and the selection."""
         self.selection_query = get_selection_query(selection, preselection)
+        self.selection_key = selection
+        self.preselection_key = preselection
+        self.selection_tex = get_selection_title(selection, preselection)
 
     @classmethod
     def from_config(

@@ -743,6 +743,37 @@ def get_selection_query(selection, preselection, extra_queries=None):
             query = f"{query} and {q}"
     return query
 
+def get_selection_title(selection, preselection, with_presel=False):
+    """Get the title for the given selection and preselection.
+
+    Parameters
+    ----------
+    selection : str
+        Name of the selection category.
+    preselection : str
+        Name of the preselection category.
+
+    Returns
+    -------
+    title : str
+        Title of the selection.
+    """
+    if selection is None and preselection is None:
+        return None
+    presel_title = preselection_categories[preselection]["title"]
+    sel_title = selection_categories[selection]["title"]
+
+    if presel_title is None:
+        title = sel_title
+    elif sel_title is None:
+        title = presel_title
+    elif with_presel:
+        title = f"{sel_title} ({presel_title})"
+    else:
+        title = sel_title
+
+    return title
+
 def _find_parentheses_groups(s):
     stack = []
     result = []

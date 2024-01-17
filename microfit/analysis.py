@@ -373,39 +373,43 @@ class MultibandAnalysis(object):
                 data_hist.append_empty_channel(full_hist[channel].binning)
         return data_hist
 
-    def plot_signals(self, category_column="paper_category", signals=None, **kwargs):
-        # make sub-plot for each channel in a horizontal arrangement
-        signals = signals or self.signal_channels
-        n_signals = len(signals)
-        fig, axes = plt.subplots(1, n_signals, figsize=(n_signals * 8, 5), squeeze=False)
+    def _plot_bands(self, category_column, plot_signals=True, **kwargs):
+        if plot_signals:
+            channels = self.signal_channels
+        else:
+            channels = self.constraint_channels
+
+        n_channels = len(channels)
+        if n_channels == 0:
+            return None
+
+        show_data_mc_ratio = kwargs.get("show_data_mc_ratio", False)
+        n_rows = 2 if show_data_mc_ratio else 1
+        n_cols = n_channels
+        fig, axes = plt.subplots(
+            n_rows,
+            n_cols,
+            figsize=(n_cols * 8, 5 if n_rows == 1 else 8),
+            squeeze=False,
+            gridspec_kw={"height_ratios": [3, 1] if show_data_mc_ratio else [1]},
+        )
         plotter = RunHistPlotter(self)
-        self.plot_sideband = False
-        for signal in signals:
+        self.plot_sideband = not plot_signals
+        for channel in channels:
             plotter.plot(
                 category_column=category_column,
-                ax=axes[0, signals.index(signal)],
-                channel=signal,
-                title=signal,
+                ax=axes[0, channels.index(channel)],
+                ax_ratio=axes[1, channels.index(channel)] if show_data_mc_ratio else None,
+                channel=channel,
                 **kwargs,
             )
         return fig, axes
 
+    def plot_signals(self, category_column="paper_category", signals=None, **kwargs):
+        return self._plot_bands(category_column, plot_signals=True, **kwargs)
+
     def plot_sidebands(self, category_column="category", **kwargs):
-        n_signals = len(self.constraint_channels)
-        if n_signals == 0:
-            return None
-        fig, axes = plt.subplots(1, n_signals, figsize=(n_signals * 8, 5), squeeze=False)
-        plotter = RunHistPlotter(self)
-        self.plot_sideband = True
-        for signal in self.constraint_channels:
-            plotter.plot(
-                category_column=category_column,
-                ax=axes[0, self.constraint_channels.index(signal)],
-                channel=signal,
-                title=signal,
-                **kwargs,
-            )
-        return fig, axes
+        return self._plot_bands(category_column, plot_signals=False, **kwargs)
 
     def plot_correlation(
         self,

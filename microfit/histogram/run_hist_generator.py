@@ -103,14 +103,16 @@ class RunHistGenerator:
                         "Cannot use selection or preselection when the Binning already "
                         "contains a selection query."
                     )
-                # We apply the query to the dataframe and remove the query string from the binning
-                query = self.binning.selection_query
-                self.binning.selection_query = None
-            elif binning.label is None:
+            else:
                 # If we reach this point, we are working in "simplified" mode: There is only one channel
                 # and the binning does not contain a selection query. If no label is given, we just
                 # use the selection as the label.
-                binning.label = self.selection
+                binning.label = binning.label or self.selection
+                # For compatibility with newer plotting code, we also have to set the selection
+                # for the binning
+                binning.set_selection(selection=selection, preselection=preselection)
+            # We apply the query to the dataframe and remove the query string from the binning
+            query = self.binning.selection_query
 
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
@@ -153,6 +155,7 @@ class RunHistGenerator:
         df_ext = rundata_dict["ext"]
         df_data = rundata_dict["data"] if showdata else None
         if query is not None:
+            self.logger.debug(f"Applying query {query} to all dataframes.")
             # The Python engine is necessary because the queries tend to have too many inputs
             # for numexpr to handle.
             df_mc = df_mc.query(query, engine="python")
