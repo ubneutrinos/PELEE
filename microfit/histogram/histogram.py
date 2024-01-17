@@ -662,7 +662,10 @@ class MultiChannelHistogram(Histogram):
             self.roll_channels(shift)
 
     def update_with_measurement(
-        self, key: Union[int, str], measurement: np.ndarray, central_value: Optional[np.ndarray] = None
+        self,
+        key: Union[int, str],
+        measurement: np.ndarray,
+        central_value: Optional[np.ndarray] = None,
     ) -> "MultiChannelHistogram":
         """Perform the Bayesian update of the histogram given a measurement of one channel.
 
@@ -688,7 +691,9 @@ class MultiChannelHistogram(Histogram):
         idx = self.binning._idx_channel(key)
         # This should always be the case, since we use the function above to roll the channel to the last position.
         assert idx == len(self.binning) - 1, "Channel must be the last channel in the histogram."
-        sideband_central_value = self[idx].nominal_values if central_value is None else central_value
+        sideband_central_value = (
+            self[idx].nominal_values if central_value is None else central_value
+        )
         concat_covariance_matrix = self.covariance_matrix
         assert len(measurement) == len(
             sideband_central_value
@@ -846,7 +851,7 @@ class MultiChannelHistogram(Histogram):
         self.covariance_matrix[
             np.ix_(self.binning._channel_bin_idx(idx), self.binning._channel_bin_idx(idx))
         ] = histogram.covariance_matrix
-    
+
     def append_empty_channel(self, binning: Binning) -> None:
         """Append an empty channel to the histogram.
 
@@ -858,7 +863,9 @@ class MultiChannelHistogram(Histogram):
         assert not isinstance(binning, MultiChannelBinning), "Cannot append a MultiChannelBinning."
         self.binning.binnings.append(binning)
         self.bin_counts = np.append(self.bin_counts, np.zeros(binning.n_bins))
-        self.covariance_matrix = block_diag(self.covariance_matrix, np.zeros((binning.n_bins, binning.n_bins)))
+        self.covariance_matrix = block_diag(
+            self.covariance_matrix, np.zeros((binning.n_bins, binning.n_bins))
+        )
 
     def get_unrolled_histogram(self) -> Histogram:
         """Get an unrolled histogram of all channels.

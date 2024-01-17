@@ -20,7 +20,10 @@ class RunHistPlotter:
         self.run_hist_generator = run_hist_generator
 
     def get_selection_title(self, selection, preselection):
-        warnings.warn("This class method has been replaced with the function in the selections module.", DeprecationWarning)
+        warnings.warn(
+            "This class method has been replaced with the function in the selections module.",
+            DeprecationWarning,
+        )
         return selections.get_selection_title(selection, preselection)
 
     def get_pot_label(self, scale_to_pot, has_data=True):
@@ -76,7 +79,10 @@ class RunHistPlotter:
         if use_sideband is None:
             use_sideband = gen_defaults.get("use_sideband", False)
         ext_hist = gen.get_data_hist(
-            type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot, smooth_ext_histogram=smooth_ext_histogram
+            type="ext",
+            add_error_floor=add_ext_error_floor,
+            scale_to_pot=scale_to_pot,
+            smooth_ext_histogram=smooth_ext_histogram,
         )
         if ext_hist is not None:
             ext_hist.tex_string = "EXT"
@@ -111,26 +117,31 @@ class RunHistPlotter:
             else:
                 title = self.title
 
-        if print_tot_pred_norm: print('print_tot_pred_norm:',total_mc_hist.nominal_values/np.sum(total_mc_hist.nominal_values))
+        if print_tot_pred_norm:
+            print(
+                "print_tot_pred_norm:",
+                total_mc_hist.nominal_values / np.sum(total_mc_hist.nominal_values),
+            )
 
         if show_data_mc_ratio:
             if ax is None and ax_ratio is None:
                 fig, (ax, ax_ratio) = plt.subplots(
-                    nrows=2, ncols=1, sharex=True, gridspec_kw={"height_ratios": [3, 1]},
+                    nrows=2,
+                    ncols=1,
+                    sharex=True,
+                    gridspec_kw={"height_ratios": [3, 1]},
                 )
             else:
-                assert ax is not None and ax_ratio is not None, (
-                    "Must provide both ax and ax_ratio to show data/mc ratio"
-                )
+                assert (
+                    ax is not None and ax_ratio is not None
+                ), "Must provide both ax and ax_ratio to show data/mc ratio"
         if show_chi_square:
             assert not scale_to_pot, "Can't show chi square when scaling to POT"
-            assert (
-                data_hist is not None
-            ), "Can't show chi square when no data is available"
+            assert data_hist is not None, "Can't show chi square when no data is available"
             chi_square = chi_square_func(
                 data_hist.nominal_values,
                 total_pred_hist.nominal_values,
-                total_pred_hist.covariance_matrix
+                total_pred_hist.covariance_matrix,
             )
         else:
             chi_square = None
@@ -157,7 +168,7 @@ class RunHistPlotter:
         mc_nominal = total_mc_hist.nominal_values
         mc_error_band = flatten(total_mc_hist / mc_nominal)
         data_mc_ratio = flatten(data_hist / total_pred_hist.nominal_values)
-        
+
         self.plot_hist(
             mc_error_band,
             ax=ax_ratio,
@@ -197,12 +208,18 @@ class RunHistPlotter:
     ):
         if stacked:
             ax = self.plot_stacked_hists(
-                background_hists, ax=ax, show_errorband=False, **kwargs,
+                background_hists,
+                ax=ax,
+                show_errorband=False,
+                **kwargs,
             )
         else:
             for background_hist in background_hists:
                 ax = self.plot_hist(
-                    background_hist, ax=ax, show_errorband=False, **kwargs,
+                    background_hist,
+                    ax=ax,
+                    show_errorband=False,
+                    **kwargs,
                 )
         if show_total:
             ax = self.plot_hist(
@@ -215,9 +232,7 @@ class RunHistPlotter:
                 lw=0.5,
             )
         if scale_to_pot is None:
-            if (
-                data_hist is not None
-            ):  # skip if no data (as is the case for blind analysis)
+            if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
                 data_label = f"Data: {data_hist.sum():.1f}"
                 ax = self.plot_hist(
@@ -248,11 +263,11 @@ class RunHistPlotter:
             title = pot_label
         ax.set_ylabel("Events")
         ax.legend(
-            loc='lower left',
-            bbox_to_anchor=(0., 1.02, 1., .102),
+            loc="lower left",
+            bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
             ncol=3,
             mode="expand",
-            borderaxespad=0.,
+            borderaxespad=0.0,
             bbox_transform=ax.transAxes,
             fontsize="small",
             frameon=False,
@@ -355,9 +370,7 @@ class RunHistPlotter:
         y = np.array([repeated_nom_values(hist) for hist in hists])
         labels = [hist.tex_string for hist in hists]
         if show_counts:
-            labels = [
-                f"{label}: {hist.sum():.1f}" for label, hist in zip(labels, hists)
-            ]
+            labels = [f"{label}: {hist.sum():.1f}" for label, hist in zip(labels, hists)]
         colors = None
         colors = [hist.color for hist in hists]
         # Hatches may be None

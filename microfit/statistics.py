@@ -94,14 +94,14 @@ def fronebius_nearest_psd(A: np.ndarray, return_distance: bool = False) -> Union
         k = 1
         while not is_psd(X):
             mineig = np.min(np.real(lin.eigvals(X)))
-            X += I * (-mineig * k ** 2 + spacing)
+            X += I * (-mineig * k**2 + spacing)
             k += 1
     if return_distance:
         C = (A - A.T) / 2.0
         lam = lin.eigvalsh(B)
         # pylint doesn't know that numpy.sum takes the "where" argument
         # pylint: disable=unexpected-keyword-arg
-        dist = np.sqrt(np.sum(lam ** 2, where=lam < 0.0) + lin.norm(C, ord="fro") ** 2)
+        dist = np.sqrt(np.sum(lam**2, where=lam < 0.0) + lin.norm(C, ord="fro") ** 2)
         return X, dist
     return X
 
@@ -235,14 +235,14 @@ def get_cnp_covariance(expectation, observation):
 
     .. math::
         C_{ij} = 3 \\mu_i n_i \\delta_{ij} / \\left( \\mu_i + 2 n_i \\right)
-    
+
     A special case we have to take care of is when the observation is zero. In this case,
-    we can recover the Poisson likelihood by setting the covariance to :math:`\mu_i / 2`. We 
+    we can recover the Poisson likelihood by setting the covariance to :math:`\mu_i / 2`. We
     can see this by considering
 
     .. math::
         \chi^2_{\\text{Poisson}} = 2 \sum_{i=1}^n \left( \mu - M_i + M_i \ln \\frac{M_i}{\mu} \\right)
-    
+
     When the observation is zero, we have :math:`M_i = 0` and the chi-square reduces to
     :math:`\chi^2_{\\text{Poisson}} = 2 \mu`. Since we calculate the chi-square as
     :math:`\chi^2 = (n - \mu)^T C^{-1} (n - \mu)`, we need to set :math:`C = \mu / 2` to

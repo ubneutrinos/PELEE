@@ -175,7 +175,7 @@ class MultibandAnalysis(object):
         joint_ext_hist = HistogramGenerator.generate_joint_histogram(
             ext_hist_generators, include_multisim_errors=False
         )
-        
+
         constraint_channels = constraint_channels or self.constraint_channels
         signal_channels = signal_channels or self.signal_channels
         all_channels = signal_channels + constraint_channels
@@ -184,7 +184,7 @@ class MultibandAnalysis(object):
 
         total_prediction = mc_hist + joint_ext_hist
         if use_sideband:
-            # We have to be careful here to use the *full* prediction as the central 
+            # We have to be careful here to use the *full* prediction as the central
             # value when applying the constraint, not just the MC prediction.
             mc_hist = self._apply_constraints(
                 mc_hist,
@@ -231,7 +231,9 @@ class MultibandAnalysis(object):
         channels = self.constraint_channels if self.plot_sideband else self.signal_channels
         return output[channels]
 
-    def get_data_hist(self, type="data", add_error_floor=False, scale_to_pot=None, smooth_ext_histogram=False):
+    def get_data_hist(
+        self, type="data", add_error_floor=False, scale_to_pot=None, smooth_ext_histogram=False
+    ):
         """Get the data histogram. This function is solely for plotting purposes.
 
         The function is built to be compatible with the function of the same name in
@@ -241,9 +243,7 @@ class MultibandAnalysis(object):
         if smooth_ext_histogram:
             raise NotImplementedError("smooth_ext_histogram not implemented in the Analysis class.")
         if type == "data":
-            data_hist = self.generate_multiband_data_histogram(
-                impute_blinded_channels=True
-            )
+            data_hist = self.generate_multiband_data_histogram(impute_blinded_channels=True)
         elif type == "ext":
             data_hist = self.generate_multiband_ext_histogram()
         else:
@@ -259,7 +259,9 @@ class MultibandAnalysis(object):
         channels = self.constraint_channels if self.plot_sideband else self.signal_channels
         return data_hist[channels]
 
-    def get_mc_hists(self, category_column="dataset_name", include_multisim_errors=False, scale_to_pot=None):
+    def get_mc_hists(
+        self, category_column="dataset_name", include_multisim_errors=False, scale_to_pot=None
+    ):
         """Get the MC histograms, split by category. This function is solely for plotting purposes.
 
         The function is built to be compatible with the function of the same name in

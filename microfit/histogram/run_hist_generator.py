@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 import warnings
 
+
 class RunHistGenerator:
     """Histogram generator for data and simulation runs."""
 
@@ -30,7 +31,7 @@ class RunHistGenerator:
         parameters: Optional[ParameterSet] = None,
         detvar_data_path: Optional[str] = None,
         mc_hist_generator_cls: Optional[type] = None,
-        showdata = True,
+        showdata=True,
         **mc_hist_generator_kwargs,
     ) -> None:
         """Create a histogram generator for data and simulation runs.
@@ -73,7 +74,7 @@ class RunHistGenerator:
         mc_hist_generator_cls : type, optional
             Class to use for the MC histogram generator. If None, the default HistogramGenerator
             class is used.
-        showdata : bool, optional 
+        showdata : bool, optional
             Whether to show data in the plot. If False, only MC is shown. Internally, this removes the
             dataframe for the real data entirely.
         **mc_hist_generator_kwargs
@@ -93,7 +94,7 @@ class RunHistGenerator:
                 raise ValueError(
                     "Cannot use preselection with MultiChannelBinning. The preselection must be applied to each channel individually."
                 )
-            # This query is the common selection that is applied to all channels. We can safely apply it to 
+            # This query is the common selection that is applied to all channels. We can safely apply it to
             # the overall dataframe to reduce the number of events that need to be processed.
             query = self.binning.reduce_selection()
         elif isinstance(self.binning, Binning):
@@ -196,7 +197,7 @@ class RunHistGenerator:
         warnings.warn(
             "The method get_selection_query will no longer exist as a class method in the future. Use the function get_selection_query "
             "from the microfit.selections module instead.",
-            DeprecationWarning
+            DeprecationWarning,
         )
         return get_selection_query(selection, preselection, extra_queries)
 
@@ -246,7 +247,7 @@ class RunHistGenerator:
             return None
         data_hist = hist_generator.generate(use_kde_smoothing=smooth_ext_histogram)
         if add_error_floor:
-            prior_errors = np.ones(data_hist.n_bins) * 1.4 ** 2
+            prior_errors = np.ones(data_hist.n_bins) * 1.4**2
             prior_errors[data_hist.nominal_values > 0] = 0
             data_hist.add_covariance(np.diag(prior_errors))
         data_hist *= scale_factor
@@ -437,7 +438,10 @@ class RunHistGenerator:
         )
         if self.ext_hist_generator is not None:
             ext_prediction = self.get_data_hist(
-                type="ext", scale_to_pot=scale_to_pot, add_error_floor=add_ext_error_floor, smooth_ext_histogram=smooth_ext_histogram
+                type="ext",
+                scale_to_pot=scale_to_pot,
+                add_error_floor=add_ext_error_floor,
+                smooth_ext_histogram=smooth_ext_histogram,
             )
             total_prediction = mc_prediction + ext_prediction
         else:

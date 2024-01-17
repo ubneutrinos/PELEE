@@ -41,7 +41,7 @@ class Binning:
         for field in fields(self):
             attr_self = getattr(self, field.name)
             attr_other = getattr(other, field.name)
-            # The "label" property *does* have to match now, because we use it to 
+            # The "label" property *does* have to match now, because we use it to
             # uniquely identify the channel in the MultiChannelBinning.
             # But the TeX strings don't have to match, because they are only used
             # for plotting.

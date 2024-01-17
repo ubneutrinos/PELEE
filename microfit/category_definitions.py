@@ -19,6 +19,7 @@ def get_category_label(category_column, category):
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
+
 def get_categories(category_column):
     """Get the list of categories for a given category column."""
 
@@ -37,12 +38,14 @@ def get_categories(category_column):
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
+
 def get_category_color(category_column, category):
     """Get the appropriate color for a given category depending on which category column was used."""
 
     if category_column == "interaction":
         return int_colors[category]
     return category_colors[category]
+
 
 # Whenever you define categories, be sure to define all the categories that can appear in the data.
 # Missing categories can lead to events not showing up in histograms.
@@ -110,7 +113,7 @@ category_labels = {
 category_labels_1e1p = {
     1: r"$\nu_e$ CC",
     10: r"$\nu_e$ CC0$\pi$0p",
-    #11: r"$\nu_e$ CC0$\pi$Np",
+    # 11: r"$\nu_e$ CC0$\pi$Np",
     12: r"$\nu_e$ CC0$\pi$1p",
     13: r"$\nu_e$ CC0$\pi$2+p",
     111: r"MiniBooNE LEE",

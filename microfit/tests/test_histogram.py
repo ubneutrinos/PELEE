@@ -40,8 +40,14 @@ class TestHistogram(unittest.TestCase):
         self.test_cases = [
             (Histogram, self.make_test_binning(multichannel=False, with_query=False)),
             (Histogram, self.make_test_binning(multichannel=False, with_query=True)),
-            (MultiChannelHistogram, self.make_test_binning(multichannel=True, with_query=False),),
-            (MultiChannelHistogram, self.make_test_binning(multichannel=True, with_query=True),),
+            (
+                MultiChannelHistogram,
+                self.make_test_binning(multichannel=True, with_query=False),
+            ),
+            (
+                MultiChannelHistogram,
+                self.make_test_binning(multichannel=True, with_query=True),
+            ),
             # Add more tuples as needed
         ]
 
@@ -115,10 +121,18 @@ class TestHistogram(unittest.TestCase):
                 uncertainties2 = np.sqrt(np.diag(covariance_matrix))
 
                 hist1 = HistogramClass(
-                    binning, bin_counts1, uncertainties1, label="hist1", tex_string="hist1",
+                    binning,
+                    bin_counts1,
+                    uncertainties1,
+                    label="hist1",
+                    tex_string="hist1",
                 )
                 hist2 = HistogramClass(
-                    binning, bin_counts2, uncertainties2, label="hist2", tex_string="hist2",
+                    binning,
+                    bin_counts2,
+                    uncertainties2,
+                    label="hist2",
+                    tex_string="hist2",
                 )
 
                 hist_sum = hist1 + hist2
@@ -126,16 +140,18 @@ class TestHistogram(unittest.TestCase):
 
                 self.assertIsExactInstance(hist_sum, HistogramClass)
                 self.assertIsExactInstance(hist_diff, HistogramClass)
-                expected_uncertainties = np.sqrt(uncertainties1 ** 2 + uncertainties2 ** 2)
+                expected_uncertainties = np.sqrt(uncertainties1**2 + uncertainties2**2)
 
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_sum.bin_counts), bin_counts1 + bin_counts2,
+                    unumpy.nominal_values(hist_sum.bin_counts),
+                    bin_counts1 + bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
                     unumpy.std_devs(hist_sum.bin_counts), expected_uncertainties
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_diff.bin_counts), bin_counts1 - bin_counts2,
+                    unumpy.nominal_values(hist_diff.bin_counts),
+                    bin_counts1 - bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
                     unumpy.std_devs(hist_diff.bin_counts), expected_uncertainties
@@ -170,16 +186,18 @@ class TestHistogram(unittest.TestCase):
 
                 self.assertIsExactInstance(hist_sum, HistogramClass)
                 self.assertIsExactInstance(hist_diff, HistogramClass)
-                expected_uncertainties = np.sqrt(uncertainties1 ** 2 + uncertainties2 ** 2)
+                expected_uncertainties = np.sqrt(uncertainties1**2 + uncertainties2**2)
 
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_sum.bin_counts), bin_counts1 + bin_counts2,
+                    unumpy.nominal_values(hist_sum.bin_counts),
+                    bin_counts1 + bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
                     unumpy.std_devs(hist_sum.bin_counts), expected_uncertainties
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_diff.bin_counts), bin_counts1 - bin_counts2,
+                    unumpy.nominal_values(hist_diff.bin_counts),
+                    bin_counts1 - bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
                     unumpy.std_devs(hist_diff.bin_counts), expected_uncertainties
@@ -243,11 +261,12 @@ class TestHistogram(unittest.TestCase):
 
                 expected_uncertainties = np.sqrt(
                     (uncertainties1 / bin_counts2) ** 2
-                    + (uncertainties2 * bin_counts1 / bin_counts2 ** 2) ** 2
+                    + (uncertainties2 * bin_counts1 / bin_counts2**2) ** 2
                 )
 
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_div.bin_counts), bin_counts1 / bin_counts2,
+                    unumpy.nominal_values(hist_div.bin_counts),
+                    bin_counts1 / bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
                     unumpy.std_devs(hist_div.bin_counts), expected_uncertainties
@@ -275,7 +294,9 @@ class TestHistogram(unittest.TestCase):
                 expected_div_hist = hist1 / hist2
                 # check nominal values
                 np.testing.assert_array_almost_equal(
-                    fluctuated_divisions.mean(axis=0), expected_div_hist.nominal_values, decimal=3,
+                    fluctuated_divisions.mean(axis=0),
+                    expected_div_hist.nominal_values,
+                    decimal=3,
                 )
                 # check covariance matrix
                 np.testing.assert_array_almost_equal(
@@ -363,7 +384,8 @@ class TestHistogram(unittest.TestCase):
                 )
 
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_mult.bin_counts), bin_counts1 * bin_counts2,
+                    unumpy.nominal_values(hist_mult.bin_counts),
+                    bin_counts1 * bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
                     unumpy.std_devs(hist_mult.bin_counts), expected_uncertainties
@@ -416,9 +438,17 @@ class TestMultiChannelHistogram(unittest.TestCase):
         # make it PSD
         covariance_matrix = fronebius_nearest_psd(covariance_matrix)
         if isinstance(binning, MultiChannelBinning):
-            return MultiChannelHistogram(binning, bin_counts, covariance_matrix=covariance_matrix,)
+            return MultiChannelHistogram(
+                binning,
+                bin_counts,
+                covariance_matrix=covariance_matrix,
+            )
         else:
-            return Histogram(binning, bin_counts, covariance_matrix=covariance_matrix,)
+            return Histogram(
+                binning,
+                bin_counts,
+                covariance_matrix=covariance_matrix,
+            )
 
     def make_test_histogram(self):
         first_channel_binning = Binning(

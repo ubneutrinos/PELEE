@@ -7,33 +7,37 @@ from ..statistics import (
     check_frob_psd,
 )
 
+
 class TestMatrix(unittest.TestCase):
     def test_matrix_random(self):
-        """Test if the approximated matrix is indeed PSD.
-        """
+        """Test if the approximated matrix is indeed PSD."""
         m_test = np.array([[1, -1], [2, 4]])
         check_frob_psd(m_test)
         for i in range(100):
             m_test = np.random.randn(3, 3)
             check_frob_psd(m_test)
 
-class TestCovariance(unittest.TestCase):
 
+class TestCovariance(unittest.TestCase):
     # here we test if the naive loop implementation of the covariance matrix
     # calculation is equivalent to the numpy implementation
     def loop_covariance(observations, central_value):
         cov = np.zeros((observations.shape[1], observations.shape[1]))
         for i in range(observations.shape[1]):
             for j in range(observations.shape[1]):
-                cov[i, j] = np.sum((observations[:, i] - central_value[i]) * (observations[:, j] - central_value[j]))
+                cov[i, j] = np.sum(
+                    (observations[:, i] - central_value[i])
+                    * (observations[:, j] - central_value[j])
+                )
         cov = cov / observations.shape[0]
         return cov
+
     # This is the optimized implementation that we actually use in the code
     def numpy_covariance(observations, central_value):
         centered_data = observations - central_value
         cov_matrix = centered_data.T @ centered_data / observations.shape[0]
         return cov_matrix
-    
+
     def test_covariance(self):
         """Unit test for the covariance matrix calculation."""
         np.random.seed(42)
@@ -77,7 +81,9 @@ class TestConstrainedCovariance(unittest.TestCase):
             np.concatenate((obs_central_value, sideband_central_value)), true_cov, 1000000
         )
         # generate one observation of the sideband measurement
-        sideband_measurement = np.random.multivariate_normal(sideband_central_value, true_cov_yy, 1)[0]
+        sideband_measurement = np.random.multivariate_normal(
+            sideband_central_value, true_cov_yy, 1
+        )[0]
         # add the CNP covariance to the sideband
         true_cov_yy += get_cnp_covariance(sideband_central_value, sideband_measurement)
         # calculate the expected conditional mu and covariance

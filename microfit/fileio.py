@@ -3,6 +3,7 @@
 import numpy as np
 import json
 
+
 # Custom JSON Encoder that can handle numpy arrays and other objects
 class MicrofitEncoder(json.JSONEncoder):
     def default(self, obj):
