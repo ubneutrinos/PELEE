@@ -110,10 +110,10 @@ class RunHistGenerator:
                 # If we reach this point, we are working in "simplified" mode: There is only one channel
                 # and the binning does not contain a selection query. If no label is given, we just
                 # use the selection as the label.
-                binning.label = binning.label or self.selection
+                self.binning.label = self.binning.label or self.selection
                 # For compatibility with newer plotting code, we also have to set the selection
                 # for the binning
-                binning.set_selection(selection=selection, preselection=preselection)
+                self.binning.set_selection(selection=selection, preselection=preselection)
             # We apply the query to the dataframe and remove the query string from the binning
             query = self.binning.selection_query
             self.channels = [self.binning.label]
@@ -176,18 +176,18 @@ class RunHistGenerator:
         assert isinstance(self.parameters, ParameterSet), "parameters must be a ParameterSet."
         self.mc_hist_generator = mc_hist_generator_cls(
             df_mc,
-            binning,
+            self.binning,
             parameters=self.parameters,
             detvar_data=self.detvar_data,
             **mc_hist_generator_kwargs,
         )
         if df_ext is not None:
-            self.ext_hist_generator = HistogramGenerator(df_ext, binning, enable_cache=False)
+            self.ext_hist_generator = HistogramGenerator(df_ext, self.binning, enable_cache=False)
         else:
             self.ext_hist_generator = None
         self.is_blinded = False
         if df_data is not None:
-            self.data_hist_generator = HistogramGenerator(df_data, binning, enable_cache=False)
+            self.data_hist_generator = HistogramGenerator(df_data, self.binning, enable_cache=False)
         else:
             self.data_hist_generator = None
             self.is_blinded = True
