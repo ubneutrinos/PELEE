@@ -26,11 +26,12 @@ class RunHistPlotter:
         )
         return selections.get_selection_title(selection, preselection)
 
-    def get_pot_label(self, scale_to_pot, has_data=True):
-        if self.run_hist_generator.data_pot is None:
+    def get_pot_label(self, scale_to_pot, has_data=True, data_pot=None):
+        data_pot = data_pot or self.run_hist_generator.data_pot
+        if data_pot is None:
             return None
         if scale_to_pot is None:
-            pot_in_sci_notation = "{:.1e}".format(self.run_hist_generator.data_pot)
+            pot_in_sci_notation = "{:.1e}".format(data_pot)
             base, exponent = pot_in_sci_notation.split("e")
             return f"${base} \\times 10^{{{int(exponent)}}}$ POT"
         else:
@@ -57,6 +58,7 @@ class RunHistPlotter:
         add_precomputed_detsys=False,
         print_tot_pred_norm=False,
         title=None,
+        data_pot=None,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -130,6 +132,7 @@ class RunHistPlotter:
                     ncols=1,
                     sharex=True,
                     gridspec_kw={"height_ratios": [3, 1]},
+                    constrained_layout=True,
                 )
             else:
                 assert (
@@ -155,11 +158,12 @@ class RunHistPlotter:
             chi_square=chi_square,
             stacked=stacked,
             show_total=show_total,
+            data_pot=data_pot,
             **kwargs,
         )
         if not show_data_mc_ratio:
             ax.set_xlabel(total_pred_hist.binning.variable_tex)
-            return ax
+            return ax, None
 
         # plot data/mc ratio
         # The way this is typically shown is to have the MC prediction divided by its central
@@ -204,6 +208,7 @@ class RunHistPlotter:
         chi_square=None,
         stacked=True,
         show_total=True,
+        data_pot=None,
         **kwargs,
     ):
         if stacked:
@@ -256,7 +261,9 @@ class RunHistPlotter:
                 fontsize=10,
                 bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
             )
-        pot_label = self.get_pot_label(scale_to_pot, has_data=data_hist is not None)
+        pot_label = self.get_pot_label(
+            scale_to_pot, has_data=data_hist is not None, data_pot=data_pot
+        )
         if title is not None and pot_label is not None:
             title += ", " + pot_label
         elif title is None:
@@ -356,7 +363,7 @@ class RunHistPlotter:
     ):
         """Plot a stack of histograms."""
         if ax is None:
-            ax = plt.gca()
+            fig, ax = plt.subplots(constrained_layout=True)
 
         x = hists[0].binning.bin_edges
 

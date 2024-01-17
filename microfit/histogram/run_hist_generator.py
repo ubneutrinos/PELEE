@@ -85,6 +85,7 @@ class RunHistGenerator:
         self.selection = selection
         self.preselection = preselection
         self.binning = binning.copy()
+        self.channels = None
         if isinstance(self.binning, MultiChannelBinning):
             if self.selection is not None:
                 raise ValueError(
@@ -97,6 +98,7 @@ class RunHistGenerator:
             # This query is the common selection that is applied to all channels. We can safely apply it to
             # the overall dataframe to reduce the number of events that need to be processed.
             query = self.binning.reduce_selection()
+            self.channels = self.binning.labels
         elif isinstance(self.binning, Binning):
             if self.binning.selection_query is not None:
                 if self.selection is not None or self.preselection is not None:
@@ -114,7 +116,7 @@ class RunHistGenerator:
                 binning.set_selection(selection=selection, preselection=preselection)
             # We apply the query to the dataframe and remove the query string from the binning
             query = self.binning.selection_query
-
+            self.channels = [self.binning.label]
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
         if detvar_data_path is not None:

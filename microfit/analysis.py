@@ -1,6 +1,6 @@
 """Classes to run the LEE (and possibly other) analyses."""
 
-
+import os
 import logging
 from typing import List, Optional, Union
 from matplotlib import pyplot as plt
@@ -375,17 +375,49 @@ class MultibandAnalysis(object):
                 data_hist.append_empty_channel(full_hist[channel].binning)
         return data_hist
 
-    def _plot_bands(self, category_column, plot_signals=True, **kwargs):
+    def _get_pot_for_channel(self, channel):
+        """Get the POT for the given channel."""
+
+        # Iterate through run hist generators. When the channel is found in a
+        # generator, return the POT of that generator.
+        for gen in self._run_hist_generators:
+            if channel in gen.channels:
+                return gen.data_pot
+        raise ValueError(f"Channel {channel} not found in analysis")
+
+    def _plot_bands(
+        self,
+        category_column,
+        plot_signals=True,
+        separate_figures=False,
+        save_path=None,
+        filename_format="analysis_{}.pdf",
+        **kwargs,
+    ):
         if plot_signals:
             channels = self.signal_channels
+            self.plot_sideband = False
         else:
             channels = self.constraint_channels
+            self.plot_sideband = True
 
         n_channels = len(channels)
         if n_channels == 0:
             return None
-
         show_data_mc_ratio = kwargs.get("show_data_mc_ratio", False)
+        if separate_figures:
+            for channel in channels:
+                ax, _ = RunHistPlotter(self).plot(
+                    category_column=category_column,
+                    channel=channel,
+                    data_pot=self._get_pot_for_channel(channel),
+                    **kwargs,
+                )
+                if save_path is not None:
+                    fig = ax.figure
+                    fig.savefig(os.path.join(save_path, filename_format.format(channel)))
+                    plt.close(fig)
+            return
         n_rows = 2 if show_data_mc_ratio else 1
         n_cols = n_channels
         fig, axes = plt.subplots(
@@ -394,6 +426,7 @@ class MultibandAnalysis(object):
             figsize=(n_cols * 8, 5 if n_rows == 1 else 8),
             squeeze=False,
             gridspec_kw={"height_ratios": [3, 1] if show_data_mc_ratio else [1]},
+            constrained_layout=True,
         )
         plotter = RunHistPlotter(self)
         self.plot_sideband = not plot_signals
