@@ -51,10 +51,11 @@ class TestMultiChannelBinning(unittest.TestCase):
         binning2.bin_edges = np.array([1, 2, 3, 4])
         self.assertNotEqual(binning, binning2)
         binning2.bin_edges = binning.bin_edges
-        # The label should normally affect equality, except when it is None
-        binning2.label = "asdf"
-        self.assertNotEqual(binning, binning2)
-        binning2.label = None
+        # The variable_tex should not affect equality
+        binning2.variable_tex = "asdf"
+        self.assertEqual(binning, binning2)
+        # The selection_tex should not affect equality
+        binning2.selection_tex = "asdf"
         self.assertEqual(binning, binning2)
 
     def test_multi_channel_binning(self):
