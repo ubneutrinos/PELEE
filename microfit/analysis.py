@@ -440,10 +440,44 @@ class MultibandAnalysis(object):
             )
         return fig, axes
 
-    def plot_signals(self, category_column="paper_category", signals=None, **kwargs):
+    def plot_signals(self, category_column="paper_category", **kwargs):
+        """
+        Plot the signals for each category.
+
+        Parameters
+        ----------
+        category_column : str
+            The column in the dataset that contains the categories.
+        separate_figures : bool
+            If True, each channel is plotted in a separate figure.
+        save_path : str
+            If given, the figures are saved to this path.
+        filename_format : str
+            The format string for the filename. The channel name is inserted into the
+            format string by calling `format` on the string with the channel name as
+            the argument. For example, the default format string is "analysis_{}.pdf",
+            which will result in filenames like "analysis_nue.pdf".
+        """
         return self._plot_bands(category_column, plot_signals=True, **kwargs)
 
     def plot_sidebands(self, category_column="category", **kwargs):
+        """
+        Plot the sidebands for each category.
+
+        Parameters
+        ----------
+        category_column : str
+            The column in the dataset that contains the categories.
+        separate_figures : bool
+            If True, each channel is plotted in a separate figure.
+        save_path : str
+            If given, the figures are saved to this path.
+        filename_format : str
+            The format string for the filename. The channel name is inserted into the
+            format string by calling `format` on the string with the channel name as
+            the argument. For example, the default format string is "analysis_{}.pdf",
+            which will result in filenames like "analysis_nue.pdf".
+        """
         return self._plot_bands(category_column, plot_signals=False, **kwargs)
 
     def plot_correlation(
