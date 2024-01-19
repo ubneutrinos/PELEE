@@ -253,7 +253,7 @@ class RunHistPlotter:
             chi2_label = f"$\chi^2$ = {chi_square:.1f} / {n_bins}"
             ax.text(
                 0.05,
-                0.95,
+                0.98,
                 chi2_label,
                 ha="left",
                 va="top",
@@ -268,6 +268,16 @@ class RunHistPlotter:
             title += ", " + pot_label
         elif title is None:
             title = pot_label
+        ax.text(
+            0.5,
+            0.98,
+            title,
+            ha="center",
+            va="top",
+            transform=ax.transAxes,
+            fontsize=10,
+            bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
+        )
         ax.set_ylabel("Events")
         ax.legend(
             loc="lower left",
@@ -278,9 +288,8 @@ class RunHistPlotter:
             bbox_transform=ax.transAxes,
             fontsize="small",
             frameon=False,
-            title=title,
-            # title_fontsize=12,
         )
+        ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
         return ax
 
     def plot_hist(
