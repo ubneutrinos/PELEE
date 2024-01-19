@@ -81,6 +81,10 @@ class RunHistGenerator:
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
         self.data_pot = data_pot
+        # This query will be applied to the dataframes directly before sending them to the
+        # histogram generators. This greatly improves performance, but it also means that
+        # the selection cannot be changed later to include events that were filtered away
+        # here.
         query = get_selection_query(selection, preselection)
         self.selection = selection
         self.preselection = preselection
@@ -112,10 +116,14 @@ class RunHistGenerator:
                 # use the selection as the label.
                 self.binning.label = self.binning.label or self.selection
                 # For compatibility with newer plotting code, we also have to set the selection
-                # for the binning
+                # for the binning.
+                # This sets the selection_tex as well as the selection query string.
+                # However, we are going to remove the selection query string again later.
                 self.binning.set_selection(selection=selection, preselection=preselection)
-            # We apply the query to the dataframe and remove the query string from the binning
+            # We apply the query to the dataframe ...
             query = self.binning.selection_query
+            # and remove the query string from the binning, so that it is not applied again
+            self.binning.selection_query = None
             self.channels = [self.binning.label]
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
@@ -182,12 +190,12 @@ class RunHistGenerator:
             **mc_hist_generator_kwargs,
         )
         if df_ext is not None:
-            self.ext_hist_generator = HistogramGenerator(df_ext, self.binning, enable_cache=False)
+            self.ext_hist_generator = HistogramGenerator(df_ext, self.binning, enable_cache=True)
         else:
             self.ext_hist_generator = None
         self.is_blinded = False
         if df_data is not None:
-            self.data_hist_generator = HistogramGenerator(df_data, self.binning, enable_cache=False)
+            self.data_hist_generator = HistogramGenerator(df_data, self.binning, enable_cache=True)
         else:
             self.data_hist_generator = None
             self.is_blinded = True

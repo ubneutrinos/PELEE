@@ -22,6 +22,7 @@ from microfit.run_plotter import RunHistPlotter
 from microfit import signal_generators
 from microfit.statistics import sideband_constraint_correction, chi_square
 from microfit import category_definitions
+from functools import lru_cache
 
 
 class MultibandAnalysis(object):
@@ -157,14 +158,14 @@ class MultibandAnalysis(object):
 
     def generate_multiband_histogram(
         self,
-        include_multisim_errors=False,
-        use_sideband=False,
-        scale_to_pot=None,
-        constraint_channels=None,
-        signal_channels=None,
-        include_non_signal_channels=False,
-        include_ext=True,
-    ):
+        include_multisim_errors: bool = False,
+        use_sideband: bool = False,
+        scale_to_pot: Optional[float] = None,
+        constraint_channels: Optional[List[str]] = None,
+        signal_channels: Optional[List[str]] = None,
+        include_non_signal_channels: bool = False,
+        include_ext: bool = True,
+    ) -> MultiChannelHistogram:
         """Generate the combined MC histogram from all channels."""
 
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
@@ -354,6 +355,7 @@ class MultibandAnalysis(object):
         ext_hist.hatch = "///"
         return ext_hist
 
+    @lru_cache(maxsize=1)
     def generate_multiband_data_histogram(self, impute_blinded_channels=False):
         """Generate a combined histogram from all unblinded data channels."""
 
@@ -507,7 +509,12 @@ class MultibandAnalysis(object):
         return fig, ax
 
     def two_hypothesis_test(
-        self, h0_params, h1_params, sensitivity_only=False, n_trials=1000, scale_to_pot=None
+        self,
+        h0_params: ParameterSet,
+        h1_params: ParameterSet,
+        sensitivity_only: bool = False,
+        n_trials: int = 1000,
+        scale_to_pot: Optional[float] = None,
     ):
         """Perform a two hypothesis test between two parameter sets.
 
@@ -654,8 +661,6 @@ class MultibandAnalysis(object):
             generated_hist = self.generate_multiband_histogram(
                 include_multisim_errors=True,
                 use_sideband=True,
-                check_covar=False,
-                scale_to_pot=scale_to_pot,
             )
             # calculate the chi-square
             return chi_square(
@@ -675,8 +680,38 @@ class MultibandAnalysis(object):
         m = Minuit(loss, name=self.parameters.names, errordef=Minuit.LEAST_SQUARES, **minuit_kwargs)
         return m
 
-    def fit_to_data(self, return_migrad=True):
-        m = self._get_minuit(self.generate_multiband_data_histogram())
+    def scan_chi2(self, parameter_name, scan_points, data=None):
+        """Perform a scan of the chi-square as a function of the given parameter."""
+
+        data = data or self.generate_multiband_data_histogram()
+        for channel in self.signal_channels:
+            if channel not in data.channels:
+                raise ValueError(f"Channel {channel} not found in data histogram")
+        data = data[self.signal_channels]
+        results = []
+        print(f"Running chi-square scan over {len(scan_points)} points in {parameter_name}...")
+        for scan_point in scan_points:
+            self.parameters[parameter_name].value = scan_point
+            expectation = self.generate_multiband_histogram(
+                include_multisim_errors=True, use_sideband=True
+            )
+            chi2 = chi_square(
+                data.nominal_values, expectation.nominal_values, expectation.covariance_matrix
+            )
+            results.append(chi2)
+        return results
+
+    def fit_to_data(
+        self,
+        data=None,
+        return_migrad=True,
+    ):
+        data = data or self.generate_multiband_data_histogram()
+        for channel in self.signal_channels:
+            if channel not in data.channels:
+                raise ValueError(f"Channel {channel} not found in data histogram")
+        data = data[self.signal_channels]
+        m = self._get_minuit(data)
         m.migrad()
         best_fit_parameters = self.parameters.copy()
         if return_migrad:
