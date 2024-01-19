@@ -326,19 +326,23 @@ class MultibandAnalysis(object):
         else:
             all_categories = all_keys
         channels = self.constraint_channels if self.plot_sideband else self.signal_channels
-        for key in all_categories:
+        for i, key in enumerate(all_categories):
             if key not in all_keys:
                 continue
             combined_channels[key] = MultiChannelHistogram.from_histograms(
                 [hist_dict[key] for hist_dict in histograms]
             )
             combined_channels[key] = combined_channels[key][channels]
-            combined_channels[key].color = category_definitions.get_category_color(
-                category_column, key
-            )
-            combined_channels[key].tex_string = category_definitions.get_category_label(
-                category_column, key
-            )
+            try:
+                combined_channels[key].color = category_definitions.get_category_color(
+                    category_column, key
+                )
+                combined_channels[key].tex_string = category_definitions.get_category_label(
+                    category_column, key
+                )
+            except KeyError:
+                combined_channels[key].color = f"C{i}"
+                combined_channels[key].tex_string = key
         return combined_channels
 
     def generate_multiband_ext_histogram(self):
@@ -438,6 +442,7 @@ class MultibandAnalysis(object):
                 ax=axes[0, channels.index(channel)],
                 ax_ratio=axes[1, channels.index(channel)] if show_data_mc_ratio else None,
                 channel=channel,
+                data_pot=self._get_pot_for_channel(channel),
                 **kwargs,
             )
         return fig, axes
