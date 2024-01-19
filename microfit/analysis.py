@@ -3,7 +3,7 @@
 import os
 import logging
 from typing import List, Optional, Union
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, ticker
 import numpy as np
 
 from scipy.linalg import block_diag
@@ -694,7 +694,6 @@ class MultibandAnalysis(object):
                 raise ValueError(f"Channel {channel} not found in data histogram")
         data = data[self.signal_channels]
         results = []
-        print(f"Running chi-square scan over {len(scan_points)} points in {parameter_name}...")
         for scan_point in scan_points:
             self.parameters[parameter_name].value = scan_point
             expectation = self.generate_multiband_histogram(
@@ -704,7 +703,100 @@ class MultibandAnalysis(object):
                 data.nominal_values, expectation.nominal_values, expectation.covariance_matrix
             )
             results.append(chi2)
+        results = np.array(results)
         return results
+
+    def scan_asimov_sensitivity(self, parameter_name, injection_point, scan_points):
+        """Perform a sensitivity scan using the expectation value as the data.
+
+        The parameter is set to the injection point and then the expectation
+        value is calculated. Then, the parameter is set to the scan points and
+        the chi-square is calculated for each point.
+
+        Parameters
+        ----------
+        parameter_name : str
+            The name of the parameter to scan.
+        injection_point : float
+            The value of the parameter to use as the expectation value.
+        scan_points : array-like
+            The values of the parameter to scan.
+
+        Returns
+        -------
+        np.ndarray
+            The chi-square values for each scan point.
+        """
+
+        self.parameters[parameter_name].value = injection_point
+        expectation = self.generate_multiband_histogram(
+            include_multisim_errors=True, use_sideband=True
+        )
+        return self.scan_chi2(parameter_name, scan_points, data=expectation)
+
+    def scan_asimov_fc_sensitivity(
+        self,
+        asimov_scan_points,
+        scan_points=None,
+        parameter_name=None,
+        n_trials=100,
+        fc_scan_results: Optional[dict]=None,
+    ):
+        if fc_scan_results is None:
+            assert scan_points is not None, "Either fc_scan_results or scan_points must be given"
+            assert parameter_name is not None, "Either fc_scan_results or parameter_name must be given"
+            fc_scan_results = self.fc_scan(parameter_name, scan_points, n_trials=n_trials)
+        elif scan_points is not None:
+            raise ValueError("Cannot give both fc_scan_results and scan_points")
+        elif parameter_name is not None:
+            assert parameter_name == fc_scan_results["parameter_name"]
+        
+        scan_points = np.array([result["scan_point"] for result in fc_scan_results["results"]])
+        parameter_name = fc_scan_results["parameter_name"]
+        assert set(fc_scan_results.keys()) == {"parameter_name", "scan_points", "results"}
+
+        def inverse_quantile(x, q):
+            return sum(x < q) / len(x)
+
+        inverse_quantile = np.vectorize(inverse_quantile, excluded=[0])
+
+        print(f"Calculating Asimov sensitivity for {len(asimov_scan_points)} points...")
+        for result in fc_scan_results["results"]:
+            result["asimov_chi2"] = self.scan_asimov_sensitivity(
+                parameter_name,
+                injection_point=result["scan_point"],
+                scan_points=asimov_scan_points,
+            )
+            result["pval"] = inverse_quantile(result["delta_chi2"], result["asimov_chi2"])
+        # For convenience, we also already compute the 2D map of p-values and return them as well.
+        # These can be used for plotting.
+        fc_scan_results["pval_map"] = np.array([result["pval"] for result in fc_scan_results["results"]])
+        X, Y = np.meshgrid(asimov_scan_points, scan_points)
+        fc_scan_results["measured_map"] = X
+        fc_scan_results["truth_map"] = Y
+        return fc_scan_results
+    
+    @classmethod
+    def plot_fc_scan_results(cls, fc_scan_results, ax=None, parameter_tex=None, levels=[0.0, 0.68, 0.9, 0.95, 1.0], **kwargs):
+        """Plot the results of an FC scan."""
+
+        if ax is None:
+            fig, ax = plt.subplots(constrained_layout=True)
+        else:
+            fig = ax.figure
+        pval_map = fc_scan_results["pval_map"]
+        X, Y = fc_scan_results["measured_map"], fc_scan_results["truth_map"]
+        levels = [0.0, 0.68, 0.9, 0.95, 1.0]  # Quantiles corresponding to 1 sigma, 90%, and 2 sigma sensitivity
+        contour = ax.contourf(X, Y, pval_map, levels=levels, cmap="Blues")
+        cbar = fig.colorbar(contour, format=ticker.FuncFormatter(lambda x, pos: f"{x * 100:.0f}%"))
+        cbar.ax.set_ylabel("p-value")
+        ax.contour(X, Y, pval_map, levels=levels, colors="k", linewidths=0.5)
+        if parameter_tex is None:
+            parameter_tex = fc_scan_results["parameter_name"]
+        ax.set_xlabel(rf"Measured {parameter_tex}")
+        ax.set_ylabel(rf"True {parameter_tex}")
+
+        return fig, ax
 
     def fit_to_data(
         self,
@@ -759,7 +851,7 @@ class MultibandAnalysis(object):
                 delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
             delta_chi2 = np.array(delta_chi2)
             results.append({"delta_chi2": delta_chi2, "scan_point": scan_point})
-        return results
+        return {"parameter_name": parameter_name, "scan_points": scan_points, "results": results}
 
     def set_parameters(self, parameter_set, check_matching=True):
         """Set the parameters of the analysis.
