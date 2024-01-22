@@ -413,6 +413,16 @@ class MultibandAnalysis(object):
                 return gen.data_pot
         raise ValueError(f"Channel {channel} not found in analysis")
 
+    def _get_channel_is_blinded(self, channel):
+        """Get whether the given channel is blinded."""
+
+        # Iterate through run hist generators. When the channel is found in a
+        # generator, return the POT of that generator.
+        for gen in self._run_hist_generators:
+            if channel in gen.channels:
+                return gen.is_blinded
+        raise ValueError(f"Channel {channel} not found in analysis")
+
     def _plot_bands(
         self,
         category_column,
@@ -439,6 +449,7 @@ class MultibandAnalysis(object):
                     category_column=category_column,
                     channel=channel,
                     data_pot=self._get_pot_for_channel(channel),
+                    show_data=not self._get_channel_is_blinded(channel),
                     **kwargs,
                 )
                 if save_path is not None:
@@ -465,6 +476,7 @@ class MultibandAnalysis(object):
                 ax_ratio=axes[1, channels.index(channel)] if show_data_mc_ratio else None,
                 channel=channel,
                 data_pot=self._get_pot_for_channel(channel),
+                show_data=not self._get_channel_is_blinded(channel),
                 **kwargs,
             )
         return fig, axes
@@ -507,7 +519,9 @@ class MultibandAnalysis(object):
             the argument. For example, the default format string is "analysis_{}.pdf",
             which will result in filenames like "analysis_nue.pdf".
         """
-        return self._plot_bands(category_column, plot_signals=False, **kwargs)
+        # When plotting sidebands, we of course never want to use the sideband as a constraint
+        kwargs.pop("use_sideband", None)
+        return self._plot_bands(category_column, plot_signals=False, use_sideband=False, **kwargs)
 
     def plot_correlation(
         self,
