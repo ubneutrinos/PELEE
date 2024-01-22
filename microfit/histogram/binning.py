@@ -67,12 +67,21 @@ class Binning:
     def __len__(self):
         return self.n_bins
 
-    def set_selection(self, selection=None, preselection=None):
+    def set_selection(self, selection=None, preselection=None, query=None, selection_tex=None):
         """Set the selection query of the binning given the preselection and the selection."""
-        self.selection_query = get_selection_query(selection, preselection)
-        self.selection_key = selection
-        self.preselection_key = preselection
-        self.selection_tex = get_selection_title(selection, preselection)
+        if selection is not None or preselection is not None:
+            assert query is None, "Cannot set both query and selection/preselection"
+            self.selection_query = get_selection_query(selection, preselection)
+            self.selection_key = selection
+            self.preselection_key = preselection
+            self.selection_tex = selection_tex or get_selection_title(selection, preselection)
+        elif query is not None:
+            self.selection_query = query
+            self.selection_key = None
+            self.preselection_key = None
+            self.selection_tex = selection_tex or query
+        else:
+            raise ValueError("Must specify either selection/preselection or query")
 
     @classmethod
     def from_config(
