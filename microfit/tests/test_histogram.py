@@ -350,6 +350,9 @@ class TestHistogram(unittest.TestCase):
                 hist_from_dict = HistogramClass.from_dict(hist_dict)
                 self.assertEqual(hist, hist_from_dict)
                 self.assertIsExactInstance(hist_from_dict, HistogramClass)
+                hist_from_dict_2 = HistogramClass.from_dict(hist_dict)
+                self.assertEqual(hist_from_dict, hist_from_dict_2)
+                self.assertIsExactInstance(hist_from_dict_2, HistogramClass)
 
     def test_multiplication(self):
         for HistogramClass, binning in self.test_cases:

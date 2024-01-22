@@ -270,7 +270,8 @@ class Histogram:
             Histogram object.
         """
 
-        dictionary["binning"] = Binning(**dictionary["binning"])
+        if not isinstance(dictionary["binning"], Binning):
+            dictionary["binning"] = Binning(**dictionary["binning"])
         dictionary["check_psd"] = check_psd
         return cls(**dictionary)
 
@@ -972,7 +973,8 @@ class MultiChannelHistogram(Histogram):
             MultiChannelHistogram object.
         """
 
-        dictionary["binning"] = MultiChannelBinning.from_dict(dictionary["binning"])
+        if not isinstance(dictionary["binning"], MultiChannelBinning):
+            dictionary["binning"] = MultiChannelBinning.from_dict(dictionary["binning"])
         dictionary["check_psd"] = check_psd
         return cls(**dictionary)
 
