@@ -1,8 +1,9 @@
 from dataclasses import dataclass, fields
 from typing import List, Optional, Tuple, Union
-from microfit.selections import find_common_selection
+from microfit.selections import find_common_selection, get_selection_query, get_selection_title
 
 import numpy as np
+
 
 @dataclass
 class Binning:
@@ -15,7 +16,7 @@ class Binning:
     bin_edges : np.ndarray
         Array of bin edges
     label : str
-        Label of the binning. In a multi-dimensional binning, this should be 
+        Label of the binning. In a multi-dimensional binning, this should be
         a unique key.
     variable_tex : str, optional
         LaTeX representation of the variable (default is None) that can be used
@@ -32,17 +33,22 @@ class Binning:
     variable_tex: Optional[str] = None
     is_log: bool = False
     selection_query: Optional[str] = None
+    selection_key: Optional[str] = None
+    preselection_key: Optional[str] = None
+    selection_tex: Optional[str] = None
 
     def __eq__(self, other):
         for field in fields(self):
             attr_self = getattr(self, field.name)
             attr_other = getattr(other, field.name)
-            if field.name == "label":
-                # There may be situations where a label is undefined (for instance, when
-                # loading detector systematics). In this case, we don't want to compare
-                # the labels.
-                if attr_self is None or attr_other is None:
-                    continue
+            # The "label" property *does* have to match now, because we use it to
+            # uniquely identify the channel in the MultiChannelBinning.
+            # But the TeX strings don't have to match, because they are only used
+            # for plotting.
+            if field.name in ["variable_tex", "selection_tex"]:
+                # It really doesn't matter if the variable_tex is different, as it is
+                # only used for plotting. So we can just skip it.
+                continue
             if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
                 if not np.array_equal(attr_self, attr_other):
                     return False
@@ -60,6 +66,13 @@ class Binning:
 
     def __len__(self):
         return self.n_bins
+
+    def set_selection(self, selection=None, preselection=None):
+        """Set the selection query of the binning given the preselection and the selection."""
+        self.selection_query = get_selection_query(selection, preselection)
+        self.selection_key = selection
+        self.preselection_key = preselection
+        self.selection_tex = get_selection_title(selection, preselection)
 
     @classmethod
     def from_config(
@@ -126,7 +139,7 @@ class Binning:
     def copy(self):
         """Create a copy of the binning."""
         return Binning(**self.to_dict())
-    
+
 
 @dataclass
 class MultiChannelBinning:
@@ -171,10 +184,21 @@ class MultiChannelBinning:
             making the histogram.
         """
         selection_queries = [b.selection_query for b in self.binnings]
+        selection_queries = [s if s is not None else "" for s in selection_queries]
         common_selection, unique_selections = find_common_selection(selection_queries)
         for binning, unique_selection in zip(self.binnings, unique_selections):
-            binning.selection_query = unique_selection
-        return common_selection
+            binning.selection_query = unique_selection if len(unique_selection) > 0 else None
+        return common_selection if len(common_selection) > 0 else None
+
+    def to_dict(self):
+        """Return a dictionary representation of the binning."""
+        return {"binnings": [b.to_dict() for b in self.binnings], "is_log": self.is_log}
+
+    @classmethod
+    def from_dict(cls, state):
+        """Create a MultiChannelBinning object from a dictionary representation of the binning."""
+        state["binnings"] = [Binning.from_dict(b) for b in state["binnings"]]
+        return cls(**state)
 
     @property
     def label(self) -> str:
@@ -233,6 +257,17 @@ class MultiChannelBinning:
             List of selection queries of all channels.
         """
         return [b.selection_query for b in self.binnings]
+
+    def delete_channel(self, key: Union[int, str]):
+        """Delete a channel from the binning.
+
+        Parameters
+        ----------
+        key : int or str
+            Index or label of the channel.
+        """
+        idx = self._idx_channel(key)
+        del self.binnings[idx]
 
     def get_unrolled_binning(self) -> Binning:
         """Get an unrolled binning of all channels.
@@ -306,7 +341,54 @@ class MultiChannelBinning:
 
     def __len__(self):
         return self.n_channels
-    
+
     def copy(self):
         """Create a copy of the binning."""
-        return MultiChannelBinning([b.copy() for b in self.binnings], self.is_log)
+        return MultiChannelBinning.from_dict(self.to_dict())
+
+    def _roll_list(self, lst, shift):
+        return lst[-shift:] + lst[:-shift]
+
+    def roll_channels(self, shift: int):
+        """Roll the channels by a given number of steps.
+
+        Parameters
+        ----------
+        shift : int
+            Number of steps to roll the channels.
+        """
+        self.binnings = self._roll_list(self.binnings, shift)
+        self.ensure_unique_labels()
+
+    def roll_to_first(self, label: str):
+        """Roll the channels such that the channel with the given label is first.
+
+        Parameters
+        ----------
+        label : str
+            Label of the channel to be rolled to first.
+        """
+        idx = self.labels.index(label)
+        self.roll_channels(-idx)
+
+    @classmethod
+    def join(cls, *args):
+        """Join multiple MultiChannelBinning or Binning objects into a single MultiChannelBinning.
+
+        Parameters
+        ----------
+        *args : MultiChannelBinning or Binning
+            Multiple MultiChannelBinning or Binning objects to be joined.
+
+        Returns
+        -------
+        MultiChannelBinning
+            A single MultiChannelBinning object containing all the binnings.
+        """
+        binnings = []
+        for mcb in args:
+            if not isinstance(mcb, MultiChannelBinning):
+                binnings.append(mcb)
+            else:
+                binnings.extend(mcb.binnings)
+        return cls(binnings)

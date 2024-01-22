@@ -16,7 +16,7 @@ from microfit.statistics import covariance
 
 class Transformer:
     """A base class for transformations that can be applied to data before fitting a KDE.
-    
+
     In order for a transformation to be valid, it must be monotonous and its derivative must be
     non-zero everywhere within the support of the function.
 
@@ -154,7 +154,7 @@ class TransformedKDE:
 
 class SmoothHistogramMixin:
     """Mixin class for smoothing histograms.
-    
+
     This class is mixed into the HistogramGenerator to add the functionality of
     histogram smoothing via kernel density estimation.
 
@@ -166,7 +166,7 @@ class SmoothHistogramMixin:
 
     def _get_query_mask(self, dataframe, query):
         """Get the boolean mask corresponding to the query.
-        
+
         This method will be overridden by the HistogramGenerator class
         with something more sophisticated.
         """
@@ -175,7 +175,7 @@ class SmoothHistogramMixin:
 
     def get_weights(self, dataframe, weight_column):
         """Get the weights from the dataframe.
-        
+
         This method will be overridden by the HistogramGenerator class
         with something more sophisticated.
         """
@@ -203,8 +203,7 @@ class SmoothHistogramMixin:
         return smoothed_hist
 
     def _autoselect_bound_transformation(self, data: np.ndarray, bin_edges: np.ndarray) -> str:
-        """Automatically select the bound transformation to use.
-        """
+        """Automatically select the bound transformation to use."""
         bound_transformation = None
         if len(data) < 5:
             # When the number of samples is too small, we cannot reliably
@@ -233,7 +232,7 @@ class SmoothHistogramMixin:
     ) -> Tuple[np.ndarray, np.ndarray, float]:
         assert data.ndim == 1, "KDE only supports 1D data."
         hist, bin_edges = np.histogram(data, bins=bins, weights=weights, density=density)
-        # When the unsmoothed histogram has no entries, we always want to return zero. 
+        # When the unsmoothed histogram has no entries, we always want to return zero.
         # There are some variables where an "invalid value" was actually a value just outside
         # the binning range, for instance, an energy value that might be set to zero. If we
         # were to let the KDE work on these, we would allow these invalid values to contribute
@@ -389,7 +388,7 @@ class SmoothHistogramMixin:
         **smooth_hist_kwargs,
     ) -> Union[np.ndarray, Tuple[np.ndarray, List[float], List[str]]]:
         """Smooth a multi-channel histogram given the data and weights.
-        
+
         This function computes the central value for one instantiation of the data and weights.
         """
 
@@ -446,17 +445,27 @@ class SmoothHistogramMixin:
         """This function is actually called by the HistogramGenerator class."""
         binning = self.binning
         return_single_channel = False
-        if isinstance(binning, Binning):
+        if not isinstance(binning, MultiChannelBinning):
             binning = MultiChannelBinning([binning])
             return_single_channel = True
         central_value, covariance_matrix, _ = self._compute_kde_histogram_bootstrap(
-            dataframe, binning, weight_column=weight_column, calculate_covariance=calculate_covariance, **smooth_hist_kwargs
+            dataframe,
+            binning,
+            weight_column=weight_column,
+            calculate_covariance=calculate_covariance,
+            **smooth_hist_kwargs,
         )
         if return_single_channel:
             return Histogram(
-                binning.binnings[0], central_value, covariance_matrix=covariance_matrix,
+                binning.binnings[0],
+                central_value,
+                covariance_matrix=covariance_matrix,
             )
-        return MultiChannelHistogram(binning, central_value, covariance_matrix=covariance_matrix,)
+        return MultiChannelHistogram(
+            binning,
+            central_value,
+            covariance_matrix=covariance_matrix,
+        )
 
     def _get_bootstrap_sample(
         self,

@@ -19,6 +19,7 @@ def get_category_label(category_column, category):
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
+
 def get_categories(category_column):
     """Get the list of categories for a given category column."""
 
@@ -37,6 +38,7 @@ def get_categories(category_column):
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
+
 def get_category_color(category_column, category):
     """Get the appropriate color for a given category depending on which category column was used."""
 
@@ -44,12 +46,12 @@ def get_category_color(category_column, category):
         return int_colors[category]
     return category_colors[category]
 
+
 # Whenever you define categories, be sure to define all the categories that can appear in the data.
 # Missing categories can lead to events not showing up in histograms.
 
 paper_labels_numu = {
     11: r"$\nu_e$ CC",
-    111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
     22: r"$\nu_{\mu}$ CC 0p",
     23: r"$\nu_{\mu}$ CC 1p",
@@ -57,24 +59,25 @@ paper_labels_numu = {
     25: r"$\nu_{\mu}$ CC 3+p",
     3: r"NC $\nu$",
     5: r"Dirt",  # (Outside TPC)
+    111: r"MiniBooNE LEE",
 }
 
 paper_labels = {
     11: r"$\nu_e$ CC",
-    111: r"MiniBooNE LEE",
     2: r"$\nu$ other",
     31: r"$\nu$ with $\pi^{0}$",
     5: r"Dirt",  # (Outside TPC)
+    111: r"MiniBooNE LEE",
 }
 
 paper_labels_xsec = {
     1: r"$\nu_e$ CC with $\pi$",
     10: r"$\nu_e$ CC 0p0$\pi$",
     11: r"$\nu_e$ CC Np0$\pi$",
-    111: r"MiniBooNE LEE",
     2: r"$\nu$ other",
     31: r"$\nu$ with $\pi^{0}$",
     5: r"Dirt",  # (Outside TPC)
+    111: r"MiniBooNE LEE",
 }
 
 
@@ -82,7 +85,6 @@ category_labels = {
     1: r"$\nu_e$ CC",
     10: r"$\nu_e$ CC0$\pi$0p",
     11: r"$\nu_e$ CC0$\pi$Np",
-    111: r"MiniBooNE LEE",
     2: r"$\nu_{\mu}$ CC",
     222: r"$\nu_{\mu}$ CC w/ Michel",
     21: r"$\nu_{\mu}$ CC $\pi^{0}$",
@@ -104,13 +106,14 @@ category_labels = {
     806: r"out of FV",
     6: r"other",
     0: r"No slice",
+    111: r"MiniBooNE LEE",
 }
 
 # These labels are pretty much the same as category_labels except for a couple of edits that are required for the 1e1p study
 category_labels_1e1p = {
     1: r"$\nu_e$ CC",
     10: r"$\nu_e$ CC0$\pi$0p",
-    #11: r"$\nu_e$ CC0$\pi$Np",
+    # 11: r"$\nu_e$ CC0$\pi$Np",
     12: r"$\nu_e$ CC0$\pi$1p",
     13: r"$\nu_e$ CC0$\pi$2+p",
     111: r"MiniBooNE LEE",

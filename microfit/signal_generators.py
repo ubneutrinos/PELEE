@@ -10,7 +10,6 @@ from microfit.parameters import ParameterSet
 
 
 class SignalOverBackgroundGenerator(HistogramGenerator):
-
     hist_gen_cls = HistogramGenerator
 
     def __init__(
@@ -25,16 +24,12 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         self.signal_query = signal_query
         self.background_query = background_query
         self.parameters = parameters
-        assert (
-            "signal_strength" in parameters.names
-        ), "signal_strength must be in parameters"
+        assert "signal_strength" in parameters.names, "signal_strength must be in parameters"
         # We want to forward all parameters except the signal strength to the histogram generator
         pnames = parameters.names
         pnames.remove("signal_strength")
         forward_parameters = parameters[pnames]
-        self.hist_generator = self.hist_gen_cls(
-            *args, parameters=forward_parameters, **kwargs
-        )
+        self.hist_generator = self.hist_gen_cls(*args, parameters=forward_parameters, **kwargs)
 
     def append_query(self, query, extra_query):
         if query is None:
@@ -76,21 +71,25 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
             # In this case the result is just the covariance matrix, so we can just add them.
             # Note that we need to multiply the signal result by the signal strength SQUARED
             summed_cov = (
-                self.parameters["signal_strength"].m ** 2 * signal_result
-                + background_result
+                self.parameters["signal_strength"].m ** 2 * signal_result + background_result
             )
             return summed_cov
         # If the histograms are to be returned, the result is a tuple of the covariance matrix and the histograms.
         summed_cov = (
-            self.parameters["signal_strength"].m ** 2 * signal_result[0]
-            + background_result[0]
+            self.parameters["signal_strength"].m ** 2 * signal_result[0] + background_result[0]
         )
+        signal_universes = signal_result[1]
+        background_universes = background_result[1]
+        if signal_universes is None:
+            return summed_cov, background_universes
+        if background_universes is None:
+            return summed_cov, signal_universes
+        # If we get here, both signal and background have universes.
         assert len(signal_result[1]) == len(
             background_result[1]
         ), "Number of universes must be the same for signal and background"
         summed_universes = (
-            self.parameters["signal_strength"].m * signal_result[1]
-            + background_result[1]
+            self.parameters["signal_strength"].m * signal_result[1] + background_result[1]
         )
         # If these are lists, then summing then will cause a nasty bug where the universes are not summed,
         # but instead appended. This will be happily processed by the rest of the code, but the result will be wrong.
@@ -112,22 +111,18 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
             # In this case the result is just the covariance matrix, so we can just add them.
             # Note that we need to multiply the signal result by the signal strength SQUARED
             summed_cov = (
-                self.parameters["signal_strength"].m ** 2 * signal_result
-                + background_result
+                self.parameters["signal_strength"].m ** 2 * signal_result + background_result
             )
             return summed_cov
         # If the histograms are to be returned, the result is a tuple of the covariance matrix and the histograms.
         summed_cov = (
-            self.parameters["signal_strength"].m ** 2 * signal_result[0]
-            + background_result[0]
+            self.parameters["signal_strength"].m ** 2 * signal_result[0] + background_result[0]
         )
         # For unisim variations, the universes are stored in a dict where keys are the names of the variations.
         # We iterate over all the keys and sum the histograms for each variation.
         summed_obs = {}
         for key in signal_result[1].keys():
-            assert isinstance(
-                signal_result[1][key], np.ndarray
-            ), "Universes must be numpy arrays"
+            assert isinstance(signal_result[1][key], np.ndarray), "Universes must be numpy arrays"
             assert isinstance(
                 background_result[1][key], np.ndarray
             ), "Universes must be numpy arrays"

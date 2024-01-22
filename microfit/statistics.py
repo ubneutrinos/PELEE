@@ -2,12 +2,13 @@
 
 import numpy as np
 import logging
+from typing import Union
 import scipy.linalg as lin
 
 logger = logging.getLogger(__name__)
 
 
-def is_psd(A, ignore_zeros=False):
+def is_psd(A: np.ndarray, ignore_zeros: bool = False) -> bool:
     """Test whether a matrix is positive semi-definite.
 
     Test is done via attempted Cholesky decomposition as suggested in [1]_.
@@ -43,7 +44,7 @@ def is_psd(A, ignore_zeros=False):
         return False
 
 
-def fronebius_nearest_psd(A, return_distance=False):
+def fronebius_nearest_psd(A: np.ndarray, return_distance: bool = False) -> Union[np.ndarray, tuple]:
     """Find the positive semi-definite matrix closest to `A`.
 
     The closeness to `A` is measured by the Fronebius norm. The matrix closest to `A`
@@ -123,7 +124,9 @@ def check_frob_psd(A):
     assert np.isclose(xdist, actual_dist), "actual distance differs from expectation"
 
 
-def covariance(observations, central_value=None, allow_approximation=False, debug_name=None, tolerance=0.0):
+def covariance(
+    observations, central_value=None, allow_approximation=False, debug_name=None, tolerance=0.0
+):
     """Calculate the covariance matrix of the given observations.
 
     Optionally, a central value can be given that will be used instead of the mean of the
@@ -178,7 +181,8 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
             name_str = f"for {debug_name}" if debug_name is not None else ""
             logger.debug(f"Covariance matrix{name_str} is not positive semi-definite. ")
             logger.debug(
-                "Using nearest positive semi-definite matrix instead. " "Distance to original matrix: %s",
+                "Using nearest positive semi-definite matrix instead. "
+                "Distance to original matrix: %s",
                 dist,
             )
             if dist > tolerance:
@@ -187,7 +191,9 @@ def covariance(observations, central_value=None, allow_approximation=False, debu
                     f"Distance: {dist} > {tolerance}"
                 )
         else:
-            raise ValueError(f"Non-zero part of covariance matrix is not positive semi-definite. Matrix is: {cov}")
+            raise ValueError(
+                f"Non-zero part of covariance matrix is not positive semi-definite. Matrix is: {cov}"
+            )
 
     # Now we need to add back the rows and columns that we deleted before.
     # We do this by adding back zero rows and columns.
@@ -229,14 +235,14 @@ def get_cnp_covariance(expectation, observation):
 
     .. math::
         C_{ij} = 3 \\mu_i n_i \\delta_{ij} / \\left( \\mu_i + 2 n_i \\right)
-    
+
     A special case we have to take care of is when the observation is zero. In this case,
-    we can recover the Poisson likelihood by setting the covariance to :math:`\mu_i / 2`. We 
+    we can recover the Poisson likelihood by setting the covariance to :math:`\mu_i / 2`. We
     can see this by considering
 
     .. math::
         \chi^2_{\\text{Poisson}} = 2 \sum_{i=1}^n \left( \mu - M_i + M_i \ln \\frac{M_i}{\mu} \\right)
-    
+
     When the observation is zero, we have :math:`M_i = 0` and the chi-square reduces to
     :math:`\chi^2_{\\text{Poisson}} = 2 \mu`. Since we calculate the chi-square as
     :math:`\chi^2 = (n - \mu)^T C^{-1} (n - \mu)`, we need to set :math:`C = \mu / 2` to
@@ -261,7 +267,9 @@ def get_cnp_covariance(expectation, observation):
     return cnp_covariance
 
 
-def chi_square(observation: np.ndarray, expectation: np.ndarray, systematic_covariance: np.ndarray) -> float:
+def chi_square(
+    observation: np.ndarray, expectation: np.ndarray, systematic_covariance: np.ndarray
+) -> float:
     """
     Calculate the chi-square value for a given observation, expectation, and systematic covariance.
 
@@ -460,5 +468,3 @@ def error_propagation_multiplication(x1, x2, C1, C2):
     if not is_psd(Cy):
         Cy = fronebius_nearest_psd(Cy)
     return y, Cy
-
-

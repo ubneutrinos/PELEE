@@ -5,6 +5,7 @@ from unitpy import Unit, Quantity
 
 from ..parameters import Parameter, ParameterSet
 
+
 class TestParameter(unittest.TestCase):
     def test_discrete_parameter(self):
         p = Parameter(name="discrete", value=True)
@@ -18,7 +19,9 @@ class TestParameter(unittest.TestCase):
 
     def test_bounds(self):
         p = Parameter(
-            name="bounded", value=Quantity(1.0, Unit("m")), bounds=(Quantity(0.0, Unit("m")), Quantity(2.0, Unit("m")))
+            name="bounded",
+            value=Quantity(1.0, Unit("m")),
+            bounds=(Quantity(0.0, Unit("m")), Quantity(2.0, Unit("m"))),
         )
         self.assertEqual(p.bounds, (Quantity(0.0, Unit("m")), Quantity(2.0, Unit("m"))))
 
@@ -79,13 +82,17 @@ class TestParameterSet(unittest.TestCase):
             ps = ParameterSet([p1, p2, p3, p4, p5])
 
     def check_shared_params(self, param_sets: List[ParameterSet]):
-        shared_names = list(set(param_sets[0].names).intersection(*[set(ps.names) for ps in param_sets[1:]]))
+        shared_names = list(
+            set(param_sets[0].names).intersection(*[set(ps.names) for ps in param_sets[1:]])
+        )
         # Reference ParameterSet
         ref_set = param_sets[0]
         for name in shared_names:
             ref_param = ref_set[name]
             for ps in param_sets[1:]:
-                assert ref_param is ps[name], f"Parameter {name} is not the same object in all ParameterSets"
+                assert (
+                    ref_param is ps[name]
+                ), f"Parameter {name} is not the same object in all ParameterSets"
 
     def test_parameter_sharing(self):
         p1 = Parameter("x", Quantity(1.0, Unit("m")), bounds=(0.0, 2.0))
@@ -104,7 +111,9 @@ class TestParameterSet(unittest.TestCase):
         class ParameterUserUser:
             def __init__(self, parameter_users: List[ParameterUser]):
                 self.parameter_users = parameter_users
-                self.parameters = sum([pu.parameters for pu in parameter_users])
+                self.parameters = sum(
+                    [pu.parameters for pu in parameter_users]
+                )  # type: ParameterSet
 
         pu1 = ParameterUser(ps, name="pu1")
         pu2 = ParameterUser(ps2, name="pu2")
@@ -166,12 +175,12 @@ class TestParameterSet(unittest.TestCase):
                 assert pu.parameters["x"].m == 0.7
             except KeyError:
                 pass  # Skip those ParameterUser(s) that don't have "x"
-        
+
         class ParameterPartialUser:
             def __init__(self, parameters: ParameterSet, forward_parameters: List[str]):
                 self.parameters = parameters
                 self.pu = ParameterUser(parameters[forward_parameters], copypars=False)
-        
+
         ppu = ParameterPartialUser(puu_top.parameters, ["x", "y"])
         # the puu should now have all parameters, but its internal ParameterUser should only have "x" and "y"
         assert len(ppu.parameters) == 3

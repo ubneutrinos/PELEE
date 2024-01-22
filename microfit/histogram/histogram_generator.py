@@ -11,7 +11,12 @@ from microfit.histogram import SmoothHistogramMixin
 
 import pandas as pd
 
-from microfit.statistics import fronebius_nearest_psd, covariance, is_psd, sideband_constraint_correction
+from microfit.statistics import (
+    fronebius_nearest_psd,
+    covariance,
+    is_psd,
+    sideband_constraint_correction,
+)
 
 
 class HistogramGenerator(SmoothHistogramMixin):
@@ -123,7 +128,9 @@ class HistogramGenerator(SmoothHistogramMixin):
         return mask
 
     def _histogram_multi_channel(
-        self, dataframe: pd.DataFrame, weight_column: Optional[Union[str, List[str]]] = None,
+        self,
+        dataframe: pd.DataFrame,
+        weight_column: Optional[Union[str, List[str]]] = None,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Generate a histogram for multiple channels from the dataframe.
 
@@ -152,7 +159,8 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         binning = self.binning
         return_single_channel = False
-        if isinstance(binning, Binning):
+        # If we were to check for "Binning", this would also return True for MultiChannelBinning
+        if not isinstance(binning, MultiChannelBinning):
             binning = MultiChannelBinning([binning])
             return_single_channel = True
         sample = dataframe[binning.variables].to_numpy()
@@ -172,7 +180,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 np.histogram(channel_sample, bins=bin_edges[i], weights=channel_weights)[0]
             )
             channel_bin_variances.append(
-                np.histogram(channel_sample, bins=bin_edges[i], weights=channel_weights ** 2)[0]
+                np.histogram(channel_sample, bins=bin_edges[i], weights=channel_weights**2)[0]
             )
         # now we build the covariance
         covariance_matrix = np.diag(np.concatenate(channel_bin_variances))
@@ -202,10 +210,14 @@ class HistogramGenerator(SmoothHistogramMixin):
             raise RuntimeError(f"Nearest PSD distance is {dist} away, which is too large.")
         if return_single_channel:
             return Histogram(
-                binning.binnings[0], channel_bin_counts[0], covariance_matrix=covariance_matrix,
+                binning.binnings[0],
+                channel_bin_counts[0],
+                covariance_matrix=covariance_matrix,
             )
         return MultiChannelHistogram(
-            binning, np.concatenate(channel_bin_counts), covariance_matrix=covariance_matrix,
+            binning,
+            np.concatenate(channel_bin_counts),
+            covariance_matrix=covariance_matrix,
         )
 
     def _multi_channel_universes(
@@ -234,7 +246,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         """
 
         binning = self.binning
-        if isinstance(binning, Binning):
+        if not isinstance(binning, MultiChannelBinning):
             binning = MultiChannelBinning([binning])
         sample = dataframe[binning.variables].to_numpy()
         selection_masks = []
@@ -336,7 +348,12 @@ class HistogramGenerator(SmoothHistogramMixin):
             assert self.detvar_data is not None, "No detector variations provided."
         calculate_hist = True
         hash = self._generate_hash(
-            extra_query, add_precomputed_detsys, use_sideband, include_multisim_errors, use_kde_smoothing, options
+            extra_query,
+            add_precomputed_detsys,
+            use_sideband,
+            include_multisim_errors,
+            use_kde_smoothing,
+            options,
         )
         hist = None
         if self.enable_cache:
@@ -383,13 +400,17 @@ class HistogramGenerator(SmoothHistogramMixin):
             # calculate multisim histograms
             for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
                 cov_mat, universe_hists = self.calculate_multisim_uncertainties(
-                    ms_column, extra_query=extra_query, return_histograms=True,
+                    ms_column,
+                    extra_query=extra_query,
+                    return_histograms=True,
                 )
                 hist.add_covariance(cov_mat)
 
                 if use_sideband:
                     extended_cov += self.multiband_covariance(
-                        [self, sideband_generator], ms_column, extra_queries=[extra_query, None],
+                        [self, sideband_generator],
+                        ms_column,
+                        extra_queries=[extra_query, None],
                     )
 
             # calculate unisim histograms
@@ -425,7 +446,51 @@ class HistogramGenerator(SmoothHistogramMixin):
         return hist
 
     @classmethod
-    def multiband_covariance(cls, hist_generators, ms_column, extra_queries=None):
+    def generate_joint_histogram(
+        cls,
+        hist_generators,
+        include_multisim_errors=True,
+        ms_columns=["weightsGenie", "weightsFlux", "weightsReint"],
+        include_unisim_errors=True,
+        include_stat_errors=True,
+    ):
+        """Generate a joint histogram from multiple histogram generators.
+
+        The result is a MultiChannelHistogram object with covariance matrix that contains
+        correlations between bins of different channels.
+        """
+
+        generate_kwargs = {
+            "include_multisim_errors": False,
+        }
+        # We want these histograms to only contain the statistical covariance matrix (which may include correlations
+        # in case of overlapping selections between channels).
+        # The resulting covariance is block-diagonal, with each block corresponding to the output of one histogram
+        # generator.
+        histogram = MultiChannelHistogram.from_histograms(
+            [h.generate(**generate_kwargs) for h in hist_generators]
+        )
+        if not include_stat_errors:
+            histogram.covariance_matrix = np.zeros_like(histogram.covariance_matrix)
+        if not include_multisim_errors:
+            return histogram
+        covariance_matrix = np.zeros((histogram.n_bins, histogram.n_bins))
+        concatenated_cv = cls.multiband_cv(hist_generators)
+        for ms_column in ms_columns:
+            covariance_matrix += HistogramGenerator.multiband_covariance(
+                hist_generators, ms_column, concatenated_cv=concatenated_cv
+            )
+        if include_unisim_errors:
+            covariance_matrix += HistogramGenerator.multiband_unisim_covariance(
+                hist_generators, concatenated_cv=concatenated_cv
+            )
+        histogram.add_covariance(covariance_matrix)
+        return histogram
+
+    @classmethod
+    def multiband_covariance(
+        cls, hist_generators, ms_column, extra_queries=None, concatenated_cv=None
+    ):
         """Calculate the covariance matrix for multiple histograms.
 
         Given a list of HistogramGenerator objects, calculate the covariance matrix of the
@@ -441,6 +506,8 @@ class HistogramGenerator(SmoothHistogramMixin):
             Name of the multisim weight column.
         extra_queries : list of str, optional
             List of additional queries to apply to the dataframe.
+        concatenated_cv : array_like, optional
+            Concatenated central values. If not given, they are calculated from the histograms.
         """
 
         assert len(hist_generators) > 0, "Must provide at least one histogram generator."
@@ -448,7 +515,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         # assert all(isinstance(hg, cls) for hg in hist_generators), f"Must provide a list of HistogramGenerator objects. Types are {types}."
 
         universe_hists = []
-        central_values = []
         if extra_queries is None:
             extra_queries = [None] * len(hist_generators)
         for hg, extra_query in zip(hist_generators, extra_queries):
@@ -456,19 +522,56 @@ class HistogramGenerator(SmoothHistogramMixin):
                 ms_column, return_histograms=True, extra_query=extra_query
             )
             universe_hists.append(universe_hist)
+        if concatenated_cv is None:
+            concatenated_cv = cls.multiband_cv(hist_generators, extra_queries=extra_queries)
+        concatenated_universes = np.concatenate(universe_hists, axis=1)
+        cov_mat = covariance(
+            concatenated_universes,
+            concatenated_cv,
+            allow_approximation=True,
+            tolerance=1e-10,
+        )
+        return cov_mat
+
+    @classmethod
+    def multiband_cv(cls, hist_generators, extra_queries=None):
+        """Calculate the central values for multiple histograms.
+
+        Given a list of HistogramGenerator objects, calculate the central values of the
+        multisim universes. The underlying assumption
+        is that the weights listed in the multisim column are from the same universes
+        in the same order for all histograms.
+
+        Parameters
+        ----------
+        hist_generators : list of HistogramGenerator
+            List of HistogramGenerator objects.
+        extra_queries : list of str, optional
+            List of additional queries to apply to the dataframe.
+        """
+
+        assert len(hist_generators) > 0, "Must provide at least one histogram generator."
+        # types = [type(hg) for hg in hist_generators]
+        # assert all(isinstance(hg, cls) for hg in hist_generators), f"Must provide a list of HistogramGenerator objects. Types are {types}."
+
+        central_values = []
+        if extra_queries is None:
+            extra_queries = [None] * len(hist_generators)
+        for hg, extra_query in zip(hist_generators, extra_queries):
             central_values.append(
                 hg.generate(extra_query=extra_query, include_multisim_errors=False).nominal_values
             )
 
         concatenated_cv = np.concatenate(central_values)
-        concatenated_universes = np.concatenate(universe_hists, axis=1)
-        cov_mat = covariance(
-            concatenated_universes, concatenated_cv, allow_approximation=True, tolerance=1e-10,
-        )
-        return cov_mat
+        return concatenated_cv
 
     @classmethod
-    def multiband_unisim_covariance(cls, hist_generators, extra_queries=None):
+    def multiband_unisim_covariance(
+        cls,
+        hist_generators: List["HistogramGenerator"],
+        extra_queries=None,
+        concatenated_cv: Optional[np.ndarray] = None,
+    ):
         """Calculate the covariance matrix for multiple histograms.
 
         Given a list of HistogramGenerator objects, calculate the covariance matrix of the
@@ -482,21 +585,22 @@ class HistogramGenerator(SmoothHistogramMixin):
             List of HistogramGenerator objects.
         extra_queries : list of str, optional
             List of additional queries to apply to the dataframe.
+        concatenated_cv : array_like, optional
+            Concatenated central values. If not given, they are calculated from the histograms.
         """
 
         assert len(hist_generators) > 0, "Must provide at least one histogram generator."
         universe_hist_dicts = []
-        concatenated_cv = []
         if extra_queries is None:
             extra_queries = [None] * len(hist_generators)
         for hg, extra_query in zip(hist_generators, extra_queries):
-            concatenated_cv.append(hg.generate(extra_query=extra_query).nominal_values)
             universe_hist_dicts.append(
-                hg.calculate_unisim_uncertainties(return_histograms=True, extra_query=extra_query)[
-                    1
-                ]
+                hg.calculate_unisim_uncertainties(
+                    return_histograms=True, extra_query=extra_query, skip_covariance=True
+                )[1]
             )
-        concatenated_cv = np.concatenate(concatenated_cv)
+        if concatenated_cv is None:
+            concatenated_cv = cls.multiband_cv(hist_generators, extra_queries=extra_queries)
         knobs = list(universe_hist_dicts[0].keys())
         summed_cov_mat = np.zeros((len(concatenated_cv), len(concatenated_cv)))
         for knob in knobs:
@@ -507,7 +611,10 @@ class HistogramGenerator(SmoothHistogramMixin):
                 [hist_dict[knob] for hist_dict in universe_hist_dicts], axis=1
             )
             cov_mat = covariance(
-                concatenated_universes, concatenated_cv, allow_approximation=True, tolerance=1e-10,
+                concatenated_universes,
+                concatenated_cv,
+                allow_approximation=True,
+                tolerance=1e-10,
             )
             summed_cov_mat += cov_mat
         return summed_cov_mat
@@ -550,7 +657,8 @@ class HistogramGenerator(SmoothHistogramMixin):
                     knob in hist_dict[dataset] for hist_dict in universe_hist_dicts
                 ), f"Knob {knob} not found in all histograms."
                 concatenated_universes = np.concatenate(
-                    [hist_dict[dataset][knob] for hist_dict in universe_hist_dicts], axis=1,
+                    [hist_dict[dataset][knob] for hist_dict in universe_hist_dicts],
+                    axis=1,
                 )
                 # The detector universes are special, because the central value has already been subtracted
                 # by construction. Therefore, we can use the zero vector as the central value.
@@ -695,13 +803,27 @@ class HistogramGenerator(SmoothHistogramMixin):
             dataframe = self.dataframe.query(extra_query, engine="python")
         else:
             dataframe = self.dataframe
+        if len(dataframe) == 0:
+            cov = np.zeros((self.binning.n_bins, self.binning.n_bins))
+            if return_histograms:
+                return cov, None
+            else:
+                return cov
         universe_histograms = self._multi_channel_universes(
-            dataframe, weight_column, multisim_weight_column, weight_rescale=weight_rescale,
+            dataframe,
+            weight_column,
+            multisim_weight_column,
+            weight_rescale=weight_rescale,
         )
         if central_value_hist is None:
             central_value_hist = self._histogram_multi_channel(dataframe)
         # calculate the covariance matrix from the histograms
-        cov = covariance(universe_histograms, central_value_hist.nominal_values, allow_approximation=True, tolerance=1e-10)
+        cov = covariance(
+            universe_histograms,
+            central_value_hist.nominal_values,
+            allow_approximation=True,
+            tolerance=1e-10,
+        )
         self.logger.debug(f"Calculated covariance matrix for {multisim_weight_column}.")
         self.logger.debug(f"Bin-wise error contribution: {np.sqrt(np.diag(cov))}")
         if self.enable_cache:
@@ -714,7 +836,11 @@ class HistogramGenerator(SmoothHistogramMixin):
         return cov
 
     def calculate_unisim_uncertainties(
-        self, central_value_hist=None, extra_query=None, return_histograms=False
+        self,
+        central_value_hist=None,
+        extra_query=None,
+        return_histograms=False,
+        skip_covariance=False,
     ):
         """Calculate unisim uncertainties.
 
@@ -731,6 +857,9 @@ class HistogramGenerator(SmoothHistogramMixin):
             Extra query to apply to the dataframe before calculating the covariance matrix.
         return_histograms : bool, optional
             If True, return the histograms of the universes.
+        skip_covariance : bool, optional
+            If True, only return the histograms, not the covariance matrix. Can be used within
+            a function that calculates joint unisim and multisim uncertainties to speed it up.
 
         Returns
         -------
@@ -802,6 +931,8 @@ class HistogramGenerator(SmoothHistogramMixin):
             # If we get to this point without having either calculated a central value hist
             # or taken one from the cache, something is wrong
             assert isinstance(central_value_hist, Histogram)
+            if skip_covariance:
+                continue
             # calculate the covariance matrix from the histograms
             cov = covariance(
                 observations,
@@ -850,7 +981,9 @@ class HistogramGenerator(SmoothHistogramMixin):
             "wiremodthetaxz",
             "wiremodthetayz",
         ]
-        variation_hist_data = cast(Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"])
+        variation_hist_data = cast(
+            Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"]
+        )
         # Detector variations are calculated separately for each truth-filtered set. We can not
         # assume, however, that the truth-filtered sets are identical to those used in this RunHistGenerator.
         # Instead, we use the filter queries that are part of the detector variation data to select the

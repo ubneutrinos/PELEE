@@ -11,6 +11,7 @@ from .histogram import (
 )
 from . import selections
 from .statistics import chi_square as chi_square_func
+import warnings
 
 
 class RunHistPlotter:
@@ -19,28 +20,24 @@ class RunHistPlotter:
         self.run_hist_generator = run_hist_generator
 
     def get_selection_title(self, selection, preselection):
-        if preselection is not None:
-            presel_title = selections.preselection_categories[preselection]["title"]
-        if selection is not None:
-            sel_title = selections.selection_categories[selection]["title"]
-        if preselection is None or preselection.lower() == "none":
-            presel_title = "No Presel."
-        if selection is None or selection.lower() == "none":
-            sel_title = "No Sel."
+        warnings.warn(
+            "This class method has been replaced with the function in the selections module.",
+            DeprecationWarning,
+        )
+        return selections.get_selection_title(selection, preselection)
 
-        title = f"{presel_title} and {sel_title}"
-        return title
-
-    def get_pot_label(self, scale_to_pot, has_data=True):
-        if self.run_hist_generator.data_pot is None:
-            return ""
+    def get_pot_label(self, scale_to_pot, has_data=True, data_pot=None):
+        data_pot = data_pot or self.run_hist_generator.data_pot
+        if data_pot is None:
+            return None
         if scale_to_pot is None:
-            if has_data:
-                return f"Data POT: {self.run_hist_generator.data_pot:.1e}"
-            else:
-                return f"MC POT: {self.run_hist_generator.data_pot:.1e}"
+            pot_in_sci_notation = "{:.1e}".format(data_pot)
+            base, exponent = pot_in_sci_notation.split("e")
+            return f"${base} \\times 10^{{{int(exponent)}}}$ POT"
         else:
-            return f"MC Scaled to {scale_to_pot:.1e} POT"
+            pot_in_sci_notation = "{:.1e}".format(scale_to_pot)
+            base, exponent = pot_in_sci_notation.split("e")
+            return f"MC scaled to ${base} \\times 10^{{{int(exponent)}}}$ POT"
 
     def plot(
         self,
@@ -52,6 +49,7 @@ class RunHistPlotter:
         show_data_mc_ratio=False,
         use_sideband=None,
         ax=None,
+        ax_ratio=None,
         scale_to_pot=None,
         uncertainty_color="gray",
         stacked=True,
@@ -60,6 +58,7 @@ class RunHistPlotter:
         add_precomputed_detsys=False,
         print_tot_pred_norm=False,
         title=None,
+        data_pot=None,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -73,8 +72,6 @@ class RunHistPlotter:
             else:
                 return hist
 
-        if use_sideband:
-            assert gen.sideband_generator is not None
         # we want the uncertainty defaults of the generator to be used if the user doesn't specify
         gen_defaults = gen.uncertainty_defaults
         if include_multisim_errors is None:
@@ -84,7 +81,10 @@ class RunHistPlotter:
         if use_sideband is None:
             use_sideband = gen_defaults.get("use_sideband", False)
         ext_hist = gen.get_data_hist(
-            type="ext", add_error_floor=add_ext_error_floor, scale_to_pot=scale_to_pot, smooth_ext_histogram=smooth_ext_histogram
+            type="ext",
+            add_error_floor=add_ext_error_floor,
+            scale_to_pot=scale_to_pot,
+            smooth_ext_histogram=smooth_ext_histogram,
         )
         if ext_hist is not None:
             ext_hist.tex_string = "EXT"
@@ -106,33 +106,45 @@ class RunHistPlotter:
             add_precomputed_detsys=add_precomputed_detsys,
         )
         total_pred_hist = flatten(total_mc_hist)
+        total_pred_hist.tex_string = "Total Pred. (MC)"
         if ext_hist is not None:
             total_pred_hist += ext_hist
+            total_pred_hist.tex_string = "Total Pred. (MC + EXT)"
+        if use_sideband:
+            total_pred_hist.tex_string += "\n constrained"
         data_hist = flatten(gen.get_data_hist())
         if title is None:
-            if self.title is None:
-                selection, preselection = gen.selection, gen.preselection
-                title = self.get_selection_title(selection, preselection)
+            if hasattr(total_pred_hist.binning, "selection_tex"):
+                title = total_pred_hist.binning.selection_tex
             else:
                 title = self.title
 
-        if print_tot_pred_norm: print('print_tot_pred_norm:',total_mc_hist.nominal_values/np.sum(total_mc_hist.nominal_values))
+        if print_tot_pred_norm:
+            print(
+                "print_tot_pred_norm:",
+                total_mc_hist.nominal_values / np.sum(total_mc_hist.nominal_values),
+            )
 
         if show_data_mc_ratio:
-            # TODO: implement plotting within inset axes
-            assert ax is None, "Can't plot within an ax when showing data/mc ratio"
-            fig, (ax, ax_ratio) = plt.subplots(
-                nrows=2, ncols=1, sharex=True, gridspec_kw={"height_ratios": [3, 1]},
-            )
+            if ax is None and ax_ratio is None:
+                fig, (ax, ax_ratio) = plt.subplots(
+                    nrows=2,
+                    ncols=1,
+                    sharex=True,
+                    gridspec_kw={"height_ratios": [3, 1]},
+                    constrained_layout=True,
+                )
+            else:
+                assert (
+                    ax is not None and ax_ratio is not None
+                ), "Must provide both ax and ax_ratio to show data/mc ratio"
         if show_chi_square:
             assert not scale_to_pot, "Can't show chi square when scaling to POT"
-            assert (
-                data_hist is not None
-            ), "Can't show chi square when no data is available"
+            assert data_hist is not None, "Can't show chi square when no data is available"
             chi_square = chi_square_func(
                 data_hist.nominal_values,
                 total_pred_hist.nominal_values,
-                total_pred_hist.covariance_matrix
+                total_pred_hist.covariance_matrix,
             )
         else:
             chi_square = None
@@ -146,20 +158,21 @@ class RunHistPlotter:
             chi_square=chi_square,
             stacked=stacked,
             show_total=show_total,
+            data_pot=data_pot,
             **kwargs,
         )
         if not show_data_mc_ratio:
             ax.set_xlabel(total_pred_hist.binning.variable_tex)
-            return ax
+            return ax, None
 
         # plot data/mc ratio
         # The way this is typically shown is to have the MC prediction divided by its central
         # data with error bands to show the MC uncertainty, and then to overlay the data points
         # with error bars.
         mc_nominal = total_mc_hist.nominal_values
-        mc_error_band = total_mc_hist / mc_nominal
-        data_mc_ratio = data_hist / total_pred_hist.nominal_values
-        
+        mc_error_band = flatten(total_mc_hist / mc_nominal)
+        data_mc_ratio = flatten(data_hist / total_pred_hist.nominal_values)
+
         self.plot_hist(
             mc_error_band,
             ax=ax_ratio,
@@ -195,16 +208,23 @@ class RunHistPlotter:
         chi_square=None,
         stacked=True,
         show_total=True,
+        data_pot=None,
         **kwargs,
     ):
         if stacked:
             ax = self.plot_stacked_hists(
-                background_hists, ax=ax, show_errorband=False, **kwargs,
+                background_hists,
+                ax=ax,
+                show_errorband=False,
+                **kwargs,
             )
         else:
             for background_hist in background_hists:
                 ax = self.plot_hist(
-                    background_hist, ax=ax, show_errorband=False, **kwargs,
+                    background_hist,
+                    ax=ax,
+                    show_errorband=False,
+                    **kwargs,
                 )
         if show_total:
             ax = self.plot_hist(
@@ -217,9 +237,7 @@ class RunHistPlotter:
                 lw=0.5,
             )
         if scale_to_pot is None:
-            if (
-                data_hist is not None
-            ):  # skip if no data (as is the case for blind analysis)
+            if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
                 data_label = f"Data: {data_hist.sum():.1f}"
                 ax = self.plot_hist(
@@ -230,25 +248,47 @@ class RunHistPlotter:
                     as_errorbars=True,
                     **kwargs,
                 )
-        # make text label for the POT
-        pot_label = self.get_pot_label(scale_to_pot, has_data=data_hist is not None)
         if chi_square is not None:
             n_bins = total_pred_hist.binning.n_bins
-            pot_label += f"\n$\chi^2$ = {chi_square:.1f} / {n_bins}"
+            chi2_label = f"$\chi^2$ = {chi_square:.1f} / {n_bins}"
+            ax.text(
+                0.05,
+                0.97,
+                chi2_label,
+                ha="left",
+                va="top",
+                transform=ax.transAxes,
+                fontsize=10,
+                bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
+            )
+        pot_label = self.get_pot_label(
+            scale_to_pot, has_data=data_hist is not None, data_pot=data_pot
+        )
+        if title is not None and pot_label is not None:
+            title += ", " + pot_label
+        elif title is None:
+            title = pot_label
         ax.text(
-            0.05,
-            0.95,
-            pot_label,
-            ha="left",
+            0.5,
+            0.97,
+            title,
+            ha="center",
             va="top",
             transform=ax.transAxes,
             fontsize=10,
-            bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
         )
-
         ax.set_ylabel("Events")
-        ax.set_title(title)
-        ax.legend(loc="upper right", ncol=2, fontsize="small")
+        ax.legend(
+            loc="lower left",
+            bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
+            ncol=3,
+            mode="expand",
+            borderaxespad=0.0,
+            bbox_transform=ax.transAxes,
+            fontsize="small",
+            frameon=False,
+        )
+        ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
         return ax
 
     def plot_hist(
@@ -331,7 +371,7 @@ class RunHistPlotter:
     ):
         """Plot a stack of histograms."""
         if ax is None:
-            ax = plt.gca()
+            fig, ax = plt.subplots(constrained_layout=True)
 
         x = hists[0].binning.bin_edges
 
@@ -345,9 +385,7 @@ class RunHistPlotter:
         y = np.array([repeated_nom_values(hist) for hist in hists])
         labels = [hist.tex_string for hist in hists]
         if show_counts:
-            labels = [
-                f"{label}: {hist.sum():.1f}" for label, hist in zip(labels, hists)
-            ]
+            labels = [f"{label}: {hist.sum():.1f}" for label, hist in zip(labels, hists)]
         colors = None
         colors = [hist.color for hist in hists]
         # Hatches may be None
