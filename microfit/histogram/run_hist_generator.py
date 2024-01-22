@@ -199,6 +199,12 @@ class RunHistGenerator:
         else:
             self.data_hist_generator = None
             self.is_blinded = True
+        if sideband_generator is not None:
+            warnings.warn(
+                "Using the sideband_generator argument is deprecated. Use the MultiBandAnalysis "
+                "class instead.",
+                DeprecationWarning
+            )
         self.sideband_generator = sideband_generator
         self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
 
