@@ -1,3 +1,6 @@
+signal_channels = ["NPBDT", "ZPBDT"]
+constraint_channels = ["NUMUCRT"]
+
 [[h0_params]]
 name = "signal_strength"
 value = 0.0
@@ -6,95 +9,66 @@ value = 0.0
 name = "signal_strength"
 value = 1.0
 
-[sideband_data]
-run_numbers = ["3", "4b", "4c", "4d", "5"]
+[uncertainty_defaults]
+include_multisim_errors = true
+add_ext_error_floor = false
+use_sideband = true
+
+[[generator]]
+[generator.load_runs]
+run_numbers = ["3","4b","4c","4d","5"]
 data = "muon_sideband"
-blinded = false
 truth_filtered_sets = ["nue", "drt"]
 loadshowervariables = false
 loadsystematics = true
 use_bdt = false
-loadpi0variables = false
-numupresel = true
-load_crt_vars = true
 loadnumuvariables = true
+load_crt_vars = true
+numupresel = true
 enable_cache = true
+blinded = false
 
-[sideband]
-selection = "NUMUCRT"
-preselection = "NUMU"
-
-[sideband.binning]
+[[generator.channel]]
 variable = "neutrino_energy"
 n_bins = 14
 limits = [0.15, 1.55]
-label = "Neutrino reconstructed energy [GeV]"
+selection = "NUMUCRT"
+preselection = "NUMU"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
 
-[sideband.uncertainties]
-include_multisim_errors = true
-add_ext_error_floor = false
-use_sideband = false
+[[generator]]
 
-[signal_data]
-run_numbers = ["1", "2", "3", "4b", "4c", "4d", "5"]
+mc_hist_generator_cls = "SignalOverBackgroundGenerator"
+
+[generator.load_runs]
+run_numbers = ["1", "2", "3","4b","4c","4d","5"]
 data = "bnb"
-blinded = true
-# truth_filtered_sets = ["nue", "drt", "cc_pi0", "nc_pi0", "cc_nopi", "cc_cpi", "nc_nopi", "nc_cpi"]
 truth_filtered_sets = ["nue", "drt"]
-loadshowervariables = true
-loadsystematics = true
 loadpi0variables = true
+loadshowervariables = true
 loadrecoveryvars = true
+loadsystematics = true
 load_lee = true
-enable_cache=true
+enable_cache = true
+blinded = true
 
-[[signal]]
+[[generator.parameter]]
+name = "signal_strength"
+value = 1.0
+bounds = [0.0, 10.0]
 
-    selection = "NPBDT"
-    preselection = "NP"
-    mc_hist_generator_cls = "SignalOverBackgroundGenerator"
+[[generator.channel]]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.55]
+selection = "NPBDT"
+preselection = "NP"
+variable_tex = "Reconstructed Energy (GeV)"
 
-    [signal.uncertainties]
-    include_multisim_errors = true
-    add_ext_error_floor = false
-    use_sideband = true
-
-    [signal.binning]
-    variable = "reco_e"
-    # n_bins = 17
-    # limits = [0.01, 2.39]
-    # Reproduce technote
-    n_bins = 10
-    limits = [0.15, 1.55]
-    label = "Reconstructed Energy [ GeV ]"
-
-    [[signal.parameter]]
-    name = "signal_strength"
-    value = 1.0
-    bounds = [0.0, 10.0]
-
-[[signal]]
-
-    selection = "ZPBDT"
-    preselection = "ZP"
-    mc_hist_generator_cls = "SignalOverBackgroundGenerator"
-
-    [signal.uncertainties]
-    include_multisim_errors = true
-    add_ext_error_floor = false
-    use_sideband = true
-
-    [signal.binning]
-    variable = "reco_e"
-    # n_bins = 17
-    # limits = [0.01, 2.39]
-    # Reproduce technote
-    n_bins = 10
-    limits = [0.15, 1.55]
-    label = "Reconstructed Energy [ GeV ]"
-
-    [[signal.parameter]]
-    name = "signal_strength"
-    value = 1.0
-    bounds = [0.0, 10.0]
-
+[[generator.channel]]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.55]
+selection = "ZPBDT"
+preselection = "ZP"
+variable_tex = "Reconstructed Energy (GeV)"
