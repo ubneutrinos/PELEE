@@ -889,7 +889,7 @@ class MultiChannelHistogram(Histogram):
         unrolled_hist = self.get_unrolled_histogram()
         ax = unrolled_hist.draw(ax, as_errorbars, show_errors, **plot_kwargs)
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
-        channel_labels = [b.label for b in self.binning]
+        channel_labels = [b.selection_tex or b.label for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
             ax.axvline(n_bins, color="k", linestyle="--")
 
@@ -910,7 +910,7 @@ class MultiChannelHistogram(Histogram):
     def draw_covariance_matrix(self, ax=None, as_correlation=True, **plot_kwargs):
         ax = self.get_unrolled_histogram().draw_covariance_matrix(ax, as_correlation, **plot_kwargs)
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
-        channel_labels = [b.label for b in self.binning]
+        channel_labels = [b.selection_tex or b.label for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
             ax.axvline(n_bins, color="k", linestyle="--")
             ax.axhline(n_bins, color="k", linestyle="--")

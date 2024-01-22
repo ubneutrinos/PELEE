@@ -59,6 +59,7 @@ class RunHistPlotter:
         print_tot_pred_norm=False,
         title=None,
         data_pot=None,
+        show_data=True,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -112,7 +113,12 @@ class RunHistPlotter:
             total_pred_hist.tex_string = "Total Pred. (MC + EXT)"
         if use_sideband:
             total_pred_hist.tex_string += "\n constrained"
-        data_hist = flatten(gen.get_data_hist())
+        # This should not be the method to blind the analysis! The only purpose of this
+        # flag is to hide the data in plots where all the data bin counts have been set to 
+        # zero. This happens inside a multi-band analysis, where not all bands might be
+        # blinded. In that case, the analysis fills in the blinded histograms with zeros,
+        # and that can give the wrong chi-square value if the data is shown in the plot.
+        data_hist = flatten(gen.get_data_hist()) if show_data else None
         if title is None:
             if hasattr(total_pred_hist.binning, "selection_tex"):
                 title = total_pred_hist.binning.selection_tex
