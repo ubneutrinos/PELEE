@@ -73,10 +73,10 @@ class MultibandAnalysis(object):
 
     def _init_from_config(self, configuration):
         # The analysis may use several generators to produce a multi-channel histogram
+        self._check_config(configuration)
         self._run_hist_generators = []
         generator_configurations = configuration["generator"]
         for config in generator_configurations:
-            self._check_config(config)
             self._run_hist_generators.append(self.run_hist_generator_from_config(
                 config
             ))
@@ -87,6 +87,9 @@ class MultibandAnalysis(object):
         self.signal_channels = configuration["signal_channels"]
         if "constraint_channels" in configuration:
             self.constraint_channels = configuration["constraint_channels"]
+        else:
+            self.constraint_channels = []
+        self.uncertainty_defaults = configuration.get("uncertainty_defaults", {})
 
     def _check_shared_params(self, param_sets: List[ParameterSet]):
         shared_names = list(
@@ -101,8 +104,28 @@ class MultibandAnalysis(object):
                     ref_param is ps[name]
                 ), f"Parameter {name} is not the same object in all ParameterSets"
 
+    def _check_channel_config(self, config):
+        required_keys = ["variable", "n_bins", "limits", "selection", "preselection"]
+        assert all(
+            key in config for key in required_keys
+        ), f"Configuration for channel must contain the keys {required_keys}"
+
+    def _check_run_hist_config(self, config):
+        required_keys = ["channel", "load_runs"]
+        assert all(
+            key in config for key in required_keys
+        ), f"Configuration for RunHistGenerator must contain the keys {required_keys}"
+        for channel_config in config["channel"]:
+            self._check_channel_config(channel_config)
+
     def _check_config(self, config):
-        return True  # TODO: implement
+        assert isinstance(config, dict), "Configuration must be a dictionary"
+        required_keys = ["generator", "signal_channels"]
+        assert all(
+            key in config for key in required_keys
+        ), f"Configuration must contain the keys {required_keys}"
+        for generator_config in config["generator"]:
+            self._check_run_hist_config(generator_config)
 
     def run_hist_generator_from_config(
         self, config: dict
@@ -112,10 +135,10 @@ class MultibandAnalysis(object):
         for channel_config in channel_configs:
             binning_cfg = {"variable": channel_config["variable"],
                            "n_bins": channel_config["n_bins"],
-                           "limits": channel_config["limits"]}
+                           "limits": channel_config["limits"], "variable_tex": channel_config.get("variable_tex", None)}
             binning = Binning.from_config(**binning_cfg)
             binning.set_selection(selection=channel_config["selection"], preselection=channel_config["preselection"])
-            binning.label = channel_config["channel_id"]
+            binning.label = channel_config["selection"]
             channel_binnings.append(binning)
         binning = MultiChannelBinning(channel_binnings)
 
@@ -130,7 +153,10 @@ class MultibandAnalysis(object):
         else:
             mc_hist_generator_cls = None
             mc_hist_generator_kwargs = {}
-        return RunHistGenerator(rundata, binning, data_pot=data_pot, mc_hist_generator_cls=mc_hist_generator_cls, **mc_hist_generator_kwargs)
+        parameters = None
+        if "parameter" in config:
+            parameters = ParameterSet.from_dict(config["parameter"])
+        return RunHistGenerator(rundata, binning, data_pot=data_pot, parameters=parameters, mc_hist_generator_cls=mc_hist_generator_cls, **mc_hist_generator_kwargs)
 
     def _apply_constraints(
         self, hist: MultiChannelHistogram, constraint_channels=None, total_prediction_hist=None
