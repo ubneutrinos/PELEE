@@ -46,11 +46,10 @@ class MultibandAnalysis(object):
             self._init_from_config(configuration)
         self.channels = []
         for gen in self._run_hist_generators:
-            if isinstance(gen.binning, MultiChannelBinning):
-                self.channels.extend(gen.binning.labels)
-            else:
-                self.channels.append(gen.binning.label)
-        for ch in constraint_channels:
+            self.channels.extend(gen.channels)
+        for ch in self.signal_channels:
+            assert ch in self.channels, f"Signal channel {ch} not found in analysis channels"
+        for ch in self.constraint_channels:
             assert ch in self.channels, f"Constraint channel {ch} not found in analysis channels"
         # Adding the data_pot property just for compatibility with the RunHistPlotter
         self.data_pot = None
@@ -74,20 +73,20 @@ class MultibandAnalysis(object):
 
     def _init_from_config(self, configuration):
         # The analysis may use several generators to produce a multi-channel histogram
-        raise NotImplementedError("TODO: update implementation for configuration loading")
+        self._run_hist_generators = []
         generator_configurations = configuration["generator"]
         for config in generator_configurations:
             self._check_config(config)
-        rundata, weights, data_pot = load_runs(**configuration["data_loading"])
-        self.data_pot = data_pot
-        self._run_hist_generators = [
-            self.run_hist_generator_from_config(rundata, weights, data_pot, config)
-            for config in generator_configurations
-        ]
+            self._run_hist_generators.append(self.run_hist_generator_from_config(
+                config
+            ))
         self.parameters = sum([g.parameters for g in self._run_hist_generators])
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
+        self.signal_channels = configuration["signal_channels"]
+        if "constraint_channels" in configuration:
+            self.constraint_channels = configuration["constraint_channels"]
 
     def _check_shared_params(self, param_sets: List[ParameterSet]):
         shared_names = list(
@@ -106,35 +105,32 @@ class MultibandAnalysis(object):
         return True  # TODO: implement
 
     def run_hist_generator_from_config(
-        self, rundata, weights, data_pot, config, is_signal=True
+        self, config: dict
     ) -> RunHistGenerator:
-        raise NotImplementedError("TODO: update implementation for configuration loading")
-        # binning = Binning.from_config(**config["binning"])
-        # print(f"Making generator for selection {config['selection']} and preselection {config['preselection']}")
-        # parameters = ParameterSet.from_dict(config["parameter"]) if "parameter" in config else None
-        # if "mc_hist_generator_cls" in config:
-        #     try:
-        #         mc_hist_generator_cls = getattr(signal_generators, config["mc_hist_generator_cls"])
-        #     except AttributeError:
-        #         # try globals instead
-        #         mc_hist_generator_cls = globals()[config["mc_hist_generator_cls"]]
-        #     mc_hist_generator_kwargs = config.get("mc_hist_generator_kwargs", {})
-        # else:
-        #     mc_hist_generator_cls = None
-        #     mc_hist_generator_kwargs = {}
-        # run_generator = RunHistGenerator(
-        #     rundata,
-        #     binning,
-        #     data_pot=data_pot,
-        #     selection=config["selection"],
-        #     preselection=config["preselection"],
-        #     sideband_generator=self._sideband_generator,
-        #     uncertainty_defaults=config["uncertainties"],
-        #     mc_hist_generator_cls=mc_hist_generator_cls if is_signal else None,
-        #     parameters=parameters,
-        #     **mc_hist_generator_kwargs,
-        # )
-        # return run_generator
+        channel_configs = config["channel"]
+        channel_binnings = []
+        for channel_config in channel_configs:
+            binning_cfg = {"variable": channel_config["variable"],
+                           "n_bins": channel_config["n_bins"],
+                           "limits": channel_config["limits"]}
+            binning = Binning.from_config(**binning_cfg)
+            binning.set_selection(selection=channel_config["selection"], preselection=channel_config["preselection"])
+            binning.label = channel_config["channel_id"]
+            channel_binnings.append(binning)
+        binning = MultiChannelBinning(channel_binnings)
+
+        rundata, weights, data_pot = load_runs(**config["load_runs"])
+        if "mc_hist_generator_cls" in config:
+            try:
+                mc_hist_generator_cls = getattr(signal_generators, config["mc_hist_generator_cls"])
+            except AttributeError:
+                # try globals instead
+                mc_hist_generator_cls = globals()[config["mc_hist_generator_cls"]]
+            mc_hist_generator_kwargs = config.get("mc_hist_generator_kwargs", {})
+        else:
+            mc_hist_generator_cls = None
+            mc_hist_generator_kwargs = {}
+        return RunHistGenerator(rundata, binning, data_pot=data_pot, mc_hist_generator_cls=mc_hist_generator_cls, **mc_hist_generator_kwargs)
 
     def _apply_constraints(
         self, hist: MultiChannelHistogram, constraint_channels=None, total_prediction_hist=None
