@@ -743,7 +743,21 @@ def get_selection_query(selection, preselection, extra_queries=None):
             query = f"{query} and {q}"
     return query
 
-def get_selection_title(selection, preselection, with_presel=False):
+def _shorten_title(title):
+    """Heuristically shorten the title of a selection.
+    
+    This tries to remove redundant words like "selection" or "sel.".
+    """
+
+    # Remove "selection" from the title
+    title = title.replace("selection", "")
+    # Remove "sel." from the title
+    title = title.replace("sel.", "")
+    # Remove double whitespaces
+    title = re.sub(r"\s+", " ", title)
+    return title.strip()
+
+def get_selection_title(selection, preselection, with_presel=False, short=False):
     """Get the title for the given selection and preselection.
 
     Parameters
@@ -752,6 +766,11 @@ def get_selection_title(selection, preselection, with_presel=False):
         Name of the selection category.
     preselection : str
         Name of the preselection category.
+    with_presel : bool, optional
+        Whether to include the preselection title in the selection title.
+    short : bool, optional
+        Whether to use the short title. If a short title is not defined for a selection,
+        the function will try to shorten the title heuristically.
 
     Returns
     -------
@@ -760,8 +779,18 @@ def get_selection_title(selection, preselection, with_presel=False):
     """
     if selection is None and preselection is None:
         return None
-    presel_title = preselection_categories[preselection]["title"]
-    sel_title = selection_categories[selection]["title"]
+    if short and "short_title" in selection_categories[selection]:
+        sel_title = selection_categories[selection]["short_title"]
+    else:
+        sel_title = selection_categories[selection]["title"]
+        if short:
+            sel_title = _shorten_title(sel_title)
+    if short and "short_title" in preselection_categories[preselection]:
+        presel_title = preselection_categories[preselection]["short_title"]
+    else:
+        presel_title = preselection_categories[preselection]["title"]
+        if short:
+            presel_title = _shorten_title(presel_title)
 
     if presel_title is None:
         title = sel_title
