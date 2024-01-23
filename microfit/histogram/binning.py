@@ -25,6 +25,19 @@ class Binning:
         Whether the binning is logarithmic or not (default is False)
     selection_query : str, optional
         Query to be applied to the dataframe before generating the histogram.
+        This can be used to define a selection on the variable being binned.
+    selection_key : str, optional
+        Key of the selection in the selection dictionary. This is used to
+        identify the selection in the MultiChannelBinning.
+    preselection_key : str, optional
+        Key of the preselection in the selection dictionary. This is used to
+        identify the preselection in the MultiChannelBinning.
+    selection_tex : str, optional
+        LaTeX representation of the selection (default is None) that can be used
+        in plots.
+    selection_tex_short : str, optional
+        Short LaTeX representation of the selection (default is None) that can be used
+        in plots.
     """
 
     variable: str
@@ -36,6 +49,7 @@ class Binning:
     selection_key: Optional[str] = None
     preselection_key: Optional[str] = None
     selection_tex: Optional[str] = None
+    selection_tex_short: Optional[str] = None
 
     def __eq__(self, other):
         for field in fields(self):
@@ -75,11 +89,13 @@ class Binning:
             self.selection_key = selection
             self.preselection_key = preselection
             self.selection_tex = selection_tex or get_selection_title(selection, preselection)
+            self.selection_tex_short = selection_tex or get_selection_title(selection, preselection, short=True)
         elif query is not None:
             self.selection_query = query
             self.selection_key = None
             self.preselection_key = None
             self.selection_tex = selection_tex or query
+            self.selection_tex_short = selection_tex or query
         else:
             raise ValueError("Must specify either selection/preselection or query")
 
