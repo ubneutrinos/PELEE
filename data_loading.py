@@ -2353,6 +2353,11 @@ def load_run_detvar(
 
 
 def load_runs(run_numbers, **load_run_kwargs):
+
+    # Can't use run 3 and run 3_crt at the same time - they're the same data!
+    if "3" in run_numbers and "3_crt" in run_numbers:
+        raise ValueError("You cannot use run 3 and run 3_crt at the same time. They contain overlapping data.")
+
     runsdata = {}  # dictionary containing each run dictionary
     weights = {}  # dictionary containing each weights dictionary
     data_pots = np.zeros(len(run_numbers))  # array to store the POTs for each run
