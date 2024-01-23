@@ -53,7 +53,7 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
     def generate(self, **kwargs):
         signal_hist = self.hist_generator.generate(**self.signal_kwargs(kwargs))
         background_hist = self.hist_generator.generate(**self.background_kwargs(kwargs))
-        return self.parameters["signal_strength"].m * signal_hist + background_hist
+        return float(self.parameters["signal_strength"].m) * signal_hist + background_hist
 
     def _resync_parameters(self):
         self.parameters.synchronize(self.hist_generator.parameters)
