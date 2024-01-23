@@ -604,18 +604,19 @@ class MultibandAnalysis(object):
         dict
             A dictionary containing the results of the test.
         """
-
+        from tqdm import tqdm
         if scale_to_pot is not None:
             assert sensitivity_only, "Can only scale to POT when calculating sensitivity"
         assert set(h0_params.names) == set(
             h1_params.names
         ), "Parameter sets must have the same parameters"
         self.set_parameters(h0_params, check_matching=True)
+        print("Generating H0 histogram")
         # generate the multiband histogram
         h0_hist = self.generate_multiband_histogram(
             include_multisim_errors=True, use_sideband=True, scale_to_pot=scale_to_pot
         )
-
+        print("Generating H1 histogram")
         self.set_parameters(h1_params, check_matching=True)
         h1_hist = self.generate_multiband_histogram(
             include_multisim_errors=True, use_sideband=True, scale_to_pot=scale_to_pot
@@ -633,7 +634,7 @@ class MultibandAnalysis(object):
             )
             return chi2_h0 - chi2_h1
 
-        for i in range(n_trials):
+        for i in tqdm(range(n_trials), desc="Generating pseudo-experiments"):
             pseudo_data_h0 = h0_hist.fluctuate(seed=4 * i).fluctuate_poisson(seed=4 * i + 1)
             pseudo_data_h1 = h1_hist.fluctuate(seed=4 * i + 2).fluctuate_poisson(seed=4 * i + 3)
 
