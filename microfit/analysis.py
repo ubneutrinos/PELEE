@@ -462,7 +462,7 @@ class MultibandAnalysis(object):
         fig, axes = plt.subplots(
             n_rows,
             n_cols,
-            figsize=(n_cols * 8, 5 if n_rows == 1 else 8),
+            figsize=(n_cols * 6, 5 if n_rows == 1 else 8),
             squeeze=False,
             gridspec_kw={"height_ratios": [3, 1] if show_data_mc_ratio else [1]},
             constrained_layout=True,
