@@ -2,6 +2,7 @@
 
 import os
 import logging
+import sys
 from typing import List, Optional, Union
 from matplotlib import pyplot as plt, ticker
 import numpy as np
@@ -854,7 +855,7 @@ class MultibandAnalysis(object):
 
     def fc_scan(self, parameter_name, scan_points, n_trials=100, scale_to_pot=None):
         """Perform a Feldman-Cousins scan of the given parameter."""
-        from tqdm import tqdm
+        from tqdm.notebook import tqdm
 
         # For every point in the scan, we assume that it is the truth and
         # then create pseudo-experiments by sampling from the covariance
@@ -864,30 +865,34 @@ class MultibandAnalysis(object):
         results = []
         print(f"Running FC scan over {len(scan_points)} points in {parameter_name}...")
         number_of_samples = len(scan_points) * n_trials
-        for i, scan_point in enumerate(tqdm(scan_points)):
-            self.parameters[parameter_name].value = scan_point
-            expectation = self.generate_multiband_histogram(
-                scale_to_pot=scale_to_pot, include_multisim_errors=True, use_sideband=True
-            )
-            delta_chi2 = []
-            for j in range(n_trials):
-                global_trial_index = n_trials * i + j
-                # the seeds are chosen such that no seed is used twice
-                pseudo_data = expectation.fluctuate(seed=global_trial_index).fluctuate_poisson(
-                    seed=global_trial_index + number_of_samples
-                )
+        with tqdm(total=len(scan_points), desc="Overall Progress", position=0) as pbar1:
+            for i, scan_point in enumerate(scan_points):
                 self.parameters[parameter_name].value = scan_point
-                chi2_at_truth = chi_square(
-                    pseudo_data.nominal_values,
-                    expectation.nominal_values,
-                    expectation.covariance_matrix,
+                expectation = self.generate_multiband_histogram(
+                    scale_to_pot=scale_to_pot, include_multisim_errors=True, use_sideband=True
                 )
-                m = self._get_minuit(pseudo_data, scale_to_pot=scale_to_pot)
-                m.migrad()
-                chi2_at_best_fit = m.fval
-                delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
-            delta_chi2 = np.array(delta_chi2)
-            results.append({"delta_chi2": delta_chi2, "scan_point": scan_point})
+                delta_chi2 = []
+                with tqdm(total=n_trials, desc="Trial Progress", position=1, leave=False) as pbar2:
+                    for j in range(n_trials):
+                        global_trial_index = n_trials * i + j
+                        # the seeds are chosen such that no seed is used twice
+                        pseudo_data = expectation.fluctuate(seed=global_trial_index).fluctuate_poisson(
+                            seed=global_trial_index + number_of_samples
+                        )
+                        self.parameters[parameter_name].value = scan_point
+                        chi2_at_truth = chi_square(
+                            pseudo_data.nominal_values,
+                            expectation.nominal_values,
+                            expectation.covariance_matrix,
+                        )
+                        m = self._get_minuit(pseudo_data, scale_to_pot=scale_to_pot)
+                        m.migrad()
+                        chi2_at_best_fit = m.fval
+                        delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
+                        pbar2.update()
+                delta_chi2 = np.array(delta_chi2)
+                results.append({"delta_chi2": delta_chi2, "scan_point": scan_point})
+                pbar1.update()
         return {"parameter_name": parameter_name, "scan_points": scan_points, "results": results}
 
     def set_parameters(self, parameter_set, check_matching=True):
