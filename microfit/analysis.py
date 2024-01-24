@@ -858,17 +858,20 @@ class MultibandAnalysis(object):
             fig = ax.figure
         pval_map = fc_scan_results["pval_map"]
         X, Y = fc_scan_results["measured_map"], fc_scan_results["truth_map"]
-        levels = [
-            0.0,
-            0.68,
-            0.9,
-            0.95,
-            1.0,
-        ]  # Quantiles corresponding to 1 sigma, 90%, and 2 sigma sensitivity
-        contour = ax.contourf(X, Y, pval_map, levels=levels, cmap="Blues")
-        cbar = fig.colorbar(contour, format=ticker.FuncFormatter(lambda x, pos: f"{x * 100:.0f}%"))
-        cbar.ax.set_ylabel("p-value")
+        contour = ax.contourf(X, Y, pval_map, levels=levels, cmap="Blues_r")
+        cbar = fig.colorbar(
+            contour, format=ticker.FuncFormatter(lambda x, pos: f"{x * 100:.0f}%"), drawedges=True
+        )
+        cbar.ax.set_ylabel("Confidence Level")
         ax.contour(X, Y, pval_map, levels=levels, colors="k", linewidths=0.5)
+        # add line where x=y
+        ax.plot(
+            [min(X.min(), Y.min()), max(X.max(), Y.max())],
+            [min(X.min(), Y.min()), max(X.max(), Y.max())],
+            color="k",
+            linestyle="--",
+            linewidth=0.5,
+        )
         if parameter_tex is None:
             parameter_tex = fc_scan_results["parameter_name"]
         ax.set_xlabel(rf"Measured {parameter_tex}")
