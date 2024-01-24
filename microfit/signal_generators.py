@@ -53,7 +53,7 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
     def generate(self, **kwargs):
         signal_hist = self.hist_generator.generate(**self.signal_kwargs(kwargs))
         background_hist = self.hist_generator.generate(**self.background_kwargs(kwargs))
-        return float(self.parameters["signal_strength"].m) * signal_hist + background_hist
+        return signal_hist * self.parameters["signal_strength"].m + background_hist
 
     def _resync_parameters(self):
         self.parameters.synchronize(self.hist_generator.parameters)
@@ -71,12 +71,12 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
             # In this case the result is just the covariance matrix, so we can just add them.
             # Note that we need to multiply the signal result by the signal strength SQUARED
             summed_cov = (
-                self.parameters["signal_strength"].m ** 2 * signal_result + background_result
+                signal_result * self.parameters["signal_strength"].m ** 2 + background_result
             )
             return summed_cov
         # If the histograms are to be returned, the result is a tuple of the covariance matrix and the histograms.
         summed_cov = (
-            self.parameters["signal_strength"].m ** 2 * signal_result[0] + background_result[0]
+             signal_result[0] * self.parameters["signal_strength"].m ** 2 + background_result[0]
         )
         signal_universes = signal_result[1]
         background_universes = background_result[1]
@@ -89,7 +89,7 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
             background_result[1]
         ), "Number of universes must be the same for signal and background"
         summed_universes = (
-            self.parameters["signal_strength"].m * signal_result[1] + background_result[1]
+             signal_result[1] * self.parameters["signal_strength"].m + background_result[1]
         )
         # If these are lists, then summing then will cause a nasty bug where the universes are not summed,
         # but instead appended. This will be happily processed by the rest of the code, but the result will be wrong.
@@ -111,12 +111,12 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
             # In this case the result is just the covariance matrix, so we can just add them.
             # Note that we need to multiply the signal result by the signal strength SQUARED
             summed_cov = (
-                self.parameters["signal_strength"].m ** 2 * signal_result + background_result
+                 signal_result * self.parameters["signal_strength"].m ** 2 + background_result
             )
             return summed_cov
         # If the histograms are to be returned, the result is a tuple of the covariance matrix and the histograms.
         summed_cov = (
-            self.parameters["signal_strength"].m ** 2 * signal_result[0] + background_result[0]
+             signal_result[0] * self.parameters["signal_strength"].m ** 2 + background_result[0]
         )
         # For unisim variations, the universes are stored in a dict where keys are the names of the variations.
         # We iterate over all the keys and sum the histograms for each variation.
@@ -127,7 +127,7 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
                 background_result[1][key], np.ndarray
             ), "Universes must be numpy arrays"
             summed_obs[key] = (
-                self.parameters["signal_strength"].m * signal_result[1][key]
+                 signal_result[1][key] * self.parameters["signal_strength"].m
                 + background_result[1][key]
             )
         return summed_cov, summed_obs

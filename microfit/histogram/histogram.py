@@ -562,18 +562,17 @@ class Histogram:
             )
 
     def __rmul__(self, other):
-        # we only support multiplication by numbers that scale the entire histogram
-        if isinstance(other, Real):
-            new_bin_counts = self.nominal_values * other
-            new_cov_matrix = self.covariance_matrix * other**2
-            state = self.to_dict()
-            state["bin_counts"] = new_bin_counts
-            state["covariance_matrix"] = new_cov_matrix
-            return self.__class__.from_dict(state)
-        else:
-            raise NotImplementedError(
-                "Histogram multiplication is only supported for numeric types."
-            )
+        raise NotImplementedError(
+            "Histogram multiplication is only allowed from the left, i.e. Histogram * ndarray "
+            "or Histogram * Real. The reason for this is that '__rmul__' is not always called "
+            "reliably. For instance, when multiplying a MultiChannelHistogram by a numpy.float64, "
+            "the __rmul__ method is not called. Since the MultiChannelHistogram is an iterable, "
+            "Numpy assumes that is should multiply the elements of the iterable by the float "
+            "and return a numpy array of the results, and we would not get a MultiChannelHistogram "
+            "in our output. There is no way we can control this behavior "
+            "from the Histogram class reliably, so we only allow multiplication from the left. "
+            "See also: https://stackoverflow.com/questions/40694380/forcing-multiplication-to-use-rmul-instead-of-numpy-array-mul-or-byp"
+        )
 
     def __len__(self):
         return self.n_bins
