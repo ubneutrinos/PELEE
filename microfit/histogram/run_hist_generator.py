@@ -110,11 +110,13 @@ class RunHistGenerator:
                         "Cannot use selection or preselection when the Binning already "
                         "contains a selection query."
                     )
-            else:
+            elif self.selection is not None or self.preselection is not None:
                 # If we reach this point, we are working in "simplified" mode: There is only one channel
                 # and the binning does not contain a selection query. If no label is given, we just
                 # use the selection as the label.
                 self.binning.label = self.binning.label or self.selection
+                # Fallback to preselection if selection is not given
+                self.binning.label = self.binning.label or self.preselection
                 # For compatibility with newer plotting code, we also have to set the selection
                 # for the binning.
                 # This sets the selection_tex as well as the selection query string.

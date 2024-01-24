@@ -315,7 +315,7 @@ class TestHistogram(unittest.TestCase):
                     label="hist",
                     tex_string="hist",
                 )
-                # multiply by a scalar
+                # multiply by an int scalar
                 hist_mult = hist * 2
                 expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * 2
                 np.testing.assert_array_almost_equal(
@@ -324,14 +324,36 @@ class TestHistogram(unittest.TestCase):
                 np.testing.assert_array_almost_equal(
                     unumpy.std_devs(hist_mult.bin_counts), expected_uncertainties
                 )
-                # multiply from the left
-                hist_mult = 2 * hist
+                # multiply by a float scalar
+                hist_mult = hist * 2.5
+                expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * 2.5
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_mult.bin_counts), bin_counts * 2
+                    unumpy.nominal_values(hist_mult.bin_counts), bin_counts * 2.5
                 )
                 np.testing.assert_array_almost_equal(
                     unumpy.std_devs(hist_mult.bin_counts), expected_uncertainties
                 )
+                # multiply by a numpy.float64 scalar
+                scalar = np.float64(3.7)
+                hist_mult = hist * scalar
+                expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * scalar
+                np.testing.assert_array_almost_equal(
+                    unumpy.nominal_values(hist_mult.bin_counts), bin_counts * scalar
+                )
+                np.testing.assert_array_almost_equal(
+                    unumpy.std_devs(hist_mult.bin_counts), expected_uncertainties
+                )
+                # assert NotImplementedError is raised when multiplying from the right
+                # This is done because the behavior of __rmul__ is unreliable and would
+                # cause the multiplication to return a np.ndarry of Histograms instead
+                # of a MultiChannelhistogram when multiplying by a np.float64 scalar.
+                # See also: https://stackoverflow.com/questions/40694380/forcing-multiplication-to-use-rmul-instead-of-numpy-array-mul-or-byp
+                with self.assertRaises(NotImplementedError):
+                    hist_mult = 2 * hist
+                with self.assertRaises(NotImplementedError):
+                    hist_mult = 2.5 * hist
+                with self.assertRaises(NotImplementedError):
+                    hist_mult = scalar * hist
 
     # Test conversion to and from dict
     def test_dict_conversion(self):
