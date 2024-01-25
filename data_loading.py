@@ -2115,56 +2115,6 @@ def load_sample(
             df["pot_scale"] = 1.0
 
         # If needed, load additional variables
-            
-        # new signal model weights 'leeweight_shwmodel'
-        if use_lee_weights:
-            df["leeweight_shwmodel"] = 0.
-            df["e_bin1"]  = (df["elec_e"]>=0.15)   & (df["elec_e"]<0.3)
-            df["e_bin2"]  = (df["elec_e"]>=0.3)    & (df["elec_e"]<0.45)
-            df["e_bin3"]  = (df["elec_e"]>=0.45)   & (df["elec_e"]<0.62)
-            df["e_bin4"]  = (df["elec_e"]>=0.62)   & (df["elec_e"]<0.8)
-            df["e_bin5"]  = (df["elec_e"]>=0.8)    & (df["elec_e"]<1.2)
-            df["pz_bin1"] = (df["elec_pz"]>=-1.)   & (df["elec_pz"]<-2./3)
-            df["pz_bin2"] = (df["elec_pz"]>=-2./3) & (df["elec_pz"]<-1./3)
-            df["pz_bin3"] = (df["elec_pz"]>=-1./3) & (df["elec_pz"]<0.)
-            df["pz_bin4"] = (df["elec_pz"]>=0.)    & (df["elec_pz"]<0.3)
-            df["pz_bin5"] = (df["elec_pz"]>=0.3)   & (df["elec_pz"]<0.72)
-            df["pz_bin6"] = (df["elec_pz"]>=0.72)  & (df["elec_pz"]<=1)
-                
-            df["bin1"]=(df["e_bin1"]==True)  & (df["pz_bin1"]==True)
-            df["bin2"]=(df["e_bin1"]==True)  & (df["pz_bin2"]==True)
-            df["bin3"]=(df["e_bin1"]==True)  & (df["pz_bin3"]==True)
-            df["bin4"]=(df["e_bin2"]==True)  & (df["pz_bin3"]==True)
-            df["bin5"]=(df["e_bin1"]==True)  & (df["pz_bin4"]==True)
-            df["bin6"]=(df["e_bin2"]==True)  & (df["pz_bin4"]==True)
-            df["bin7"]=(df["e_bin1"]==True)  & (df["pz_bin5"]==True)
-            df["bin8"]=(df["e_bin2"]==True)  & (df["pz_bin5"]==True)
-            df["bin9"]=(df["e_bin3"]==True)  & (df["pz_bin5"]==True)
-            df["bin10"]=(df["e_bin1"]==True) & (df["pz_bin6"]==True)
-            df["bin11"]=(df["e_bin2"]==True) & (df["pz_bin6"]==True)
-            df["bin12"]=(df["e_bin3"]==True) & (df["pz_bin6"]==True)
-            df["bin13"]=(df["e_bin4"]==True) & (df["pz_bin6"]==True)
-            df["bin14"]=(df["e_bin5"]==True) & (df["pz_bin6"]==True)
-
-            df.loc[df['bin1']  == True, 'leeweight_shwmodel'] = 1.083131
-            df.loc[df['bin2']  == True, 'leeweight_shwmodel'] = 1.548606
-            df.loc[df['bin3']  == True, 'leeweight_shwmodel'] = 0.986919
-            df.loc[df['bin4']  == True, 'leeweight_shwmodel'] = 0.174497
-            df.loc[df['bin5']  == True, 'leeweight_shwmodel'] = 1.139981
-            df.loc[df['bin6']  == True, 'leeweight_shwmodel'] = 0.587143
-            df.loc[df['bin7']  == True, 'leeweight_shwmodel'] = 1.234858
-            df.loc[df['bin8']  == True, 'leeweight_shwmodel'] = 0.141145
-            df.loc[df['bin9']  == True, 'leeweight_shwmodel'] = 0.055200
-            df.loc[df['bin10'] == True, 'leeweight_shwmodel'] = 10.707822
-            df.loc[df['bin11'] == True, 'leeweight_shwmodel'] = 1.735584
-            df.loc[df['bin12'] == True, 'leeweight_shwmodel'] = 0.367058
-            df.loc[df['bin13'] == True, 'leeweight_shwmodel'] = 0.231248
-            df.loc[df['bin14'] == True, 'leeweight_shwmodel'] = 0.112103
-
-            df.drop(columns=["bin1", "bin2", "bin3", "bin4", "bin5", "bin6", "bin7", "bin8", "bin9",
-                             "bin10", "bin11", "bin12", "bin13", "bin14"], inplace=True)
-            df.drop(columns=["e_bin1", "e_bin2", "e_bin3", "e_bin4", "e_bin5"], inplace=True)
-            df.drop(columns=["pz_bin1", "pz_bin2", "pz_bin3", "pz_bin4", "pz_bin5", "pz_bin6"], inplace=True)
 
         if loadnumuvariables:
             process_uproot_numu(up, df)
@@ -2224,7 +2174,7 @@ def load_sample(
     if keep_columns is not None:
         # We have to keep certain variables in order for everything to even function
         vardict = get_variables()
-        minimum_columns = vardict["WEIGHTS"] + vardict["SYSTVARS"] + vardict["WEIGHTSLEE"] + ["leeweight_shwmodel"]
+        minimum_columns = vardict["WEIGHTS"] + vardict["SYSTVARS"] + vardict["WEIGHTSLEE"]
         minimum_columns += ["category", "paper_category", "paper_category_xsec", "category_1e1p", "interaction"]
         keep_columns = set(keep_columns) | set(minimum_columns)
         # drop all columns that are not in keep_columns in place
@@ -2297,19 +2247,10 @@ def _load_run(
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
         # weights without the tune. We add this as a separate column here.
         mc_df["weights_no_tune"] = mc_df["weightSpline"] * data_pot / mc_pot
-        if mc_set == "lee":
-            mc_df["weights_oldmodel"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
-            mc_df["weights_no_tune_oldmodel"] = mc_df["weightSpline"] * data_pot / mc_pot
-            mc_df["weights_shwmodel"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
-            mc_df["weights_no_tune_shwmodel"] = mc_df["weightSpline"] * data_pot / mc_pot
         
         if mc_set == "lee":
             mc_df["weights"] *= mc_df["leeweight"]
             mc_df["weights_no_tune"] *= mc_df["leeweight"]
-            mc_df["weights_oldmodel"] *= mc_df["leeweight"]
-            mc_df["weights_no_tune_oldmodel"] *= mc_df["leeweight"]
-            mc_df["weights_shwmodel"] *= mc_df["leeweight_shwmodel"]
-            mc_df["weights_no_tune_shwmodel"] *= mc_df["leeweight_shwmodel"]
         for ms_column in expected_multisim_universes:
             multisim_weights = mc_df[ms_column].values
             n_universes = len(multisim_weights[0])
