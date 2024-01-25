@@ -79,7 +79,7 @@ def get_variables():
         # The variables below are not floating point numbers, but vectors of variable length
         # that can only be stored in awkward arrays. These are very memory intensive, so we
         # do not want to load them into the final dataframe.
-        # "mc_pdg",
+        "mc_pdg",
         # "mc_px",
         # "mc_py",
         # "mc_pz",
@@ -145,11 +145,11 @@ def get_variables():
         # "shr_energy_tot_cali","selected","n_showers_contained",  # only if CC0piNp variables are saved!
         # We do not want to load "vector" variables into the final dataframe, as they take up 
         # a lot of memory
-        # "pfp_generation_v",
+        "pfp_generation_v",
         "shr_energy_cali",
-        # "trk_dir_x_v",
-        # "trk_dir_y_v",
-        # "trk_dir_z_v",
+        "trk_dir_x_v",
+        "trk_dir_y_v",
+        "trk_dir_z_v",
     ]
 
     VARDICT["VARIABLES"] = VARIABLES
@@ -450,9 +450,15 @@ def add_paper_category_1e1p(df, key):
     ]  # makes a new column called 'category_1e1p' in df which copies the 'category'
     if key in ["data"]:
         return
-    df.loc[(df["nproton"] == 1), "category_1e1p"] = 12
-    df.loc[(df["nproton"] > 1), "category_1e1p"] = 13
-
+    df.loc[
+        (df["nproton"] == 1) 
+        and (df["nelec"] == 1) 
+        and (0.1 < df["mc_electron_p"] < 1.2)
+        and (df["npi0"] == 0)
+        and (df["mc_pion_p"] < 0.07), 
+        "category_1e1p"
+    ] = 12
+    df.loc[(df["nproton"] > 1) and df["mc_proton_p"] > 0.3, "category_1e1p"] = 13
 
 def add_paper_xsec_category(df, key):
     df.loc[:, "paper_category_xsec"] = df["category"]
