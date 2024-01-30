@@ -182,7 +182,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Make variation histograms")
-    parser.add_argument("--run", type=str, help="Run number (as string)", required=True)
+    parser.add_argument("--run", nargs='+', help="Run number (as space separated list of strings)", required=True)
     parser.add_argument(
         "--selection", type=str, help="Selection criteria", required=True
     )
