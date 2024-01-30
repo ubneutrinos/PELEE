@@ -1969,7 +1969,9 @@ def apply_bdt_truth_filters(df):
 
 def get_rundict(run_number, category):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
-    
+   
+    print(run_number)
+ 
     # Old ntuple paths
     #with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
 
@@ -2368,6 +2370,7 @@ def load_run_detvar(
     load_lee=False,
     **load_sample_kwargs,
 ):
+
     """Load detector variation samples for a given run.
     
     This function is not compatible with the standard load_run function.
@@ -2380,6 +2383,8 @@ def load_run_detvar(
     """
     assert var in detector_variations 
    
+    assert isinstance(run_number,str), "You my only generate detector uncertainties for one run at a time"
+
     if verbose and run_number == 1 and var == "lydown":
         print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
  

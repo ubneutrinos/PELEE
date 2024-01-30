@@ -6,7 +6,8 @@ from microfit.histogram import Binning, HistogramGenerator, RunHistGenerator
 from microfit.fileio import to_json
 import logging
 import os
-
+import hashlib
+import localSettings as ls
 
 def _get_mc_filter_query(filter_queries):
     """Given a list of filter queries, combine and then negate them.
@@ -23,12 +24,11 @@ def make_variation_histograms(
     run,
     variation,
     selection_query,
-    binning_def,
+    binning,
     truth_filtered_sets=["nue"],
     numu=False,
     use_kde_smoothing=False
 ):
-    binning = Binning.from_config(*binning_def)
     if numu:
         kwargs = {
             "loadshowervariables": False,
@@ -51,7 +51,7 @@ def make_variation_histograms(
         variation,
         truth_filtered_sets=truth_filtered_sets,
         enable_cache=True,
-        **kwargs,
+        **kwargs
     )
     hist_dict = {}
     if use_kde_smoothing:
@@ -92,18 +92,12 @@ def make_detvar_plots(detvar_data, output_dir):
             bbox_inches="tight",
         )
 
+# New function to enable integration of detvar generation into
+# notebooks insetad of as a separate function
 
-def main(args):
-    RUN = args.run
-    selection = args.selection
-    preselection = args.preselection
+# TODO: tidy up the kwargs for this function
 
-    binning_def = list(args.binning_def.split(","))
-    binning_def[1] = int(binning_def[1])
-    binning_def[2] = (float(binning_def[2]), float(binning_def[3]))
-    del binning_def[3]
-    binning = Binning.from_config(*binning_def)
-    logging.debug(repr(binning))
+def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_smoothing,binning,output_file="",make_plots=False,plot_output_dir=""):
 
     selection_query = RunHistGenerator.get_selection_query(
         selection=selection, preselection=preselection
@@ -121,10 +115,10 @@ def main(args):
             RUN,
             variation,
             selection_query,
-            binning_def,
-            truth_filtered_sets=args.truth_filtered_sets,
-            numu=args.numu,
-            use_kde_smoothing=args.kde_smoothing
+            binning,
+            truth_filtered_sets=truth_filtered_sets,
+            numu=numu,
+            use_kde_smoothing=use_kde_smoothing
         )
 
     # Switch ordering of keys in the variation_hist_data dict. Instead of
@@ -151,12 +145,41 @@ def main(args):
         "filter_queries": filter_queries,
     }
 
-    to_json(args.output_file, detvar_data)
+    # If no name is supplied, generate a hash for the detvar file instead
+    
+    print(type(binning))
 
-    if not args.make_plots:
+    if output_file == "":
+
+         output_file = ls.detvar_cache_path + "/" +\
+                       "run_" + RUN + "_" + preselection + "_" + \
+                       selection + "_" + binning.variable +\
+                       ".json"
+
+    to_json(output_file, detvar_data)
+
+    if not make_plots:
         return
 
-    make_detvar_plots(detvar_data, args.plot_output_dir)
+    make_detvar_plots(detvar_data, plot_output_dir)
+
+
+def main(args):
+    RUN = args.run
+    selection = args.selection
+    preselection = args.preselection
+    truth_filtered_sets = args.truth_filtered_sets
+    numu=args.numu
+    use_kde_smoothing=args.kde_smoothing
+    binning_def = list(args.binning_def.split(","))
+
+    binning_def[1] = int(binning_def[1])
+    binning_def[2] = (float(binning_def[2]), float(binning_def[3]))
+    del binning_def[3]
+    binning = Binning.from_config(*binning_def)
+    logging.debug(repr(binning))
+
+    make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_smoothing,binning,args.output_file,args.make_plots,args.plot_output_dir)
 
 
 if __name__ == "__main__":
