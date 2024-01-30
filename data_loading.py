@@ -2363,6 +2363,107 @@ def _load_run(
 
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
+def load_runs_detvar( 
+    run_numbers,
+    variation,
+    **load_run_detvar_kwargs,
+):
+
+    """Load detector variation samples for a several runs."""
+
+    runsdata = {}  # dictionary containing each run dictionary
+    weights = {}  # dictionary containing each weights dictionary
+    data_pots = np.zeros(len(run_numbers))  # array to store the POTs for each run
+    # Output variables:
+    output = {}  # same format as load_run output dictionary but with each dataset dataframe concatenated by run
+    weights_combined = (
+        {}
+    )  # same format as load_run weights dictionary but with the weights combined for each dataset by run
+    for run in run_numbers:
+        print(type(run))
+        runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run_detvar(run, variation, **load_run_detvar_kwargs)
+
+    pot_sum = np.sum(data_pots)
+    rundict = runsdata[f"{run_numbers[0]}"]
+    data_sets = rundict.keys()  # get the names of the datasets that have been loaded
+    for dataset in data_sets:
+        if np.any([rundata[dataset] is None for rundata in runsdata.values()]):
+            df = None
+        else:
+            df = pd.concat([rundata[dataset] for run_key, rundata in runsdata.items()])
+        output[dataset] = df
+        weights_arr = np.array([])  # temporary array to store the weights of a particular dataset for each run
+        for run_key, weight_dict in weights.items():
+            weights_arr = np.append(weights_arr, weight_dict[dataset])
+        mc_pots = data_pots / weights_arr  # this is an array
+        weight_sum = pot_sum / np.sum(mc_pots)  # this is a single value of the combined weight over the runs
+        weights_combined[dataset] = weight_sum  # which gets stored in this output weights dictionary
+    return output, weights_combined, pot_sum
+
+def _load_run_detvar( 
+    run_number,
+    var,
+    truth_filtered_sets=["nue"],
+    load_lee=False,
+    **load_sample_kwargs,
+):
+
+    """Load detector variation samples for a given run.
+    
+    This function is not compatible with the standard load_run function.
+    It is intended to be used with the `make_detsys.py` script.
+    A specialty of this function is that it returns the filter queries for
+    the input truth filtered samples. This is required to apply the same
+    filters when the uncertainties are calculated later when running the 
+    analysis, because the RunHistGenerator might now load the same 
+    truth-filtered sets.
+    """
+    assert var in detector_variations 
+   
+    assert isinstance(run_number,str), "You my only generate detector uncertainties for one run at a time"
+
+    if verbose and run_number == 1 and var == "lydown":
+        print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
+ 
+    output = {}
+    filter_queries = {}
+    assert "mc" not in truth_filtered_sets, "Unfiltered MC should not be passed in truth_filtered_sets"
+    mc_sets = ["mc"] + truth_filtered_sets
+
+    rundict = get_rundict(run_number, "detvar")
+    data_pot = rundict["data_pot"]
+    weights = dict()
+
+    if load_lee:
+        mc_sets.append("lee")
+    for mc_set in mc_sets:
+        mc_df = load_sample(run_number, "detvar", mc_set, variation=var, **load_sample_kwargs)
+        mc_pot, _ = get_pot_trig(run_number, "detvar", mc_set)  # nu has no trigger number
+        output[mc_set] = mc_df
+        mc_df["dataset"] = mc_set
+        # For detector systematics, we are using unweighted MC events. The uncertainty will be
+        # calculated as the relative difference between the CV and the detector variation.
+        mc_df["weights"] = np.ones(len(mc_df)) / mc_pot
+        mc_df["weights_no_tune"] = np.ones(len(mc_df)) / mc_pot
+        weights[mc_set] = data_pot / mc_pot
+
+    # Remove the truth filtered events from "mc" to avoid double-counting
+    for truth_set in truth_filtered_sets:
+        if truth_set == "drt":
+            continue
+        else:
+            filter_query = rundict[var][truth_set]["filter"]
+            df_temp = output["mc"].query(filter_query, engine="python")
+            logging.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
+            output["mc"].drop(index=df_temp.index, inplace=True)
+
+    # output["data"] = None  # Key required by other code
+    # output["ext"] = None  # Key required by other code
+
+    return output, weights, data_pot  # CT: Return the weight dict and data pot
+
+
+# CT: Keeing this in here as a separate function for the time being
 def load_run_detvar( 
     run_number,
     var,

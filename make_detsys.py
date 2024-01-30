@@ -46,7 +46,7 @@ def make_variation_histograms(
             "loadpi0variables": True,
             "loadrecoveryvars": True,
         }
-    rundata, filter_queries = dl.load_run_detvar(
+    rundata, _, _ = dl.load_runs_detvar(
         run,
         variation,
         truth_filtered_sets=truth_filtered_sets,
@@ -63,9 +63,9 @@ def make_variation_histograms(
         df = rundata[dataset].query(selection_query, engine="python")
         generator = HistogramGenerator(df, binning)
         hist_dict[dataset] = generator.generate(use_kde_smoothing=use_kde_smoothing, options=options)
-    filter_queries["mc"] = _get_mc_filter_query(list(filter_queries.values()))
-    return hist_dict, filter_queries
+    #filter_queries["mc"] = _get_mc_filter_query(list(filter_queries.values()))
 
+    return hist_dict
 
 def make_detvar_plots(detvar_data, output_dir):
     """Make plots of the histograms contained in the detvar data"""
@@ -109,8 +109,7 @@ def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_
     for variation in variations:
         logging.info(f"Making histogram for variation {variation}")
         (
-            variation_hist_data[variation],
-            filter_queries[variation],
+            variation_hist_data[variation]
         ) = make_variation_histograms(
             RUN,
             variation,
@@ -124,6 +123,7 @@ def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_
     # Switch ordering of keys in the variation_hist_data dict. Instead of
     # variation_hist_data[variation][dataset], we want to have
     # variation_hist_data[dataset][variation]
+
     variation_hist_data = {
         dataset: {
             variation: variation_hist_data[variation][dataset]
@@ -133,7 +133,7 @@ def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_
     }
     # Also, we can assume that the filter_queries are the same for all
     # variations, so we can just take the first one
-    filter_queries = filter_queries[variations[0]]
+    #filter_queries = filter_queries[variations[0]]
 
     detvar_data = {
         "run": RUN,
@@ -145,16 +145,14 @@ def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_
         "filter_queries": filter_queries,
     }
 
-    # If no name is supplied, generate a hash for the detvar file instead
-    
-    print(type(binning))
-
     if output_file == "":
-
-         output_file = ls.detvar_cache_path + "/" +\
-                       "run_" + RUN + "_" + preselection + "_" + \
-                       selection + "_" + binning.variable +\
-                       ".json"
+        runcombo_str=""
+        for i_r in range(0,len(RUN)):
+            runcombo_str = runcombo_str + RUN[i_r]
+        output_file = ls.detvar_cache_path + "/" +\
+                      "run_" + runcombo_str + "_" + preselection + "_" + \
+                      selection + "_" + binning.variable +\
+                      ".json"
 
     to_json(output_file, detvar_data)
 
