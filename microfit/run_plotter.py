@@ -128,7 +128,7 @@ class RunHistPlotter:
         if print_tot_pred_norm:
             print(
                 "print_tot_pred_norm:",
-                total_mc_hist.nominal_values / np.sum(total_mc_hist.nominal_values),
+                total_mc_hist.bin_counts / np.sum(total_mc_hist.bin_counts),
             )
 
         if show_data_mc_ratio:
@@ -148,8 +148,8 @@ class RunHistPlotter:
             assert not scale_to_pot, "Can't show chi square when scaling to POT"
             assert data_hist is not None, "Can't show chi square when no data is available"
             chi_square = chi_square_func(
-                data_hist.nominal_values,
-                total_pred_hist.nominal_values,
+                data_hist.bin_counts,
+                total_pred_hist.bin_counts,
                 total_pred_hist.covariance_matrix,
             )
         else:
@@ -175,9 +175,9 @@ class RunHistPlotter:
         # The way this is typically shown is to have the MC prediction divided by its central
         # data with error bands to show the MC uncertainty, and then to overlay the data points
         # with error bars.
-        mc_nominal = total_mc_hist.nominal_values
+        mc_nominal = total_mc_hist.bin_counts
         mc_error_band = flatten(total_mc_hist / mc_nominal)
-        data_mc_ratio = flatten(data_hist / total_pred_hist.nominal_values)
+        data_mc_ratio = flatten(data_hist / total_pred_hist.bin_counts)
 
         self.plot_hist(
             mc_error_band,
@@ -312,7 +312,7 @@ class RunHistPlotter:
         if ax is None:
             ax = plt.gca()
         # make a step plot of the histogram
-        bin_counts = hist.nominal_values
+        bin_counts = hist.bin_counts
         bin_counts[bin_counts <= 0] = np.nan
         bin_edges = hist.binning.bin_edges
         label = kwargs.pop("label", hist.tex_string)
@@ -383,7 +383,7 @@ class RunHistPlotter:
 
         def repeated_nom_values(hist):
             # repeat the last bin count
-            y = hist.nominal_values
+            y = hist.bin_counts
             y = np.append(y, y[-1])
             return y
 
