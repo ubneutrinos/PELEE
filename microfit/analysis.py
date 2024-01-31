@@ -3,7 +3,7 @@
 import os
 import logging
 import sys
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Tuple, Union, Dict, overload
 from matplotlib import pyplot as plt, ticker
 import numpy as np
 
@@ -72,8 +72,7 @@ class MultibandAnalysis(object):
         self.constraint_channels = constraint_channels
         self.uncertainty_defaults = uncertainty_defaults or {}
         self.signal_channels = signal_channels
-        self.parameters = sum([g.parameters for g in self._run_hist_generators])
-        assert isinstance(self.parameters, ParameterSet)
+        self.parameters = sum([g.parameters for g in self._run_hist_generators], ParameterSet([]))
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
@@ -81,12 +80,11 @@ class MultibandAnalysis(object):
     def _init_from_config(self, configuration):
         # The analysis may use several generators to produce a multi-channel histogram
         self._check_config(configuration)
-        self._run_hist_generators = []
+        self._run_hist_generators: List[RunHistGenerator] = []
         generator_configurations = configuration["generator"]
         for config in generator_configurations:
             self._run_hist_generators.append(self.run_hist_generator_from_config(config))
-        self.parameters = sum([g.parameters for g in self._run_hist_generators])
-        assert isinstance(self.parameters, ParameterSet)
+        self.parameters = sum([g.parameters for g in self._run_hist_generators], ParameterSet([]))
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
@@ -398,7 +396,7 @@ class MultibandAnalysis(object):
         return ext_hist
 
     @lru_cache(maxsize=1)
-    def generate_multiband_data_histogram(self, impute_blinded_channels=False):
+    def generate_multiband_data_histogram(self, impute_blinded_channels=False) -> Optional[MultiChannelHistogram]:
         """Generate a combined histogram from all unblinded data channels."""
 
         unblinded_generators = [
@@ -416,7 +414,8 @@ class MultibandAnalysis(object):
         full_hist = self.generate_multiband_histogram()
         for channel in full_hist.channels:
             if channel not in data_hist.channels:
-                data_hist.append_empty_channel(full_hist[channel].binning)
+                # extracting one channel is known to return a Histogram
+                data_hist.append_empty_channel(full_hist[channel].binning) # type: ignore
         return data_hist
 
     def _get_pot_for_channel(self, channel):
@@ -469,6 +468,7 @@ class MultibandAnalysis(object):
                     **kwargs,
                 )
                 if save_path is not None:
+                    assert ax is not None, "Cannot save figure when ax is None"
                     fig = ax.figure
                     fig.savefig(os.path.join(save_path, filename_format.format(channel)))
                     plt.close(fig)
@@ -754,6 +754,7 @@ class MultibandAnalysis(object):
         """Perform a scan of the chi-square as a function of the given parameter."""
 
         data = data or self.generate_multiband_data_histogram()
+        assert data is not None, "Cannot scan chi-square when data is None"
         for channel in self.signal_channels:
             if channel not in data.channels:
                 raise ValueError(f"Channel {channel} not found in data histogram")
@@ -893,6 +894,7 @@ class MultibandAnalysis(object):
         reset_cache=True,
     ):
         data = data or self.generate_multiband_data_histogram()
+        assert data is not None, "Cannot fit to data when data is None"
         for channel in self.signal_channels:
             if channel not in data.channels:
                 raise ValueError(f"Channel {channel} not found in data histogram")
@@ -907,7 +909,7 @@ class MultibandAnalysis(object):
     def _fit_to_data_grid_scan(
         self,
         data: Optional[Histogram] = None,
-        fit_grid: Dict[str, np.ndarray] = None,
+        fit_grid: Dict[str, np.ndarray] = {},
         reset_cache=True,
     ):
         """Fit the data to a grid of parameter values.
@@ -920,6 +922,8 @@ class MultibandAnalysis(object):
         This function can be potentially fast for repeated fits since it uses caching.
         """
         data = data or self.generate_multiband_data_histogram()
+        assert data is not None, "Cannot fit to data when data is None"
+        assert isinstance(data, MultiChannelHistogram)
         for channel in self.signal_channels:
             if channel not in data.channels:
                 raise ValueError(f"Channel {channel} not found in data histogram")
@@ -1009,9 +1013,11 @@ class MultibandAnalysis(object):
                             expectation.bin_counts,
                             expectation.covariance_matrix,
                         )
+                        # ignore typing here, this requires overloading that is not yet 
+                        # available in Python 3.7 because it lacks the "Literal" type
                         chi2_at_best_fit = self.fit_to_data(
                             pseudo_data, reset_cache=False, method=fit_method, **fit_kwargs
-                        )[0]
+                        )[0]  # type: ignore
                         delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
                         pbar2.update()
                 delta_chi2 = np.array(delta_chi2)
