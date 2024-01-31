@@ -26,7 +26,8 @@ from numu_tki import tki_calculators
 from microfit.selections import extract_variables_from_query
 
 datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
-detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
+#detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
+detector_variations = ["cv","wiremodthetayz"]
 verbose=True
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
