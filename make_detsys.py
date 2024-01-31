@@ -33,9 +33,9 @@ def make_variation_histograms(
         kwargs = {
             "loadshowervariables": False,
             "use_bdt": False,
-            "loadnumuvariables": True,
+            "loadnumuvariables": True, # TODO: Sort out the kwargs
             # CRT variables are only available from run 3 onwards
-            "load_crt_vars": run not in ["1", "2"],
+            #"load_crt_vars": run not in ["1", "2"],
         }
     else:
         kwargs = {
@@ -84,10 +84,10 @@ def make_detvar_plots(detvar_data, output_dir):
         ax.set_xlabel(detvar_data["binning"].variable)
         ax.set_ylim(bottom=0)
         ax.legend(ncol=2)
-        ax.set_title(f"Dataset: {truth_filter}, Selection: {detvar_data['selection']}")
+        ax.set_title(f"Dataset: {truth_filter}, Selection: {detvar_data['selection_key']}")
         fig.savefig(
             os.path.join(
-                output_dir, f"detvar_{truth_filter}_{detvar_data['selection']}.pdf",
+                output_dir, f"detvar_{truth_filter}_{detvar_data['selection_key']}.pdf",
             ),
             bbox_inches="tight",
         )
@@ -135,14 +135,23 @@ def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_
     # variations, so we can just take the first one
     #filter_queries = filter_queries[variations[0]]
 
+    print(selection)
+    print(preselection)
+
+    binning.selection_key = selection
+    binning.preselection_key = preselection
+
+    # TODO: mc_sets should be read from the yml file, and there should be some checks
+    # to confirm we're loading the same set of samples for every variation/run
     detvar_data = {
         "run": RUN,
-        "selection": selection,
-        "preselection": preselection,
+        "selection_key": selection,
+        "preselection_key": preselection,
         "selection_query": selection_query,
         "binning": binning,
         "variation_hist_data": variation_hist_data,
-        "filter_queries": filter_queries,
+        #"filter_queries": filter_queries,
+        "mc_sets": ["mc","nue"]
     }
 
     if output_file == "":
@@ -175,6 +184,10 @@ def main(args):
     binning_def[2] = (float(binning_def[2]), float(binning_def[3]))
     del binning_def[3]
     binning = Binning.from_config(*binning_def)
+
+    binning.selection_key = args.selection
+    binning.preselection_key = args.preselection
+
     logging.debug(repr(binning))
 
     make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_smoothing,binning,args.output_file,args.make_plots,args.plot_output_dir)

@@ -1,7 +1,8 @@
 import os
 from typing import Dict, List, Optional, Union
-from microfit.histogram.histogram import MultiChannelHistogram
 
+import localSettings as ls
+from microfit.histogram.histogram import MultiChannelHistogram
 from microfit.selections import get_selection_query
 from microfit.category_definitions import get_category_color, get_category_label
 from microfit.statistics import chi_square
@@ -132,19 +133,39 @@ class RunHistGenerator:
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
         if detvar_data_path is not None:
+            detvar_data_path = ls.detvar_cache_path + detvar_data_path
             # check that path exists
             if not os.path.exists(detvar_data_path):
                 raise ValueError(f"Path {detvar_data_path} does not exist.")
             self.detvar_data = from_json(detvar_data_path)
+
+            # Just check the bin edges and variable rather than the entire binning object
+            if (self.detvar_data["binning"].bin_edges != self.binning.bin_edges).any():
+                raise ValueError(
+                    "Binning of detector variations does not match binning of main histogram."
+                )
+
+            print(self.detvar_data["binning"].variable)
+            print(self.binning.variable)
+
+            if self.detvar_data["binning"].variable != self.binning.variable:
+                raise ValueError(
+                    "Variable of detector variations does not match binning of main histogram."
+                )
+
+            '''
             if not self.detvar_data["binning"] == self.binning:
                 raise ValueError(
                     "Binning of detector variations does not match binning of main histogram."
                 )
-            if not self.detvar_data["selection"] == self.selection:
+            '''
+
+
+            if not self.detvar_data["selection_key"] == self.selection:
                 raise ValueError(
                     "Selection of detector variations does not match selection of main histogram."
                 )
-            if not self.detvar_data["preselection"] == self.preselection:
+            if not self.detvar_data["preselection_key"] == self.preselection:
                 raise ValueError(
                     "Preselection of detector variations does not match preselection of main histogram."
                 )
@@ -371,6 +392,9 @@ class RunHistGenerator:
         add_precomputed_detsys : bool, optional
             Whether to add the precomputed detector systematics to the histogram covariance.
         """
+
+
+        print("Starting get_mc_hist")
 
         scale_factor = 1.0
         if scale_to_pot is not None:

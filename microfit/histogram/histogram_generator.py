@@ -94,7 +94,15 @@ class HistogramGenerator(SmoothHistogramMixin):
             self.detvar_data = from_json(self.detvar_data)
         # check that binning matches to detvar_data
         if self.detvar_data is not None:
+            '''
             if not self.detvar_data["binning"] == self.binning:
+                raise ValueError(
+                    "Binning of detector variations does not match binning of main histogram."
+                )
+            '''
+
+            # Just check the bin edges and variable rather than the entire binning object
+            if (self.detvar_data["binning"].bin_edges != self.binning.bin_edges).any():
                 raise ValueError(
                     "Binning of detector variations does not match binning of main histogram."
                 )
@@ -358,6 +366,9 @@ class HistogramGenerator(SmoothHistogramMixin):
             Histogram object containing the binned data.
         """
 
+        print("Starting generate")
+        print(add_precomputed_detsys)
+
         if use_kde_smoothing:
             self.logger.debug("Using KDE smoothing.")
             # The KDE smoothing option is incompatible with sidebands and multisim errors
@@ -472,8 +483,12 @@ class HistogramGenerator(SmoothHistogramMixin):
                 if not is_psd(hist.covariance_matrix + cov_corr):
                     raise RuntimeError("Covariance matrix is not PSD after correction.")
                 hist.add_covariance(cov_corr)
+
+        print("add_precomputed_detsys=",add_precomputed_detsys)
         if add_precomputed_detsys:
             det_cov = self.calculate_detector_covariance()
+            print(det_cov)
+
             if det_cov is not None:
                 hist.add_covariance(det_cov)
         if self.enable_cache and self.cache_total_covariance:
@@ -1043,6 +1058,14 @@ class HistogramGenerator(SmoothHistogramMixin):
         # If we are at this point and somehow didn't get a dict, we must have forgotten to load it
         # from json in the constructor.
         assert isinstance(self.detvar_data, dict)
+
+
+        # TODO: For testing purposes, only using wire mod thetas
+        variations = [
+            "wiremodthetayz"
+        ]
+
+        '''
         variations = [
             "lydown",
             "lyatt",
@@ -1054,6 +1077,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             "wiremodthetaxz",
             "wiremodthetayz",
         ]
+        '''
         variation_hist_data = cast(
             Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"]
         )
@@ -1061,20 +1085,24 @@ class HistogramGenerator(SmoothHistogramMixin):
         # assume, however, that the truth-filtered sets are identical to those used in this RunHistGenerator.
         # Instead, we use the filter queries that are part of the detector variation data to select the
         # correct samples.
-        filter_queries = cast(Dict[str, str], self.detvar_data["filter_queries"])
-        assert isinstance(filter_queries, dict)
+        print(self.detvar_data["mc_sets"])
+        #filter_queries = cast(Dict[str, str], self.detvar_data["filter_queries"])
+        #assert isinstance(filter_queries, dict)
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
         observation_dict = {}
 
-        for dataset, query in filter_queries.items():
+        for dataset in self.detvar_data["mc_sets"]:
             self.logger.debug(
-                f"Getting detector covariance for dataset {dataset} with query {query}."
+                f"Getting detector covariance for dataset {dataset}"
             )
             observation_dict[dataset] = {}
             variation_hists = variation_hist_data[dataset]
-            this_analysis_hist = self.generate(extra_query=query, add_precomputed_detsys=False)
-            cv_hist = this_analysis_hist.bin_counts
-            variation_cv_hist = variation_hists["cv"].bin_counts
+
+            # CT: Extra query applied here should already have been applied when mc sample is loaded
+            #this_analysis_hist = self.generate(extra_query=query, add_precomputed_detsys=False)
+            this_analysis_hist = self.generate(add_precomputed_detsys=False)
+            cv_hist = this_analysis_hist.nominal_values
+            variation_cv_hist = variation_hists["cv"].nominal_values
 
             # make sure every variation is in the dictionary
             for v in variations:
@@ -1089,11 +1117,29 @@ class HistogramGenerator(SmoothHistogramMixin):
                     v: (h.bin_counts - variation_cv_hist) * (cv_hist / variation_cv_hist)
                     for v, h in variation_hists.items()
                 }
+
+            print("variation_diffs")
+            print(variation_diffs)
+
             # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
             for v, h in variation_diffs.items():
+                print(dataset,v)
                 h[~np.isfinite(h)] = 0.0
                 observation_dict[dataset][v] = h.reshape(1, -1)
                 # We have just one observation and the central value is zero since it was already subtracted
+                detvar_covariance_matrix = covariance(
+                    h.reshape(1, -1),
+                    central_value=np.zeros_like(h),
+                    # As with all unisim variations, small deviations from the PSD case are expected
+                    allow_approximation=True,
+                    tolerance=1e-10,
+                    debug_name=f"detector_{v}",
+                )
+
+                print(detvar_covariance_matrix)
+                cov_mat += detvar_covariance_matrix
+
+                '''
                 cov_mat += covariance(
                     h.reshape(1, -1),
                     central_value=np.zeros_like(h),
@@ -1102,10 +1148,15 @@ class HistogramGenerator(SmoothHistogramMixin):
                     tolerance=1e-10,
                     debug_name=f"detector_{v}",
                 )
+                '''
+
+
         if only_diagonal:
             cov_mat = np.diag(np.diag(cov_mat))
         if return_histograms:
             return cov_mat, observation_dict
+
+        print("Finished making detector cov matrix")
         return cov_mat
 
     def _resync_parameters(self):
