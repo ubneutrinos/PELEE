@@ -154,7 +154,8 @@ class ParameterSet:
                 for i in indices[1:]:
                     self.parameters.pop(i)
 
-    def __add__(self, other):
+    def __add__(self, other: "ParameterSet"):
+        assert isinstance(other, ParameterSet)
         parameter_list = self.parameters + other.parameters
         new_parameter_set = ParameterSet(parameter_list, strict_duplicate_checking=False)
         # before we return, we set the parameter objects in the other set to the

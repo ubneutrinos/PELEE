@@ -6,7 +6,8 @@ import numpy as np
 from microfit.fileio import from_json
 from microfit.parameters import ParameterSet
 from microfit.histogram import Binning, MultiChannelBinning
-from microfit.histogram import Histogram, MultiChannelHistogram
+# Need to break potential import loops
+from microfit.histogram.histogram import Histogram, MultiChannelHistogram
 from microfit.histogram import SmoothHistogramMixin
 
 import pandas as pd
@@ -184,6 +185,9 @@ class HistogramGenerator(SmoothHistogramMixin):
             )
         # now we build the covariance
         covariance_matrix = np.diag(np.concatenate(channel_bin_variances))
+        # We are also filling a 2D array for the bin counts, where off-diagonal elements
+        # represent the number of events that are shared between two bins.
+        bin_counts_2d = np.diag(np.concatenate(channel_bin_counts))
         # for off-diagonal blocks, we need to calculate 2D histograms of the squared weights
         # for each pair of channels
         for i in range(binning.n_channels):
@@ -205,18 +209,32 @@ class HistogramGenerator(SmoothHistogramMixin):
                 covariance_matrix[
                     np.ix_(binning._channel_bin_idx(j), binning._channel_bin_idx(i))
                 ] = hist.T
+                # To fill the 2D bin counts, we do the same thing but we do not square the weights
+                hist, _, _ = np.histogram2d(
+                    sample[mask, i],
+                    sample[mask, j],
+                    bins=[bin_edges[i], bin_edges[j]],
+                    weights=weights[mask],
+                )
+                bin_counts_2d[
+                    np.ix_(binning._channel_bin_idx(i), binning._channel_bin_idx(j))
+                ] = hist
+                bin_counts_2d[
+                    np.ix_(binning._channel_bin_idx(j), binning._channel_bin_idx(i))
+                ] = hist.T
+
         covariance_matrix, dist = fronebius_nearest_psd(covariance_matrix, return_distance=True)
         if dist > 1e-3:
             raise RuntimeError(f"Nearest PSD distance is {dist} away, which is too large.")
         if return_single_channel:
             return Histogram(
                 binning.binnings[0],
-                channel_bin_counts[0],
+                bin_counts_2d,
                 covariance_matrix=covariance_matrix,
             )
         return MultiChannelHistogram(
             binning,
-            np.concatenate(channel_bin_counts),
+            bin_counts_2d,
             covariance_matrix=covariance_matrix,
         )
 
@@ -425,8 +443,8 @@ class HistogramGenerator(SmoothHistogramMixin):
                 assert isinstance(sideband_total_prediction, Histogram)
                 assert isinstance(sideband_observed_hist, Histogram)
                 mu_offset, cov_corr = sideband_constraint_correction(
-                    sideband_measurement=sideband_observed_hist.nominal_values,
-                    sideband_central_value=sideband_total_prediction.nominal_values,
+                    sideband_measurement=sideband_observed_hist.bin_counts,
+                    sideband_central_value=sideband_total_prediction.bin_counts,
                     concat_covariance=extended_cov,
                     sideband_covariance=sideband_total_prediction.covariance_matrix,
                 )
@@ -534,7 +552,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         return cov_mat
 
     @classmethod
-    def multiband_cv(cls, hist_generators, extra_queries=None):
+    def multiband_cv(cls, hist_generators, extra_queries=None) -> np.ndarray:
         """Calculate the central values for multiple histograms.
 
         Given a list of HistogramGenerator objects, calculate the central values of the
@@ -548,6 +566,11 @@ class HistogramGenerator(SmoothHistogramMixin):
             List of HistogramGenerator objects.
         extra_queries : list of str, optional
             List of additional queries to apply to the dataframe.
+        
+        Returns
+        -------
+        concatenated_cv : array_like
+            Concatenated central values.
         """
 
         assert len(hist_generators) > 0, "Must provide at least one histogram generator."
@@ -559,7 +582,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             extra_queries = [None] * len(hist_generators)
         for hg, extra_query in zip(hist_generators, extra_queries):
             central_values.append(
-                hg.generate(extra_query=extra_query, include_multisim_errors=False).nominal_values
+                hg.generate(extra_query=extra_query, include_multisim_errors=False).bin_counts
             )
 
         concatenated_cv = np.concatenate(central_values)
@@ -820,7 +843,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         # calculate the covariance matrix from the histograms
         cov = covariance(
             universe_histograms,
-            central_value_hist.nominal_values,
+            central_value_hist.bin_counts,
             allow_approximation=True,
             tolerance=1e-10,
         )
@@ -921,7 +944,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                         dataframe,
                         # multiply the base weights with the knob weights
                         weight_column=[base_weight_column, weight_column_knob],
-                    ).nominal_values
+                    ).bin_counts
                     observations.append(bincounts)
                 observations = np.array(observations)
                 if self.enable_cache:
@@ -936,7 +959,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             # calculate the covariance matrix from the histograms
             cov = covariance(
                 observations,
-                central_value_hist.nominal_values,
+                central_value_hist.bin_counts,
                 allow_approximation=True,
                 debug_name=knob,
                 tolerance=1e-10,
@@ -1000,8 +1023,8 @@ class HistogramGenerator(SmoothHistogramMixin):
             observation_dict[dataset] = {}
             variation_hists = variation_hist_data[dataset]
             this_analysis_hist = self.generate(extra_query=query, add_precomputed_detsys=False)
-            cv_hist = this_analysis_hist.nominal_values
-            variation_cv_hist = variation_hists["cv"].nominal_values
+            cv_hist = this_analysis_hist.bin_counts
+            variation_cv_hist = variation_hists["cv"].bin_counts
 
             # make sure every variation is in the dictionary
             for v in variations:
@@ -1013,7 +1036,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             # in this analysis was 100, the error in this analysis will be 10.
             with np.errstate(divide="ignore", invalid="ignore"):
                 variation_diffs = {
-                    v: (h.nominal_values - variation_cv_hist) * (cv_hist / variation_cv_hist)
+                    v: (h.bin_counts - variation_cv_hist) * (cv_hist / variation_cv_hist)
                     for v, h in variation_hists.items()
                 }
             # set nan values to zero. These can occur when bins are empty, which we can safely ignore.

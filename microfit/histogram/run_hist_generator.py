@@ -89,7 +89,7 @@ class RunHistGenerator:
         self.selection = selection
         self.preselection = preselection
         self.binning = binning.copy()
-        self.channels = None
+        self.channels = []  # type: List[str]
         if isinstance(self.binning, MultiChannelBinning):
             if self.selection is not None:
                 raise ValueError(
@@ -126,7 +126,9 @@ class RunHistGenerator:
             query = self.binning.selection_query
             # and remove the query string from the binning, so that it is not applied again
             self.binning.selection_query = None
+            assert self.binning.label is not None, "Binning must have a label."
             self.channels = [self.binning.label]
+        assert len(self.channels) > 0, "Binning must contain at least one channel."
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
         if detvar_data_path is not None:
@@ -266,7 +268,7 @@ class RunHistGenerator:
         data_hist = hist_generator.generate(use_kde_smoothing=smooth_ext_histogram)
         if add_error_floor:
             prior_errors = np.ones(data_hist.n_bins) * 1.4**2
-            prior_errors[data_hist.nominal_values > 0] = 0
+            prior_errors[data_hist.bin_counts > 0] = 0
             data_hist.add_covariance(np.diag(prior_errors))
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
@@ -280,7 +282,7 @@ class RunHistGenerator:
         include_multisim_errors=None,
         scale_to_pot=None,
         channel=None,
-    ) -> Dict[str, Histogram]:
+    ) -> Dict[Union[str, int], Histogram]:
         """Get MC histograms that are split by event category.
 
         Parameters
@@ -474,13 +476,15 @@ class RunHistGenerator:
         chi_square : float
             Chi square between the data and the total prediction.
         """
+        # TODO: This currently does not take into account the covariance between bins due to shared events
+        warnings.warn("The chi-square calculation currently does not take into account contributions from correlated data bins.")
         data_hist = self.get_data_hist(type="data")
         if data_hist is None:
             return np.nan
         total_prediction = self.get_total_prediction(**kwargs)
         chi_sq = chi_square(
-            data_hist.nominal_values,
-            total_prediction.nominal_values,
+            data_hist.bin_counts,
+            total_prediction.bin_counts,
             total_prediction.covariance_matrix,
         )
         return chi_sq

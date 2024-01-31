@@ -90,17 +90,17 @@ class TestRunHistGenerator(unittest.TestCase):
         # Test getting the data histogram
         data_hist = generator.get_data_hist()
         assert data_hist is not None
-        np.testing.assert_array_equal(data_hist.nominal_values, [0, 1, 1, 1])
+        np.testing.assert_array_equal(data_hist.bin_counts, [0, 1, 1, 1])
 
         # Test getting the EXT histogram
         ext_hist = generator.get_data_hist(type="ext")
         assert ext_hist is not None
-        np.testing.assert_array_equal(ext_hist.nominal_values, [0, 1, 1, 1])
+        np.testing.assert_array_equal(ext_hist.bin_counts, [0, 1, 1, 1])
 
         # Test scaling the EXT histogram
         ext_hist_scaled = generator.get_data_hist(type="ext", scale_to_pot=2)
         assert ext_hist_scaled is not None
-        np.testing.assert_array_equal(ext_hist_scaled.nominal_values, [0, 2, 2, 2])
+        np.testing.assert_array_equal(ext_hist_scaled.bin_counts, [0, 2, 2, 2])
 
     def test_multiband_histogram_equivalence(self):
         def run_test_with_mc_gen_class(
@@ -173,7 +173,7 @@ class TestRunHistGenerator(unittest.TestCase):
             # There are very small numerical differences in the covariance matrices, but the equality check
             # in the Histogram class only checks for approximate equality, so this should be fine.
             np.testing.assert_array_almost_equal(
-                multichannel_hist.nominal_values, joined_hist.nominal_values
+                multichannel_hist.bin_counts, joined_hist.bin_counts
             )
             np.testing.assert_array_almost_equal(
                 multichannel_hist.covariance_matrix,

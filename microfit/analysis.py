@@ -30,16 +30,20 @@ class MultibandAnalysis(object):
     def __init__(
         self,
         configuration=None,
-        run_hist_generators=None,
+        run_hist_generators: Optional[List[RunHistGenerator]]=None,
         constraint_channels=[],
         signal_channels=[],
         uncertainty_defaults=None,
     ):
         self.logger = logging.getLogger(__name__)
+        self.parameters = ParameterSet([])
+        self.constraint_channels = []  # type: List[str]
+        self.signal_channels = []  # type: List[str]
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
         if configuration is None:
+            assert run_hist_generators is not None
             self._init_from_generators(
                 run_hist_generators, constraint_channels, signal_channels, uncertainty_defaults
             )
@@ -55,6 +59,7 @@ class MultibandAnalysis(object):
         # Adding the data_pot property just for compatibility with the RunHistPlotter
         self.data_pot = None
         self.plot_sideband = False
+        assert isinstance(self.parameters, ParameterSet)
 
     def _init_from_generators(
         self,
@@ -68,6 +73,7 @@ class MultibandAnalysis(object):
         self.uncertainty_defaults = uncertainty_defaults or {}
         self.signal_channels = signal_channels
         self.parameters = sum([g.parameters for g in self._run_hist_generators])
+        assert isinstance(self.parameters, ParameterSet)
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
@@ -80,6 +86,7 @@ class MultibandAnalysis(object):
         for config in generator_configurations:
             self._run_hist_generators.append(self.run_hist_generator_from_config(config))
         self.parameters = sum([g.parameters for g in self._run_hist_generators])
+        assert isinstance(self.parameters, ParameterSet)
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
@@ -177,14 +184,11 @@ class MultibandAnalysis(object):
             return hist
         constraint_channels = constraint_channels or self.constraint_channels
         total_prediction_hist = total_prediction_hist or hist
-        for constraint_channel in constraint_channels:
-            constraint_hist = data_hist[constraint_channel]
-            prediction_hist = total_prediction_hist[constraint_channel]
-            hist = hist.update_with_measurement(
-                constraint_channel,
-                measurement=constraint_hist.nominal_values,
-                central_value=prediction_hist.nominal_values,
-            )
+        constraint_data = data_hist[constraint_channels]
+        hist = hist.update_with_measurement(
+            measurement=constraint_data,
+            central_value=total_prediction_hist
+        )
         return hist
 
     def generate_multiband_histogram(
@@ -212,7 +216,9 @@ class MultibandAnalysis(object):
         signal_channels = signal_channels or self.signal_channels
         all_channels = signal_channels + constraint_channels
         mc_hist = mc_hist[all_channels]
+        assert isinstance(mc_hist, MultiChannelHistogram)
         joint_ext_hist = joint_ext_hist[all_channels]
+        assert isinstance(joint_ext_hist, MultiChannelHistogram)
 
         total_prediction = mc_hist + joint_ext_hist
         if use_sideband:
@@ -229,16 +235,17 @@ class MultibandAnalysis(object):
             output_hist = mc_hist
         if not include_non_signal_channels:
             output_hist = output_hist[signal_channels]
+            assert isinstance(output_hist, MultiChannelHistogram)
         if scale_to_pot is not None:
             raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
         return output_hist
 
     def get_mc_hist(
         self,
-        include_multisim_errors: Optional[bool] = None,
+        include_multisim_errors: bool = True,
         extra_query: Optional[str] = None,
         scale_to_pot: Optional[float] = None,
-        use_sideband: Optional[bool] = None,
+        use_sideband: bool = False,
         add_precomputed_detsys: bool = False,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Get the MC histogram. This function is solely for plotting purposes.
@@ -284,7 +291,7 @@ class MultibandAnalysis(object):
             return None
         if add_error_floor:
             prior_errors = np.ones(data_hist.n_bins) * 1.4**2
-            prior_errors[data_hist.nominal_values > 0] = 0
+            prior_errors[data_hist.bin_counts > 0] = 0
             data_hist.add_covariance(np.diag(prior_errors))
         if scale_to_pot is not None:
             raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
@@ -637,10 +644,10 @@ class MultibandAnalysis(object):
 
         def test_statistic(observation):
             chi2_h0 = chi_square(
-                observation.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix
+                observation.bin_counts, h0_hist.bin_counts, h0_hist.covariance_matrix
             )
             chi2_h1 = chi_square(
-                observation.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix
+                observation.bin_counts, h1_hist.bin_counts, h1_hist.covariance_matrix
             )
             return chi2_h0 - chi2_h1
 
@@ -673,12 +680,12 @@ class MultibandAnalysis(object):
         # calculate the p-value of the observed data under H0
         real_data_ts = test_statistic(data_hist)
         results["chi2_h0"] = chi_square(
-            data_hist.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix
+            data_hist.bin_counts, h0_hist.bin_counts, h0_hist.covariance_matrix
         )
         results["pval_h0"] = np.sum(test_stat_h0 > real_data_ts) / n_trials
         # calculate the p-value of the observed data under H1
         results["chi2_h1"] = chi_square(
-            data_hist.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix
+            data_hist.bin_counts, h1_hist.bin_counts, h1_hist.covariance_matrix
         )
         results["pval_h1"] = np.sum(test_stat_h1 > real_data_ts) / n_trials
 
@@ -727,8 +734,8 @@ class MultibandAnalysis(object):
             generated_hist = self._get_hist_at_parameter_values(**parameter_kwargs)
             # calculate the chi-square
             return chi_square(
-                observed_hist.nominal_values,
-                generated_hist.nominal_values,
+                observed_hist.bin_counts,
+                generated_hist.bin_counts,
                 generated_hist.covariance_matrix,
             )
 
@@ -758,7 +765,7 @@ class MultibandAnalysis(object):
                 include_multisim_errors=True, use_sideband=True
             )
             chi2 = chi_square(
-                data.nominal_values, expectation.nominal_values, expectation.covariance_matrix
+                data.bin_counts, expectation.bin_counts, expectation.covariance_matrix
             )
             results.append(chi2)
         results = np.array(results)
@@ -932,8 +939,8 @@ class MultibandAnalysis(object):
             generated_hist = self._get_hist_at_parameter_values(**parameter_kwargs)
             # calculate the chi-square
             return chi_square(
-                data.nominal_values,
-                generated_hist.nominal_values,
+                data.bin_counts,
+                generated_hist.bin_counts,
                 generated_hist.covariance_matrix,
             )
 
@@ -998,8 +1005,8 @@ class MultibandAnalysis(object):
                         ).fluctuate_poisson(seed=global_trial_index + number_of_samples)
                         self.parameters[parameter_name].value = scan_point
                         chi2_at_truth = chi_square(
-                            pseudo_data.nominal_values,
-                            expectation.nominal_values,
+                            pseudo_data.bin_counts,
+                            expectation.bin_counts,
                             expectation.covariance_matrix,
                         )
                         chi2_at_best_fit = self.fit_to_data(
