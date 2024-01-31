@@ -8,6 +8,7 @@ from .histogram import (
     Binning,
     MultiChannelBinning,
     MultiChannelHistogram,
+    Histogram
 )
 from . import selections
 from .statistics import chi_square as chi_square_func
@@ -299,7 +300,7 @@ class RunHistPlotter:
 
     def plot_hist(
         self,
-        hist,
+        hist: Histogram,
         ax=None,
         show_errorband=True,
         as_errorbars=False,

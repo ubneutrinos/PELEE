@@ -363,11 +363,11 @@ class Histogram:
         self._tex_string = value
 
     @property
-    def bin_counts(self):
+    def bin_counts(self) -> np.ndarray:
         # The bin counts are stored as a 2D array, where the diagonal elements
         # correspond to the bin counts and the off-diagonal elements correspond
         # to the number of events shared between two bins.
-        return np.diag(self._bin_counts)
+        return np.diag(self._bin_counts).copy()
 
     @bin_counts.setter
     def bin_counts(self, value):
@@ -756,7 +756,13 @@ class MultiChannelHistogram(Histogram):
         if central_value is None:
             sideband_2d_central_value = self[measurement.channels]._bin_counts
         elif isinstance(central_value, Histogram):
-            sideband_2d_central_value = central_value._bin_counts
+            assert set(measurement.channels).issubset(
+                central_value.channels
+            ), "Channels of measurement must be a subset of the channels of the central value."
+            if isinstance(central_value, MultiChannelHistogram):
+                sideband_2d_central_value = central_value[measurement.channels]._bin_counts
+            else:
+                sideband_2d_central_value = central_value._bin_counts
         elif isinstance(central_value, np.ndarray):
             if central_value.ndim == 1:
                 sideband_2d_central_value = np.diag(central_value)
