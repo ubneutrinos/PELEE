@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, asdict
 from numbers import Real
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, overload
 from unitpy import Unit, Quantity
 import numpy as np
 
@@ -210,6 +210,20 @@ class ParameterSet:
     @classmethod
     def from_dict(cls, d):
         return cls([Parameter.from_dict(p) for p in d])
+
+    # Overloads like these don't actually do anything, but they are useful for type checking.
+    # In this way, the type checker knows how the output type depends on the input type.
+    @overload
+    def __getitem__(self, key: str) -> Parameter:
+        ...
+
+    @overload
+    def __getitem__(self, key: int) -> Parameter:
+        ...
+
+    @overload
+    def __getitem__(self, key: List[str]) -> 'ParameterSet':
+        ...
 
     def __getitem__(self, key):
         if isinstance(key, str):

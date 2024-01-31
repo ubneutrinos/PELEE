@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union, overload
 import warnings
 from matplotlib.axes import Axes
 import numpy as np
@@ -844,6 +844,14 @@ class MultiChannelHistogram(Histogram):
         return self.covariance_matrix[
             np.ix_(self.binning._channel_bin_idx(key), self.binning._channel_bin_idx(key))
         ]
+    # Overloads to help with type hinting when getting items
+    @overload
+    def __getitem__(self, key: Union[int, str]) -> Histogram:
+        ...
+
+    @overload
+    def __getitem__(self, key: Sequence[Union[int, str]]) -> "MultiChannelHistogram":
+        ...
 
     def __getitem__(self, key: Union[int, str, Sequence[Union[int, str]]]) -> Union[Histogram, "MultiChannelHistogram"]:
         """Get the histogram of a given channel or a list of channels.
