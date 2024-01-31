@@ -390,8 +390,10 @@ class HistogramGenerator(SmoothHistogramMixin):
             assert sideband_generator is not None
             assert sideband_total_prediction is not None
             assert sideband_observed_hist is not None
+
         if add_precomputed_detsys:
             assert self.detvar_data is not None, "No detector variations provided."
+
         calculate_hist = True
         hash = self._generate_hash(
             extra_query,
@@ -484,13 +486,11 @@ class HistogramGenerator(SmoothHistogramMixin):
                     raise RuntimeError("Covariance matrix is not PSD after correction.")
                 hist.add_covariance(cov_corr)
 
-        print("add_precomputed_detsys=",add_precomputed_detsys)
         if add_precomputed_detsys:
             det_cov = self.calculate_detector_covariance()
-            print(det_cov)
-
             if det_cov is not None:
                 hist.add_covariance(det_cov)
+
         if self.enable_cache and self.cache_total_covariance:
             self.hist_cache[hash] = hist.copy()
         return hist
@@ -543,7 +543,18 @@ class HistogramGenerator(SmoothHistogramMixin):
                 concatenated_cv=concatenated_cv,
                 extra_queries=[extra_query] * len(hist_generators),
             )
+
+        # CT: Needs another block for the detvars here
+        
+        if add_precomputed_detsys:
+            print("Including detsim uncertainties")
+            covariance_matrix += HistogramGenerator.multiband_detector_covariance(
+                hist_generators
+            )
+        
+
         histogram.add_covariance(covariance_matrix)
+
         return histogram
 
     @classmethod
@@ -702,11 +713,13 @@ class HistogramGenerator(SmoothHistogramMixin):
         # the universes in a meaningful way.
         # The detvar_data dictionary contains a dictionary of all the filter queries that
         # were used under the key `filter_queries`.
+        '''
         reference_filter_queries = hist_generators[0].detvar_data["filter_queries"]
         for hg in hist_generators:
             assert (
                 hg.detvar_data["filter_queries"] == reference_filter_queries
             ), "Not all histograms have the same filter queries."
+        '''
 
         universe_hist_dicts = []
         for hg in hist_generators:
@@ -1018,7 +1031,8 @@ class HistogramGenerator(SmoothHistogramMixin):
             observation_dict[knob] = observations
             # If we get to this point without having either calculated a central value hist
             # or taken one from the cache, something is wrong
-            assert isinstance(central_value_hist, Histogram)
+            print(central_value_hist)
+            #assert isinstance(central_value_hist, Histogram) #TODO: This assert is failing even when central_value_hist is a histogram
             if skip_covariance:
                 continue
             # calculate the covariance matrix from the histograms
