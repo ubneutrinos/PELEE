@@ -25,10 +25,10 @@ def make_variation_histograms(
     variation,
     selection_query,
     binning,
-    truth_filtered_sets=["nue"],
-    numu=False,
-    use_kde_smoothing=False
+    use_kde_smoothing=False,
+    **dl_kwargs 
 ):
+    '''
     if numu:
         kwargs = {
             "loadshowervariables": False,
@@ -46,13 +46,22 @@ def make_variation_histograms(
             "loadpi0variables": True,
             "loadrecoveryvars": True,
         }
+    '''
     rundata, _, _ = dl.load_runs_detvar(
         run,
         variation,
-        truth_filtered_sets=truth_filtered_sets,
-        enable_cache=True,
-        **kwargs
+        **dl_kwargs
     )
+
+    print(variation)
+    print("Selected nues:")
+    #print(len(rundata["nue"].query(selection_query,engine="python")))
+    print(len(rundata["nue"]))
+    print("Selected numus:")
+    print(len(rundata["mc"]))
+    #print(len(rundata["mc"].query(selection_query,engine="python")))
+
+
     hist_dict = {}
     if use_kde_smoothing:
         # Skip covariance calculation for KDE smoothing since we only need the CV
@@ -97,7 +106,7 @@ def make_detvar_plots(detvar_data, output_dir):
 
 # TODO: tidy up the kwargs for this function
 
-def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_smoothing,binning,output_file="",make_plots=False,plot_output_dir=""):
+def make_variations(RUN,selection,preselection,binning,use_kde_smoothing=False,output_file="",make_plots=False,plot_output_dir="",**dl_kwargs):
 
     selection_query = RunHistGenerator.get_selection_query(
         selection=selection, preselection=preselection
@@ -115,9 +124,8 @@ def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_
             variation,
             selection_query,
             binning,
-            truth_filtered_sets=truth_filtered_sets,
-            numu=numu,
-            use_kde_smoothing=use_kde_smoothing
+            use_kde_smoothing=use_kde_smoothing,
+            **dl_kwargs
         )
 
     # Switch ordering of keys in the variation_hist_data dict. Instead of
@@ -170,7 +178,7 @@ def make_variations(RUN,selection,preselection,truth_filtered_sets,numu,use_kde_
 
     make_detvar_plots(detvar_data, plot_output_dir)
 
-
+'''
 def main(args):
     RUN = args.run
     selection = args.selection
@@ -243,3 +251,6 @@ if __name__ == "__main__":
         sys.exit(1)
 
     main(args)
+'''
+
+

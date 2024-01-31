@@ -301,6 +301,7 @@ class RunHistGenerator:
         self,
         category_column="dataset_name",
         include_multisim_errors=None,
+        add_precomputed_detsys=False, 
         scale_to_pot=None,
         channel=None,
     ) -> Dict[Union[str, int], Histogram]:
@@ -336,6 +337,7 @@ class RunHistGenerator:
             extra_query = f"{category_column} == '{category}'"
             hist = self.get_mc_hist(
                 include_multisim_errors=include_multisim_errors,
+                add_precomputed_detsys=add_precomputed_detsys,
                 extra_query=extra_query,
                 scale_to_pot=scale_to_pot,
             )
@@ -370,10 +372,10 @@ class RunHistGenerator:
     def get_mc_hist(
         self,
         include_multisim_errors: Optional[bool] = None,
+        add_precomputed_detsys: Optional[bool] = None,
         extra_query: Optional[str] = None,
         scale_to_pot: Optional[float] = None,
         use_sideband: Optional[bool] = None,
-        add_precomputed_detsys: bool = False,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Produce a histogram from the MC dataframe.
 

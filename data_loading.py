@@ -2406,6 +2406,7 @@ def _load_run_detvar(
     var,
     truth_filtered_sets=["nue"],
     load_lee=False,
+    numupresel=False,
     **load_sample_kwargs,
 ):
 

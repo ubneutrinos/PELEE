@@ -234,6 +234,9 @@ class MultibandAnalysis(object):
         """Generate the combined MC histogram from all channels."""
 
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
+
+        # Try adding detvars in here
+
         mc_hist = HistogramGenerator.generate_joint_histogram(
             mc_hist_generators,
             include_multisim_errors=include_multisim_errors,
@@ -258,10 +261,12 @@ class MultibandAnalysis(object):
         joint_ext_hist = joint_ext_hist[all_channels]
         assert isinstance(joint_ext_hist, MultiChannelHistogram)
 
+
         total_prediction = mc_hist + joint_ext_hist
         if use_sideband and len(constraint_channels) > 0:
             # We have to be careful here to use the *full* prediction as the central
             # value when applying the constraint, not just the MC prediction.
+            print("mc_hist=",type(mc_hist))
             mc_hist = self._apply_constraints(
                 mc_hist,
                 constraint_channels=constraint_channels,
@@ -337,7 +342,7 @@ class MultibandAnalysis(object):
         return data_hist[channels]
 
     def get_mc_hists(
-        self, category_column="dataset_name", include_multisim_errors=False, scale_to_pot=None
+        self, category_column="dataset_name", include_multisim_errors=False,add_precomputed_detsys=False, scale_to_pot=None
     ):
         """Get the MC histograms, split by category. This function is solely for plotting purposes.
 
@@ -355,7 +360,7 @@ class MultibandAnalysis(object):
         # ones that work differently.
         histograms = [
             g.get_mc_hists(
-                category_column=category_column, include_multisim_errors=include_multisim_errors
+                category_column=category_column, include_multisim_errors=include_multisim_errors,add_precomputed_detsys=add_precomputed_detsys
             )
             for g in self._run_hist_generators
         ]
@@ -602,6 +607,7 @@ class MultibandAnalysis(object):
             include_multisim_errors=True,
             ms_columns=ms_columns,
             include_unisim_errors=include_unisim_errors,
+            add_precomputed_detsys=add_precomputed_detsys
         )
         all_channels = self.signal_channels + self.constraint_channels
         channels = channels or all_channels
