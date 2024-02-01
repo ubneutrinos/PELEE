@@ -1070,12 +1070,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         assert isinstance(self.detvar_data, dict)
 
 
-        # TODO: For testing purposes, only using wire mod thetas
-        variations = [
-            "wiremodthetayz"
-        ]
-
-        '''
         variations = [
             "lydown",
             "lyatt",
@@ -1087,7 +1081,8 @@ class HistogramGenerator(SmoothHistogramMixin):
             "wiremodthetaxz",
             "wiremodthetayz",
         ]
-        '''
+
+
         variation_hist_data = cast(
             Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"]
         )

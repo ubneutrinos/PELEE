@@ -145,9 +145,6 @@ class RunHistGenerator:
                     "Binning of detector variations does not match binning of main histogram."
                 )
 
-            print(self.detvar_data["binning"].variable)
-            print(self.binning.variable)
-
             if self.detvar_data["binning"].variable != self.binning.variable:
                 raise ValueError(
                     "Variable of detector variations does not match binning of main histogram."
@@ -394,9 +391,6 @@ class RunHistGenerator:
         add_precomputed_detsys : bool, optional
             Whether to add the precomputed detector systematics to the histogram covariance.
         """
-
-
-        print("Starting get_mc_hist")
 
         scale_factor = 1.0
         if scale_to_pot is not None:
