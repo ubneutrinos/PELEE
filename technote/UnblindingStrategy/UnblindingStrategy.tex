@@ -2,12 +2,15 @@
 \section{Unblinding strategy}
 (Giuseppe, work in progress)
 
+As for the first round of LEE results, the analysis is developed while keeping the signal region blind. Although there are no technical restrictions in the data access (especially for the data from the first 3 runs, which we have already unblinded), we plan to finalize the analysis updates without looking at the signal region with the full selection. At the same time, we plan to validate the analysis updates and the additional data based on the rich set of sidebands already used in the first round of the analysis.
+
+The procedure can be summarized as follows:
 \begin{itemize}
-    \item Validate the selection variables in the new run periods (see Sec.~\ref{sec:selvalid}).
-    \item Verify the selection makes sense on the small open datasets.
-    \item Study sidebands (2-shower selection, events failing the BDT cut, events with higher-energy electrons) along the lines of studies performed for the first result (see Sec.~\ref{sec:sidebands}).
-    \item Do we want to consider updating the constraint procedure in case of specific tension in sidebands? For instance, if the 2-shower sideband shows a trend vs the pi0 energy, include it in the constraint? Well, we already know it, but with more data the effect may become more significant.
-    \item Once results in the sidebands are understood, in case of no pending issues and when all statistical procedures are settled (see Sec.~\ref{sec:sensitivity}), we'll proceed to unblinding the signal region. 
-    \item List here the plots that will be part of the "result" and the additional validation checks we'll do post-unblinding.
-    \item Consider discuss a "flow chart" of the ublinding process, and what actions are taken depending on the outcome of the analysis.
+    \item We first validated the selection variables in the new run periods. We validated the full list of selection variables at pre-selection level comparing run123 with run4 and run5 (see Appendix~\ref{appendix:PreselectionValidation}). We also devoted particular care to the validation of the CRT variables (see Sec.~\ref{sec:CRTsection}), which are new used both in the constraint and signal selections.
+    %\item Verify the selection makes sense on the small open datasets.
+    \item Using the same definitions of side bands from the first round of the analysis, we studied key kinematic distributions as well as the BDT responses comparing results from the different run periods. These side bands include a muon selection, a 2-shower selection, events failing the BDT cut, and events with medium or high neutrino energy (see Sec.~\ref{sec:sidebands}).
+    \item The constraint selection (Sec.~\ref{sec:construpd}) needs to be finalized before fully testing the updated constraint procedure, in order to avoid "tuning" the constraint selection to a signal region prediction that would match any biased expectation of the analyzers.
+    \item Once results in the sidebands are understood and when all statistical procedures are settled (see Sec.~\ref{sec:sensitivity}), after approval from EB and conveners, we'll proceed to unblinding the signal region. 
+    \item After unblinding we will look at the events in the signal region and produce p-values for the null hypothesis, for the simple hypothesis test (H1 vs H0), and the confidence intervals in signal strength from the Feldman-Cousins procedure. We will also produce additional kinematic distributions of the selected events and a collection of event displays for all selected events.
+    %\item Consider discuss a "flow chart" of the ublinding process, and what actions are taken depending on the outcome of the analysis.
 \end{itemize}

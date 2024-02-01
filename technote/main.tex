@@ -10,32 +10,55 @@
 \usepackage{cprotect}
 \usepackage{lineno}
 \usepackage{caption}
+\usepackage{amsmath}
+\usepackage{physics}
+\usepackage{cleveref}
+\usepackage{authblk}
+\usepackage{ulem}
+
 \linenumbers
 
 \title{PELEE Statistical Update}
-\author{Alexandra Trettin, Christopher Thorpe, Fan Gao, Maitreyee Moudgalya, Kate Pletcher,\\
-David Caratelli, Giuseppe Cerati, Sophie Berkman, Elena Gramellini,...}
+
+\author[1]{Alexandra Trettin}
+\author[1]{Christopher Thorpe}
+\author[2]{David Caratelli}
+\author[1]{Elena Gramellini}
+\author[2]{Fan Gao}
+\author[3]{Giuseppe Cerati}
+\author[1]{Justin Evans}
+ \author[4]{Kate Pletcher}
+\author[1]{Maitreyee Moudgalya}
+\author[4]{Sophie Berkman}
+
+\affil[1]{The University of Manchester}
+\affil[2]{The University of California, Santa Barbra}
+\affil[3]{The Fermi National Accelerator Laboratory}
+\affil[4]{Michigan State University}
 
 \date{\today}
 
 \begin{document}
 \maketitle
-\todo[inline]{Contact all the authors!}
+
 \tableofcontents
 
 \input{technote/Introduction/Introduction}
 \input{technote/EventSelections/EventSelections}
-\input{technote/Sidebands/Sidebands}
 \input{technote/SignalModel/SignalModel}
 \input{technote/SystematicsSensitivity/SystematicsSensitivity}
 \input{technote/UnblindingStrategy/UnblindingStrategy}
-
+\input{technote/Sidebands/Sidebands}
+\input{technote/ToDo/ToDo}
 
 \begin{appendix}
 \input{technote/Appendix_EventSelections/Appendix_EventSelections}
 \input{technote/Appendix_Validation/Appendix_Validation}
 \input{technote/Appendix_Preselection/Appendix_Preselection}
-\input{technote/Appendix_Sidebands/Appendix_Sidebands}
+%\input{technote/Appendix_Sidebands/Appendix_Sidebands}
 \end{appendix}
+
+\bibliographystyle{plain}
+\bibliography{biblio}
 
 \end{document}
