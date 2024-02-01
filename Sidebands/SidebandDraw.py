@@ -5,13 +5,14 @@ from microfit import histogram as hist
 import matplotlib.pyplot as plt
 from microfit import variable_definitions as vdef
 from microfit import selections
+import make_detsys as detsys
 
 # Draw a stack of plots for lots of variable/selection/dataset combinations
 # Author: C Thorpe (U of Manchester)
 
 verb=True
 
-def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,sideband_title=None,**dl_kwargs): 
+def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,sideband_title=None,add_detsys=False,**dl_kwargs): 
 
   VARIABLE_v = VARIABLE_v + [vdef.normalization]
 
@@ -33,11 +34,6 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
           **dl_kwargs
       ) 
       if verb: print("Finished loading data")
-
-      # Automatically draw a normalisation plot for every sideband
-      # and selection combination
-      for key in rundata.keys():
-          rundata[key]["dummy"] = 0.0
          
       # Choose a preselection/selection/variable list combination, draw
       # plots for each
@@ -74,6 +70,21 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                   # some binning definitions have more than 4 elements,
                   # we ignore the last ones for now
                   binning = hist.Binning.from_config(*binning_def[:4])
+
+                  # Make the detvar histogram
+                  if add_detsys:
+                      if verb: print("Adding detsys")
+                      detsys_file=detsys.make_variations(
+                          run_combo,
+                          DATASET,         
+                          selection,
+                          preselection,
+                          binning,
+                          make_plots=False,
+                          truth_filtered_sets=["nue"],
+                          **dl_kwargs
+                      )
+                      if verb: print("Detector variation histograms saved as",detsys_file)
                   
                   signal_generator = hist.RunHistGenerator(
                       rundata,
@@ -83,7 +94,9 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                       preselection=preselection,
                       sideband_generator=None,
                       uncertainty_defaults=None,
+                      detvar_data_path=detsys_file if add_detsys else None 
                   )
+
 
                   plotter = rp.RunHistPlotter(signal_generator)
                   axes = plotter.plot(
@@ -92,7 +105,8 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                       add_ext_error_floor=False,
                       show_data_mc_ratio=True,
                       show_chi_square=True,
-                      smooth_ext_histogram=False
+                      smooth_ext_histogram=False,
+                      add_precomputed_detsys=add_detsys
                   )
                   
                   # Form a unique name for each plot

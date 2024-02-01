@@ -1992,10 +1992,12 @@ def get_rundict(run_number, category):
 
     return rundict
 
-def get_pot_trig(run_number, category, dataset):
+def get_pot_trig(run_number, category, dataset,variation=None):
+    print("run_number=",run_number,"category=",category,"dataset=",dataset)
     rundict = get_rundict(run_number, category)
     # POT is the same for all detvar sets, taking it from CV
-    dataset_dict = rundict[dataset] if category != "detvar" else rundict["cv"][dataset]
+    # Get POT separately for each detector variation - temporary fix for inconsistent numbers of events in nue detvars
+    dataset_dict = rundict[dataset] if category != "detvar" else rundict[variation][dataset]
     pot = dataset_dict.pop("pot", None)
     trig = dataset_dict.pop("trig", None)
     if trig is not None:
@@ -2366,7 +2368,11 @@ def _load_run(
 
 def load_runs_detvar( 
     run_numbers,
+    dataset,
     variation,
+    blinded=False,
+    loadsystematics=False, 
+    load_lee=False,
     **load_run_detvar_kwargs,
 ):
 
@@ -2382,7 +2388,7 @@ def load_runs_detvar(
     )  # same format as load_run weights dictionary but with the weights combined for each dataset by run
     for run in run_numbers:
         print(type(run))
-        runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run_detvar(run, variation, **load_run_detvar_kwargs)
+        runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run_detvar(run, dataset, variation, **load_run_detvar_kwargs)
 
     pot_sum = np.sum(data_pots)
     rundict = runsdata[f"{run_numbers[0]}"]
@@ -2403,6 +2409,7 @@ def load_runs_detvar(
 
 def _load_run_detvar( 
     run_number,
+    dataset,
     var,
     truth_filtered_sets=["nue"],
     load_lee=False,
@@ -2433,14 +2440,24 @@ def _load_run_detvar(
     mc_sets = ["mc"] + truth_filtered_sets
 
     rundict = get_rundict(run_number, "detvar")
-    data_pot = rundict["data_pot"]
+    #data_pot = rundict["data_pot"]
     weights = dict()
+
+    # TODO: load 
+    data_pot, _ = get_pot_trig(run_number,"runs",dataset)  # nu has no trigger number
 
     if load_lee:
         mc_sets.append("lee")
     for mc_set in mc_sets:
+
+        # No detvars for run 4b/d/c/d, we use generic run 4 instead
+        run_num_tmp = run_number
+        if run_number in ["4b","4c","4d"]: run_num_tmp = "4"
+        print("run_number=",run_number)
+
         mc_df = load_sample(run_number, "detvar", mc_set, variation=var, **load_sample_kwargs)
-        mc_pot, _ = get_pot_trig(run_number, "detvar", mc_set)  # nu has no trigger number
+        mc_pot, _ = get_pot_trig(run_number, "detvar", mc_set, variation=var)  # nu has no trigger number
+        print(mc_pot)
         output[mc_set] = mc_df
         mc_df["dataset"] = mc_set
         # For detector systematics, we are using unweighted MC events. The uncertainty will be
@@ -2461,6 +2478,18 @@ def _load_run_detvar(
 
     # output["data"] = None  # Key required by other code
     # output["ext"] = None  # Key required by other code
+
+    # If using one of the sideband datasets, apply the same query to the MC as well
+    datadict = get_rundict(run_number,"runs")[dataset] 
+    if "sideband_def" in datadict:
+        sdb_def = datadict["sideband_def"]
+        if verbose:
+            print("The sideband data you're using had the following query applied:")
+            print(sdb_def)
+            print("I will also apply this query to the MC you're loading")
+        for key in output:
+            df_temp = output[key].query(sdb_def)
+            output[key] = df_temp
 
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 

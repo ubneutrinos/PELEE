@@ -366,9 +366,6 @@ class HistogramGenerator(SmoothHistogramMixin):
             Histogram object containing the binned data.
         """
 
-        print("Starting generate")
-        print(add_precomputed_detsys)
-
         if use_kde_smoothing:
             self.logger.debug("Using KDE smoothing.")
             # The KDE smoothing option is incompatible with sidebands and multisim errors
@@ -1031,7 +1028,6 @@ class HistogramGenerator(SmoothHistogramMixin):
             observation_dict[knob] = observations
             # If we get to this point without having either calculated a central value hist
             # or taken one from the cache, something is wrong
-            print(central_value_hist)
             #assert isinstance(central_value_hist, Histogram) #TODO: This assert is failing even when central_value_hist is a histogram
             if skip_covariance:
                 continue
@@ -1099,7 +1095,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         # assume, however, that the truth-filtered sets are identical to those used in this RunHistGenerator.
         # Instead, we use the filter queries that are part of the detector variation data to select the
         # correct samples.
-        print(self.detvar_data["mc_sets"])
         #filter_queries = cast(Dict[str, str], self.detvar_data["filter_queries"])
         #assert isinstance(filter_queries, dict)
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
@@ -1132,12 +1127,8 @@ class HistogramGenerator(SmoothHistogramMixin):
                     for v, h in variation_hists.items()
                 }
 
-            print("variation_diffs")
-            print(variation_diffs)
-
             # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
             for v, h in variation_diffs.items():
-                print(dataset,v)
                 h[~np.isfinite(h)] = 0.0
                 observation_dict[dataset][v] = h.reshape(1, -1)
                 # We have just one observation and the central value is zero since it was already subtracted
@@ -1149,8 +1140,6 @@ class HistogramGenerator(SmoothHistogramMixin):
                     tolerance=1e-10,
                     debug_name=f"detector_{v}",
                 )
-
-                print(detvar_covariance_matrix)
                 cov_mat += detvar_covariance_matrix
 
                 '''
@@ -1170,7 +1159,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         if return_histograms:
             return cov_mat, observation_dict
 
-        print("Finished making detector cov matrix")
         return cov_mat
 
     def _resync_parameters(self):
