@@ -52,6 +52,8 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
             
           os.system("mkdir -p Plots/png/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
           os.system("mkdir -p Plots/pdf/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
+          os.system("mkdir -p Plots/no_detvar_png/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
+          os.system("mkdir -p Plots/no_detvar_pdf/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
 
           for variables in VARIABLE_v:
 
@@ -118,6 +120,28 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                             DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + preselection + "_" + selection + ".png"
                   plt.savefig(pltname)
                   plt.close()     
+
+                  # Also make a copy of the plot without the detector uncertainties
+                  if add_detsys:
+                      plotter = rp.RunHistPlotter(signal_generator)
+                      axes = plotter.plot(
+                          category_column="paper_category",
+                          include_multisim_errors=True,
+                          add_ext_error_floor=False,
+                          show_data_mc_ratio=True,
+                          show_chi_square=True,
+                          smooth_ext_histogram=False,
+                          add_precomputed_detsys=False
+                      )
+
+                      pltname = "Plots/no_detvar_pdf/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/" +\
+                                DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + preselection + "_" + selection + ".pdf"
+                      plt.savefig(pltname)
+                      pltname = "Plots/no_detvar_png/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/" +\
+                                DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + preselection + "_" + selection + ".png"
+                      plt.savefig(pltname)
+                      plt.close()     
+
               
       del rundata
       del mc_weights

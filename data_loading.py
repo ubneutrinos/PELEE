@@ -26,8 +26,7 @@ from numu_tki import tki_calculators
 from microfit.selections import extract_variables_from_query
 
 datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
-#detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-detector_variations = ["cv","wiremodthetayz"]
+detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 verbose=True
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
@@ -2439,24 +2438,23 @@ def _load_run_detvar(
     assert "mc" not in truth_filtered_sets, "Unfiltered MC should not be passed in truth_filtered_sets"
     mc_sets = ["mc"] + truth_filtered_sets
 
-    rundict = get_rundict(run_number, "detvar")
-    #data_pot = rundict["data_pot"]
+    # TODO: Update when we have run 4/5 detvars
+    # No detvars for run 4b/d/c/d, we use run 3 instead, similarly, we use run 1 detvars for run 2
+    run_number_tmp = run_number
+    if run_number in ["4b","4c","4d","5"]: run_number_tmp = "3"
+    elif run_number == "2": run_number_tmp = "1"
+    print("run_number_tmp=",run_number_tmp)
+    print("type(run_number_tmp)",type(run_number_tmp))
+
+
+    rundict = get_rundict(run_number_tmp, "detvar")
     weights = dict()
 
-    # TODO: load 
     data_pot, _ = get_pot_trig(run_number,"runs",dataset)  # nu has no trigger number
 
-    if load_lee:
-        mc_sets.append("lee")
     for mc_set in mc_sets:
-
-        # No detvars for run 4b/d/c/d, we use generic run 4 instead
-        run_num_tmp = run_number
-        if run_number in ["4b","4c","4d"]: run_num_tmp = "4"
-        print("run_number=",run_number)
-
-        mc_df = load_sample(run_number, "detvar", mc_set, variation=var, **load_sample_kwargs)
-        mc_pot, _ = get_pot_trig(run_number, "detvar", mc_set, variation=var)  # nu has no trigger number
+        mc_df = load_sample(run_number_tmp, "detvar", mc_set, variation=var, **load_sample_kwargs)
+        mc_pot, _ = get_pot_trig(run_number_tmp, "detvar", mc_set, variation=var)  # nu has no trigger number
         print(mc_pot)
         output[mc_set] = mc_df
         mc_df["dataset"] = mc_set
