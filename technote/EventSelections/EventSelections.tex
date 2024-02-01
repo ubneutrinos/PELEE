@@ -8,17 +8,20 @@
 
 %The preselections employed are unchanged from the previous analysis and defined below.
 
-This section describes the neutrino event selections in this analysis. These are the the electron (1e0p0$\pi$, 1eNp0$\pi$) and muon (1$\mu$0pX$\pi$) neutrino selections.  These selections are in large part unchanged from the run 1-3 analysis~\cite{PELEEnote}.  In particular the muon neutrino selection is identical.  The electron neutrino selection adds selection cuts related to the CRT on top of the previous selections to improve cosmic rejection, and further description is given in refCRTsection. Cut tables are included in Appendix A.  Validation of the selection over the full run 1-5 data set is described in section RefValidation.  
+This section describes the neutrino event selections in this analysis. These are the the electron (1e0p0$\pi$, 1eNp0$\pi$) and muon (1$\mu$0pX$\pi$) neutrino selections.  These selections are in large part unchanged from the run 1-3 analysis~\cite{PELEEpaper}.  In particular the muon neutrino selection is identical.  The electron neutrino selection adds selection cuts related to the CRT on top of the previous selections to improve cosmic rejection, and further description is given in~\ref{CRTsection}. Cut tables are included in Appendix A.  Validation of the selection over the full run 1-5 data set is described in Section~\ref{Validation}.  
 
-\subsection{CRT}
-%(Kate, work in progress)\\
-The purpose of the CRT is to aid in reducing cosmic background in the analysis. CRT data will be employed for electron neutrino selections for run 3-run 5. The two main concepts the CRT relies on for cosmic reduction are veto cuts and distance cuts. CRT vetoing works by looking for coincidence between a beam flash and a CRT hit. That is, if a CRT hit occurs within 1 $\mu$s of a beam flash, the event is rejected. The other veto condition only considers CRT hits with PE \(>\) 100 photoelectrons. If either of these two conditions are met, the event is vetoed. These rely only on if the CRT is triggered in the beam window and how many photoelectrons are recorded, but the distance between CRT hits and the reconstructed neutrino vertex can also play a role. The CRT distance tagger works by tagging TPC tracks as cosmic-induced if the CRT hit and the track projection onto a CRT panel are within 5 cm of each other~\cite{PELEEnote}. The variables used for these CRT rejection cuts, as defined in~\cite{PELEEnote}, are:\\
+\subsection{Cosmic Ray Tagger (CRT)}
+\label{sec:CRTsection}
+
+The purpose of the CRT is to reduce cosmic background in the analysis. The muon neutrino selections for Run 3 - Run 5 data already uses CRT data for cosmic reduction~\cite{PELEEpaper,PELEEtechnote}. Now, CRT data will be used for electron neutrino selections for Run 3 - Run 5 data. 
+
+The two main concepts the CRT relies on for cosmic reduction are vetoing cosmic rays and tagging them based on distance. The variables used for these CRT rejection cuts, as defined in~\cite{PELEEtechnote}, are:\\
 \\
 \textbf{crtveto}: Boolean variable checking if the event passes the CRT veto.\\
 \textbf{crthitpe}: How many photoelectrons (PEs) were recorded by the CRT system.\\
 \textbf{\_closestNuCosmicDist}: 3D distance, measured in centimeters, between the reconstructed neutrino vertex and the closest CRT-tagged cosmic track.\\
 \\
-The CRT selection cuts that are applied to electron and muon neutrino selections in the analysis, defined by~\cite{PELEEnote}, are as follows:
+The CRT selection cuts that are applied to electron and muon neutrino selections in the analysis, defined by~\cite{PELEEtechnote}, are as follows:
 
 \begin{center}
     crtveto != 1  or crthitpe \(<\) 100 
@@ -27,7 +30,7 @@ The CRT selection cuts that are applied to electron and muon neutrino selections
     \_closestNuCosmicDist \(>\) 5
 \end{center}
 
-Figures~\ref{fig:1eNp_preselection},~\ref{fig:1eNp_loosecuts},~\ref{fig:1e0p_preselection}, and~\ref{fig:1e0p_loosecuts} show the full effect of these CRT cuts when plotting events and reconstructed energy.
+Figures~\ref{fig:1eNp_preselection},~\ref{fig:1eNp_loosecuts},~\ref{fig:1e0p_preselection}, and~\ref{fig:1e0p_loosecuts} show the effect of these CRT cuts when plotting events as a function of reconstructed energy. In these these and following figures in this note, distributions are shown as stacked histograms, with colors indicating the event type. Hatched histograms labeled "EXT" correspond to the background expectation from beam-off data. Error bands correspond to the uncorrelated errors in each bin, including statistical and systematic uncertainties. Black solid lines labeled "MC+EXT" correspond to the total predicted event counts from MC simulated signal events and EXT background. If sideband constraints are included in a plot, the "MC+EXT" line will include sideband corrections and therefore may not correspond to the total bin count of the stacked histograms.
 
 \begin{figure}[H] \centering
     \begin{subfigure}[t]{0.45\linewidth}
@@ -39,115 +42,167 @@ Figures~\ref{fig:1eNp_preselection},~\ref{fig:1eNp_loosecuts},~\ref{fig:1e0p_pre
         \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_Np_presel_crt.png}%
         \caption{Reconstructed Neutrino Energy with CRT cuts}
     \end{subfigure}%
-    \caption{Comparison of reconstructed neutrino energy for run 5 1eNp0$\pi$ preselection, with and without the application of CRT cuts to the event selection.}
+    \caption{Comparison of reconstructed neutrino energy for Run 5 1eNp0$\pi$ preselection, with and without the application of CRT cuts to the event selection.}
     \label{fig:1eNp_preselection}
 \end{figure}
 
 \begin{figure}[H] \centering
     \begin{subfigure}[t]{0.45\linewidth}
-        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_Np_loose.png}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/NPloose.png}
         \caption{Reconstructed Neutrino Energy without CRT cuts}
     \end{subfigure}%
     \hspace{0.45cm}%
     \begin{subfigure}[t]{0.45\linewidth}
-        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_Np_loose_crt.png}%
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/NPlooseCRT.png}%
         \caption{Reconstructed Neutrino Energy with CRT cuts}
     \end{subfigure}%
-    \caption{Comparison of reconstructed neutrino energy for run 5 1eNp0$\pi$ loose box cuts, with and without the application of CRT cuts to the event selection.}
+    \caption{Comparison of reconstructed neutrino energy for Run 5 1eNp0$\pi$ loose box cuts, with and without the application of CRT cuts to the event selection.}
     \label{fig:1eNp_loosecuts}
 \end{figure}
 
 \begin{figure}[H] \centering
     \begin{subfigure}[t]{0.45\linewidth}
-        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_0p_presel.png}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/NPBDT.png}
         \caption{Reconstructed Neutrino Energy without CRT cuts}
     \end{subfigure}%
     \hspace{0.45cm}%
     \begin{subfigure}[t]{0.45\linewidth}
-        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_0p_presel_crt.png}%
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/NPBDTCRT.png}%
         \caption{Reconstructed Neutrino Energy with CRT cuts}
     \end{subfigure}%
-    \caption{Comparison of reconstructed neutrino energy for run 5 1e0p0$\pi$ preselection, with and without the application of CRT cuts to the event selection.}
+    \caption{Comparison of reconstructed neutrino energy for Run 5 1eNp0$\pi$ BDT selection, with and without the application of CRT cuts.}
+    \label{fig:1eNp_BDT}
+\end{figure}
+
+\begin{figure}[H] \centering
+    \begin{subfigure}[t]{0.45\linewidth}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/0Ppresel.png}
+        \caption{Reconstructed Neutrino Energy without CRT cuts}
+    \end{subfigure}%
+    \hspace{0.45cm}%
+    \begin{subfigure}[t]{0.45\linewidth}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/0PpreselCRT.png}%
+        \caption{Reconstructed Neutrino Energy with CRT cuts}
+    \end{subfigure}%
+    \caption{Comparison of reconstructed neutrino energy for Run 5 1e0p0$\pi$ preselection, with and without the application of CRT cuts to the event selection.}
     \label{fig:1e0p_preselection}
 \end{figure}
 
 \begin{figure}[H] \centering
     \begin{subfigure}[t]{0.45\linewidth}
-        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_0p_loose.png}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/0Ploose.png}
         \caption{Reconstructed Neutrino Energy without CRT cuts}
     \end{subfigure}%
     \hspace{0.45cm}%
     \begin{subfigure}[t]{0.45\linewidth}
-        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_0p_loose_crt.png}%
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/0PlooseCRT.png}%
         \caption{Reconstructed Neutrino Energy with CRT cuts}
     \end{subfigure}%
-    \caption{Comparison of reconstructed neutrino energy for run 5 1e0p0$\pi$ loose box cuts, with and without the application of CRT cuts to the event selection.}
+    \caption{Comparison of reconstructed neutrino energy for Run 5 1e0p0$\pi$ loose box cuts, with and without the application of CRT cuts to the event selection.}
     \label{fig:1e0p_loosecuts}
 \end{figure}
 
-As the CRT is a new piece of hardware that has not been used over the full data set, it was necessary to check the time stability of EXT survival. This analysis was done by examining EXT vs. `run number' for run periods 3, 4b, 4c, 4d, and 5 with and without CRT cuts. We then take a ratio of EXT with CRT cuts and EXT without CRT cuts to acquire the rate at which cosmic events survive the CRT cuts. 
+\begin{figure}[H] \centering
+    \begin{subfigure}[t]{0.45\linewidth}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/0PBDT.png}
+        \caption{Reconstructed Neutrino Energy without CRT cuts}
+    \end{subfigure}%
+    \hspace{0.45cm}%
+    \begin{subfigure}[t]{0.45\linewidth}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/0PBDTCRT.png}%
+        \caption{Reconstructed Neutrino Energy with CRT cuts}
+    \end{subfigure}%
+    \caption{Comparison of reconstructed neutrino energy for Run 5 1e0p0$\pi$ BDT selection, with and without the application of CRT cuts.}
+    \label{fig:1eNp_BDT}
+\end{figure}
+
+\begin{table} [h!]
+    \centering
+    \begin{tabular}{| c | c | c |}
+         \hline
+         \textbf{Selection} & \textbf{EXT Survival Rate} & \textbf{Nue Efficiency} \\  [0.75ex]
+         \hline
+         1eNp0$\pi$ Preselection & 35.1\% & 94.8\% \\ 
+         \hline
+         1eNp0$\pi$ Loose Box Cuts & 60.7\% & 94.5\% \\ 
+         \hline
+         1eNp0$\pi$ BDT & N/A & 95.6\% \\ 
+         \hline
+         1e0p0$\pi$ Preselection & 35.4\% & 95.6\% \\ 
+         \hline
+         1e0p0$\pi$ Loose Box Cuts & 36.4\% & 94.9\% \\ 
+         \hline
+         1e0p0$\pi$ BDT & 0\% & 100\% \\ 
+         \hline 
+    \end{tabular}
+    \caption{EXT survival rates and electron neutrino efficiency rates for given event selections.}
+    \label{tab:EXT_survival_table}
+\end{table}
+
+As the CRT is a new piece of hardware that has to date only been used in Run 3, it was necessary to check if its operations were stable in time. This analysis was done by looking at the EXT survival vs. `run number' for run periods 3, 4b, 4c, 4d, and 5 with and without CRT cuts. This is done by taking a ratio of EXT with CRT cuts and EXT without CRT cuts to acquire the rate at which cosmic events survive the CRT cuts. 
 
 \begin{figure}[H]
  \centering
     \begin{subfigure}[t]{0.31\linewidth}
-        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_noCRT1.png}
-        \caption{EXT vs. 'run' without CRT cuts}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_CRT1.png}
+        \caption{EXT vs. `run' with CRT cuts}
     \end{subfigure}%
     \hspace{0.3cm}%
     \begin{subfigure}[t]{0.31\linewidth}
-        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_CRT1.png}%
-        \caption{EXT vs. 'run' with CRT cuts}
+        \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5_noCRT1.png}%
+        \caption{EXT vs. `run' without CRT cuts}
     \end{subfigure}%
     \hspace{0.3cm}%
     \begin{subfigure}[t]{0.32\linewidth}
         \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5fortalk.png}%
         \caption{Survival rate of EXT events}
     \end{subfigure}
-    \caption{Analysis of EXT events vs. run number with overall event selection of `nslice==1', then with and without CRT cuts. The applied CRT cut here is `crtveto != 1'. Plot (c) shows the ratio of how many EXT events pass through the CRT cuts, or the survival rate. }
+    \caption{Analysis of EXT events vs. run number with overall event selection of `nslice==1', then with (a) and without (b) CRT cuts. The applied CRT cut here is `crtveto != 1'. Figure (c) shows the ratio of how many EXT events pass through the CRT cuts, or the survival rate. }
     \label{fig:EXT_survival_run5}
 \end{figure}
 
-Figure~\ref{fig:EXT_survival_run5} shows the ratio at which EXT events pass through the CRT cuts. To acquire the rejection ratio instead of the survival ratio, one can subtract the survival rate from 1. Figure~\ref{fig:EXT_survival_run5} shows the specific case of finding the survival rate using run 5 beam off data, with the selection of `nslice == 1', and the CRT cut `crtveto != 1'. 
-This analysis was done for various CRT selection cuts as well as various neutrino selections. We examine each of the CRT variables individually, the veto variables separately, and then the entire CRT selection. For each of these CRT configurations, we examine the event selections of `nslice == 1', as well as electron neutrino preselection and muon neutrino preselection. The plots in figures~\ref{fig:EXT_survival_run5} and~\ref{fig:EXT_survival_allruns} both use the event selection `nslice == 1' and the CRT cut `crtveto != 1'. 
-Figure~\ref{fig:EXT_survival_allruns} checks the stability of EXT survival by comparing the survival rate plots for run periods 3, 4b-d, and 5.
+Figure~\ref{fig:EXT_survival_run5} shows the rate at which EXT events pass the CRT cuts. To acquire the rejection ratio instead of the survival ratio, one can subtract the survival rate from 1. Figure~\ref{fig:EXT_survival_run5} shows the specific case of finding the survival rate using Run 5 beam off data, with the selection of `nslice == 1', and the CRT cut `crtveto != 1'. 
+This analysis was done for various CRT selection cuts as well as various neutrino selections. We examine each of the CRT variables individually, the veto variables separately, and then the entire CRT selection. For each of these CRT configurations, we examine the event selections of `nslice == 1', as well as electron neutrino preselection and muon neutrino preselection. 
+Figure~\ref{fig:EXT_survival_allruns} uses the same selection as Figure~\ref{fig:EXT_survival_run5} and shows the EXT survival rate plots for run periods 3, 4b-d, and 5.
 
 \begin{figure}[H]
  \centering
     \begin{subfigure}[t]{0.3\linewidth}
         \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run3_rationew.png}
-        \caption{Survival rate of EXT events for run 3}
+        \caption{Survival rate of EXT events for Run 3}
     \end{subfigure}%
     \hspace{0.3cm}%
     \begin{subfigure}[t]{0.3\linewidth}
         \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run4b_ratio1.png}%
-        \caption{Survival rate of EXT events for run 4b}
+        \caption{Survival rate of EXT events for Run 4b}
     \end{subfigure}%
     \hspace{0.3cm}%
     \begin{subfigure}[t]{0.3\linewidth}
         \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run4cfortalk.png}%
-        \caption{Survival rate of EXT events for run 4c}
+        \caption{Survival rate of EXT events for Run 4c}
     \end{subfigure}
     \hspace{0.3cm}%
     \begin{subfigure}[t]{0.3\linewidth}
         \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run4dfortalk.png}%
-        \caption{Survival rate of EXT events for run 4d}
+        \caption{Survival rate of EXT events for Run 4d}
     \end{subfigure}
     \hspace{0.3cm}%
     \begin{subfigure}[t]{0.3\linewidth}
         \includegraphics[width=\linewidth]{technote/EventSelections/FiguresCRT/run5fortalk.png}%
-        \caption{Survival rate of EXT events for run 5}
+        \caption{Survival rate of EXT events for Run 5}
     \end{subfigure}
     \caption{EXT event survival rates for runs 3, 4b-d, and 5. }
     \label{fig:EXT_survival_allruns}
 \end{figure}
 
-It is clear from Figure~\ref{fig:EXT_survival_allruns}, and this trend holds for the different CRT cut configurations and event selections, that the survival rate is not constant across these run periods. Regions of particular interest include the beginning of run 3, the step up in run 4b, and the drastic decrease in survival rate from run 4c to run 4d. This stability check revealed inconsistencies in the production of the beam off files in regards to the CRT variables. CRT-TPC merging was not performed correctly for some of the data sets and this led to this inconsistency~\cite{Herb's presentation}. 
+It is clear from Figure~\ref{fig:EXT_survival_allruns}, and this trend holds for the different CRT cut configurations and event selections, that the survival rate is not constant across these run periods. Regions of particular interest include the beginning of Run 3, the step up in Run 4b, and the sharp decrease in survival rate from Run 4c to Run 4d. This stability check revealed inconsistencies in the production of the beam off files in regards to the CRT variables. CRT-TPC merging was not performed correctly for some of the data sets and this led to this inconsistency~\cite{Herbspresentation}.  %add this citation
 
-Once these fixes are made, we will once again check the time dependence and stability of EXT survival for various selections. Following these stability checks, the full analysis of 1eNp0$\pi$ and 1e0p0$\pi$ event selections can be done with the CRT included in selection cuts.
+Once the re-merging is done, we will once again check the time dependence and stability of EXT survival for various selections. Following these stability checks, the full analysis of 1eNp0$\pi$ and 1e0p0$\pi$ event selections can be done with the CRT included in selection cuts.
 
 \subsection{Selection validation}
 \label{sec:selvalid}
-Describe validation of run 4 and 5 selection
+
+The event selections employed in this note to generate the 1e0p, 1eNp signals channels, and $\nu_{\mu}$ and $\pi^0$ sidebands, are unchanged from those of the previous analysis. \todo{Update if we include CRT cuts/0 pion cuts}. However MC simulation samples and the framework employed to produce data/MC simulation comparisons have been updated and therefore require validation. Section~\ref{sec:compprevframework} contains a number of comparisons between the new and old analysis frameworks, and a wide variety of variables are compared to MC simulation after applying the preselections in Appendix~\ref{appendix:PreselectionValidation}. Additionally, comparisons between data and MC simulation for many combinations of selections and variables are shown for a number of sidebands in Section~\ref{sec:sidebands}
 
 \subsubsection{Comparison with Previous Framework}
 \label{sec:compprevframework}
