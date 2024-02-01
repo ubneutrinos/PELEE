@@ -22,45 +22,22 @@ def _get_mc_filter_query(filter_queries):
 
 def make_variation_histograms(
     run,
+    dataset,
     variation,
     selection_query,
     binning,
     use_kde_smoothing=False,
     **dl_kwargs 
 ):
-    '''
-    if numu:
-        kwargs = {
-            "loadshowervariables": False,
-            "use_bdt": False,
-            "loadnumuvariables": True, # TODO: Sort out the kwargs
-            # CRT variables are only available from run 3 onwards
-            #"load_crt_vars": run not in ["1", "2"],
-        }
-    else:
-        kwargs = {
-            "loadshowervariables": True,
-            "use_bdt": True,
-            "loadnumuvariables": False,
-            "load_crt_vars": False,
-            "loadpi0variables": True,
-            "loadrecoveryvars": True,
-        }
-    '''
+
+    """Load the data and Make the json file to store the detector variation predictions"""
+
     rundata, _, _ = dl.load_runs_detvar(
         run,
+        dataset,
         variation,
         **dl_kwargs
     )
-
-    print(variation)
-    print("Selected nues:")
-    #print(len(rundata["nue"].query(selection_query,engine="python")))
-    print(len(rundata["nue"]))
-    print("Selected numus:")
-    print(len(rundata["mc"]))
-    #print(len(rundata["mc"].query(selection_query,engine="python")))
-
 
     hist_dict = {}
     if use_kde_smoothing:
@@ -77,6 +54,7 @@ def make_variation_histograms(
     return hist_dict
 
 def make_detvar_plots(detvar_data, output_dir):
+
     """Make plots of the histograms contained in the detvar data"""
 
     import matplotlib.pyplot as plt
@@ -106,7 +84,7 @@ def make_detvar_plots(detvar_data, output_dir):
 
 # TODO: tidy up the kwargs for this function
 
-def make_variations(RUN,selection,preselection,binning,use_kde_smoothing=False,output_file="",make_plots=False,plot_output_dir="",**dl_kwargs):
+def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing=False,output_file="",make_plots=False,plot_output_dir="",**dl_kwargs):
 
     selection_query = RunHistGenerator.get_selection_query(
         selection=selection, preselection=preselection
@@ -121,6 +99,7 @@ def make_variations(RUN,selection,preselection,binning,use_kde_smoothing=False,o
             variation_hist_data[variation]
         ) = make_variation_histograms(
             RUN,
+            dataset,
             variation,
             selection_query,
             binning,
@@ -166,17 +145,16 @@ def make_variations(RUN,selection,preselection,binning,use_kde_smoothing=False,o
         runcombo_str=""
         for i_r in range(0,len(RUN)):
             runcombo_str = runcombo_str + RUN[i_r]
-        output_file = ls.detvar_cache_path + "/" +\
-                      "run_" + runcombo_str + "_" + preselection + "_" + \
+        output_file = "run_" + runcombo_str + "_" + preselection + "_" + \
                       selection + "_" + binning.variable +\
                       ".json"
 
-    to_json(output_file, detvar_data)
+    to_json(ls.detvar_cache_path + "/" + output_file, detvar_data)
 
-    if not make_plots:
-        return
+    if make_plots:
+         make_detvar_plots(detvar_data, plot_output_dir)
 
-    make_detvar_plots(detvar_data, plot_output_dir)
+    return output_file
 
 '''
 def main(args):

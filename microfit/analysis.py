@@ -266,7 +266,6 @@ class MultibandAnalysis(object):
         if use_sideband and len(constraint_channels) > 0:
             # We have to be careful here to use the *full* prediction as the central
             # value when applying the constraint, not just the MC prediction.
-            print("mc_hist=",type(mc_hist))
             mc_hist = self._apply_constraints(
                 mc_hist,
                 constraint_channels=constraint_channels,

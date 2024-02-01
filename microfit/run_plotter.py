@@ -69,10 +69,6 @@ class RunHistPlotter:
         **kwargs,
     ):
 
-        print("Starting plot")
-        print("Check 1:",add_precomputed_detsys)
-
-
         gen = self.run_hist_generator
 
         def flatten(hist) -> Histogram:

@@ -1,5 +1,5 @@
 normalization = [
-    ("dummy",1,(-0.5,0.5),"normalization")
+    ("run",1,(-1e10,1e10),"normalization")
 ]
 
 basic_variables = [
