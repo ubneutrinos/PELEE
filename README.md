@@ -64,14 +64,23 @@ python scripts/plot_three_sidebands.py
 ### First sensitivities with all runs
 To run the two-hypothesis test: 
 ```
-python scripts/two_hypothesis_test.py run_analysis --configuration /nashome/a/atrettin/PELEE/config_files/first_round_
-analysis_runs_1-5.toml --output-dir ana_output_runs_1-5_with_crt --sensitivity-only
+python scripts/two_hypothesis_test.py run_analysis --configuration config_files/first_round_
+analysis_runs_1-5.toml --output-dir ana_output_runs_1-5 --sensitivity-only
 ```
 To make the plots:
 ```
-python scripts/two_hypothesis_test.py plot_results --configuration /nashome/a/atrettin/PELEE/config_files/first_round_
-analysis_runs_1-5.toml --output-dir ana_output_runs_1-5_with_crt --sensitivity-only
+python scripts/two_hypothesis_test.py plot_results --configuration config_files/first_round_
+analysis_runs_1-5.toml --output-dir ana_output_runs_1-5 --sensitivity-only
 ```
 This should run the two-hypothesis test and estimate the median sensitivity.
 
-
+To run the sensitivity scan for the signal strength fit: 
+```
+python scripts/fc_scan_signal_sensitivity.py run_analysis --configuration conf
+ig_files/first_round_analysis_runs_1-5.toml --output-dir ana_output_runs_1-5
+```
+To make the plot
+```
+python scripts/fc_scan_signal_sensitivity.py plot_results --configuration conf
+ig_files/first_round_analysis_runs_1-5.toml --output-dir ana_output_runs_1-5 --title "Runs 1-5, inclusive $\nu_\mu$ constraints"
+```
