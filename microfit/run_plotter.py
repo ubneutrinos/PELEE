@@ -1,5 +1,7 @@
 """Module to plot histograms for runs of data and simulation."""
 
+from typing import List, Optional
+from matplotlib.patches import Patch
 import numpy as np
 import itertools
 import matplotlib.pyplot as plt
@@ -61,6 +63,7 @@ class RunHistPlotter:
         title=None,
         data_pot=None,
         show_data=True,
+        separate_signal=True,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -98,15 +101,30 @@ class RunHistPlotter:
             include_multisim_errors=False,
             scale_to_pot=scale_to_pot,
         )
+        signal_hist = None
+        no_signal_query = None
+        if separate_signal:
+            if 111 in mc_hists:
+                no_signal_query = f"{category_column} != 111"
+                signal_hist = flatten(mc_hists.pop(111))
+            elif "lee" in mc_hists:
+                no_signal_query = f"{category_column} != 'lee'"
+                signal_hist = flatten(mc_hists.pop("lee"))
+            else:
+                warnings.warn(
+                    "No signal category found in the MC hists. Not separating signal."
+                )
         background_hists = list(mc_hists.values())
         if ext_hist is not None:
             background_hists.append(ext_hist)
         background_hists = [flatten(hist) for hist in background_hists]
+        extra_query = no_signal_query if separate_signal else None
         total_mc_hist = gen.get_mc_hist(
             include_multisim_errors=include_multisim_errors,
             scale_to_pot=scale_to_pot,
             use_sideband=use_sideband,
             add_precomputed_detsys=add_precomputed_detsys,
+            extra_query=extra_query,
         )
         total_pred_hist = flatten(total_mc_hist)
         total_pred_hist.tex_string = "Total Pred. (MC)"
@@ -167,6 +185,7 @@ class RunHistPlotter:
             stacked=stacked,
             show_total=show_total,
             data_pot=data_pot,
+            signal_hist=signal_hist,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -207,7 +226,7 @@ class RunHistPlotter:
     def _plot(
         self,
         total_pred_hist,
-        background_hists,
+        background_hists: List[Histogram],
         title=None,
         data_hist=None,
         ax=None,
@@ -219,6 +238,7 @@ class RunHistPlotter:
         stacked=True,
         show_total=True,
         data_pot=None,
+        signal_hist: Optional[Histogram]=None,
         **kwargs,
     ):
         if stacked:
@@ -228,6 +248,40 @@ class RunHistPlotter:
                 show_errorband=False,
                 **kwargs,
             )
+            if signal_hist is not None:
+                background_sum = sum(background_hists, Histogram.empty_like(background_hists[0]))
+                # Plot the signal on top of the background
+                y_bkg = background_sum.bin_counts
+                y_sig = signal_hist.bin_counts
+                # Repeat the last element so that we can make a step plot
+                y_bkg = np.append(y_bkg, y_bkg[-1])
+                y_sig = np.append(y_sig, y_sig[-1])
+                ax.step(
+                    signal_hist.binning.bin_edges,
+                    y_bkg + y_sig,
+                    where="post",
+                    color="red",
+                    linestyle="--",
+                    lw=1.5,
+                )
+                # Add vertical lines to "cap off" the signal at the ends and connect it
+                # to the background
+                ax.vlines(
+                    signal_hist.binning.bin_edges[0],
+                    y_bkg[0],
+                    y_bkg[0] + y_sig[0],
+                    color="red",
+                    linestyle="--",
+                    lw=1.5,
+                )
+                ax.vlines(
+                    signal_hist.binning.bin_edges[-1],
+                    y_bkg[-1],
+                    y_bkg[-1] + y_sig[-1],
+                    color="red",
+                    linestyle="--",
+                    lw=1.5,
+                )
         else:
             for background_hist in background_hists:
                 ax = self.plot_hist(
@@ -244,7 +298,7 @@ class RunHistPlotter:
                 uncertainty_color=uncertainty_color,
                 uncertainty_label=uncertainty_label,
                 color="k",
-                lw=0.5,
+                lw=1.0,
             )
         assert ax is not None
         if scale_to_pot is None:
@@ -290,6 +344,22 @@ class RunHistPlotter:
                 fontsize=10,
             )
         ax.set_ylabel("Events")
+        # Get existing legend handles and labels
+        handles, labels = ax.get_legend_handles_labels()
+
+        if signal_hist is not None:
+            # Create a Patch object for the new legend entry
+            red_patch = Patch(
+                edgecolor='red',
+                facecolor='none',
+                linestyle="--",
+                lw=1.5,
+                label=f"{signal_hist.tex_string}: {signal_hist.sum():.1f}"
+            )
+            # Append new handle and label
+            handles.append(red_patch)
+            labels.append(f"{signal_hist.tex_string}: {signal_hist.sum():.1f}")
+
         ax.legend(
             loc="lower left",
             bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
@@ -299,6 +369,8 @@ class RunHistPlotter:
             bbox_transform=ax.transAxes,
             fontsize="small",
             frameon=False,
+            handles=handles,
+            labels=labels,
         )
         ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
         return ax

@@ -198,16 +198,17 @@ class MultibandAnalysis(object):
         signal_channels: Optional[List[str]] = None,
         include_non_signal_channels: bool = False,
         include_ext: bool = True,
+        extra_query=None,
     ) -> MultiChannelHistogram:
         """Generate the combined MC histogram from all channels."""
 
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
         mc_hist = HistogramGenerator.generate_joint_histogram(
-            mc_hist_generators, include_multisim_errors=include_multisim_errors
+            mc_hist_generators, include_multisim_errors=include_multisim_errors, extra_query=extra_query
         )
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
         joint_ext_hist = HistogramGenerator.generate_joint_histogram(
-            ext_hist_generators, include_multisim_errors=False
+            ext_hist_generators, include_multisim_errors=False, extra_query=extra_query
         )
 
         constraint_channels = constraint_channels or self.constraint_channels
@@ -252,8 +253,7 @@ class MultibandAnalysis(object):
         the RunHistGenerator class, so that the analysis can be dropped into the
         RunHistPlotter.
         """
-        if extra_query is not None:
-            raise NotImplementedError("extra_query not implemented in the Analysis class.")
+
         if add_precomputed_detsys:
             raise NotImplementedError(
                 "add_precomputed_detsys not implemented in the Analysis class."
@@ -264,6 +264,7 @@ class MultibandAnalysis(object):
             scale_to_pot=scale_to_pot,
             include_ext=False,
             include_non_signal_channels=True,
+            extra_query=extra_query,
         )
         channels = self.constraint_channels if self.plot_sideband else self.signal_channels
         return output[channels]

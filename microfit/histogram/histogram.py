@@ -628,6 +628,22 @@ class Histogram:
     def __len__(self):
         return self.n_bins
 
+    @classmethod
+    def empty_like(cls, other):
+        """Create an empty histogram with the same binning as another histogram.
+
+        Parameters
+        ----------
+        other : Histogram
+            Histogram to copy the binning from.
+
+        Returns
+        -------
+        Histogram
+            Empty histogram with the same binning as the input histogram.
+        """
+        return cls(other.binning, np.zeros(other.n_bins), covariance_matrix=np.zeros((other.n_bins, other.n_bins)))
+
 
 class MultiChannelHistogram(Histogram):
     """A histogram that combines multiple channels with a single covariance matrix.

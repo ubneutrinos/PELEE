@@ -113,6 +113,25 @@ class TestHistogram(unittest.TestCase):
                 # assert that the type is correct
                 self.assertIsExactInstance(hist_copy, HistogramClass)
 
+    def test_empty_like(self):
+        for HistogramClass, binning in self.test_cases:
+            with self.subTest(HistogramClass=HistogramClass, binning=binning):
+                bin_counts = self.make_test_bincounts(binning)
+                covariance_matrix = self.make_test_covariance_matrix(binning)
+                hist = HistogramClass(
+                    binning,
+                    bin_counts,
+                    covariance_matrix=covariance_matrix,
+                    label="hist",
+                    tex_string="hist",
+                )
+                hist_empty = HistogramClass.empty_like(hist)
+                np.testing.assert_array_equal(hist_empty.binning, binning)
+                np.testing.assert_array_equal(hist_empty.bin_counts, np.zeros(binning.n_bins))
+                np.testing.assert_array_equal(hist_empty.std_devs, np.zeros(binning.n_bins))
+                # assert that the type is correct
+                self.assertIsExactInstance(hist_empty, HistogramClass)
+
     def test_uncorrelated(self):
         for HistogramClass, binning in self.test_cases:
             with self.subTest(HistogramClass=HistogramClass, binning=binning):
