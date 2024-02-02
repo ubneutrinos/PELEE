@@ -27,7 +27,7 @@ from microfit.selections import extract_variables_from_query
 
 datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-verbose=True
+verbose=False
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
@@ -1969,8 +1969,6 @@ def apply_bdt_truth_filters(df):
 
 def get_rundict(run_number, category):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
-   
-    print(run_number)
  
     # Old ntuple paths
     #with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
@@ -1981,8 +1979,6 @@ def get_rundict(run_number, category):
 
     runpaths = pathdefs[category]
 
-    if verbose: print("get_rundict: run_number=",run_number)
-
     # runpaths is a list of dictionaries that each contain the 'run_id' and 'path' keys
     # Search for the dictionary where 'run_id' matches the run_number
     rundict = next((d for d in runpaths if d["run_id"] == str(run_number)), None)
@@ -1992,7 +1988,6 @@ def get_rundict(run_number, category):
     return rundict
 
 def get_pot_trig(run_number, category, dataset,variation=None):
-    print("run_number=",run_number,"category=",category,"dataset=",dataset)
     rundict = get_rundict(run_number, category)
     # POT is the same for all detvar sets, taking it from CV
     # Get POT separately for each detector variation - temporary fix for inconsistent numbers of events in nue detvars
@@ -2194,7 +2189,6 @@ def load_sample(
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
     is_mc = category == "runs" and dataset not in datasets and dataset != "ext" 
-    print("is_mc=",is_mc)
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2288,7 +2282,6 @@ def _load_run(
     expected_multisim_universes = {"weightsGenie": None, "weightsFlux": None, "weightsReint": None}
     for mc_set in mc_sets:
         if mc_set == "lee":
-            print("Loading lee sample")
             mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
             mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
         else:
@@ -2386,7 +2379,6 @@ def load_runs_detvar(
         {}
     )  # same format as load_run weights dictionary but with the weights combined for each dataset by run
     for run in run_numbers:
-        print(type(run))
         runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run_detvar(run, dataset, variation, **load_run_detvar_kwargs)
 
     pot_sum = np.sum(data_pots)
@@ -2443,9 +2435,6 @@ def _load_run_detvar(
     run_number_tmp = run_number
     if run_number in ["4b","4c","4d","5"]: run_number_tmp = "3"
     elif run_number == "2": run_number_tmp = "1"
-    print("run_number_tmp=",run_number_tmp)
-    print("type(run_number_tmp)",type(run_number_tmp))
-
 
     rundict = get_rundict(run_number_tmp, "detvar")
     weights = dict()
@@ -2455,7 +2444,6 @@ def _load_run_detvar(
     for mc_set in mc_sets:
         mc_df = load_sample(run_number_tmp, "detvar", mc_set, variation=var, **load_sample_kwargs)
         mc_pot, _ = get_pot_trig(run_number_tmp, "detvar", mc_set, variation=var)  # nu has no trigger number
-        print(mc_pot)
         output[mc_set] = mc_df
         mc_df["dataset"] = mc_set
         # For detector systematics, we are using unweighted MC events. The uncertainty will be
@@ -2515,7 +2503,7 @@ def load_run_detvar(
    
     assert isinstance(run_number,str), "You my only generate detector uncertainties for one run at a time"
 
-    if verbose and run_number == 1 and var == "lydown":
+    if verbose and run_number == "1" and var == "lydown":
         print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
  
     output = {}
@@ -2566,6 +2554,7 @@ def load_runs(run_numbers, **load_run_kwargs):
         {}
     )  # same format as load_run weights dictionary but with the weights combined for each dataset by run
     for run in run_numbers:
+        print("Loading run",run)
         runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run(run, **load_run_kwargs)
     pot_sum = np.sum(data_pots)
     rundict = runsdata[f"{run_numbers[0]}"]

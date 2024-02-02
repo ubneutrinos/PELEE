@@ -597,6 +597,7 @@ class MultibandAnalysis(object):
         ax=None,
         include_unisim_errors=True,
         channels=None,
+        add_precomputed_detsys=False,
         **draw_kwargs,
     ):
         hist_generators = []
