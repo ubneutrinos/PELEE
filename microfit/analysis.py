@@ -802,7 +802,6 @@ class MultibandAnalysis(object):
 
     def scan_asimov_fc_sensitivity(
         self,
-        asimov_scan_points,
         scan_points=None,
         parameter_name=None,
         n_trials=100,
@@ -818,33 +817,39 @@ class MultibandAnalysis(object):
                 parameter_name, scan_points, n_trials=n_trials, **fc_scan_kwargs
             )
         elif scan_points is not None:
-            raise ValueError("Cannot give both fc_scan_results and scan_points")
+            if "scan_points" not in fc_scan_results:
+                assert np.allclose(scan_points, np.array([result["scan_point"] for result in fc_scan_results["results"]])), "incomptible scan points"
+                fc_scan_results["scan_points"] = scan_points
         elif parameter_name is not None:
             assert parameter_name == fc_scan_results["parameter_name"]
 
         scan_points = np.array([result["scan_point"] for result in fc_scan_results["results"]])
         parameter_name = fc_scan_results["parameter_name"]
-        assert set(fc_scan_results.keys()) == {"parameter_name", "scan_points", "results"}
+        assert set({"parameter_name", "scan_points", "results"}).issubset(set(fc_scan_results.keys()))
 
         def inverse_quantile(x, q):
             return sum(x < q) / len(x)
 
-        inverse_quantile = np.vectorize(inverse_quantile, excluded=[0])
-
-        print(f"Calculating Asimov sensitivity for {len(asimov_scan_points)} points...")
+        print(f"Calculating Asimov sensitivity for {len(scan_points)} points...")
         for result in fc_scan_results["results"]:
             result["asimov_chi2"] = self.scan_asimov_sensitivity(
                 parameter_name,
                 injection_point=result["scan_point"],
-                scan_points=asimov_scan_points,
+                scan_points=scan_points,
             )
-            result["pval"] = inverse_quantile(result["delta_chi2"], result["asimov_chi2"])
+            # For every value in the asimov chi-square, we want to know the p-value.
+            # To get it we have to loop over the fc scan we did earlier for all the points.
+            result["pval"] = [
+                inverse_quantile(r["delta_chi2"], asim_chi2) for (r, asim_chi2) in zip(
+                    fc_scan_results["results"], result["asimov_chi2"]
+                )
+            ]
         # For convenience, we also already compute the 2D map of p-values and return them as well.
         # These can be used for plotting.
         fc_scan_results["pval_map"] = np.array(
             [result["pval"] for result in fc_scan_results["results"]]
-        )
-        X, Y = np.meshgrid(asimov_scan_points, scan_points)
+        ).T
+        X, Y = np.meshgrid(scan_points, scan_points)
         fc_scan_results["measured_map"] = X
         fc_scan_results["truth_map"] = Y
         return fc_scan_results
@@ -982,7 +987,7 @@ class MultibandAnalysis(object):
         **fit_kwargs,
     ):
         """Perform a Feldman-Cousins scan of the given parameter."""
-        from tqdm.notebook import tqdm
+        from tqdm import tqdm
 
         # For every point in the scan, we assume that it is the truth and
         # then create pseudo-experiments by sampling from the covariance
@@ -993,33 +998,31 @@ class MultibandAnalysis(object):
         print(f"Running FC scan over {len(scan_points)} points in {parameter_name}...")
         self._get_hist_at_parameter_values.cache_clear()
         number_of_samples = len(scan_points) * n_trials
-        with tqdm(total=len(scan_points), desc="Overall Progress", position=0) as pbar1:
+        with tqdm(total=len(scan_points), desc="Scanning") as pbar1:
             for i, scan_point in enumerate(scan_points):
                 self.parameters[parameter_name].value = scan_point
                 expectation = self.generate_multiband_histogram(
                     scale_to_pot=scale_to_pot, include_multisim_errors=True, use_sideband=True
                 )
                 delta_chi2 = []
-                with tqdm(total=n_trials, desc="Trial Progress", position=1, leave=False) as pbar2:
-                    for j in range(n_trials):
-                        global_trial_index = n_trials * i + j
-                        # the seeds are chosen such that no seed is used twice
-                        pseudo_data = expectation.fluctuate(
-                            seed=global_trial_index
-                        ).fluctuate_poisson(seed=global_trial_index + number_of_samples)
-                        self.parameters[parameter_name].value = scan_point
-                        chi2_at_truth = chi_square(
-                            pseudo_data.bin_counts,
-                            expectation.bin_counts,
-                            expectation.covariance_matrix,
-                        )
-                        # ignore typing here, this requires overloading that is not yet 
-                        # available in Python 3.7 because it lacks the "Literal" type
-                        chi2_at_best_fit = self.fit_to_data(
-                            pseudo_data, reset_cache=False, method=fit_method, **fit_kwargs
-                        )[0]  # type: ignore
-                        delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
-                        pbar2.update()
+                for j in range(n_trials):
+                    global_trial_index = n_trials * i + j
+                    # the seeds are chosen such that no seed is used twice
+                    pseudo_data = expectation.fluctuate(
+                        seed=global_trial_index
+                    ).fluctuate_poisson(seed=global_trial_index + number_of_samples)
+                    self.parameters[parameter_name].value = scan_point
+                    chi2_at_truth = chi_square(
+                        pseudo_data.bin_counts,
+                        expectation.bin_counts,
+                        expectation.covariance_matrix,
+                    )
+                    # ignore typing here, this requires overloading that is not yet 
+                    # available in Python 3.7 because it lacks the "Literal" type
+                    chi2_at_best_fit = self.fit_to_data(
+                        pseudo_data, reset_cache=False, method=fit_method, **fit_kwargs
+                    )[0]  # type: ignore
+                    delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
                 delta_chi2 = np.array(delta_chi2)
                 results.append({"delta_chi2": delta_chi2, "scan_point": scan_point})
                 pbar1.update()
