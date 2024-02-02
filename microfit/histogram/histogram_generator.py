@@ -20,6 +20,7 @@ from microfit.histogram import SmoothHistogramMixin
 
 import pandas as pd
 
+
 from microfit.statistics import (
     fronebius_nearest_psd,
     covariance,
@@ -596,7 +597,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             concatenated_universes,
             concatenated_cv,
             allow_approximation=True,
-            tolerance=1e-10,
+            tolerance=1e-8,
         )
         return cov_mat
 
@@ -686,7 +687,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 concatenated_universes,
                 concatenated_cv,
                 allow_approximation=True,
-                tolerance=1e-10,
+                tolerance=1e-8,
             )
             summed_cov_mat += cov_mat
         return summed_cov_mat
@@ -740,7 +741,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                     concatenated_universes,
                     np.zeros(total_bins),
                     allow_approximation=True,
-                    tolerance=1e-10,
+                    tolerance=1e-8,
                 )
                 summed_cov_mat += cov_mat
         return summed_cov_mat
@@ -920,7 +921,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             universe_histograms,
             central_value_hist.bin_counts,
             allow_approximation=True,
-            tolerance=1e-10,
+            tolerance=1e-8,
         )
         self.logger.debug(f"Calculated covariance matrix for {multisim_weight_column}.")
         self.logger.debug(f"Bin-wise error contribution: {np.sqrt(np.diag(cov))}")
@@ -1037,7 +1038,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 central_value_hist.bin_counts,
                 allow_approximation=True,
                 debug_name=knob,
-                tolerance=1e-10,
+                tolerance=1e-8,
             )
             self.logger.debug(
                 f"Bin-wise error contribution for knob {knob}: {np.sqrt(np.diag(cov))}"
@@ -1069,7 +1070,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         # from json in the constructor.
         assert isinstance(self.detvar_data, dict)
 
-
         variations = [
             "lydown",
             "lyatt",
@@ -1081,7 +1081,6 @@ class HistogramGenerator(SmoothHistogramMixin):
             "wiremodthetaxz",
             "wiremodthetayz",
         ]
-
 
         variation_hist_data = cast(
             Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"]
@@ -1096,6 +1095,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         observation_dict = {}
 
         for dataset in self.detvar_data["mc_sets"]:
+            #print("dataset=",dataset)
             self.logger.debug(
                 f"Getting detector covariance for dataset {dataset}"
             )
@@ -1122,9 +1122,20 @@ class HistogramGenerator(SmoothHistogramMixin):
                     for v, h in variation_hists.items()
                 }
 
+            #print("variation_cv_hist:")
+            #print(variation_cv_hist)
+
+            #print("variation_diffs:")
+            #for key in variation_diffs.keys():
+            #    print(key)
+            #    print(variation_diffs[key])
+
             # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
             for v, h in variation_diffs.items():
                 h[~np.isfinite(h)] = 0.0
+                #print(v)
+                #print(h)
+
                 observation_dict[dataset][v] = h.reshape(1, -1)
                 # We have just one observation and the central value is zero since it was already subtracted
                 detvar_covariance_matrix = covariance(
@@ -1132,9 +1143,14 @@ class HistogramGenerator(SmoothHistogramMixin):
                     central_value=np.zeros_like(h),
                     # As with all unisim variations, small deviations from the PSD case are expected
                     allow_approximation=True,
-                    tolerance=1e-10,
+                    #tolerance=1e-10,
+                    tolerance=1e-8,
                     debug_name=f"detector_{v}",
                 )
+
+                #print("detvar_covariance_matrix:")
+                #print(detvar_covariance_matrix)
+
                 cov_mat += detvar_covariance_matrix
 
                 '''

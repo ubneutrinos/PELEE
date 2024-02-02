@@ -86,6 +86,20 @@ def make_detvar_plots(detvar_data, output_dir):
 
 def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing=False,output_file="",make_plots=False,plot_output_dir="",**dl_kwargs):
 
+    if output_file == "":
+        runcombo_str=""
+        for i_r in range(0,len(RUN)):
+            runcombo_str = runcombo_str + RUN[i_r]
+        output_file = "run_" + runcombo_str + "_" + preselection + "_" + \
+                      selection + "_" + binning.variable +\
+                      ".json"
+
+    # First check if the file is already in the cache
+    # TODO: Make this more robust - different binnings could be used for the same variable
+    if os.path.isfile(ls.detvar_cache_path + "/" + output_file):
+        print("Loading detvar file",ls.detvar_cache_path + "/" + output_file,"from cache")
+        return output_file
+
     selection_query = RunHistGenerator.get_selection_query(
         selection=selection, preselection=preselection
     )
@@ -141,13 +155,6 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
         "mc_sets": ["mc","nue"]
     }
 
-    if output_file == "":
-        runcombo_str=""
-        for i_r in range(0,len(RUN)):
-            runcombo_str = runcombo_str + RUN[i_r]
-        output_file = "run_" + runcombo_str + "_" + preselection + "_" + \
-                      selection + "_" + binning.variable +\
-                      ".json"
 
     to_json(ls.detvar_cache_path + "/" + output_file, detvar_data)
 
