@@ -15,6 +15,15 @@ def main(config_file, plot_dir):
     fig, ax = analysis.plot_correlation()
     fig.savefig(os.path.join(plot_dir, "multiband_correlation.pdf"))
 
+    fig, ax = analysis.plot_correlation(ms_columns=["weightsGenie"], include_unisim_errors=True)
+    fig.savefig(os.path.join(plot_dir, "multiband_correlation_weightsGenie_w_unisim.pdf"))
+
+    fig, ax = analysis.plot_correlation(ms_columns=["weightsFlux"], include_unisim_errors=False)
+    fig.savefig(os.path.join(plot_dir, "multiband_correlation_weightsFlux.pdf"))
+
+    fig, ax = analysis.plot_correlation(ms_columns=["weightsReint"], include_unisim_errors=False)
+    fig.savefig(os.path.join(plot_dir, "multiband_correlation_weightsReint.pdf"))
+
     analysis.parameters["signal_strength"].value = 0.0
     h0_hist_unconstrained = analysis.generate_multiband_histogram(
         include_multisim_errors=True, use_sideband=False,
