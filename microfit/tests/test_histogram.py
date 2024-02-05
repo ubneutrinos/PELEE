@@ -15,12 +15,14 @@ import numpy as np
 import pandas as pd
 import uncertainties.unumpy as unumpy
 import logging
-from microfit.statistics import fronebius_nearest_psd
+from microfit.statistics import fronebius_nearest_psd, get_cnp_covariance
 
 
 def assert_called_with_np(mock, *expected_args, **expected_kwargs):
     actual_args, actual_kwargs = mock.call_args
     for actual, expected in zip(actual_args, expected_args):
+        # assert that types match
+        assert type(actual) == type(expected), f"{actual} is not of type {type(expected)}"
         if isinstance(expected, np.ndarray):
             np.testing.assert_array_equal(actual, expected)
         else:
@@ -143,18 +145,18 @@ class TestHistogram(unittest.TestCase):
                 expected_uncertainties = np.sqrt(uncertainties1**2 + uncertainties2**2)
 
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_sum.bin_counts),
+                    hist_sum.bin_counts,
                     bin_counts1 + bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_sum.bin_counts), expected_uncertainties
+                    hist_sum.std_devs, expected_uncertainties
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_diff.bin_counts),
+                    hist_diff.bin_counts,
                     bin_counts1 - bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_diff.bin_counts), expected_uncertainties
+                    hist_diff.std_devs, expected_uncertainties
                 )
 
     def test_correlated(self):
@@ -189,18 +191,18 @@ class TestHistogram(unittest.TestCase):
                 expected_uncertainties = np.sqrt(uncertainties1**2 + uncertainties2**2)
 
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_sum.bin_counts),
+                    hist_sum.bin_counts,
                     bin_counts1 + bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_sum.bin_counts), expected_uncertainties
+                    hist_sum.std_devs, expected_uncertainties
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_diff.bin_counts),
+                    hist_diff.bin_counts,
                     bin_counts1 - bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_diff.bin_counts), expected_uncertainties
+                    hist_diff.std_devs, expected_uncertainties
                 )
 
     def test_fluctuation(self):
@@ -220,7 +222,7 @@ class TestHistogram(unittest.TestCase):
                 for i in range(10000):
                     fluctuated_hist = hist.fluctuate(seed=i)
                     self.assertIsExactInstance(fluctuated_hist, HistogramClass)
-                    fluctuated_counts.append(fluctuated_hist.nominal_values)
+                    fluctuated_counts.append(fluctuated_hist.bin_counts)
                 fluctuated_counts = np.array(fluctuated_counts)
 
                 # calculate covariance matrix of fluctuated counts with numpy
@@ -265,11 +267,11 @@ class TestHistogram(unittest.TestCase):
                 )
 
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_div.bin_counts),
+                    hist_div.bin_counts,
                     bin_counts1 / bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_div.bin_counts), expected_uncertainties
+                    hist_div.std_devs, expected_uncertainties
                 )
                 fluctuated_divisions = []
                 # To test error propagation, we fluctuate hist1 and hist2 and divide them. The covariance matrix
@@ -284,7 +286,7 @@ class TestHistogram(unittest.TestCase):
                     self.assertIsExactInstance(fluctuated_hist2, HistogramClass)
                     fluctuated_division = fluctuated_hist1 / fluctuated_hist2
                     self.assertIsExactInstance(fluctuated_division, HistogramClass)
-                    fluctuated_divisions.append(fluctuated_division.nominal_values)
+                    fluctuated_divisions.append(fluctuated_division.bin_counts)
                 fluctuated_divisions = np.array(fluctuated_divisions)
 
                 # calculate covariance matrix of fluctuated divisions with numpy
@@ -295,7 +297,7 @@ class TestHistogram(unittest.TestCase):
                 # check nominal values
                 np.testing.assert_array_almost_equal(
                     fluctuated_divisions.mean(axis=0),
-                    expected_div_hist.nominal_values,
+                    expected_div_hist.bin_counts,
                     decimal=3,
                 )
                 # check covariance matrix
@@ -319,29 +321,29 @@ class TestHistogram(unittest.TestCase):
                 hist_mult = hist * 2
                 expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * 2
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_mult.bin_counts), bin_counts * 2
+                    hist_mult.bin_counts, bin_counts * 2
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_mult.bin_counts), expected_uncertainties
+                    hist_mult.std_devs, expected_uncertainties
                 )
                 # multiply by a float scalar
                 hist_mult = hist * 2.5
                 expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * 2.5
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_mult.bin_counts), bin_counts * 2.5
+                    hist_mult.bin_counts, bin_counts * 2.5
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_mult.bin_counts), expected_uncertainties
+                    hist_mult.std_devs, expected_uncertainties
                 )
                 # multiply by a numpy.float64 scalar
                 scalar = np.float64(3.7)
                 hist_mult = hist * scalar
                 expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * scalar
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_mult.bin_counts), bin_counts * scalar
+                    hist_mult.bin_counts, bin_counts * scalar
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_mult.bin_counts), expected_uncertainties
+                    hist_mult.std_devs, expected_uncertainties
                 )
                 # assert NotImplementedError is raised when multiplying from the right
                 # This is done because the behavior of __rmul__ is unreliable and would
@@ -409,11 +411,11 @@ class TestHistogram(unittest.TestCase):
                 )
 
                 np.testing.assert_array_almost_equal(
-                    unumpy.nominal_values(hist_mult.bin_counts),
+                    hist_mult.bin_counts,
                     bin_counts1 * bin_counts2,
                 )
                 np.testing.assert_array_almost_equal(
-                    unumpy.std_devs(hist_mult.bin_counts), expected_uncertainties
+                    hist_mult.std_devs, expected_uncertainties
                 )
                 fluctuated_multiplications = []
                 # To test error propagation, we fluctuate hist1 and hist2 and multiply them. The covariance matrix
@@ -428,7 +430,7 @@ class TestHistogram(unittest.TestCase):
                     self.assertIsExactInstance(fluctuated_hist2, HistogramClass)
                     fluctuated_multiplication = fluctuated_hist1 * fluctuated_hist2
                     self.assertIsExactInstance(fluctuated_multiplication, HistogramClass)
-                    fluctuated_multiplications.append(fluctuated_multiplication.nominal_values)
+                    fluctuated_multiplications.append(fluctuated_multiplication.bin_counts)
                 fluctuated_multiplications = np.array(fluctuated_multiplications)
 
                 # calculate covariance matrix of fluctuated multiplications with numpy
@@ -439,7 +441,7 @@ class TestHistogram(unittest.TestCase):
                 # check nominal values
                 np.testing.assert_array_almost_equal(
                     fluctuated_multiplications.mean(axis=0),
-                    expected_mult_hist.nominal_values,
+                    expected_mult_hist.bin_counts,
                     decimal=1,
                 )
                 # check covariance matrix
@@ -452,16 +454,19 @@ class TestMultiChannelHistogram(unittest.TestCase):
     def make_bin_edges(self, length):
         return np.arange(length + 1)
 
-    def _hist_from_binning(self, binning):
+    def _hist_from_binning(self, binning, data_like=False):
         bin_counts = np.arange(binning.n_bins) + 10
-        covariance_matrix = np.zeros((binning.n_bins, binning.n_bins))
-        for i in range(binning.n_bins):
-            covariance_matrix[i, i] = (i + 1) * 0.01
-        # add some off-diagonal elements
-        np.random.seed(0)
-        covariance_matrix += np.random.rand(binning.n_bins, binning.n_bins) * 0.01
-        # make it PSD
-        covariance_matrix = fronebius_nearest_psd(covariance_matrix)
+        if data_like:
+            covariance_matrix = np.diag(bin_counts)
+        else:
+            covariance_matrix = np.zeros((binning.n_bins, binning.n_bins))
+            for i in range(binning.n_bins):
+                covariance_matrix[i, i] = (i + 1) * 0.01
+            # add some off-diagonal elements
+            np.random.seed(0)
+            covariance_matrix += np.random.rand(binning.n_bins, binning.n_bins) * 0.01
+            # make it PSD
+            covariance_matrix = fronebius_nearest_psd(covariance_matrix)
         if isinstance(binning, MultiChannelBinning):
             return MultiChannelHistogram(
                 binning,
@@ -475,7 +480,7 @@ class TestMultiChannelHistogram(unittest.TestCase):
                 covariance_matrix=covariance_matrix,
             )
 
-    def make_test_histogram(self):
+    def make_test_histogram(self, data_like=False):
         first_channel_binning = Binning(
             "x", self.make_bin_edges(2), "xaxis", variable_tex="x-axis label"
         )
@@ -488,7 +493,7 @@ class TestMultiChannelHistogram(unittest.TestCase):
         binning = MultiChannelBinning(
             [first_channel_binning, second_channel_binning, third_channel_binning]
         )
-        hist = self._hist_from_binning(binning)
+        hist = self._hist_from_binning(binning, data_like=data_like)
         assert isinstance(hist, MultiChannelHistogram)
         return hist
 
@@ -538,16 +543,14 @@ class TestMultiChannelHistogram(unittest.TestCase):
     def test_update_with_measurement(self, mock_correction):
         # Create a MultiChannelHistogram instance
         hist = self.make_test_histogram()
-
-        # Define the channels and corresponding measurements
-        channels = ["xaxis", "yaxis", "zaxis"]
-        measurements = [np.array([1, 2]), np.array([1, 2, 3]), np.array([1, 2, 3, 4])]
-
-        for channel, measurement in zip(channels, measurements):
+        measurement_hists = self.make_test_histogram(data_like=True)
+        for channel in measurement_hists.channels:
+            measurement_hist = measurement_hists[channel]
+            assert isinstance(measurement_hist, Histogram)
             # Reset the histogram for each channel
             hist = self.make_test_histogram()
             # Mock the sideband_constraint_correction function to return a known output
-            remaining_bins = hist.n_bins - len(measurement)
+            remaining_bins = hist.n_bins - measurement_hist.n_bins
             delta_mu = np.ones(remaining_bins) * 0.1
             delta_cov = np.eye(remaining_bins) * 0.01
             # Add some off-diagonal elements
@@ -556,29 +559,101 @@ class TestMultiChannelHistogram(unittest.TestCase):
             # Make it PSD
             delta_cov = fronebius_nearest_psd(delta_cov)
             mock_correction.return_value = delta_mu, delta_cov
+            cnp_covariance = get_cnp_covariance(
+                expectation=hist[channel]._bin_counts,
+                observation=measurement_hist._bin_counts,
+            )
+            # Update the histogram with the measurement
+            updated_hist = hist.update_with_measurement(measurement_hist)
 
-            # We also want to check that the sideband_constraint_correction function is called with the correct arguments which are
+            # Check that the sideband_constraint_correction function was called with the correct arguments
             hist_copy = hist.copy()
             hist_copy.roll_channel_to_last(channel)
-            expected_args = (measurement, hist_copy.nominal_values[remaining_bins:])
-            # The covariance matrix that should be passed into the function is the
-            # concatenated covariance of all channels including the one that is being updated
-            expected_kwargs = {"concat_covariance": hist_copy.covariance_matrix}
-            # Update the histogram with the measurement
-            updated_hist = hist.update_with_measurement(channel, measurement)
-            # Check that the sideband_constraint_correction function was called with the correct arguments
-            assert_called_with_np(mock_correction, *expected_args, **expected_kwargs)
-
-            # Check that the updated histogram's bin counts and covariance matrix have been updated correctly
-            hist.roll_channel_to_last(channel)
-            expected_bin_counts = hist.nominal_values[:remaining_bins] + delta_mu
-            expected_covariance_matrix = (
-                hist.covariance_matrix[:remaining_bins, :remaining_bins] + delta_cov
+            
+            expected_args = (
+                measurement_hist.bin_counts,
+                hist_copy.bin_counts[remaining_bins:],
+                cnp_covariance
             )
-            np.testing.assert_array_almost_equal(updated_hist.nominal_values, expected_bin_counts)
+            assert_called_with_np(mock_correction, *expected_args)
+            channels_after_update = updated_hist.channels
+            # re-arrange hist into the same order of channels
+            hist = hist[channels_after_update]
+            expected_bin_counts = hist.bin_counts + delta_mu
+            expected_covariance_matrix = (
+                hist.covariance_matrix + delta_cov
+            )
+            np.testing.assert_array_almost_equal(updated_hist.bin_counts, expected_bin_counts)
             np.testing.assert_array_almost_equal(
                 updated_hist.covariance_matrix, expected_covariance_matrix
             )
+    
+    def test_update_with_redundant_variables(self):
+        """Test sideband constraint with redundant channels.
+        
+        A MultiChannelHistogram that contains the same binning twice will have maximal
+        correlation between the bins of the redundant channels. Our theoretical 
+        expectation is that an update performed with both channels should be equivalent
+        to an update performed with only one channel.
+
+        There is some trickiness involved because there are several places in which
+        covariance matrices are approximated by the fronebius-nearest PSD matrix,
+        which leads to less than perfect agreement between the two cases.
+        """
+        df = pd.DataFrame()
+        df["x"] = [0.5, 0.5, 0.5, 1.5, 0.5, 0.5, 0.5, 1.5]
+        df["y"] = [0.5, 1.5, 0.5, 1.5, 0.5, 1.5, 0.5, 1.5]
+        df["weights"] = [0.5, 0.5, 0.5, 0.5, 0.8, 0.8, 0.8, 0.8]
+
+        # A "data-like" dataframe, where weights are all equal to 1
+        df_data = pd.DataFrame()
+        df_data["x"] = [0.5, 0.5, 1.5, 0.5]
+        df_data["y"] = [0.5, 1.5, 1.5, 0.5]
+        df_data["weights"] = [1, 1, 1, 1]
+
+        binning = MultiChannelBinning([
+            Binning("x", bin_edges=np.array([0, 1, 2]), label="x1"),
+            # superfluous binning in same variable
+            Binning("x", bin_edges=np.array([0, 1, 2]), label="x2"),
+            # binning  in y
+            Binning("y", bin_edges=np.array([0, 1, 2]), label="y"),
+        ])
+        data_binning = MultiChannelBinning([
+            Binning("x", bin_edges=np.array([0, 1, 2]), label="x1"),
+            Binning("x", bin_edges=np.array([0, 1, 2]), label="x2"),
+        ])
+        hg = HistogramGenerator(df, binning)
+        # Measurement taken in the x-channel, using redundant binning
+        hg_data = HistogramGenerator(df_data, data_binning)
+        hist = hg.generate()
+        hist_data = hg_data.generate()
+        assert isinstance(hist, MultiChannelHistogram)
+        assert isinstance(hist_data, MultiChannelHistogram)
+        # hist should now contain the channels x1, x2, y
+        # hist_data should contain the channels x1, x2
+        assert set(hist.channels) == set(["x1", "x2", "y"])
+        assert set(hist_data.channels) == set(["x1", "x2"])
+        # We have to add a very small amount to the diagonal here to avoid
+        # a singular matrix. The code would internally change the matrix to make it PSD,
+        # but that would break our comparison. In real life, there should never be
+        # this kind of perfect correlations.
+        hist._bin_counts += np.eye(hist.n_bins) * 0.01
+        hist_data._bin_counts += np.eye(hist_data.n_bins) * 0.01
+        updated_hist_2ch = hist.update_with_measurement(hist_data)
+        updated_hist_1ch = hist[["x1", "y"]].update_with_measurement(hist_data[["x1"]])  # type: ignore
+
+        # assert covariance matrices are close
+        np.testing.assert_array_almost_equal(
+            updated_hist_2ch.covariance_matrix,
+            updated_hist_1ch.covariance_matrix,
+            decimal=3,
+        )
+        # assert that the _bin_counts property, which is a 2D array, is also close
+        np.testing.assert_array_almost_equal(
+            updated_hist_2ch._bin_counts,
+            updated_hist_1ch._bin_counts,
+            decimal=3,
+        )
 
     def test_from_histograms(self):
         first_channel_binning = Binning(

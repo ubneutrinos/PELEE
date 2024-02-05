@@ -1,16 +1,18 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union, overload
+import warnings
 from matplotlib.axes import Axes
 import numpy as np
 from scipy.linalg import block_diag
 
 from numbers import Real, Real
-from uncertainties import correlated_values, unumpy
+from uncertainties import correlated_values
 
 from microfit.statistics import (
     error_propagation_division,
     error_propagation_multiplication,
     is_psd,
     sideband_constraint_correction,
+    get_cnp_covariance
 )
 from microfit.histogram import Binning, MultiChannelBinning
 
@@ -35,7 +37,9 @@ class Histogram:
         binning : Binning
             Binning of the histogram.
         bin_counts : array_like
-            Bin counts of the histogram.
+            Bin counts of the histogram. If a 2D array is passed, then it is assumed that
+            the off-diagonal elements correspond to the number of events that are shared
+            between two bins. In this case, the diagonal elements are used as the bin counts.
         uncertainties : array_like, optional
             Uncertainties of the bin counts.
         covariance_matrix : array_like, optional
@@ -57,7 +61,17 @@ class Histogram:
         """
 
         self.binning = binning
-        self.bin_counts = bin_counts
+        assert self.binning.label is not None, (
+            "Binning must have a channel label that can uniquely identify it "
+            "in a MultiChannelHistogram."
+        )
+        
+        if bin_counts.ndim == 2:
+            self._bin_counts = bin_counts
+        elif bin_counts.ndim == 1:
+            self._bin_counts = np.diag(bin_counts)
+        else:
+            raise ValueError("bin_counts must be 1- or 2-dimensional.")
         assert self.binning.n_bins == len(
             self.bin_counts
         ), "bin_counts must have the same length as binning."
@@ -73,13 +87,10 @@ class Histogram:
                     raise ValueError(
                         "Non-zero part of covariance matrix must be positive semi-definite."
                     )
-            std_devs = np.sqrt(np.diag(self.covariance_matrix))
-            self.bin_counts = unumpy.uarray(bin_counts, std_devs)
         elif uncertainties is not None:
             # assert that uncertainties are 1D
             assert len(uncertainties.shape) == 1, "uncertainties must be 1-dimensional."
             self.covariance_matrix = np.diag(np.array(uncertainties) ** 2)
-            self.bin_counts = unumpy.uarray(bin_counts, uncertainties)
         else:
             raise ValueError("Either uncertainties or covariance_matrix must be provided.")
 
@@ -115,9 +126,7 @@ class Histogram:
             label = "Correlation"
         elif as_fractional:
             # plot fractional covariance matrix
-            fractional_covar = self.covariance_matrix / np.outer(
-                self.nominal_values, self.nominal_values
-            )
+            fractional_covar = self.covariance_matrix / np.outer(self.bin_counts, self.bin_counts)
             max_val = np.max(np.abs(fractional_covar))
             vmin = plot_kwargs.pop("vmin", -max_val)
             vmax = plot_kwargs.pop("vmax", max_val)
@@ -170,7 +179,7 @@ class Histogram:
         ax.set_xlabel(self.binning.variable_tex)  # type: ignore
         if with_ylabel:
             ax.set_ylabel("Events")
-        bin_counts = self.nominal_values
+        bin_counts = self.bin_counts
         bin_edges = self.binning.bin_edges
         label = plot_kwargs.pop("label", self.tex_string)
         color = plot_kwargs.pop("color", self.color)
@@ -231,7 +240,7 @@ class Histogram:
 
         return {
             "binning": self.binning.to_dict(),
-            "bin_counts": self.nominal_values,
+            "bin_counts": self._bin_counts,
             "covariance_matrix": self.covariance_matrix,
             "label": self._label,
             "plot_color": self._plot_color,
@@ -288,15 +297,21 @@ class Histogram:
         bool
             Whether the histograms are equal.
         """
-
+        if not isinstance(other, Histogram):
+            return False
         return (
             self.binning == other.binning
-            and np.all(self.nominal_values == other.nominal_values)
+            and np.all(self._bin_counts == other._bin_counts)
             and np.allclose(self.covariance_matrix, other.covariance_matrix)
             and self.label == other.label
             and self.color == other.color
             and self.tex_string == other.tex_string
         )
+
+    @property
+    def channels(self) -> List[str]:
+        assert self.binning.label is not None
+        return [self.binning.label]
 
     @property
     def bin_centers(self):
@@ -348,12 +363,27 @@ class Histogram:
         self._tex_string = value
 
     @property
-    def nominal_values(self):
-        return unumpy.nominal_values(self.bin_counts)
+    def bin_counts(self) -> np.ndarray:
+        # The bin counts are stored as a 2D array, where the diagonal elements
+        # correspond to the bin counts and the off-diagonal elements correspond
+        # to the number of events shared between two bins.
+        return np.diag(self._bin_counts).copy()
+
+    @bin_counts.setter
+    def bin_counts(self, value):
+        if value.ndim == 2:
+            self._bin_counts = value
+        elif value.ndim == 1:
+            self._bin_counts = np.diag(value)
+        else:
+            raise ValueError("bin_counts must be 1- or 2-dimensional.")
+        assert self.binning.n_bins == len(
+            self.bin_counts
+        ), "bin_counts must have the same length as binning."
 
     @property
     def std_devs(self):
-        return unumpy.std_devs(self.bin_counts)
+        return np.sqrt(np.diag(self.covariance_matrix))
 
     @property
     def covariance_matrix(self):
@@ -362,8 +392,6 @@ class Histogram:
     @covariance_matrix.setter
     def covariance_matrix(self, value):
         self._covariance_matrix = value
-        # also update the bin counts
-        self.bin_counts = unumpy.uarray(self.nominal_values, np.sqrt(np.diag(value)))
 
     @property
     def correlation_matrix(self):
@@ -373,7 +401,7 @@ class Histogram:
             return self.covariance_matrix / np.outer(self.std_devs, self.std_devs)
 
     def sum(self):
-        return np.sum(self.nominal_values)
+        return np.sum(self.bin_counts)
 
     def add_covariance(self, cov_mat):
         """Add a covariance matrix to the uncertainties of the histogram.
@@ -389,15 +417,12 @@ class Histogram:
         """
 
         self.covariance_matrix += cov_mat
-        self.bin_counts = np.array(correlated_values(self.nominal_values, self.covariance_matrix))
 
     def fluctuate(self, seed=None):
         """Fluctuate bin counts according to uncertainties and return a new histogram with the fluctuated counts."""
         # take full correlation into account
         rng = np.random.default_rng(seed)
-        fluctuated_bin_counts = rng.multivariate_normal(
-            unumpy.nominal_values(self.bin_counts), self.covariance_matrix
-        )
+        fluctuated_bin_counts = rng.multivariate_normal(self.bin_counts, self.covariance_matrix)
         # clip bin counts from below
         fluctuated_bin_counts[fluctuated_bin_counts < 0] = 0
         return self.__class__(
@@ -409,7 +434,7 @@ class Histogram:
     def fluctuate_poisson(self, seed=None):
         """Fluctuate bin counts according to Poisson uncertainties and return a new histogram with the fluctuated counts."""
         rng = np.random.default_rng(seed)
-        fluctuated_bin_counts = rng.poisson(unumpy.nominal_values(self.bin_counts))
+        fluctuated_bin_counts = rng.poisson(self.bin_counts)
         return self.__class__(
             self.binning,
             fluctuated_bin_counts,
@@ -420,14 +445,19 @@ class Histogram:
         return f"Histogram(binning={self.binning}, bin_counts={self.bin_counts}, label={self.label}, tex={self.tex_string})"
 
     def __abs__(self):
-        return np.abs(self.nominal_values)
+        return np.abs(self.bin_counts)
 
     def __add__(self, other):
         if isinstance(other, np.ndarray):
             # We can add or subtract an ndarray to a Histogram as long as the length of the ndarray matches the number of bins in the histogram.
             if len(other) != len(self.bin_counts):
                 raise ValueError("Cannot add ndarray to histogram: ndarray has wrong length.")
-            new_bin_counts = self.nominal_values + other
+            if other.ndim == 2:
+                new_bin_counts = self._bin_counts + other
+            elif other.ndim == 1:
+                new_bin_counts = self._bin_counts + np.diag(other)
+            else:
+                raise ValueError("ndarray must be 1- or 2-dimensional.")
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
             return self.__class__.from_dict(state)
@@ -438,7 +468,7 @@ class Histogram:
             "Cannot add histograms with different binning. "
             f"self.binning = {self.binning}, other.binning = {other.binning}"
         )
-        new_bin_counts = self.nominal_values + other.nominal_values
+        new_bin_counts = self._bin_counts + other._bin_counts
         label = self.label if self.label == other.label else "+".join([self.label, other.label])
         new_cov_matrix = self.covariance_matrix + other.covariance_matrix
         state = self.to_dict()
@@ -463,7 +493,12 @@ class Histogram:
                 raise ValueError(
                     f"Cannot subtract ndarray of length {len(other)} from histogram with {self.n_bins} bins."
                 )
-            new_bin_counts = self.nominal_values - other
+            if other.ndim == 2:
+                new_bin_counts = self._bin_counts - other
+            elif other.ndim == 1:
+                new_bin_counts = self._bin_counts - np.diag(other)
+            else:
+                raise ValueError("ndarray must be 1- or 2-dimensional.")
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
             return self.__class__.from_dict(state)
@@ -472,7 +507,7 @@ class Histogram:
             "Cannot subtract histograms with different binning. "
             f"self.binning = {self.binning}, other.binning = {other.binning}"
         )
-        new_bin_counts = self.nominal_values - other.nominal_values
+        new_bin_counts = self._bin_counts - other._bin_counts
         label = self.label if self.label == other.label else "-".join([self.label, other.label])
         new_cov_matrix = self.covariance_matrix + other.covariance_matrix
         state = self.to_dict()
@@ -483,18 +518,26 @@ class Histogram:
 
     def __truediv__(self, other):
         if isinstance(other, Real):
-            new_bin_counts = self.nominal_values / other
+            new_bin_counts = self._bin_counts / other
             new_cov_matrix = self.covariance_matrix / other**2
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
             state["covariance_matrix"] = new_cov_matrix
             return self.__class__.from_dict(state)
         elif isinstance(other, np.ndarray):
+            if not other.ndim == 1:
+                raise ValueError("Can only divide by 1-dimensional ndarray.")
             # We can divide a histogram by an ndarray as long as the length of the ndarray matches the number of bins in the histogram.
             if len(other) != len(self.bin_counts):
                 raise ValueError("Cannot divide histogram by ndarray: ndarray has wrong length.")
+            # Raise a warning if the internal _bin_counts array has non-zero off-diagonal elements
+            if not np.all(np.diag(self.bin_counts) == self._bin_counts):
+                warnings.warn(
+                    "The internal _bin_counts array has off-diagonal elements. "
+                    "The off-diagonal elements will be lost when dividing by an ndarray."
+                )
             with np.errstate(divide="ignore", invalid="ignore"):
-                new_bin_counts = self.nominal_values / other
+                new_bin_counts = self.bin_counts / other
                 # The covariance matrix also needs to be scaled according to
                 # C_{ij}' = C_{ij} / a_i / a_j
                 # where a_i is the ith element of the ndarray
@@ -507,8 +550,8 @@ class Histogram:
             return self.__class__.from_dict(state)
         assert self.binning == other.binning, "Cannot divide histograms with different binning."
         new_bin_counts, new_cov_matrix = error_propagation_division(
-            self.nominal_values,
-            other.nominal_values,
+            self.bin_counts,
+            other.bin_counts,
             self.covariance_matrix,
             other.covariance_matrix,
         )
@@ -521,10 +564,18 @@ class Histogram:
 
     def __mul__(self, other):
         if isinstance(other, np.ndarray):
+            if not other.ndim == 1:
+                raise ValueError("Can only multiply by 1-dimensional ndarray.")
             # We can multiply a histogram by an ndarray as long as the length of the ndarray matches the number of bins in the histogram.
             if len(other) != len(self.bin_counts):
                 raise ValueError("Cannot multiply histogram by ndarray: ndarray has wrong length.")
-            new_bin_counts = self.nominal_values * other
+            # Raise a warning if the internal _bin_counts array has non-zero off-diagonal elements
+            if not np.all(np.diag(self.bin_counts) == self._bin_counts):
+                warnings.warn(
+                    "The internal _bin_counts array has off-diagonal elements. "
+                    "The off-diagonal elements will be lost when multiplying by an ndarray."
+                )
+            new_bin_counts = self.bin_counts * other
             # The covariance matrix also needs to be scaled according to
             # C_{ij}' = C_{ij} * a_i * a_j
             # where a_i is the ith element of the ndarray
@@ -534,7 +585,7 @@ class Histogram:
             state["covariance_matrix"] = new_cov_matrix
             return self.__class__.from_dict(state)
         elif isinstance(other, Real):
-            new_bin_counts = self.nominal_values * other
+            new_bin_counts = self._bin_counts * other
             new_cov_matrix = self.covariance_matrix * other**2
             state = self.to_dict()
             state["bin_counts"] = new_bin_counts
@@ -545,8 +596,8 @@ class Histogram:
                 self.binning == other.binning
             ), "Cannot multiply histograms with different binning."
             new_bin_counts, new_cov_matrix = error_propagation_multiplication(
-                self.nominal_values,
-                other.nominal_values,
+                self.bin_counts,
+                other.bin_counts,
                 self.covariance_matrix,
                 other.covariance_matrix,
             )
@@ -627,7 +678,10 @@ class MultiChannelHistogram(Histogram):
             # roll by the number of bins in the first channel.
             first_last = 0 if sign < 0 else -1
             shift_bins = self.binning[first_last].n_bins * sign
-            self.bin_counts = np.roll(self.bin_counts, shift_bins)
+            # Keep in mind that the bin counts are a 2D array, where off-diagonal 
+            # elements correspond to the number of events shared between two bins.
+            self._bin_counts = np.roll(self._bin_counts, shift_bins, axis=0)
+            self._bin_counts = np.roll(self._bin_counts, shift_bins, axis=1)
             # We also need to roll the covariance matrix accordingly in 2D
             self.covariance_matrix = np.roll(self.covariance_matrix, shift_bins, axis=0)
             self.covariance_matrix = np.roll(self.covariance_matrix, shift_bins, axis=1)
@@ -663,9 +717,8 @@ class MultiChannelHistogram(Histogram):
 
     def update_with_measurement(
         self,
-        key: Union[int, str],
-        measurement: np.ndarray,
-        central_value: Optional[np.ndarray] = None,
+        measurement: Union[Histogram, "MultiChannelHistogram"],
+        central_value: Optional[Union[np.ndarray, Histogram]] = None,
     ) -> "MultiChannelHistogram":
         """Perform the Bayesian update of the histogram given a measurement of one channel.
 
@@ -673,46 +726,90 @@ class MultiChannelHistogram(Histogram):
         ----------
         key : int or str
             Index or label of the channel.
-        measurement : np.ndarray
-            Measurement of the channel.
-        central_value : np.ndarray, optional
+        measurement : Histogram or MultiChannelHistogram
+            Data histogram to be used in the update. We assume that we want to perform the update 
+            using all channels in this histogram.
+        central_value : np.ndarray or Histogram, optional
             Central value of the sideband. If provided, this overrides the expectation value
-            of the sideband that is stored in the histogram.
+            of the sideband that is stored in the histogram. We might use this if, for instance,
+            the expectation value of the sideband is the sum of MC and EXT data.
 
         Returns
         -------
         MultiChannelHistogram
-            Updated histogram containing all channels except the one that was measured.
+            Updated histogram containing all channels except the ones that were measured.
         """
-
+        # First, check that the channels of the measurement are a subset of the channels of the histogram.
+        assert set(measurement.channels).issubset(
+            set(self.channels)
+        ), "Channels of measurement must be a subset of the channels of the histogram."
         # By construction, the constraint correction function expects the sideband to be the
-        # last block of bins in the histogram. We therefore roll the channel to the last position.
-        self.roll_channel_to_last(key)
-        idx = self.binning._idx_channel(key)
-        # This should always be the case, since we use the function above to roll the channel to the last position.
-        assert idx == len(self.binning) - 1, "Channel must be the last channel in the histogram."
-        sideband_central_value = (
-            self[idx].nominal_values if central_value is None else central_value
+        # last block of bins in the histogram. We can use indexing to re-arrange the channels
+        # in the histogram so that those that are contained in the measurement are at the end.
+
+        arranged_channels = [c for c in self.channels if c not in measurement.channels]
+        assert len(arranged_channels) > 0, "At least one channel must remain in the histogram."
+        arranged_channels += measurement.channels  
+        rearranged_hist = self[arranged_channels]
+        # As the central value, we want to use the 2D bin counts that include events
+        # that are shared between bins.
+        if central_value is None:
+            sideband_2d_central_value = self[measurement.channels]._bin_counts
+        elif isinstance(central_value, Histogram):
+            assert set(measurement.channels).issubset(
+                central_value.channels
+            ), "Channels of measurement must be a subset of the channels of the central value."
+            if isinstance(central_value, MultiChannelHistogram):
+                sideband_2d_central_value = central_value[measurement.channels]._bin_counts
+            else:
+                sideband_2d_central_value = central_value._bin_counts
+        elif isinstance(central_value, np.ndarray):
+            if central_value.ndim == 1:
+                sideband_2d_central_value = np.diag(central_value)
+            elif central_value.ndim == 2:
+                sideband_2d_central_value = central_value
+            else:
+                raise ValueError("central_value must be 1- or 2-dimensional.")
+        else:
+            raise ValueError("central_value must be a Histogram or an ndarray.")
+        concat_covariance_matrix = rearranged_hist.covariance_matrix
+        sideband_cnp_covariance = get_cnp_covariance(
+            sideband_2d_central_value,
+            measurement._bin_counts
         )
-        concat_covariance_matrix = self.covariance_matrix
-        assert len(measurement) == len(
-            sideband_central_value
-        ), "Measurement must have the same length as the bin counts of the channel."
+        assert sideband_cnp_covariance.ndim == 2, "CNP covariance must be 2-dimensional."
+        # When we compute the constraint correction, then we only want to use the diagonal
+        # elements of the measurement and the expectation. The off-diagonal element only
+        # have the purpose to inform the CNP covariance.
         delta_mu, delta_cov = sideband_constraint_correction(
-            measurement,
-            sideband_central_value,
+            measurement.bin_counts,
+            np.diag(sideband_2d_central_value),
             concat_covariance=concat_covariance_matrix,
+            cnp_covariance=sideband_cnp_covariance,
         )
         # We need to generate a new MultiChannelHistogram where we have removed the channel that we measured.
         constrained_histogram = self.copy()
-        del constrained_histogram[idx]
+        for idx in measurement.channels:
+            del constrained_histogram[idx]
+        # Check if the remaining histogram has bins with shared events.
+        # If so, we need to raise an exception, because we cannot perform
+        # the update correctly. If we wanted to do this, we would need proper 2D histograms
+        # with covariances between all bins.
+        if not np.all(np.diag(constrained_histogram.bin_counts) == constrained_histogram._bin_counts):
+            raise ValueError(
+                "Cannot perform update because the remaining histogram has bins with shared events. "
+                "The sideband constraint correction is ill-defined in this case. "
+                "Make sure that the signal channels remaining after the update do not have "
+                "any bins with shared events."
+            )
         # Update bin counts and covariance
-        constrained_histogram.bin_counts += delta_mu
+        constrained_histogram._bin_counts = constrained_histogram._bin_counts.astype(np.float64)
+        constrained_histogram._bin_counts += np.diag(delta_mu)
         constrained_histogram.covariance_matrix += delta_cov
         return constrained_histogram
 
     @property
-    def channels(self) -> List[Union[str, None]]:
+    def channels(self) -> List[str]:
         """List of channels."""
         return self.binning.labels
 
@@ -747,13 +844,21 @@ class MultiChannelHistogram(Histogram):
         return self.covariance_matrix[
             np.ix_(self.binning._channel_bin_idx(key), self.binning._channel_bin_idx(key))
         ]
+    # Overloads to help with type hinting when getting items
+    @overload
+    def __getitem__(self, key: Union[int, str]) -> Histogram:
+        ...
 
-    def __getitem__(self, key: Union[int, str, List[Union[int, str]]]) -> Histogram:
+    @overload
+    def __getitem__(self, key: Sequence[Union[int, str]]) -> "MultiChannelHistogram":
+        ...
+
+    def __getitem__(self, key: Union[int, str, Sequence[Union[int, str]]]) -> Union[Histogram, "MultiChannelHistogram"]:
         """Get the histogram of a given channel or a list of channels.
 
         Parameters
         ----------
-        key : int or str
+        key : int or str, or list of int or str
             Index or label of the channel.
 
         Returns
@@ -763,15 +868,15 @@ class MultiChannelHistogram(Histogram):
             If a list of channels is requested, a MultiChannelHistogram is returned containing
             only the requested channels with their correlations.
         """
-        if isinstance(key, list):
+        if not isinstance(key, str) and isinstance(key, Sequence):
             # If we request a list of channels, we return a MultiChannelHistogram containing only
             # the requested channels.
             new_binning = MultiChannelBinning(
                 [self.binning[i] for i in key],
             )
-            new_bin_counts = np.concatenate(
-                [unumpy.nominal_values(self.channel_bin_counts(i)) for i in key]
-            )
+            # Keep in mind that the bin counts are now a 2D array, where off-diagonal
+            # elements correspond to the number of events shared between two bins.
+            new_bin_counts = block_diag(*[np.diag(self.channel_bin_counts(i)) for i in key])
             new_covariance_matrix = block_diag(
                 *[self.channel_covariance_matrix(i) for i in key],
             )
@@ -796,6 +901,18 @@ class MultiChannelHistogram(Histogram):
                             self.binning._channel_bin_idx(channel_j),
                         )
                     ]
+                    # Update the bin counts in the same way
+                    new_bin_counts[
+                        np.ix_(
+                            new_binning._channel_bin_idx(channel_i),
+                            new_binning._channel_bin_idx(channel_j),
+                        )
+                    ] += self._bin_counts[
+                        np.ix_(
+                            self.binning._channel_bin_idx(channel_i),
+                            self.binning._channel_bin_idx(channel_j),
+                        )
+                    ]
             return MultiChannelHistogram(
                 new_binning,
                 new_bin_counts,
@@ -808,7 +925,7 @@ class MultiChannelHistogram(Histogram):
         idx = self.binning._idx_channel(key)
         return Histogram(
             self.binning.binnings[idx],
-            unumpy.nominal_values(self.channel_bin_counts(idx)),
+            self.channel_bin_counts(idx),
             covariance_matrix=self.channel_covariance_matrix(idx),
             plot_color=self.color,
             plot_hatch=self.hatch,
@@ -825,13 +942,11 @@ class MultiChannelHistogram(Histogram):
             Index or label of the channel.
         """
         idx = self.binning._idx_channel(key)
-        self.bin_counts = np.delete(self.bin_counts, self.binning._channel_bin_idx(idx))
-        self.covariance_matrix = np.delete(
-            self.covariance_matrix, self.binning._channel_bin_idx(idx), axis=0
-        )
-        self.covariance_matrix = np.delete(
-            self.covariance_matrix, self.binning._channel_bin_idx(idx), axis=1
-        )
+        bin_idx = self.binning._channel_bin_idx(idx)
+        self._bin_counts = np.delete(self._bin_counts, bin_idx, axis=0)
+        self._bin_counts = np.delete(self._bin_counts, bin_idx, axis=1)
+        self.covariance_matrix = np.delete(self.covariance_matrix, bin_idx, axis=0)
+        self.covariance_matrix = np.delete(self.covariance_matrix, bin_idx, axis=1)
         self.binning.delete_channel(idx)
 
     def replace_channel_histogram(self, key: Union[int, str], histogram: Histogram) -> None:
@@ -994,7 +1109,7 @@ class MultiChannelHistogram(Histogram):
             MultiChannelHistogram object.
         """
         binning = MultiChannelBinning.join(*[h.binning for h in histograms])
-        bin_counts = np.concatenate([h.nominal_values for h in histograms])
+        bin_counts = block_diag(*[h._bin_counts for h in histograms])
         covariance_matrix = block_diag(*[h.covariance_matrix for h in histograms])
         combined_hist = cls(binning, bin_counts, covariance_matrix=covariance_matrix)
         properties = ["label", "color", "hatch", "tex_string"]

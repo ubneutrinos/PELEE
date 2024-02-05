@@ -8,6 +8,7 @@ from .histogram import (
     Binning,
     MultiChannelBinning,
     MultiChannelHistogram,
+    Histogram
 )
 from . import selections
 from .statistics import chi_square as chi_square_func
@@ -64,7 +65,7 @@ class RunHistPlotter:
     ):
         gen = self.run_hist_generator
 
-        def flatten(hist):
+        def flatten(hist) -> Histogram:
             if isinstance(hist, MultiChannelHistogram):
                 if channel is None:
                     return hist.get_unrolled_histogram()
@@ -87,6 +88,7 @@ class RunHistPlotter:
             scale_to_pot=scale_to_pot,
             smooth_ext_histogram=smooth_ext_histogram,
         )
+        assert isinstance(ext_hist, Histogram)
         if ext_hist is not None:
             ext_hist.tex_string = "EXT"
             ext_hist = flatten(ext_hist)
@@ -128,7 +130,7 @@ class RunHistPlotter:
         if print_tot_pred_norm:
             print(
                 "print_tot_pred_norm:",
-                total_mc_hist.nominal_values / np.sum(total_mc_hist.nominal_values),
+                total_mc_hist.bin_counts / np.sum(total_mc_hist.bin_counts),
             )
 
         if show_data_mc_ratio:
@@ -139,7 +141,7 @@ class RunHistPlotter:
                     sharex=True,
                     gridspec_kw={"height_ratios": [3, 1]},
                     constrained_layout=True,
-                )
+                )  # type: ignore
             else:
                 assert (
                     ax is not None and ax_ratio is not None
@@ -148,8 +150,8 @@ class RunHistPlotter:
             assert not scale_to_pot, "Can't show chi square when scaling to POT"
             assert data_hist is not None, "Can't show chi square when no data is available"
             chi_square = chi_square_func(
-                data_hist.nominal_values,
-                total_pred_hist.nominal_values,
+                data_hist.bin_counts,
+                total_pred_hist.bin_counts,
                 total_pred_hist.covariance_matrix,
             )
         else:
@@ -168,16 +170,18 @@ class RunHistPlotter:
             **kwargs,
         )
         if not show_data_mc_ratio:
-            ax.set_xlabel(total_pred_hist.binning.variable_tex)
+            if total_pred_hist.binning.variable_tex is not None:
+                ax.set_xlabel(total_pred_hist.binning.variable_tex)
             return ax, None
 
+        assert ax_ratio is not None, "Must provide ax_ratio to show data/mc ratio"
         # plot data/mc ratio
         # The way this is typically shown is to have the MC prediction divided by its central
         # data with error bands to show the MC uncertainty, and then to overlay the data points
         # with error bars.
-        mc_nominal = total_mc_hist.nominal_values
+        mc_nominal = total_mc_hist.bin_counts
         mc_error_band = flatten(total_mc_hist / mc_nominal)
-        data_mc_ratio = flatten(data_hist / total_pred_hist.nominal_values)
+        data_mc_ratio = flatten(data_hist / total_pred_hist.bin_counts)
 
         self.plot_hist(
             mc_error_band,
@@ -242,6 +246,7 @@ class RunHistPlotter:
                 color="k",
                 lw=0.5,
             )
+        assert ax is not None
         if scale_to_pot is None:
             if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
@@ -256,7 +261,7 @@ class RunHistPlotter:
                 )
         if chi_square is not None:
             n_bins = total_pred_hist.binning.n_bins
-            chi2_label = f"$\chi^2$ = {chi_square:.1f} / {n_bins}"
+            chi2_label = fr"$\chi^2$ = {chi_square:.1f} / {n_bins}"
             ax.text(
                 0.05,
                 0.97,
@@ -274,15 +279,16 @@ class RunHistPlotter:
             title += ", " + pot_label
         elif title is None:
             title = pot_label
-        ax.text(
-            0.5,
-            0.97,
-            title,
-            ha="center",
-            va="top",
-            transform=ax.transAxes,
-            fontsize=10,
-        )
+        if title is not None:
+            ax.text(
+                0.5,
+                0.97,
+                title,
+                ha="center",
+                va="top",
+                transform=ax.transAxes,
+                fontsize=10,
+            )
         ax.set_ylabel("Events")
         ax.legend(
             loc="lower left",
@@ -299,7 +305,7 @@ class RunHistPlotter:
 
     def plot_hist(
         self,
-        hist,
+        hist: Histogram,
         ax=None,
         show_errorband=True,
         as_errorbars=False,
@@ -312,7 +318,7 @@ class RunHistPlotter:
         if ax is None:
             ax = plt.gca()
         # make a step plot of the histogram
-        bin_counts = hist.nominal_values
+        bin_counts = hist.bin_counts
         bin_counts[bin_counts <= 0] = np.nan
         bin_edges = hist.binning.bin_edges
         label = kwargs.pop("label", hist.tex_string)
@@ -383,7 +389,7 @@ class RunHistPlotter:
 
         def repeated_nom_values(hist):
             # repeat the last bin count
-            y = hist.nominal_values
+            y = hist.bin_counts
             y = np.append(y, y[-1])
             return y
 
@@ -411,6 +417,7 @@ class RunHistPlotter:
             return ax
         # plot uncertainties as a shaded region, but only for the sum of all hists
         summed_hist = sum(hists)
+        assert isinstance(summed_hist, Histogram)
         # show sum as black line
         p = ax.step(
             summed_hist.binning.bin_edges,

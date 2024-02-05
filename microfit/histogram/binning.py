@@ -186,6 +186,7 @@ class MultiChannelBinning:
     is_log: bool = False
 
     def __post_init__(self):
+        assert [b.label is not None for b in self.binnings], "All binnings must have a label"
         self.ensure_unique_labels()
 
     def ensure_unique_labels(self):
@@ -226,14 +227,12 @@ class MultiChannelBinning:
         return cls(**state)
 
     @property
-    def label(self) -> str:
-        """Label of the unrolled binning."""
-        return "Global Bin Real"
-
-    @property
-    def labels(self) -> List[Union[str, None]]:
+    def labels(self) -> List[str]:
         """Labels of all channels."""
-        return [b.label for b in self.binnings]
+        assert [b.label is not None for b in self.binnings], "All binnings must have a label"
+        # The filter seems superfluous, but it is needed for the type checker to
+        # understand that the labels are not None.
+        return [b.label for b in self.binnings if b.label is not None]
 
     @property
     def n_channels(self):
