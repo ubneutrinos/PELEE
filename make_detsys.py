@@ -47,13 +47,17 @@ def make_variation_histograms(
         options={}
     for dataset in rundata:
         df = rundata[dataset].query(selection_query, engine="python")
+        print("Selected events:")
+        print(dataset)
+        print(df[["weights","mcf_pass_cccpi","mcf_pass_nccpi"]])
+
         generator = HistogramGenerator(df, binning)
         hist_dict[dataset] = generator.generate(use_kde_smoothing=use_kde_smoothing, options=options)
     #filter_queries["mc"] = _get_mc_filter_query(list(filter_queries.values()))
 
     return hist_dict
 
-def make_detvar_plots(detvar_data, output_dir):
+def make_detvar_plots(detvar_data, output_dir, plotname):
 
     """Make plots of the histograms contained in the detvar data"""
 
@@ -72,12 +76,18 @@ def make_detvar_plots(detvar_data, output_dir):
         ax.set_ylim(bottom=0)
         ax.legend(ncol=2)
         ax.set_title(f"Dataset: {truth_filter}, Selection: {detvar_data['selection_key']}")
+
+
+        
+
+        '''
         fig.savefig(
             os.path.join(
                 output_dir, f"detvar_{truth_filter}_{detvar_data['selection_key']}.pdf",
             ),
             bbox_inches="tight",
         )
+        '''
 
 # New function to enable integration of detvar generation into
 # notebooks insetad of as a separate function
@@ -94,11 +104,14 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
                       selection + "_" + binning.variable +\
                       ".json"
 
+
+    '''
     # First check if the file is already in the cache
     # TODO: Make this more robust - different binnings could be used for the same variable
     if os.path.isfile(ls.detvar_cache_path + "/" + output_file):
         print("Loading detvar file",ls.detvar_cache_path + "/" + output_file,"from cache")
         return output_file
+   '''
 
     selection_query = RunHistGenerator.get_selection_query(
         selection=selection, preselection=preselection
@@ -107,6 +120,7 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
     variation_hist_data = {}
     filter_queries = {}
     variations = dl.detector_variations
+
     for variation in variations:
         logging.info(f"Making histogram for variation {variation}")
         (
@@ -159,7 +173,7 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
     to_json(ls.detvar_cache_path + "/" + output_file, detvar_data)
 
     if make_plots:
-         make_detvar_plots(detvar_data, plot_output_dir)
+         make_detvar_plots(detvar_data, plot_output_dir,output_file+".png")
 
     return output_file
 

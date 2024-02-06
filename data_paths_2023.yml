@@ -853,6 +853,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_CV_reco2_reco2
         pot: 3.15E+20 
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lydown: # No LYDown used to run 1 - put the CV sample in as a dummy 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_CV_reco2_v08_00_00_38_run1_reco2_reco2 
@@ -861,6 +869,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_CV_reco2_reco2
         pot: 3.15E+20 
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lyatt: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYAttenuation_v08_00_00_38_run1_reco2_reco2 
@@ -869,6 +885,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_LYAttenuation_reco2_reco2
         pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYAttenuation_v08_00_00_45_run3b_reco2_reco2_nutples 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lyrayleigh: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYRayleigh_v08_00_00_37_run1_reco2_reco2 
@@ -877,6 +901,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_LYRayleigh_reco2_reco2
         pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYReyleigh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYReyliegh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     sce: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_detvar_sce_reco2_run1_reco2_reco2 
@@ -885,6 +917,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_SCE_reco2_reco2
         pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_39_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     recomb2: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_detvar_recomb2_reco2_run1_reco2_reco2 
@@ -893,6 +933,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_Recombination_reco2_reco2
         pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2_ntuples 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodx: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_wiremod_ScaleX_v08_00_00_42_run1_reco2_reco2 
@@ -901,6 +949,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_X_reco2_reco2
         pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodyz: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_42_run1_reco2_reco2
@@ -909,6 +965,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_YZ_reco2_reco2
         pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodthetaxz: 
       nue: 
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleXZ_v08_00_00_42_run1_reco2_reco2 
@@ -917,6 +981,14 @@ detvar:
       mc: 
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_ThetaXZ_reco2_reco2
         pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_data_cc_pi0_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodthetayz: 
       nue: 
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleYZ_v08_00_00_42_run1_reco2_reco2
@@ -925,6 +997,15 @@ detvar:
       mc: 
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_ThetaYZ_reco2_reco2
         pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_data_cc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
+
   - run_id: "3"
     path: run3/detvar/ 
     cv: 
@@ -935,6 +1016,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_CV_reco2_reco2 
         pot: 3.95121e+20 
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lydown:  
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2 
@@ -943,7 +1032,16 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYDown_reco2_reco2 
         pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lyatt: 
+      # TODO: Missing the pion samples for lyatt at the moment, use CV as dummies
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYAttenuation_v08_00_00_38_run3b_reco2_reco2  
         pot: 5.76185e+22
@@ -951,6 +1049,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYAttenuation_reco2_reco2 
         pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYAttenuation_v08_00_00_45_run3b_reco2_reco2_nutples 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lyrayleigh: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYRayleigh_v08_00_00_37_run3b_reco2_reco2 
@@ -959,6 +1065,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYRayleigh_reco2_reco2
         pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYReyleigh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYReyliegh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     sce: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2 
@@ -967,7 +1081,16 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_SCE_reco2_reco2
         pot: 3.91364e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_39_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     recomb2: 
+      # TODO: Missing the pion samples for recomb2 at the moment, use CV as dummies
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2 
         pot: 5.31577e+22
@@ -975,6 +1098,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_Recombination_reco2_reco2
         pot: 3.91364e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2_ntuples 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodx: 
       nue:
         file: prodgenie_bnb_nue_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2  
@@ -983,6 +1114,14 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_X_reco2_reco2
         pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodyz: 
       nue:
         file: prodgenie_bnb_nue_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2
@@ -991,11 +1130,27 @@ detvar:
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_YZ_reco2_reco2
         pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodthetaxz: 
       nue: 
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2
         pot: 5.57307e+22 
         filter: abs(nu_pdg)==12 and ccnc == 0
+      cc_pi0:
+        file: prodgenie_data_cc_pi0_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
       mc: 
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_ThetaXZ_reco2_reco2
         pot: 3.95121e+20
@@ -1007,3 +1162,11 @@ detvar:
       mc: 
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_ThetaYZ_reco2_reco2 
         pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_data_cc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.24923e+21 
+        filter: mcf_pass_ncpi0 == 1 
