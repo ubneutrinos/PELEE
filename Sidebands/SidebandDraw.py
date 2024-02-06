@@ -49,7 +49,6 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
               sel["title"] = sel["title"] + ", " + sideband_title 
               selections.selection_categories[selection+"_"+DATASET] = sel
 
-            
           os.system("mkdir -p Plots/png/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
           os.system("mkdir -p Plots/pdf/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
           os.system("mkdir -p Plots/no_detvar_png/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
@@ -83,7 +82,7 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                           preselection,
                           binning,
                           make_plots=False,
-                          truth_filtered_sets=["nue"],
+                          truth_filtered_sets=["nue","cc_pi0","nc_pi0"],
                           **dl_kwargs
                       )
                       if verb: print("Detector variation histograms saved as",detsys_file)

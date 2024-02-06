@@ -27,7 +27,9 @@ from microfit.selections import extract_variables_from_query
 
 datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-verbose=False
+#detector_variations = ["cv","wiremodthetaxz","wiremodthetayz"]
+
+verbose=True
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
@@ -2244,7 +2246,7 @@ def _load_run(
 
     category = "numupresel" if numupresel else "runs"
     # As a preparation step, we find out which variables we will need in order to do the truth-filtering
-    rundict = get_rundict(1, category)
+    rundict = get_rundict(run_number, category)
     filter_vars = set()
     for truth_set in truth_filtered_sets:
         if truth_set == "drt":
@@ -2291,7 +2293,13 @@ def _load_run(
         # For better performance, we want to convert the "dataset" column into a categorical column
         # where the categories are all the entries in mc_sets
         mc_df["dataset"] = pd.Categorical(mc_df["dataset"], categories=mc_sets + ["data", "ext"])
-        mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+
+
+        # TODO CT temporary test to see if weights are driving discrepancy
+        #mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+        mc_df["weights"] = data_pot / mc_pot
+
+
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
         # weights without the tune. We add this as a separate column here.
         mc_df["weights_no_tune"] = mc_df["weightSpline"] * data_pot / mc_pot
@@ -2334,15 +2342,21 @@ def _load_run(
         weights[mc_set] = data_pot / mc_pot
         output[mc_set] = mc_df
 
+    print("Prior to truth filtering:")
+    print(len(output['mc']))
+
     # Remove the truth filtered events from "mc" to avoid double-counting
     for truth_set in truth_filtered_sets:
         if truth_set == "drt":
             continue
         else:
             # The filters are all the same, so we just take them from run 1 here
-            rundict = get_rundict(1, category)
+            rundict = get_rundict(run_number, category)
             df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
+
+    print("After truth filtering:")
+    print(len(output['mc']))
 
     # If using one of the sideband datasets, apply the same query to the MC as well
     datadict = get_rundict(run_number,category)[data] 
@@ -2419,10 +2433,12 @@ def _load_run_detvar(
     truth-filtered sets.
     """
     assert var in detector_variations 
-   
+ 
+    print("Loading detvar data for run",run_number,"and variation",var)
+  
     assert isinstance(run_number,str), "You my only generate detector uncertainties for one run at a time"
 
-    if verbose and run_number == 1 and var == "lydown":
+    if verbose and run_number == "1" and var == "lydown":
         print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
  
     output = {}
@@ -2433,8 +2449,9 @@ def _load_run_detvar(
     # TODO: Update when we have run 4/5 detvars
     # No detvars for run 4b/d/c/d, we use run 3 instead, similarly, we use run 1 detvars for run 2
     run_number_tmp = run_number
-    if run_number in ["4b","4c","4d","5"]: run_number_tmp = "3"
-    elif run_number == "2": run_number_tmp = "1"
+    if run_number in ["3","4b","4c","4d","5"]: run_number_tmp = "3"
+    elif run_number in ["1","2"]: run_number_tmp = "1"
+    else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,4b,4c,4d,5")
 
     rundict = get_rundict(run_number_tmp, "detvar")
     weights = dict()
@@ -2442,6 +2459,7 @@ def _load_run_detvar(
     data_pot, _ = get_pot_trig(run_number,"runs",dataset)  # nu has no trigger number
 
     for mc_set in mc_sets:
+        print(mc_set)
         mc_df = load_sample(run_number_tmp, "detvar", mc_set, variation=var, **load_sample_kwargs)
         mc_pot, _ = get_pot_trig(run_number_tmp, "detvar", mc_set, variation=var)  # nu has no trigger number
         output[mc_set] = mc_df
@@ -2452,10 +2470,34 @@ def _load_run_detvar(
         mc_df["weights_no_tune"] = np.ones(len(mc_df)) / mc_pot
         weights[mc_set] = data_pot / mc_pot
 
+    print("mc_sets=",mc_sets)
+
+    # Really hecky way to maximise the statistics
+    cc_pi0_pot = 0
+    nc_pi0_pot = 0
+    if "cc_pi0" in mc_sets and "mc" in mc_sets:
+        cc_pi0_pot = get_pot_trig(run_number_tmp, "detvar", "mc", variation=var)[0] + get_pot_trig(run_number_tmp, "detvar", "cc_pi0", variation=var)[0]
+        print("cc_pi0_pot=",cc_pi0_pot)
+        df = output["cc_pi0"]
+        df.loc[(df["mcf_pass_ccpi0"] == True), "weights"] = 1.0/cc_pi0_pot
+        df = output["mc"]
+        df.loc[(df["mcf_pass_ccpi0"] == True), "weights"] = 1.0/cc_pi0_pot
+    if "nc_pi0" in mc_sets and "mc" in mc_sets:
+        nc_pi0_pot = get_pot_trig(run_number_tmp, "detvar", "mc", variation=var)[0] + get_pot_trig(run_number_tmp, "detvar", "nc_pi0", variation=var)[0]
+        print("nc_pi0_pot=",nc_pi0_pot)
+        df = output["nc_pi0"]
+        df.loc[(df["mcf_pass_ncpi0"] == True), "weights"] = 1.0/nc_pi0_pot
+        df = output["mc"]
+        df.loc[(df["mcf_pass_ncpi0"] == True), "weights"] = 1.0/nc_pi0_pot
+        #truth_filtered_sets.remove("cc_pi0")
+
+
     # Remove the truth filtered events from "mc" to avoid double-counting
     for truth_set in truth_filtered_sets:
         if truth_set == "drt":
             continue
+        elif truth_set == "cc_pi0": continue
+        elif truth_set == "nc_pi0": continue
         else:
             filter_query = rundict[var][truth_set]["filter"]
             df_temp = output["mc"].query(filter_query, engine="python")
@@ -2476,6 +2518,18 @@ def _load_run_detvar(
         for key in output:
             df_temp = output[key].query(sdb_def)
             output[key] = df_temp
+
+    # TODO: Revert this when we have pion samples in the main simulation
+    # Hacky way to handle the fact we don't have pion samples in the main simulation
+    if "cc_pi0" in truth_filtered_sets and "mc" in output.keys():
+        output["mc"] = pd.concat([output["mc"],output["cc_pi0"]])
+        del output["cc_pi0"]
+        del weights["cc_pi0"]
+
+    if "nc_pi0" in truth_filtered_sets and "mc" in output.keys():
+        output["mc"] = pd.concat([output["mc"],output["nc_pi0"]])
+        del output["nc_pi0"]
+        del weights["nc_pi0"]
 
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
@@ -2779,7 +2833,7 @@ def get_run_variables(
 
     # There are some additional variables that are only used for baseline "nu"
     # MC runs.
-    if dataset == "nu":
+    if dataset != "ext" and dataset != "data":
         ALLVARS += VARDICT["MCFVARS"]
 
     return list(set(ALLVARS))
