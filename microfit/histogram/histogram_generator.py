@@ -471,6 +471,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         ms_columns=["weightsGenie", "weightsFlux", "weightsReint"],
         include_unisim_errors=True,
         include_stat_errors=True,
+        extra_query=None,
     ):
         """Generate a joint histogram from multiple histogram generators.
 
@@ -480,6 +481,7 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         generate_kwargs = {
             "include_multisim_errors": False,
+            "extra_query": extra_query,
         }
         # We want these histograms to only contain the statistical covariance matrix (which may include correlations
         # in case of overlapping selections between channels).
@@ -493,14 +495,14 @@ class HistogramGenerator(SmoothHistogramMixin):
         if not include_multisim_errors:
             return histogram
         covariance_matrix = np.zeros((histogram.n_bins, histogram.n_bins))
-        concatenated_cv = cls.multiband_cv(hist_generators)
+        concatenated_cv = cls.multiband_cv(hist_generators, extra_queries=[extra_query] * len(hist_generators))
         for ms_column in ms_columns:
             covariance_matrix += HistogramGenerator.multiband_covariance(
-                hist_generators, ms_column, concatenated_cv=concatenated_cv
+                hist_generators, ms_column, concatenated_cv=concatenated_cv, extra_queries=[extra_query] * len(hist_generators)
             )
         if include_unisim_errors:
             covariance_matrix += HistogramGenerator.multiband_unisim_covariance(
-                hist_generators, concatenated_cv=concatenated_cv
+                hist_generators, concatenated_cv=concatenated_cv, extra_queries=[extra_query] * len(hist_generators)
             )
         histogram.add_covariance(covariance_matrix)
         return histogram

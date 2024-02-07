@@ -53,14 +53,11 @@ Run the `MicroFit Tutorial.ipynb` notebook to familiarize yourself with the Micr
 ## Technote plots
 
 ### Plots of the signal and sideband spectra with correlations
-Run the following to make the spectra plots:
+Run the following to make the spectra plots, plots of the covariance matrices, and print a table of the fractional error contributions:
 ```
-python scripts/make_ana_plots_runs_1-5.py
+python scripts/plot_analysis_histograms_correlations.py --configuration /nashome/a/atrettin/PELEE/config_files/first_round_analysis_runs_1-5.toml --output-dir ana_output_runs_1-5 --print-tables
 ```
-### Plots of Giuseppe's new sidebands with their correlations
-```
-python scripts/plot_three_sidebands.py
-```
+
 ### First sensitivities with all runs
 To run the two-hypothesis test: 
 ```

@@ -20,7 +20,7 @@ def run_analysis(args):
     h0_params = ParameterSet.from_dict(args.configuration.pop("h0_params"))
     h1_params = ParameterSet.from_dict(args.configuration.pop("h1_params"))
     analysis = MultibandAnalysis(args.configuration)
-    print(f"Running analysis with parameters: {analysis.parameters}")
+    analysis.print_configuration()
     print(f"Null hypothesis parameters: {h0_params}")
     print(f"Alternative hypothesis parameters: {h1_params}")
 
@@ -38,13 +38,13 @@ def run_analysis(args):
 def plot_results(args):
     # read results from file
     two_hypo_results = from_json(os.path.join(args.output_dir, "two_hypothesis_test.json"))
-    
-    fig, ax = plt.subplots()
-    ax.hist(two_hypo_results["samples_h0"], bins=35, histtype="step", density=True, label="H0")
-    ax.hist(two_hypo_results["samples_h1"], bins=35, histtype="step", density=True, label="H1")
+    n_trials = len(two_hypo_results["samples_h0"])
+    fig, ax = plt.subplots(figsize=(5, 4), constrained_layout=True)
+    ax.hist(two_hypo_results["samples_h0"], bins=int(np.sqrt(n_trials)), histtype="step", density=True, label="H0")
+    ax.hist(two_hypo_results["samples_h1"], bins=int(np.sqrt(n_trials)), histtype="step", density=True, label="H1")
     ax.axvline(x=two_hypo_results["ts_median_h1"], color="k", linestyle="--", label=f"Median H1\np-val: {two_hypo_results['median_pval']:0.3f}")
     ax.legend()
-    ax.set_xlabel("Test statistic")
+    ax.set_xlabel(r"$\Delta \chi^2$")
     ax.set_ylabel("Probability density")
     fig.savefig(os.path.join(args.output_dir, "two_hypothesis_test.pdf"))
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("function", help="Function to run")
     parser.add_argument("--configuration", help="Path to analysis configuration file")
     parser.add_argument("--output-dir", help="Path to output directory", required=True, type=str)
-    parser.add_argument("--n-trials", type=int, default=1000, help="Number of trials to run")
+    parser.add_argument("--n-trials", type=int, default=10000, help="Number of trials to run")
     parser.add_argument("--scale-to-pot", type=float, default=None, help="Scale to this POT")
     parser.add_argument("--sensitivity-only", action="store_true", help="Only calculate sensitivity")
     args = parser.parse_args()

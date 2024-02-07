@@ -1,3 +1,7 @@
+[plotting]
+run_title = "Runs 1-3"
+
+[channels]
 signal_channels = ["NPBDT", "ZPBDT"]
 constraint_channels = ["NUMUCRT"]
 
@@ -8,6 +12,16 @@ value = 0.0
 [[h1_params]]
 name = "signal_strength"
 value = 1.0
+
+[fc_scan]
+parameter_name = "signal_strength"
+range = [0, 5]
+n_points = 40
+
+[[fc_scan.fit_grid]]
+parameter = "signal_strength"
+range = [0, 10]
+n_points = 100
 
 [uncertainty_defaults]
 include_multisim_errors = true

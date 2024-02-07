@@ -628,6 +628,22 @@ class Histogram:
     def __len__(self):
         return self.n_bins
 
+    @classmethod
+    def empty_like(cls, other):
+        """Create an empty histogram with the same binning as another histogram.
+
+        Parameters
+        ----------
+        other : Histogram
+            Histogram to copy the binning from.
+
+        Returns
+        -------
+        Histogram
+            Empty histogram with the same binning as the input histogram.
+        """
+        return cls(other.binning, np.zeros(other.n_bins), covariance_matrix=np.zeros((other.n_bins, other.n_bins)))
+
 
 class MultiChannelHistogram(Histogram):
     """A histogram that combines multiple channels with a single covariance matrix.
@@ -998,7 +1014,7 @@ class MultiChannelHistogram(Histogram):
     def __repr__(self):
         return f"MultiChannelHistogram(binning={self.binning}, bin_counts={self.bin_counts}, label={self.label}, tex={self.tex_string})"
 
-    def draw(self, ax=None, as_errorbars=False, show_errors=True, **plot_kwargs):
+    def draw(self, ax=None, as_errorbars=False, show_errors=True, show_channel_labels=True, **plot_kwargs):
         # call the draw method of the unrolled histogram
         unrolled_hist = self.get_unrolled_histogram()
         ax = unrolled_hist.draw(ax, as_errorbars, show_errors, **plot_kwargs)
@@ -1008,16 +1024,17 @@ class MultiChannelHistogram(Histogram):
             ax.axvline(n_bins, color="k", linestyle="--")
 
         # Add text boxes for each channel label
-        for i, label in enumerate(channel_labels):
-            if label is None:
-                continue
-            ax.text(
-                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
-                0.0,
-                label,
-                ha="center",
-                va="bottom",
-            )
+        if show_channel_labels:
+            for i, label in enumerate(channel_labels):
+                if label is None:
+                    continue
+                ax.text(
+                    (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                    0.0,
+                    label,
+                    ha="center",
+                    va="bottom",
+                )
 
         return ax
 

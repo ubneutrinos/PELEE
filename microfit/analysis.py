@@ -60,6 +60,23 @@ class MultibandAnalysis(object):
         self.data_pot = None
         self.plot_sideband = False
         assert isinstance(self.parameters, ParameterSet)
+        assert len(self.signal_channels) > 0, "No signal channels given"
+
+    def print_configuration(self):
+        """Print a summary of the configuration of the analysis to console.
+        
+        This function should be used after completing the configuration
+        to give the analyzer a confirmation that the analysis is configured
+        as expected.
+        """
+
+        print("Analysis configuration:")
+        print(f"  Signal channels: {self.signal_channels}")
+        if len(self.constraint_channels) > 0:
+            print(f"  Constraint channels: {self.constraint_channels}")
+        else:
+            print("  No constraint channels")
+        print(self.parameters)  # relying on __repr__ of the ParameterSet class
 
     def _init_from_generators(
         self,
@@ -88,9 +105,9 @@ class MultibandAnalysis(object):
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
-        self.signal_channels = configuration["signal_channels"]
-        if "constraint_channels" in configuration:
-            self.constraint_channels = configuration["constraint_channels"]
+        self.signal_channels = configuration["channels"]["signal_channels"]
+        if "constraint_channels" in configuration["channels"]:
+            self.constraint_channels = configuration["channels"]["constraint_channels"]
         else:
             self.constraint_channels = []
         self.uncertainty_defaults = configuration.get("uncertainty_defaults", {})
@@ -124,7 +141,7 @@ class MultibandAnalysis(object):
 
     def _check_config(self, config):
         assert isinstance(config, dict), "Configuration must be a dictionary"
-        required_keys = ["generator", "signal_channels"]
+        required_keys = ["generator", "channels"]
         assert all(
             key in config for key in required_keys
         ), f"Configuration must contain the keys {required_keys}"
@@ -182,6 +199,7 @@ class MultibandAnalysis(object):
             return hist
         constraint_channels = constraint_channels or self.constraint_channels
         total_prediction_hist = total_prediction_hist or hist
+        assert len(constraint_channels) > 0, "No constraint channels given"
         constraint_data = data_hist[constraint_channels]
         hist = hist.update_with_measurement(
             measurement=constraint_data,
@@ -198,16 +216,20 @@ class MultibandAnalysis(object):
         signal_channels: Optional[List[str]] = None,
         include_non_signal_channels: bool = False,
         include_ext: bool = True,
+        extra_query=None,
+        ms_columns=["weightsGenie", "weightsFlux", "weightsReint"],
+        include_unisim_errors=True,
+        include_stat_errors=True,
     ) -> MultiChannelHistogram:
         """Generate the combined MC histogram from all channels."""
 
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
         mc_hist = HistogramGenerator.generate_joint_histogram(
-            mc_hist_generators, include_multisim_errors=include_multisim_errors
+            mc_hist_generators, include_multisim_errors=include_multisim_errors, extra_query=extra_query, ms_columns=ms_columns, include_unisim_errors=include_unisim_errors, include_stat_errors=include_stat_errors
         )
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
         joint_ext_hist = HistogramGenerator.generate_joint_histogram(
-            ext_hist_generators, include_multisim_errors=False
+            ext_hist_generators, include_multisim_errors=False, extra_query=extra_query, include_stat_errors=include_stat_errors
         )
 
         constraint_channels = constraint_channels or self.constraint_channels
@@ -219,7 +241,7 @@ class MultibandAnalysis(object):
         assert isinstance(joint_ext_hist, MultiChannelHistogram)
 
         total_prediction = mc_hist + joint_ext_hist
-        if use_sideband:
+        if use_sideband and len(constraint_channels) > 0:
             # We have to be careful here to use the *full* prediction as the central
             # value when applying the constraint, not just the MC prediction.
             mc_hist = self._apply_constraints(
@@ -252,8 +274,7 @@ class MultibandAnalysis(object):
         the RunHistGenerator class, so that the analysis can be dropped into the
         RunHistPlotter.
         """
-        if extra_query is not None:
-            raise NotImplementedError("extra_query not implemented in the Analysis class.")
+
         if add_precomputed_detsys:
             raise NotImplementedError(
                 "add_precomputed_detsys not implemented in the Analysis class."
@@ -264,6 +285,7 @@ class MultibandAnalysis(object):
             scale_to_pot=scale_to_pot,
             include_ext=False,
             include_non_signal_channels=True,
+            extra_query=extra_query,
         )
         channels = self.constraint_channels if self.plot_sideband else self.signal_channels
         return output[channels]

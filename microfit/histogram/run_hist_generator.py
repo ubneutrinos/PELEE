@@ -309,7 +309,7 @@ class RunHistGenerator:
             if include_multisim_errors is None
             else include_multisim_errors
         )
-        mc_hists = {}  # type: Dict[str, Histogram]
+        mc_hists = {}  # type: Dict[str | int, Histogram]
         other_categories = []
         for i, category in enumerate(self.mc_hist_generator.dataframe[category_column].unique()):
             extra_query = f"{category_column} == '{category}'"
