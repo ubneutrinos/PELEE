@@ -39,6 +39,10 @@ class MultibandAnalysis(object):
         self.parameters = ParameterSet([])
         self.constraint_channels = []  # type: List[str]
         self.signal_channels = []  # type: List[str]
+        # This attribute is a dictionary holding additional keyword arguments that are forwarded to the
+        # `.plot` functino of the RunHistPlotter. It's a good idea to set the `run_title` property here
+        # so that the runs can be shown next to the selection (e.g. "Runs 1-5").
+        self.plotting_config = {}
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
@@ -77,6 +81,11 @@ class MultibandAnalysis(object):
         else:
             print("  No constraint channels")
         print(self.parameters)  # relying on __repr__ of the ParameterSet class
+        # also print plotting config if not empty
+        if self.plotting_config:
+            print("  Plotting configuration:")
+            for key, value in self.plotting_config.items():
+                print(f"    {key}: {value}")
 
     def _init_from_generators(
         self,
@@ -111,6 +120,7 @@ class MultibandAnalysis(object):
         else:
             self.constraint_channels = []
         self.uncertainty_defaults = configuration.get("uncertainty_defaults", {})
+        self.plotting_config = configuration.get("plotting", {})
 
     def _check_shared_params(self, param_sets: List[ParameterSet]):
         shared_names = list(
@@ -162,7 +172,8 @@ class MultibandAnalysis(object):
             binning.set_selection(
                 selection=channel_config["selection"], preselection=channel_config["preselection"]
             )
-            binning.label = channel_config["selection"]
+            label = channel_config.get("label", None)
+            binning.label = label or channel_config["selection"]
             channel_binnings.append(binning)
         binning = MultiChannelBinning(channel_binnings)
 
@@ -488,15 +499,20 @@ class MultibandAnalysis(object):
         n_channels = len(channels)
         if n_channels == 0:
             return None
-        show_data_mc_ratio = kwargs.get("show_data_mc_ratio", False)
+
         if separate_figures:
             for channel in channels:
+                if channel in self.plotting_config:
+                    default_kwargs = self.plotting_config[channel].copy()
+                    default_kwargs.update(kwargs)
+                else:
+                    default_kwargs = kwargs
                 ax, _ = RunHistPlotter(self).plot(
                     category_column=category_column,
                     channel=channel,
                     data_pot=self._get_pot_for_channel(channel),
                     show_data=not self._get_channel_is_blinded(channel),
-                    **kwargs,
+                    **default_kwargs,
                 )
                 if save_path is not None:
                     assert ax is not None, "Cannot save figure when ax is None"
@@ -504,6 +520,7 @@ class MultibandAnalysis(object):
                     fig.savefig(os.path.join(save_path, filename_format.format(channel)))
                     plt.close(fig)
             return
+        show_data_mc_ratio = kwargs.get("show_data_mc_ratio", False)
         n_rows = 2 if show_data_mc_ratio else 1
         n_cols = n_channels
         fig, axes = plt.subplots(
@@ -1056,7 +1073,7 @@ class MultibandAnalysis(object):
                     # available in Python 3.7 because it lacks the "Literal" type
                     chi2_at_best_fit = self.fit_to_data(
                         pseudo_data, reset_cache=False, method=fit_method, **fit_kwargs
-                    )[
+                    )[  # type: ignore
                         0
                     ]  # type: ignore
                     delta_chi2.append(chi2_at_truth - chi2_at_best_fit)

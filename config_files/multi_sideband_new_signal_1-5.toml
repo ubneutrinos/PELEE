@@ -1,15 +1,18 @@
 [plotting]
-[plotting.NUMUCRT]
-run_title = "Run 3-5"
 [plotting.NPBDT_SHR_E]
-run_title = "Run 1-5"
+run_title = "Runs 1-5"
 [plotting.ZPBDT_SHR_E]
-run_title = "Run 1-5"
+run_title = "Runs 1-5"
+[plotting.NUMUCRTNP0PI]
+run_title = "Runs 3-5"
+[plotting.NUMUCRT0P0PI]
+run_title = "Runs 3-5"
+[plotting.TWOSHR]
+run_title = "Runs 3-5"
 
 [channels]
 signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
-constraint_channels = ["NUMUCRT"]
-
+constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 
 [[h0_params]]
 name = "signal_strength"
@@ -34,6 +37,7 @@ include_multisim_errors = true
 add_ext_error_floor = false
 use_sideband = true
 
+# ------ Muon Sideband Generator ----- 
 [[generator]]
 [generator.load_runs]
 run_numbers = ["3","4b","4c","4d","5"]
@@ -47,16 +51,62 @@ load_crt_vars = true
 numupresel = true
 enable_cache = true
 blinded = false
-load_lee = false
 
 [[generator.channel]]
 variable = "neutrino_energy"
 n_bins = 14
 limits = [0.15, 1.55]
-selection = "NUMUCRT"
-preselection = "NUMU"
+selection = "NUMUCRTNP0PI"
+preselection = "NUMUCRT"
 variable_tex = "Neutrino Reconstructed Energy (GeV)"
 
+[[generator.channel]]
+variable = "neutrino_energy"
+n_bins = 14
+limits = [0.15, 1.55]
+selection = "NUMUCRT0P0PI"
+preselection = "NUMUCRT"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+
+# Adding the inclusive $\nu_\mu$ selection channel even though
+# it is not used by default. This allows us to quickly compare
+# the old and new selections without having to reload the entire
+# analysis twice, by simply setting the `constraint_channels` 
+# property at runtime.
+[[generator.channel]]
+variable = "neutrino_energy"
+n_bins = 14
+limits = [0.15, 1.55]
+selection = "NUMUCRT"
+preselection = "NUMUCRT"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+
+# ------ Two-shower Sideband Generator ----- 
+[[generator]]
+[generator.load_runs]
+run_numbers = ["3","4b","4c","4d","5"]
+data = "two_shr_sideband"
+truth_filtered_sets = ["nue", "drt"]
+loadpi0variables = true
+loadshowervariables = true
+loadrecoveryvars = false
+loadsystematics = true
+load_crt_vars = true
+load_lee = false
+enable_cache = true
+blinded = false
+
+[[generator.channel]]
+variable = "reco_e"
+n_bins = 14
+limits = [0.15, 1.55]
+selection = "ZPLOOSESELTWOSHR"
+preselection = "ZPTwoShrCRT"
+label = "TWOSHR"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+
+
+# ------- NUE Signal Generator -------
 [[generator]]
 
 mc_hist_generator_cls = "SignalOverBackgroundGenerator"
