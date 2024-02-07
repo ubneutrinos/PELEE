@@ -1,5 +1,10 @@
 [plotting]
+[plotting.NPBDT]
 run_title = "Runs 1-5"
+[plotting.ZPBDT]
+run_title = "Runs 1-5"
+[plotting.NUMUCRT]
+run_title = "Runs 3-5"
 
 [channels]
 signal_channels = ["NPBDT", "ZPBDT"]
