@@ -89,7 +89,9 @@ class Binning:
             self.selection_key = selection
             self.preselection_key = preselection
             self.selection_tex = selection_tex or get_selection_title(selection, preselection)
-            self.selection_tex_short = selection_tex or get_selection_title(selection, preselection, short=True)
+            self.selection_tex_short = selection_tex or get_selection_title(
+                selection, preselection, short=True
+            )
         elif query is not None:
             self.selection_query = query
             self.selection_key = None

@@ -30,7 +30,7 @@ class MultibandAnalysis(object):
     def __init__(
         self,
         configuration=None,
-        run_hist_generators: Optional[List[RunHistGenerator]]=None,
+        run_hist_generators: Optional[List[RunHistGenerator]] = None,
         constraint_channels=[],
         signal_channels=[],
         uncertainty_defaults=None,
@@ -64,7 +64,7 @@ class MultibandAnalysis(object):
 
     def print_configuration(self):
         """Print a summary of the configuration of the analysis to console.
-        
+
         This function should be used after completing the configuration
         to give the analyzer a confirmation that the analysis is configured
         as expected.
@@ -202,8 +202,7 @@ class MultibandAnalysis(object):
         assert len(constraint_channels) > 0, "No constraint channels given"
         constraint_data = data_hist[constraint_channels]
         hist = hist.update_with_measurement(
-            measurement=constraint_data,
-            central_value=total_prediction_hist
+            measurement=constraint_data, central_value=total_prediction_hist
         )
         return hist
 
@@ -225,11 +224,19 @@ class MultibandAnalysis(object):
 
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
         mc_hist = HistogramGenerator.generate_joint_histogram(
-            mc_hist_generators, include_multisim_errors=include_multisim_errors, extra_query=extra_query, ms_columns=ms_columns, include_unisim_errors=include_unisim_errors, include_stat_errors=include_stat_errors
+            mc_hist_generators,
+            include_multisim_errors=include_multisim_errors,
+            extra_query=extra_query,
+            ms_columns=ms_columns,
+            include_unisim_errors=include_unisim_errors,
+            include_stat_errors=include_stat_errors,
         )
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
         joint_ext_hist = HistogramGenerator.generate_joint_histogram(
-            ext_hist_generators, include_multisim_errors=False, extra_query=extra_query, include_stat_errors=include_stat_errors
+            ext_hist_generators,
+            include_multisim_errors=False,
+            extra_query=extra_query,
+            include_stat_errors=include_stat_errors,
         )
 
         constraint_channels = constraint_channels or self.constraint_channels
@@ -418,7 +425,9 @@ class MultibandAnalysis(object):
         return ext_hist
 
     @lru_cache(maxsize=1)
-    def generate_multiband_data_histogram(self, impute_blinded_channels=False) -> Optional[MultiChannelHistogram]:
+    def generate_multiband_data_histogram(
+        self, impute_blinded_channels=False
+    ) -> Optional[MultiChannelHistogram]:
         """Generate a combined histogram from all unblinded data channels."""
 
         unblinded_generators = [
@@ -437,7 +446,7 @@ class MultibandAnalysis(object):
         for channel in full_hist.channels:
             if channel not in data_hist.channels:
                 # extracting one channel is known to return a Histogram
-                data_hist.append_empty_channel(full_hist[channel].binning) # type: ignore
+                data_hist.append_empty_channel(full_hist[channel].binning)  # type: ignore
         return data_hist
 
     def _get_pot_for_channel(self, channel):
@@ -840,14 +849,19 @@ class MultibandAnalysis(object):
             )
         elif scan_points is not None:
             if "scan_points" not in fc_scan_results:
-                assert np.allclose(scan_points, np.array([result["scan_point"] for result in fc_scan_results["results"]])), "incomptible scan points"
+                assert np.allclose(
+                    scan_points,
+                    np.array([result["scan_point"] for result in fc_scan_results["results"]]),
+                ), "incomptible scan points"
                 fc_scan_results["scan_points"] = scan_points
         elif parameter_name is not None:
             assert parameter_name == fc_scan_results["parameter_name"]
 
         scan_points = np.array([result["scan_point"] for result in fc_scan_results["results"]])
         parameter_name = fc_scan_results["parameter_name"]
-        assert set({"parameter_name", "scan_points", "results"}).issubset(set(fc_scan_results.keys()))
+        assert set({"parameter_name", "scan_points", "results"}).issubset(
+            set(fc_scan_results.keys())
+        )
 
         def inverse_quantile(x, q):
             return sum(x < q) / len(x)
@@ -862,9 +876,8 @@ class MultibandAnalysis(object):
             # For every value in the asimov chi-square, we want to know the p-value.
             # To get it we have to loop over the fc scan we did earlier for all the points.
             result["pval"] = [
-                inverse_quantile(r["delta_chi2"], asim_chi2) for (r, asim_chi2) in zip(
-                    fc_scan_results["results"], result["asimov_chi2"]
-                )
+                inverse_quantile(r["delta_chi2"], asim_chi2)
+                for (r, asim_chi2) in zip(fc_scan_results["results"], result["asimov_chi2"])
             ]
         # For convenience, we also already compute the 2D map of p-values and return them as well.
         # These can be used for plotting.
@@ -1030,20 +1043,22 @@ class MultibandAnalysis(object):
                 for j in range(n_trials):
                     global_trial_index = n_trials * i + j
                     # the seeds are chosen such that no seed is used twice
-                    pseudo_data = expectation.fluctuate(
-                        seed=global_trial_index
-                    ).fluctuate_poisson(seed=global_trial_index + number_of_samples)
+                    pseudo_data = expectation.fluctuate(seed=global_trial_index).fluctuate_poisson(
+                        seed=global_trial_index + number_of_samples
+                    )
                     self.parameters[parameter_name].value = scan_point
                     chi2_at_truth = chi_square(
                         pseudo_data.bin_counts,
                         expectation.bin_counts,
                         expectation.covariance_matrix,
                     )
-                    # ignore typing here, this requires overloading that is not yet 
+                    # ignore typing here, this requires overloading that is not yet
                     # available in Python 3.7 because it lacks the "Literal" type
                     chi2_at_best_fit = self.fit_to_data(
                         pseudo_data, reset_cache=False, method=fit_method, **fit_kwargs
-                    )[0]  # type: ignore
+                    )[
+                        0
+                    ]  # type: ignore
                     delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
                 delta_chi2 = np.array(delta_chi2)
                 results.append({"delta_chi2": delta_chi2, "scan_point": scan_point})

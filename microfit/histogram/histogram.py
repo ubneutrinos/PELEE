@@ -12,7 +12,7 @@ from microfit.statistics import (
     error_propagation_multiplication,
     is_psd,
     sideband_constraint_correction,
-    get_cnp_covariance
+    get_cnp_covariance,
 )
 from microfit.histogram import Binning, MultiChannelBinning
 
@@ -65,7 +65,7 @@ class Histogram:
             "Binning must have a channel label that can uniquely identify it "
             "in a MultiChannelHistogram."
         )
-        
+
         if bin_counts.ndim == 2:
             self._bin_counts = bin_counts
         elif bin_counts.ndim == 1:
@@ -642,7 +642,11 @@ class Histogram:
         Histogram
             Empty histogram with the same binning as the input histogram.
         """
-        return cls(other.binning, np.zeros(other.n_bins), covariance_matrix=np.zeros((other.n_bins, other.n_bins)))
+        return cls(
+            other.binning,
+            np.zeros(other.n_bins),
+            covariance_matrix=np.zeros((other.n_bins, other.n_bins)),
+        )
 
 
 class MultiChannelHistogram(Histogram):
@@ -694,7 +698,7 @@ class MultiChannelHistogram(Histogram):
             # roll by the number of bins in the first channel.
             first_last = 0 if sign < 0 else -1
             shift_bins = self.binning[first_last].n_bins * sign
-            # Keep in mind that the bin counts are a 2D array, where off-diagonal 
+            # Keep in mind that the bin counts are a 2D array, where off-diagonal
             # elements correspond to the number of events shared between two bins.
             self._bin_counts = np.roll(self._bin_counts, shift_bins, axis=0)
             self._bin_counts = np.roll(self._bin_counts, shift_bins, axis=1)
@@ -743,7 +747,7 @@ class MultiChannelHistogram(Histogram):
         key : int or str
             Index or label of the channel.
         measurement : Histogram or MultiChannelHistogram
-            Data histogram to be used in the update. We assume that we want to perform the update 
+            Data histogram to be used in the update. We assume that we want to perform the update
             using all channels in this histogram.
         central_value : np.ndarray or Histogram, optional
             Central value of the sideband. If provided, this overrides the expectation value
@@ -765,7 +769,7 @@ class MultiChannelHistogram(Histogram):
 
         arranged_channels = [c for c in self.channels if c not in measurement.channels]
         assert len(arranged_channels) > 0, "At least one channel must remain in the histogram."
-        arranged_channels += measurement.channels  
+        arranged_channels += measurement.channels
         rearranged_hist = self[arranged_channels]
         # As the central value, we want to use the 2D bin counts that include events
         # that are shared between bins.
@@ -790,8 +794,7 @@ class MultiChannelHistogram(Histogram):
             raise ValueError("central_value must be a Histogram or an ndarray.")
         concat_covariance_matrix = rearranged_hist.covariance_matrix
         sideband_cnp_covariance = get_cnp_covariance(
-            sideband_2d_central_value,
-            measurement._bin_counts
+            sideband_2d_central_value, measurement._bin_counts
         )
         assert sideband_cnp_covariance.ndim == 2, "CNP covariance must be 2-dimensional."
         # When we compute the constraint correction, then we only want to use the diagonal
@@ -811,7 +814,9 @@ class MultiChannelHistogram(Histogram):
         # If so, we need to raise an exception, because we cannot perform
         # the update correctly. If we wanted to do this, we would need proper 2D histograms
         # with covariances between all bins.
-        if not np.all(np.diag(constrained_histogram.bin_counts) == constrained_histogram._bin_counts):
+        if not np.all(
+            np.diag(constrained_histogram.bin_counts) == constrained_histogram._bin_counts
+        ):
             raise ValueError(
                 "Cannot perform update because the remaining histogram has bins with shared events. "
                 "The sideband constraint correction is ill-defined in this case. "
@@ -860,6 +865,7 @@ class MultiChannelHistogram(Histogram):
         return self.covariance_matrix[
             np.ix_(self.binning._channel_bin_idx(key), self.binning._channel_bin_idx(key))
         ]
+
     # Overloads to help with type hinting when getting items
     @overload
     def __getitem__(self, key: Union[int, str]) -> Histogram:
@@ -869,7 +875,9 @@ class MultiChannelHistogram(Histogram):
     def __getitem__(self, key: Sequence[Union[int, str]]) -> "MultiChannelHistogram":
         ...
 
-    def __getitem__(self, key: Union[int, str, Sequence[Union[int, str]]]) -> Union[Histogram, "MultiChannelHistogram"]:
+    def __getitem__(
+        self, key: Union[int, str, Sequence[Union[int, str]]]
+    ) -> Union[Histogram, "MultiChannelHistogram"]:
         """Get the histogram of a given channel or a list of channels.
 
         Parameters
@@ -1014,7 +1022,9 @@ class MultiChannelHistogram(Histogram):
     def __repr__(self):
         return f"MultiChannelHistogram(binning={self.binning}, bin_counts={self.bin_counts}, label={self.label}, tex={self.tex_string})"
 
-    def draw(self, ax=None, as_errorbars=False, show_errors=True, show_channel_labels=True, **plot_kwargs):
+    def draw(
+        self, ax=None, as_errorbars=False, show_errors=True, show_channel_labels=True, **plot_kwargs
+    ):
         # call the draw method of the unrolled histogram
         unrolled_hist = self.get_unrolled_histogram()
         ax = unrolled_hist.draw(ax, as_errorbars, show_errors, **plot_kwargs)

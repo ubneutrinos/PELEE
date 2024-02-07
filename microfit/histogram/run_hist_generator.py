@@ -207,7 +207,7 @@ class RunHistGenerator:
             warnings.warn(
                 "Using the sideband_generator argument is deprecated. Use the MultiBandAnalysis "
                 "class instead.",
-                DeprecationWarning
+                DeprecationWarning,
             )
         self.sideband_generator = sideband_generator
         self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
@@ -477,7 +477,9 @@ class RunHistGenerator:
             Chi square between the data and the total prediction.
         """
         # TODO: This currently does not take into account the covariance between bins due to shared events
-        warnings.warn("The chi-square calculation currently does not take into account contributions from correlated data bins.")
+        warnings.warn(
+            "The chi-square calculation currently does not take into account contributions from correlated data bins."
+        )
         data_hist = self.get_data_hist(type="data")
         if data_hist is None:
             return np.nan

@@ -6,6 +6,7 @@ import numpy as np
 from microfit.fileio import from_json
 from microfit.parameters import ParameterSet
 from microfit.histogram import Binning, MultiChannelBinning
+
 # Need to break potential import loops
 from microfit.histogram.histogram import Histogram, MultiChannelHistogram
 from microfit.histogram import SmoothHistogramMixin
@@ -495,14 +496,21 @@ class HistogramGenerator(SmoothHistogramMixin):
         if not include_multisim_errors:
             return histogram
         covariance_matrix = np.zeros((histogram.n_bins, histogram.n_bins))
-        concatenated_cv = cls.multiband_cv(hist_generators, extra_queries=[extra_query] * len(hist_generators))
+        concatenated_cv = cls.multiband_cv(
+            hist_generators, extra_queries=[extra_query] * len(hist_generators)
+        )
         for ms_column in ms_columns:
             covariance_matrix += HistogramGenerator.multiband_covariance(
-                hist_generators, ms_column, concatenated_cv=concatenated_cv, extra_queries=[extra_query] * len(hist_generators)
+                hist_generators,
+                ms_column,
+                concatenated_cv=concatenated_cv,
+                extra_queries=[extra_query] * len(hist_generators),
             )
         if include_unisim_errors:
             covariance_matrix += HistogramGenerator.multiband_unisim_covariance(
-                hist_generators, concatenated_cv=concatenated_cv, extra_queries=[extra_query] * len(hist_generators)
+                hist_generators,
+                concatenated_cv=concatenated_cv,
+                extra_queries=[extra_query] * len(hist_generators),
             )
         histogram.add_covariance(covariance_matrix)
         return histogram
@@ -568,7 +576,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             List of HistogramGenerator objects.
         extra_queries : list of str, optional
             List of additional queries to apply to the dataframe.
-        
+
         Returns
         -------
         concatenated_cv : array_like

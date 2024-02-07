@@ -10,7 +10,7 @@ from .histogram import (
     Binning,
     MultiChannelBinning,
     MultiChannelHistogram,
-    Histogram
+    Histogram,
 )
 from . import selections
 from .statistics import chi_square as chi_square_func
@@ -113,9 +113,7 @@ class RunHistPlotter:
                 no_signal_query = f"{category_column} != 'lee'"
                 signal_hist = flatten(mc_hists.pop("lee"))
             else:
-                warnings.warn(
-                    "No signal category found in the MC hists. Not separating signal."
-                )
+                warnings.warn("No signal category found in the MC hists. Not separating signal.")
         background_hists = list(mc_hists.values())
         if ext_hist is not None:
             background_hists.append(ext_hist)
@@ -136,7 +134,7 @@ class RunHistPlotter:
         if use_sideband:
             total_pred_hist.tex_string += "\n constrained"
         # This should not be the method to blind the analysis! The only purpose of this
-        # flag is to hide the data in plots where all the data bin counts have been set to 
+        # flag is to hide the data in plots where all the data bin counts have been set to
         # zero. This happens inside a multi-band analysis, where not all bands might be
         # blinded. In that case, the analysis fills in the blinded histograms with zeros,
         # and that can give the wrong chi-square value if the data is shown in the plot.
@@ -242,7 +240,7 @@ class RunHistPlotter:
         stacked=True,
         show_total=True,
         data_pot=None,
-        signal_hist: Optional[Histogram]=None,
+        signal_hist: Optional[Histogram] = None,
         run_title=None,
         include_empty_hists=False,
         legend_cols=3,
@@ -324,7 +322,7 @@ class RunHistPlotter:
                 )
         if chi_square is not None:
             n_bins = total_pred_hist.binning.n_bins
-            chi2_label = fr"$\chi^2$ = {chi_square:.1f} / {n_bins}"
+            chi2_label = rf"$\chi^2$ = {chi_square:.1f} / {n_bins}"
             ax.text(
                 0.05,
                 0.97,
@@ -364,11 +362,11 @@ class RunHistPlotter:
         if signal_hist is not None and signal_hist.sum() > 0:
             # Create a Patch object for the new legend entry
             red_patch = Patch(
-                edgecolor='red',
-                facecolor='none',
+                edgecolor="red",
+                facecolor="none",
                 linestyle="--",
                 lw=1.5,
-                label=f"{signal_hist.tex_string}: {signal_hist.sum():.1f}"
+                label=f"{signal_hist.tex_string}: {signal_hist.sum():.1f}",
             )
             # Append new handle and label
             handles.append(red_patch)
