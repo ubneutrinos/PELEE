@@ -1,9 +1,10 @@
 [plotting]
-run_title = "Runs 4-5"
+run_title = "Runs 1-5"
 
 [channels]
 signal_channels = ["NPBDT", "ZPBDT"]
 constraint_channels = ["NUMUCRT"]
+
 
 [[h0_params]]
 name = "signal_strength"
@@ -30,7 +31,7 @@ use_sideband = true
 
 [[generator]]
 [generator.load_runs]
-run_numbers = ["4b","4c","4d","5"]
+run_numbers = ["3","4b","4c","4d","5"]
 data = "muon_sideband"
 truth_filtered_sets = ["nue", "drt"]
 loadshowervariables = false
@@ -41,6 +42,7 @@ load_crt_vars = true
 numupresel = true
 enable_cache = true
 blinded = false
+load_lee = false
 
 [[generator.channel]]
 variable = "neutrino_energy"
@@ -55,7 +57,7 @@ variable_tex = "Neutrino Reconstructed Energy (GeV)"
 mc_hist_generator_cls = "SignalOverBackgroundGenerator"
 
 [generator.load_runs]
-run_numbers = ["4b","4c","4d","5"]
+run_numbers = ["1", "2", "3","4b","4c","4d","5"]
 data = "bnb"
 truth_filtered_sets = ["nue", "drt"]
 loadpi0variables = true
@@ -63,6 +65,7 @@ loadshowervariables = true
 loadrecoveryvars = true
 loadsystematics = true
 load_lee = true
+use_new_signal_model = true
 enable_cache = true
 blinded = true
 

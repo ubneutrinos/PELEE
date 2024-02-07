@@ -1014,7 +1014,7 @@ class MultiChannelHistogram(Histogram):
     def __repr__(self):
         return f"MultiChannelHistogram(binning={self.binning}, bin_counts={self.bin_counts}, label={self.label}, tex={self.tex_string})"
 
-    def draw(self, ax=None, as_errorbars=False, show_errors=True, **plot_kwargs):
+    def draw(self, ax=None, as_errorbars=False, show_errors=True, show_channel_labels=True, **plot_kwargs):
         # call the draw method of the unrolled histogram
         unrolled_hist = self.get_unrolled_histogram()
         ax = unrolled_hist.draw(ax, as_errorbars, show_errors, **plot_kwargs)
@@ -1024,16 +1024,17 @@ class MultiChannelHistogram(Histogram):
             ax.axvline(n_bins, color="k", linestyle="--")
 
         # Add text boxes for each channel label
-        for i, label in enumerate(channel_labels):
-            if label is None:
-                continue
-            ax.text(
-                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
-                0.0,
-                label,
-                ha="center",
-                va="bottom",
-            )
+        if show_channel_labels:
+            for i, label in enumerate(channel_labels):
+                if label is None:
+                    continue
+                ax.text(
+                    (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                    0.0,
+                    label,
+                    ha="center",
+                    va="bottom",
+                )
 
         return ax
 

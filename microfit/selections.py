@@ -748,7 +748,8 @@ def _shorten_title(title):
     
     This tries to remove redundant words like "selection" or "sel.".
     """
-
+    if title is None:
+        return None
     # Remove "selection" from the title
     title = title.replace("selection", "")
     # Remove "sel." from the title

@@ -64,6 +64,8 @@ class RunHistPlotter:
         data_pot=None,
         show_data=True,
         separate_signal=True,
+        run_title=None,
+        legend_cols=3,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -186,6 +188,8 @@ class RunHistPlotter:
             show_total=show_total,
             data_pot=data_pot,
             signal_hist=signal_hist,
+            run_title=run_title,
+            legend_cols=legend_cols,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -239,8 +243,13 @@ class RunHistPlotter:
         show_total=True,
         data_pot=None,
         signal_hist: Optional[Histogram]=None,
+        run_title=None,
+        include_empty_hists=False,
+        legend_cols=3,
         **kwargs,
     ):
+        if not include_empty_hists:
+            background_hists = [hist for hist in background_hists if hist.sum() > 0]
         if stacked:
             ax = self.plot_stacked_hists(
                 background_hists,
@@ -248,7 +257,7 @@ class RunHistPlotter:
                 show_errorband=False,
                 **kwargs,
             )
-            if signal_hist is not None:
+            if signal_hist is not None and signal_hist.sum() > 0:
                 background_sum = sum(background_hists, Histogram.empty_like(background_hists[0]))
                 # Plot the signal on top of the background
                 y_bkg = background_sum.bin_counts
@@ -333,12 +342,17 @@ class RunHistPlotter:
             title += ", " + pot_label
         elif title is None:
             title = pot_label
+        if run_title is not None:
+            if title is not None:
+                title = f"{run_title}, {title}"
+            else:
+                title = run_title
         if title is not None:
             ax.text(
-                0.5,
+                0.97,
                 0.97,
                 title,
-                ha="center",
+                ha="right",
                 va="top",
                 transform=ax.transAxes,
                 fontsize=10,
@@ -347,7 +361,7 @@ class RunHistPlotter:
         # Get existing legend handles and labels
         handles, labels = ax.get_legend_handles_labels()
 
-        if signal_hist is not None:
+        if signal_hist is not None and signal_hist.sum() > 0:
             # Create a Patch object for the new legend entry
             red_patch = Patch(
                 edgecolor='red',
@@ -363,7 +377,7 @@ class RunHistPlotter:
         ax.legend(
             loc="lower left",
             bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
-            ncol=3,
+            ncol=legend_cols,
             mode="expand",
             borderaxespad=0.0,
             bbox_transform=ax.transAxes,
