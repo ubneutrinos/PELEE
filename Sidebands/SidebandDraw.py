@@ -49,10 +49,12 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
               sel["title"] = sel["title"] + ", " + sideband_title 
               selections.selection_categories[selection+"_"+DATASET] = sel
 
-          os.system("mkdir -p Plots/png/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
-          os.system("mkdir -p Plots/pdf/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
-          os.system("mkdir -p Plots/no_detvar_png/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
-          os.system("mkdir -p Plots/no_detvar_pdf/run_"+runcombo_str+"/"+DATASET+"/"+preselection+"_"+selection)
+          os.system("mkdir -p Plots/pdf/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/NoDetvar/")
+          os.system("mkdir -p Plots/png/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/NoDetvar/")
+
+          if add_detsys:
+              os.system("mkdir -p Plots/pdf/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/WithDetvar/")
+              os.system("mkdir -p Plots/png/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/WithDetvar/")
 
           for variables in VARIABLE_v:
 
@@ -98,7 +100,6 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                       detvar_data_path=detsys_file if add_detsys else None 
                   )
 
-
                   plotter = rp.RunHistPlotter(signal_generator)
                   axes = plotter.plot(
                       category_column="paper_category",
@@ -107,15 +108,14 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                       show_data_mc_ratio=True,
                       show_chi_square=True,
                       smooth_ext_histogram=False,
-                      add_precomputed_detsys=add_detsys
+                      add_precomputed_detsys=False
                   )
                   
                   # Form a unique name for each plot
-                  #pltname = "Plots/pdf/run_" + runcombo_str + "/" + DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + selection + ".pdf"
-                  pltname = "Plots/pdf/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/" +\
+                  pltname = "Plots/pdf/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/NoDetvar/" +\
                             DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + preselection + "_" + selection + ".pdf"
                   plt.savefig(pltname)
-                  pltname = "Plots/png/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/" +\
+                  pltname = "Plots/png/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/NoDetvar/" +\
                             DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + preselection + "_" + selection + ".png"
                   plt.savefig(pltname)
                   plt.close()     
@@ -133,16 +133,14 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                           add_precomputed_detsys=False
                       )
 
-                      pltname = "Plots/no_detvar_pdf/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/" +\
+                      pltname = "Plots/pdf/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/WithDetvar/" +\
                                 DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + preselection + "_" + selection + ".pdf"
                       plt.savefig(pltname)
-                      pltname = "Plots/no_detvar_png/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/" +\
+                      pltname = "Plots/png/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/WithDetvar/" +\
                                 DATASET + "_" + binning_def[0] + "_run" + runcombo_str + "_" + preselection + "_" + selection + ".png"
                       plt.savefig(pltname)
                       plt.close()     
 
-              
       del rundata
       del mc_weights
       del data_pot
- 

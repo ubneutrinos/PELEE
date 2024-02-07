@@ -2296,8 +2296,8 @@ def _load_run(
 
 
         # TODO CT temporary test to see if weights are driving discrepancy
-        #mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
-        mc_df["weights"] = data_pot / mc_pot
+        mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+        #mc_df["weights"] = data_pot / mc_pot
 
 
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
@@ -2342,9 +2342,6 @@ def _load_run(
         weights[mc_set] = data_pot / mc_pot
         output[mc_set] = mc_df
 
-    print("Prior to truth filtering:")
-    print(len(output['mc']))
-
     # Remove the truth filtered events from "mc" to avoid double-counting
     for truth_set in truth_filtered_sets:
         if truth_set == "drt":
@@ -2354,9 +2351,6 @@ def _load_run(
             rundict = get_rundict(run_number, category)
             df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
-
-    print("After truth filtering:")
-    print(len(output['mc']))
 
     # If using one of the sideband datasets, apply the same query to the MC as well
     datadict = get_rundict(run_number,category)[data] 
@@ -2459,7 +2453,6 @@ def _load_run_detvar(
     data_pot, _ = get_pot_trig(run_number,"runs",dataset)  # nu has no trigger number
 
     for mc_set in mc_sets:
-        print(mc_set)
         mc_df = load_sample(run_number_tmp, "detvar", mc_set, variation=var, **load_sample_kwargs)
         mc_pot, _ = get_pot_trig(run_number_tmp, "detvar", mc_set, variation=var)  # nu has no trigger number
         output[mc_set] = mc_df
@@ -2470,21 +2463,17 @@ def _load_run_detvar(
         mc_df["weights_no_tune"] = np.ones(len(mc_df)) / mc_pot
         weights[mc_set] = data_pot / mc_pot
 
-    print("mc_sets=",mc_sets)
-
     # Really hecky way to maximise the statistics
     cc_pi0_pot = 0
     nc_pi0_pot = 0
     if "cc_pi0" in mc_sets and "mc" in mc_sets:
         cc_pi0_pot = get_pot_trig(run_number_tmp, "detvar", "mc", variation=var)[0] + get_pot_trig(run_number_tmp, "detvar", "cc_pi0", variation=var)[0]
-        print("cc_pi0_pot=",cc_pi0_pot)
         df = output["cc_pi0"]
         df.loc[(df["mcf_pass_ccpi0"] == True), "weights"] = 1.0/cc_pi0_pot
         df = output["mc"]
         df.loc[(df["mcf_pass_ccpi0"] == True), "weights"] = 1.0/cc_pi0_pot
     if "nc_pi0" in mc_sets and "mc" in mc_sets:
         nc_pi0_pot = get_pot_trig(run_number_tmp, "detvar", "mc", variation=var)[0] + get_pot_trig(run_number_tmp, "detvar", "nc_pi0", variation=var)[0]
-        print("nc_pi0_pot=",nc_pi0_pot)
         df = output["nc_pi0"]
         df.loc[(df["mcf_pass_ncpi0"] == True), "weights"] = 1.0/nc_pi0_pot
         df = output["mc"]
