@@ -30,7 +30,7 @@ class RunHistGenerator:
         sideband_generator: Optional["RunHistGenerator"] = None,
         uncertainty_defaults: Optional[Dict[str, bool]] = None,
         parameters: Optional[ParameterSet] = None,
-        detvar_data_path: Optional[str] = None,
+        detvar_data: Optional[dict] = None,
         mc_hist_generator_cls: Optional[type] = None,
         showdata=True,
         **mc_hist_generator_kwargs,
@@ -132,12 +132,8 @@ class RunHistGenerator:
         assert len(self.channels) > 0, "Binning must contain at least one channel."
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
-        if detvar_data_path is not None:
-            detvar_data_path = ls.detvar_cache_path + detvar_data_path
-            # check that path exists
-            if not os.path.exists(detvar_data_path):
-                raise ValueError(f"Path {detvar_data_path} does not exist.")
-            self.detvar_data = from_json(detvar_data_path)
+        if detvar_data is not None:
+            self.detvar_data = detvar_data
 
             # Just check the bin edges and variable rather than the entire binning object
             if (self.detvar_data["binning"].bin_edges != self.binning.bin_edges).any():
@@ -149,14 +145,6 @@ class RunHistGenerator:
                 raise ValueError(
                     "Variable of detector variations does not match binning of main histogram."
                 )
-
-            '''
-            if not self.detvar_data["binning"] == self.binning:
-                raise ValueError(
-                    "Binning of detector variations does not match binning of main histogram."
-                )
-            '''
-
 
             if not self.detvar_data["selection_key"] == self.selection:
                 raise ValueError(

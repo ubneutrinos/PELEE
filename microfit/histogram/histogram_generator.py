@@ -93,6 +93,9 @@ class HistogramGenerator(SmoothHistogramMixin):
         # in case a string was passed to detvar_data, we load it from the file
         if isinstance(self.detvar_data, str):
             self.detvar_data = from_json(self.detvar_data)
+        #if isinstance(self.detvar_data):
+        #    self.detvar_data = detvar_data
+            
         # check that binning matches to detvar_data
         if self.detvar_data is not None:
             '''
@@ -1072,13 +1075,13 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         variations = [
             "lydown",
-            "lyatt",
-            "lyrayleigh",
-            "sce",
-            "recomb2",
-            "wiremodx",
-            "wiremodyz",
-            "wiremodthetaxz",
+            #"lyatt",
+            #"lyrayleigh",
+            #"sce",
+            #"recomb2",
+            #"wiremodx",
+            #"wiremodyz",
+            #"wiremodthetaxz",
             "wiremodthetayz",
         ]
 
@@ -1094,8 +1097,47 @@ class HistogramGenerator(SmoothHistogramMixin):
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
         observation_dict = {}
 
+        cv_hist = self.generate(add_precomputed_detsys=False).nominal_values
+
+        # Get the CV variation hist
+        variation_cv_hist = np.zeros(self.binning.n_bins)
+        variation_hists = {
+                    v: np.zeros(self.binning.n_bins) 
+                    for v in variations
+        }
+
         for dataset in self.detvar_data["mc_sets"]:
-            #print("dataset=",dataset)
+            observation_dict[dataset] = {}
+            variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].nominal_values)
+            for v in variations:
+                variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].nominal_values)
+                observation_dict[dataset][v] = (variation_hist_data[dataset][v].nominal_values - variation_cv_hist) * (cv_hist / variation_cv_hist)
+        
+
+        with np.errstate(divide="ignore", invalid="ignore"):
+            variation_diffs = {
+                v: (h - variation_cv_hist) * (cv_hist / variation_cv_hist)
+                for v, h in variation_hists.items()
+            }
+
+        for v, h in variation_diffs.items():
+            h[~np.isfinite(h)] = 0.0
+
+            # We have just one observation and the central value is zero since it was already subtracted
+            cov_mat += covariance(
+                h.reshape(1, -1),
+                central_value=np.zeros_like(h),
+                # As with all unisim variations, small deviations from the PSD case are expected
+                allow_approximation=True,
+                tolerance=1e-10,
+                #tolerance=1e-8,
+                debug_name=f"detector_{v}",
+            )
+
+        # CT: Old calculation that misses cross terms
+        '''
+        for dataset in self.detvar_data["mc_sets"]:
+            print("dataset=",dataset)
             self.logger.debug(
                 f"Getting detector covariance for dataset {dataset}"
             )
@@ -1122,14 +1164,6 @@ class HistogramGenerator(SmoothHistogramMixin):
                     for v, h in variation_hists.items()
                 }
 
-            #print("variation_cv_hist:")
-            #print(variation_cv_hist)
-
-            #print("variation_diffs:")
-            #for key in variation_diffs.keys():
-            #    print(key)
-            #    print(variation_diffs[key])
-
             # set nan values to zero. These can occur when bins are empty, which we can safely ignore.
             for v, h in variation_diffs.items():
                 h[~np.isfinite(h)] = 0.0
@@ -1142,29 +1176,21 @@ class HistogramGenerator(SmoothHistogramMixin):
                     h.reshape(1, -1),
                     central_value=np.zeros_like(h),
                     # As with all unisim variations, small deviations from the PSD case are expected
-                    allow_approximation=True,
-                    #tolerance=1e-10,
-                    tolerance=1e-8,
+                    allow_approximation=False,
+                    tolerance=1e-10,
+                    #tolerance=1e-8,
                     debug_name=f"detector_{v}",
                 )
+
+                print(detvar_covariance_matrix) 
+
 
                 #print("detvar_covariance_matrix:")
                 #print(detvar_covariance_matrix)
 
                 cov_mat += detvar_covariance_matrix
 
-                '''
-                cov_mat += covariance(
-                    h.reshape(1, -1),
-                    central_value=np.zeros_like(h),
-                    # As with all unisim variations, small deviations from the PSD case are expected
-                    allow_approximation=True,
-                    tolerance=1e-10,
-                    debug_name=f"detector_{v}",
-                )
-                '''
-
-
+        '''
         if only_diagonal:
             cov_mat = np.diag(np.diag(cov_mat))
         if return_histograms:

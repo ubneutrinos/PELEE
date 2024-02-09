@@ -32,12 +32,17 @@ def make_variation_histograms(
 
     """Load the data and Make the json file to store the detector variation predictions"""
 
-    rundata, _, _ = dl.load_runs_detvar(
+    rundata, _, data_pot = dl.load_runs_detvar(
         run,
         dataset,
         variation,
         **dl_kwargs
     )
+
+    # We want the variations to be the events per POT
+    for sample in rundata.keys():
+        rundata[sample]["weights"] /= data_pot
+        rundata[sample]["weights_no_tune"] /= data_pot
 
     hist_dict = {}
     if use_kde_smoothing:
@@ -47,10 +52,6 @@ def make_variation_histograms(
         options={}
     for dataset in rundata:
         df = rundata[dataset].query(selection_query, engine="python")
-        print("Selected events:")
-        print(dataset)
-        print(df[["weights","mcf_pass_cccpi","mcf_pass_nccpi"]])
-
         generator = HistogramGenerator(df, binning)
         hist_dict[dataset] = generator.generate(use_kde_smoothing=use_kde_smoothing, options=options)
     #filter_queries["mc"] = _get_mc_filter_query(list(filter_queries.values()))
@@ -78,8 +79,6 @@ def make_detvar_plots(detvar_data, output_dir, plotname):
         ax.set_title(f"Dataset: {truth_filter}, Selection: {detvar_data['selection_key']}")
 
 
-        
-
         '''
         fig.savefig(
             os.path.join(
@@ -92,26 +91,7 @@ def make_detvar_plots(detvar_data, output_dir, plotname):
 # New function to enable integration of detvar generation into
 # notebooks insetad of as a separate function
 
-# TODO: tidy up the kwargs for this function
-
-def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing=False,output_file="",make_plots=False,plot_output_dir="",**dl_kwargs):
-
-    if output_file == "":
-        runcombo_str=""
-        for i_r in range(0,len(RUN)):
-            runcombo_str = runcombo_str + RUN[i_r]
-        output_file = "run_" + runcombo_str + "_" + preselection + "_" + \
-                      selection + "_" + binning.variable +\
-                      ".json"
-
-
-    '''
-    # First check if the file is already in the cache
-    # TODO: Make this more robust - different binnings could be used for the same variable
-    if os.path.isfile(ls.detvar_cache_path + "/" + output_file):
-        print("Loading detvar file",ls.detvar_cache_path + "/" + output_file,"from cache")
-        return output_file
-   '''
+def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing=False,make_plots=False,plot_output_dir="",**dl_kwargs):
 
     selection_query = RunHistGenerator.get_selection_query(
         selection=selection, preselection=preselection
@@ -156,8 +136,6 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
     binning.selection_key = selection
     binning.preselection_key = preselection
 
-    # TODO: mc_sets should be read from the yml file, and there should be some checks
-    # to confirm we're loading the same set of samples for every variation/run
     detvar_data = {
         "run": RUN,
         "selection_key": selection,
@@ -169,13 +147,15 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
         "mc_sets": ["mc","nue"]
     }
 
-
-    to_json(ls.detvar_cache_path + "/" + output_file, detvar_data)
+    #to_json(ls.detvar_cache_path + "/" + output_file, detvar_data)
 
     if make_plots:
-         make_detvar_plots(detvar_data, plot_output_dir,output_file+".png")
+        runcombo_str = ""
+        for i_r in range(0,len(RUN)): runcombo_str = runcombo_str + RUN[i_r]
+        output_file = "run_" + runcombo_str + "_" + preselection + "_" + selection + "_" + binning.variable + ".png"
+        make_detvar_plots(detvar_data, plot_output_dir,output_file)
 
-    return output_file
+    return detvar_data
 
 '''
 def main(args):
