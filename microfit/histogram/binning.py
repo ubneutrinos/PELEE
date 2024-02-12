@@ -441,3 +441,16 @@ class MultiChannelBinning:
             else:
                 binnings.extend(mcb.binnings)
         return cls(binnings)
+    
+    def is_compatible(self, other):
+        """Check that two MultiChannelBinning objects are compatible.
+
+        This function is a relaxed version of the __eq__ method. It checks that the
+        binnings are compatible with another MultiChannelBinning, i.e. that the bin edges are the
+        same, but it does not check other properties such as the selection. This is useful when
+        adding and subtracting histograms that may originate from different selections.
+        """
+        for b1, b2 in zip(self.binnings, other.binnings):
+            if not b1.is_compatible(b2):
+                return False
+        return True
