@@ -16,6 +16,7 @@ import pandas as pd
 import uncertainties.unumpy as unumpy
 import logging
 from microfit.statistics import fronebius_nearest_psd, get_cnp_covariance
+from typing import Union, overload
 
 
 def assert_called_with_np(mock, *expected_args, **expected_kwargs):
@@ -112,6 +113,9 @@ class TestHistogram(unittest.TestCase):
                 self.assertIsNot(hist, hist_copy)
                 # assert that the type is correct
                 self.assertIsExactInstance(hist_copy, HistogramClass)
+                # Assert copy is deep
+                self.assertIsNot(hist.binning, hist_copy.binning)
+                self.assertIsNot(hist._bin_counts, hist_copy._bin_counts)
 
     def test_empty_like(self):
         for HistogramClass, binning in self.test_cases:
@@ -167,16 +171,12 @@ class TestHistogram(unittest.TestCase):
                     hist_sum.bin_counts,
                     bin_counts1 + bin_counts2,
                 )
-                np.testing.assert_array_almost_equal(
-                    hist_sum.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_sum.std_devs, expected_uncertainties)
                 np.testing.assert_array_almost_equal(
                     hist_diff.bin_counts,
                     bin_counts1 - bin_counts2,
                 )
-                np.testing.assert_array_almost_equal(
-                    hist_diff.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_diff.std_devs, expected_uncertainties)
 
     def test_correlated(self):
         for HistogramClass, binning in self.test_cases:
@@ -213,16 +213,12 @@ class TestHistogram(unittest.TestCase):
                     hist_sum.bin_counts,
                     bin_counts1 + bin_counts2,
                 )
-                np.testing.assert_array_almost_equal(
-                    hist_sum.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_sum.std_devs, expected_uncertainties)
                 np.testing.assert_array_almost_equal(
                     hist_diff.bin_counts,
                     bin_counts1 - bin_counts2,
                 )
-                np.testing.assert_array_almost_equal(
-                    hist_diff.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_diff.std_devs, expected_uncertainties)
 
     def test_fluctuation(self):
         for HistogramClass, binning in self.test_cases:
@@ -289,9 +285,7 @@ class TestHistogram(unittest.TestCase):
                     hist_div.bin_counts,
                     bin_counts1 / bin_counts2,
                 )
-                np.testing.assert_array_almost_equal(
-                    hist_div.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_div.std_devs, expected_uncertainties)
                 fluctuated_divisions = []
                 # To test error propagation, we fluctuate hist1 and hist2 and divide them. The covariance matrix
                 # of the fluctuated divisions should be close to the expected covariance matrix that we get
@@ -339,31 +333,19 @@ class TestHistogram(unittest.TestCase):
                 # multiply by an int scalar
                 hist_mult = hist * 2
                 expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * 2
-                np.testing.assert_array_almost_equal(
-                    hist_mult.bin_counts, bin_counts * 2
-                )
-                np.testing.assert_array_almost_equal(
-                    hist_mult.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_mult.bin_counts, bin_counts * 2)
+                np.testing.assert_array_almost_equal(hist_mult.std_devs, expected_uncertainties)
                 # multiply by a float scalar
                 hist_mult = hist * 2.5
                 expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * 2.5
-                np.testing.assert_array_almost_equal(
-                    hist_mult.bin_counts, bin_counts * 2.5
-                )
-                np.testing.assert_array_almost_equal(
-                    hist_mult.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_mult.bin_counts, bin_counts * 2.5)
+                np.testing.assert_array_almost_equal(hist_mult.std_devs, expected_uncertainties)
                 # multiply by a numpy.float64 scalar
                 scalar = np.float64(3.7)
                 hist_mult = hist * scalar
                 expected_uncertainties = np.sqrt(np.diag(covariance_matrix)) * scalar
-                np.testing.assert_array_almost_equal(
-                    hist_mult.bin_counts, bin_counts * scalar
-                )
-                np.testing.assert_array_almost_equal(
-                    hist_mult.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_mult.bin_counts, bin_counts * scalar)
+                np.testing.assert_array_almost_equal(hist_mult.std_devs, expected_uncertainties)
                 # assert NotImplementedError is raised when multiplying from the right
                 # This is done because the behavior of __rmul__ is unreliable and would
                 # cause the multiplication to return a np.ndarry of Histograms instead
@@ -433,9 +415,7 @@ class TestHistogram(unittest.TestCase):
                     hist_mult.bin_counts,
                     bin_counts1 * bin_counts2,
                 )
-                np.testing.assert_array_almost_equal(
-                    hist_mult.std_devs, expected_uncertainties
-                )
+                np.testing.assert_array_almost_equal(hist_mult.std_devs, expected_uncertainties)
                 fluctuated_multiplications = []
                 # To test error propagation, we fluctuate hist1 and hist2 and multiply them. The covariance matrix
                 # of the fluctuated multiplications should be close to the expected covariance matrix that we get
@@ -470,11 +450,29 @@ class TestHistogram(unittest.TestCase):
 
 
 class TestMultiChannelHistogram(unittest.TestCase):
+    def setUp(self):
+        # Assuming `MultiChannelHistogram` and necessary utilities are already imported
+        self.hist = self.make_test_histogram()  # Setup your histogram here
+
     def make_bin_edges(self, length):
         return np.arange(length + 1)
 
-    def _hist_from_binning(self, binning, data_like=False):
-        bin_counts = np.arange(binning.n_bins) + 10
+    @overload
+    def _hist_from_binning(
+        self, binning: Binning, data_like: bool = False, seed: int = 0
+    ) -> Histogram:
+        ...
+
+    @overload
+    def _hist_from_binning(
+        self, binning: MultiChannelBinning, data_like: bool = False, seed: int = 0
+    ) -> MultiChannelHistogram:
+        ...
+
+    def _hist_from_binning(
+        self, binning: Union[Binning, MultiChannelBinning], data_like: bool = False, seed: int = 0
+    ) -> Union[Histogram, MultiChannelHistogram]:
+        bin_counts = np.arange(binning.n_bins, dtype=float) + 10.0
         if data_like:
             covariance_matrix = np.diag(bin_counts)
         else:
@@ -482,7 +480,7 @@ class TestMultiChannelHistogram(unittest.TestCase):
             for i in range(binning.n_bins):
                 covariance_matrix[i, i] = (i + 1) * 0.01
             # add some off-diagonal elements
-            np.random.seed(0)
+            np.random.seed(seed)
             covariance_matrix += np.random.rand(binning.n_bins, binning.n_bins) * 0.01
             # make it PSD
             covariance_matrix = fronebius_nearest_psd(covariance_matrix)
@@ -588,30 +586,28 @@ class TestMultiChannelHistogram(unittest.TestCase):
             # Check that the sideband_constraint_correction function was called with the correct arguments
             hist_copy = hist.copy()
             hist_copy.roll_channel_to_last(channel)
-            
+
             expected_args = (
                 measurement_hist.bin_counts,
                 hist_copy.bin_counts[remaining_bins:],
-                cnp_covariance
+                cnp_covariance,
             )
             assert_called_with_np(mock_correction, *expected_args)
             channels_after_update = updated_hist.channels
             # re-arrange hist into the same order of channels
             hist = hist[channels_after_update]
             expected_bin_counts = hist.bin_counts + delta_mu
-            expected_covariance_matrix = (
-                hist.covariance_matrix + delta_cov
-            )
+            expected_covariance_matrix = hist.covariance_matrix + delta_cov
             np.testing.assert_array_almost_equal(updated_hist.bin_counts, expected_bin_counts)
             np.testing.assert_array_almost_equal(
                 updated_hist.covariance_matrix, expected_covariance_matrix
             )
-    
+
     def test_update_with_redundant_variables(self):
         """Test sideband constraint with redundant channels.
-        
+
         A MultiChannelHistogram that contains the same binning twice will have maximal
-        correlation between the bins of the redundant channels. Our theoretical 
+        correlation between the bins of the redundant channels. Our theoretical
         expectation is that an update performed with both channels should be equivalent
         to an update performed with only one channel.
 
@@ -630,17 +626,21 @@ class TestMultiChannelHistogram(unittest.TestCase):
         df_data["y"] = [0.5, 1.5, 1.5, 0.5]
         df_data["weights"] = [1, 1, 1, 1]
 
-        binning = MultiChannelBinning([
-            Binning("x", bin_edges=np.array([0, 1, 2]), label="x1"),
-            # superfluous binning in same variable
-            Binning("x", bin_edges=np.array([0, 1, 2]), label="x2"),
-            # binning  in y
-            Binning("y", bin_edges=np.array([0, 1, 2]), label="y"),
-        ])
-        data_binning = MultiChannelBinning([
-            Binning("x", bin_edges=np.array([0, 1, 2]), label="x1"),
-            Binning("x", bin_edges=np.array([0, 1, 2]), label="x2"),
-        ])
+        binning = MultiChannelBinning(
+            [
+                Binning("x", bin_edges=np.array([0, 1, 2]), label="x1"),
+                # superfluous binning in same variable
+                Binning("x", bin_edges=np.array([0, 1, 2]), label="x2"),
+                # binning  in y
+                Binning("y", bin_edges=np.array([0, 1, 2]), label="y"),
+            ]
+        )
+        data_binning = MultiChannelBinning(
+            [
+                Binning("x", bin_edges=np.array([0, 1, 2]), label="x1"),
+                Binning("x", bin_edges=np.array([0, 1, 2]), label="x2"),
+            ]
+        )
         hg = HistogramGenerator(df, binning)
         # Measurement taken in the x-channel, using redundant binning
         hg_data = HistogramGenerator(df_data, data_binning)
@@ -723,6 +723,170 @@ class TestMultiChannelHistogram(unittest.TestCase):
         assert hist.color is None
         # hatch should be set to "///", since it is the same for all input histograms
         assert hist.hatch == "///"
+
+    def test_sum_channels_basic(self):
+        """Test basic functionality of sum_channels with replace=False, inplace=False."""
+
+        first_channel_binning = Binning(
+            "x", self.make_bin_edges(3), "X1", variable_tex="x1-axis label", selection_query="x > 0"
+        )
+        second_channel_binning = Binning(
+            "x", self.make_bin_edges(3), "X2", variable_tex="x2-axis label", selection_query="x < 0"
+        )
+        binning = MultiChannelBinning([first_channel_binning, second_channel_binning])
+        test_hist = self._hist_from_binning(binning)
+        original_hist_copy = test_hist.copy()
+        sum_channels = ["X1", "X2"]  # Example channel names to sum
+        new_label = "X1_X2"
+
+        # Perform the operation
+        result_hist = test_hist.sum_channels(sum_channels, new_label, replace=False, inplace=False)
+
+        # Check if the original histogram is unchanged
+        self.assertEqual(
+            test_hist, original_hist_copy, "Original histogram should not be modified."
+        )
+
+        # Check if the new histogram has the summed channel
+        self.assertIn(
+            new_label, result_hist.channels, "New histogram should contain the summed channel."
+        )
+
+        # Now we verify that the values in the covariance of the result are actually correct.
+        # We have to assert that
+        #    Cov(A + B, A + B) = Cov(A, A) + Cov(B, B) + 2 * Cov(A, B)
+        cov_a_plus_b = result_hist["X1_X2"].covariance_matrix
+        cov_a = result_hist["X1"].covariance_matrix
+        cov_b = result_hist["X2"].covariance_matrix
+        cov_a_b = test_hist.channel_covariance("X1", "X2")
+        np.testing.assert_array_almost_equal(
+            cov_a_plus_b,
+            cov_a + cov_b + 2 * cov_a_b,
+            decimal=4,
+        )
+
+    def test_sum_channels_inplace(self):
+        """Test the inplace=True functionality."""
+
+        first_channel_binning = Binning(
+            "x", self.make_bin_edges(3), "X1", variable_tex="x1-axis label", selection_query="x > 0"
+        )
+        second_channel_binning = Binning(
+            "x", self.make_bin_edges(3), "X2", variable_tex="x2-axis label", selection_query="x < 0"
+        )
+        binning = MultiChannelBinning([first_channel_binning, second_channel_binning])
+        test_hist = self._hist_from_binning(binning)
+        original_hist_copy = test_hist.copy()
+        sum_channels = ["X1", "X2"]
+
+        # Perform the operation in place
+        test_hist.sum_channels(sum_channels, "X1_X2", replace=False, inplace=True)
+        # Since we performed the operation in place, but did not replace the original
+        # channels, we should now have "X1", "X2", and "X1_X2" in the channels.
+        self.assertIn("X1", test_hist.channels)
+        self.assertIn("X2", test_hist.channels)
+        self.assertIn("X1_X2", test_hist.channels)
+        # Check if the original histogram is modified
+        self.assertNotEqual(test_hist, original_hist_copy, "Original histogram should be modified.")
+
+        # Test that the values in the covariance of the result are actually correct.
+        # We have to assert that
+        #    Cov(A + B, A + B) = Cov(A, A) + Cov(B, B) + 2 * Cov(A, B)
+        cov_a_plus_b = test_hist["X1_X2"].covariance_matrix
+        cov_a = test_hist["X1"].covariance_matrix
+        cov_b = test_hist["X2"].covariance_matrix
+        cov_a_b = test_hist.channel_covariance("X1", "X2")
+        np.testing.assert_array_almost_equal(
+            cov_a_plus_b,
+            cov_a + cov_b + 2 * cov_a_b,
+            decimal=4,
+        )
+
+    def test_sum_channels_replace(self):
+        """Test the replace=True functionality."""
+
+        first_channel_binning = Binning(
+            "x", self.make_bin_edges(3), "X1", variable_tex="x1-axis label", selection_query="x > 0"
+        )
+        second_channel_binning = Binning(
+            "x", self.make_bin_edges(3), "X2", variable_tex="x2-axis label", selection_query="x < 0"
+        )
+        binning = MultiChannelBinning([first_channel_binning, second_channel_binning])
+        test_hist = self._hist_from_binning(binning)
+        original_hist_copy = test_hist.copy()
+        # Assert that the `binning` attribute is not the same instance in memory
+        # as the original, that is, that the copy is deep
+        self.assertIsNot(test_hist.binning, original_hist_copy.binning)
+        sum_channels = ["X1", "X2"]
+
+        # Perform the operation in place
+        test_hist.sum_channels(sum_channels, "X1_X2", replace=True, inplace=True)
+        # Since we performed the operation in place, and replaced the original
+        # channels, we should now have only "X1_X2" in the channels.
+        self.assertNotIn("X1", test_hist.channels)
+        self.assertNotIn("X2", test_hist.channels)
+        self.assertIn("X1_X2", test_hist.channels)
+        # Check if the original histogram is modified
+        self.assertNotEqual(test_hist, original_hist_copy, "Original histogram should be modified.")
+
+        # Test that the values in the covariance of the result are actually correct.
+        # We have to assert that
+        #    Cov(A + B, A + B) = Cov(A, A) + Cov(B, B) + 2 * Cov(A, B)
+        # This time we need to use the original histogram copy, since the channels "X1" and "X2"
+        # have been deleted.
+        cov_a_plus_b = test_hist["X1_X2"].covariance_matrix
+        cov_a = original_hist_copy["X1"].covariance_matrix
+        cov_b = original_hist_copy["X2"].covariance_matrix
+        cov_a_b = original_hist_copy.channel_covariance("X1", "X2")
+        np.testing.assert_array_almost_equal(
+            cov_a_plus_b,
+            cov_a + cov_b + 2 * cov_a_b,
+            decimal=4,
+        )
+
+    def test_scale_channel(self):
+        """Test the scale_channel method."""
+
+        # This function scales the bin counts of a given channel by a given factor
+        # and also updates the covariance matrix accordingly.
+
+        # Run the test for the "inplace" variant as well
+        for inplace in [True, False]:
+            hist = self.make_test_histogram()
+            original_hist = hist.copy()
+
+            for c in list(hist.channels):
+                # Scale the bin counts and covariance matrix
+                scale_factor = 2.0
+                # Reset the histogram since we might have modified it
+                hist = original_hist.copy()
+                output = hist.scale_channel(c, scale_factor, inplace=inplace)
+
+                if inplace:
+                    assert output is None
+                    output = hist
+                else:
+                    assert output is not None
+                # Check that the bin counts are scaled correctly
+                np.testing.assert_array_almost_equal(
+                    output[c].bin_counts,
+                    original_hist[c].bin_counts * scale_factor,
+                )
+
+                # Check that the covariance matrix is scaled correctly
+                np.testing.assert_array_almost_equal(
+                    output[c].covariance_matrix,
+                    original_hist[c].covariance_matrix * scale_factor**2,
+                )
+
+                # Check that the covariance between the scaled channel and the
+                # other channels has been scaled correctly
+                for other_c in list(hist.channels):
+                    if other_c != c:
+                        np.testing.assert_array_almost_equal(
+                            output.channel_covariance(c, other_c),
+                            original_hist.channel_covariance(c, other_c) * scale_factor,
+                        )
 
 
 class TestHistogramGenerator(unittest.TestCase):

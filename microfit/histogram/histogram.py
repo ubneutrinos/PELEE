@@ -1,4 +1,7 @@
+import itertools
 from typing import List, Optional, Sequence, Union, overload
+from typing_extensions import Literal  # If Python version < 3.8, otherwise, use `typing.Literal`
+
 import warnings
 from matplotlib.axes import Axes
 import numpy as np
@@ -240,7 +243,7 @@ class Histogram:
 
         return {
             "binning": self.binning.to_dict(),
-            "bin_counts": self._bin_counts,
+            "bin_counts": self._bin_counts.copy(),
             "covariance_matrix": self.covariance_matrix,
             "label": self._label,
             "plot_color": self._plot_color,
@@ -464,8 +467,8 @@ class Histogram:
 
         # otherwise, if other is also a Histogram
         assert isinstance(other, Histogram), "Can only add Histograms or np.ndarrays to Histograms."
-        assert self.binning == other.binning, (
-            "Cannot add histograms with different binning. "
+        assert self.binning.is_compatible(other.binning), (
+            "Cannot add histograms with incompatible binning. "
             f"self.binning = {self.binning}, other.binning = {other.binning}"
         )
         new_bin_counts = self._bin_counts + other._bin_counts
@@ -503,8 +506,8 @@ class Histogram:
             state["bin_counts"] = new_bin_counts
             return self.__class__.from_dict(state)
         # otherwise, if other is also a Histogram
-        assert self.binning == other.binning, (
-            "Cannot subtract histograms with different binning. "
+        assert self.binning.is_compatible(other.binning), (
+            "Cannot subtract histograms with incompatible binning. "
             f"self.binning = {self.binning}, other.binning = {other.binning}"
         )
         new_bin_counts = self._bin_counts - other._bin_counts
@@ -548,7 +551,9 @@ class Histogram:
             state["bin_counts"] = new_bin_counts
             state["covariance_matrix"] = new_cov_matrix
             return self.__class__.from_dict(state)
-        assert self.binning == other.binning, "Cannot divide histograms with different binning."
+        assert self.binning.is_compatible(
+            other.binning
+        ), "Cannot divide histograms with incompatible binning."
         new_bin_counts, new_cov_matrix = error_propagation_division(
             self.bin_counts,
             other.bin_counts,
@@ -680,6 +685,212 @@ class MultiChannelHistogram(Histogram):
         # The attribute self.binning is set in the Histogram constructor, but we overwrite
         # it here again.
         self.binning = binning
+
+    @overload
+    def sum_channels(
+        self, sum_channels: List[str], new_label: str, replace: bool, inplace: Literal[True]
+    ) -> None:
+        ...
+
+    @overload
+    def sum_channels(
+        self, sum_channels: List[str], new_label: str, replace: bool, inplace: Literal[False]
+    ) -> "MultiChannelHistogram":
+        ...
+
+    def sum_channels(
+        self, sum_channels: List[str], new_label: str, replace: bool = True, inplace: bool = True
+    ) -> Union[None, "MultiChannelHistogram"]:
+        """Sum channels of the histogram and store the result in a new channel.
+
+        This function takes the correlations between the channels into account when summing
+        the channels, in contrast to the naive approach of just summing the covariance
+        matrices.
+
+        Parameters
+        ----------
+        sum_channels : list of str
+            List of channels to sum.
+        new_label : str
+            Label of the new channel constaining the sum.
+        replace : bool, optional
+            If True, remove the original channels from the histogram and replace them with the sum.
+            If False, keep the original channels and add the sum as a new channel.
+        inplace : bool, optional
+            If True, perform the operation in place. If False, return a new histogram.
+
+        Returns
+        -------
+        MultiChannelHistogram or None
+            If inplace is False, return a new histogram. Otherwise, return None.
+
+        Notes
+        -----
+        If the channels are X and Y, and the covariance each channel is :math:`V_X` and :math:`V_Y`, and
+        the covariance between the channels is :math:`V_{XY}`, then the covariance of the sum is
+
+        .. math::
+            V_{X+Y} = V_X + V_Y + 2 V_{XY}
+
+        For more than two channels, the covariance has to be corrected for the correlations between
+        every combination of channels. That is, for three channels X, Y, and Z, the covariance of the
+        sum is
+
+        .. math::
+            V_{X+Y+Z} = V_X + V_Y + V_Z + 2 V_{XY} + 2 V_{XZ} + 2 V_{YZ}
+
+        Finally, we also need to add the correct correlation between the new channel and the other channels.
+        The covariance of the summed channel with respect to any other channel, C, is
+
+        .. math::
+            V_{X+Y+Z, C} = V_{X, C} + V_{Y, C} + V_{Z, C}
+
+        meaning we have to loop over all channels that were summed. This is true even for channels
+        that were used in the summation, i.e.
+
+        .. math::
+            V_{X+Y, X} = V_{X, X} + V_{Y, X}
+        """
+
+        if len(sum_channels) < 2:
+            raise ValueError("sum_channels must contain at least two channels.")
+
+        # We use the regular channel extraction and summing to get the summed histogram
+        # without the covariance, then we add the correction.
+        # An empty histogram with the same binning as the first channel in sum_channels,
+        # just so that the output type of the sum function is correct.
+        init_hist = Histogram.empty_like(self[sum_channels[0]])
+        summed_hist: Histogram = sum([self[c] for c in sum_channels], init_hist)
+        summed_hist.binning.label = new_label
+        # We extract the full 2D bin counts of the summed histogram, which include the number of events
+        # shared between bins.
+        # Now we have to loop over every combination of channels and add the correction to the covariance matrix.
+        for c1, c2 in itertools.combinations(sum_channels, 2):
+            # We have to keep in mind that the covariance matrix is a 2D array, where off-diagonal
+            # elements correspond to the number of events shared between two bins.
+            summed_hist.add_covariance(2 * self.channel_covariance(c1, c2))
+
+        if inplace:
+            output_hist = self
+        else:
+            output_hist = self.copy()
+        output_hist.append_empty_channel(summed_hist.binning)
+        output_hist.replace_channel_histogram(new_label, summed_hist)
+
+        # Finally, set the correlations with the new channel and the other channels.
+        for c in self.channels:
+            if c == new_label:
+                continue
+            correlation = np.zeros((len(summed_hist), self[c].n_bins))
+            for c1 in sum_channels:
+                correlation += self.channel_covariance(c1, c)
+            # The transpose of the correlation is automatically added as well, so no need
+            # to call this function twice.
+            output_hist.set_channel_correlation(new_label, c, correlation)
+
+        if replace:
+            for c in sum_channels:
+                del output_hist[c]
+
+        if not inplace:
+            return output_hist
+
+    def scale_channel(
+        self, channel: str, scale: float, inplace: bool = True
+    ) -> Union[None, "MultiChannelHistogram"]:
+        """Scale the bin counts of a channel by a factor.
+
+        This operation will also update the covariance matrix accordingly.
+
+
+        Parameters
+        ----------
+        channel : str
+            Label of the channel to scale.
+        scale : Real
+            Scale factor.
+        inplace : bool, optional
+            If True, perform the operation in place. If False, return a new histogram.
+
+        Returns
+        -------
+        MultiChannelHistogram or None
+            If inplace is False, return a new histogram. Otherwise, return None.
+
+        Notes
+        -----
+        If the scale factor is :math:`f`, then the covariance matrix of the scaled channel is
+
+        .. math::
+            V_{fA, fA} = f^2 V_A
+
+        where :math:`V` is the covariance matrix of the original channel. The covariance matrix
+        of the scaled channel with respect to any other channel, C, is
+
+        .. math::
+            V_{fA, C} = f V_{A, C}
+        """
+        if inplace:
+            output_hist = self
+        else:
+            output_hist = self.copy()
+
+        # Get bin indices for the channel
+        idx = output_hist.binning._channel_bin_idx(channel)
+        # Update the (2D) bin counts array.
+        output_hist._bin_counts[np.ix_(idx, idx)] *= scale
+        # Update the covariance matrix.
+        output_hist.covariance_matrix[np.ix_(idx, idx)] *= scale**2
+        # Iterate over all other channels and update the covariance matrix accordingly.
+        for c in output_hist.channels:
+            if c == channel:
+                continue
+            output_hist.covariance_matrix[
+                np.ix_(idx, output_hist.binning._channel_bin_idx(c))
+            ] *= scale
+            output_hist.covariance_matrix[
+                np.ix_(output_hist.binning._channel_bin_idx(c), idx)
+            ] *= scale
+        if not inplace:
+            return output_hist
+
+    def channel_covariance(self, channel1: str, channel2: str) -> np.ndarray:
+        """Get the covariance between two channels.
+
+        Parameters
+        ----------
+        channel1 : str
+            Label of the first channel.
+        channel2 : str
+            Label of the second channel.
+
+        Returns
+        -------
+        np.ndarray
+            Covariance matrix between the two channels.
+        """
+        idx1 = self.binning._channel_bin_idx(channel1)
+        idx2 = self.binning._channel_bin_idx(channel2)
+        return self.covariance_matrix[np.ix_(idx1, idx2)]
+
+    def set_channel_correlation(
+        self, channel1: str, channel2: str, correlation: np.ndarray
+    ) -> None:
+        """Set the correlation between two channels.
+
+        Parameters
+        ----------
+        channel1 : str
+            Label of the first channel.
+        channel2 : str
+            Label of the second channel.
+        correlation : np.ndarray
+            Correlation matrix between the two channels.
+        """
+        idx1 = self.binning._channel_bin_idx(channel1)
+        idx2 = self.binning._channel_bin_idx(channel2)
+        self.covariance_matrix[np.ix_(idx1, idx2)] = correlation
+        self.covariance_matrix[np.ix_(idx2, idx1)] = correlation.T
 
     def roll_channels(self, shift: int) -> None:
         """Roll the channels of the histogram.
@@ -986,7 +1197,9 @@ class MultiChannelHistogram(Histogram):
             Histogram to replace the channel histogram with.
         """
         idx = self.binning._idx_channel(key)
-        self.bin_counts[self.binning._channel_bin_idx(idx)] = histogram.bin_counts
+        self._bin_counts[
+            np.ix_(self.binning._channel_bin_idx(idx), self.binning._channel_bin_idx(idx))
+        ] = histogram._bin_counts
         self.covariance_matrix[
             np.ix_(self.binning._channel_bin_idx(idx), self.binning._channel_bin_idx(idx))
         ] = histogram.covariance_matrix
@@ -1120,7 +1333,7 @@ class MultiChannelHistogram(Histogram):
         return cls(**dictionary)
 
     @classmethod
-    def from_histograms(cls, histograms: List[Union[Histogram, "MultiChannelHistogram"]]):
+    def from_histograms(cls, histograms: Sequence[Union[Histogram, "MultiChannelHistogram"]]):
         """Create a MultiChannelHistogram from a list of Histograms.
 
         Parameters

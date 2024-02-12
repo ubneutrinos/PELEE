@@ -51,6 +51,29 @@ class Binning:
     selection_tex: Optional[str] = None
     selection_tex_short: Optional[str] = None
 
+    def is_compatible(self, other):
+        """Check that two binnings are compatible.
+
+        This function is a relaxed version of the __eq__ method. It checks that the
+        binning is compatible with another binning, i.e. that the bin edges are the
+        same, but it does not check other properties such as the selection. This is useful when
+        adding and subtracting histograms that may originate from different selections.
+        """
+
+        # The properties that must match are the bin edges, is_log, and the variable.
+        for field in fields(self):
+            if field.name not in ["variable", "bin_edges", "is_log"]:
+                continue
+            attr_self = getattr(self, field.name)
+            attr_other = getattr(other, field.name)
+            if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
+                if not np.array_equal(attr_self, attr_other):
+                    return False
+            else:
+                if attr_self != attr_other:
+                    return False
+        return True
+
     def __eq__(self, other):
         for field in fields(self):
             attr_self = getattr(self, field.name)
