@@ -752,7 +752,7 @@ class TestMultiChannelHistogram(unittest.TestCase):
             new_label, result_hist.channels, "New histogram should contain the summed channel."
         )
 
-        # Now we verify that the values in the covariance of the result are actually correct.
+        # Test that the values in the covariance of the result are actually correct.
         # We have to assert that
         #    Cov(A + B, A + B) = Cov(A, A) + Cov(B, B) + 2 * Cov(A, B)
         cov_a_plus_b = result_hist["X1_X2"].covariance_matrix
@@ -761,7 +761,7 @@ class TestMultiChannelHistogram(unittest.TestCase):
         cov_a_b = test_hist.channel_covariance("X1", "X2")
         np.testing.assert_array_almost_equal(
             cov_a_plus_b,
-            cov_a + cov_b + 2 * cov_a_b,
+            cov_a + cov_b + cov_a_b + cov_a_b.T,
             decimal=4,
         )
 
@@ -791,14 +791,14 @@ class TestMultiChannelHistogram(unittest.TestCase):
 
         # Test that the values in the covariance of the result are actually correct.
         # We have to assert that
-        #    Cov(A + B, A + B) = Cov(A, A) + Cov(B, B) + 2 * Cov(A, B)
+        #    Cov(A + B, A + B) = Cov(A, A) + Cov(B, B) + Cov(A, B) + Cov(B, A)
         cov_a_plus_b = test_hist["X1_X2"].covariance_matrix
         cov_a = test_hist["X1"].covariance_matrix
         cov_b = test_hist["X2"].covariance_matrix
         cov_a_b = test_hist.channel_covariance("X1", "X2")
         np.testing.assert_array_almost_equal(
             cov_a_plus_b,
-            cov_a + cov_b + 2 * cov_a_b,
+            cov_a + cov_b + cov_a_b + cov_a_b.T,
             decimal=4,
         )
 
@@ -831,7 +831,7 @@ class TestMultiChannelHistogram(unittest.TestCase):
 
         # Test that the values in the covariance of the result are actually correct.
         # We have to assert that
-        #    Cov(A + B, A + B) = Cov(A, A) + Cov(B, B) + 2 * Cov(A, B)
+        #    Cov(A + B, A + B) = Cov(A, A) + Cov(B, B) + Cov(A, B) + Cov(B, A)
         # This time we need to use the original histogram copy, since the channels "X1" and "X2"
         # have been deleted.
         cov_a_plus_b = test_hist["X1_X2"].covariance_matrix
@@ -840,7 +840,7 @@ class TestMultiChannelHistogram(unittest.TestCase):
         cov_a_b = original_hist_copy.channel_covariance("X1", "X2")
         np.testing.assert_array_almost_equal(
             cov_a_plus_b,
-            cov_a + cov_b + 2 * cov_a_b,
+            cov_a + cov_b + cov_a_b + cov_a_b.T,
             decimal=4,
         )
 
