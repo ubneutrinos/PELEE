@@ -62,9 +62,10 @@ class Parameter:
         return (self.bounds[0].value, self.bounds[1].value)
 
     @property
-    def m(self):
+    def m(self) -> Union[bool, int, float]:
         """Magnitude of the parameter value."""
         if self.is_discrete:
+            assert isinstance(self.value, bool)
             return self.value
         else:
             assert isinstance(self.value, Quantity)
@@ -222,7 +223,7 @@ class ParameterSet:
         ...
 
     @overload
-    def __getitem__(self, key: List[str]) -> 'ParameterSet':
+    def __getitem__(self, key: List[str]) -> "ParameterSet":
         ...
 
     def __getitem__(self, key):

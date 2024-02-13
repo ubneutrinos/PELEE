@@ -58,7 +58,7 @@ class TestRunHistGenerator(unittest.TestCase):
         # The 'weights_no_tune' column is used to calculate multisim uncertainties for GENIE
         # variables. For testing purposes, we just set it to the same as 'weights'.
         df["weights_no_tune"] = df["weights"]
-        n_universes = 11
+        n_universes = 15
         for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
             df[ms_column] = [
                 1000 * np.random.normal(loc=1, size=n_universes, scale=0.1) for _ in range(len(df))
@@ -108,7 +108,6 @@ class TestRunHistGenerator(unittest.TestCase):
             parameters=None,
             mc_hist_generator_kwargs={},
             enable_cache=True,
-            strict_covar_checking=True,
         ):
             mock_rundata = {
                 "mc": self.make_dataframe(n_samples=900, weights_scale=0.1, with_multisim=True),
@@ -176,9 +175,7 @@ class TestRunHistGenerator(unittest.TestCase):
                 multichannel_hist.bin_counts, joined_hist.bin_counts
             )
             np.testing.assert_array_almost_equal(
-                multichannel_hist.covariance_matrix,
-                joined_hist.covariance_matrix,
-                decimal=6 if strict_covar_checking else 1,
+                multichannel_hist.covariance_matrix, joined_hist.covariance_matrix, decimal=6
             )
 
             # Another sanity check: The diagonal blocks of the covariance matrix should be the same
@@ -188,12 +185,12 @@ class TestRunHistGenerator(unittest.TestCase):
             np.testing.assert_array_almost_equal(
                 energy_hist.covariance_matrix,
                 joined_hist.covariance_matrix[: len(energy_hist), : len(energy_hist)],
-                decimal=6 if strict_covar_checking else 1,
+                decimal=6,
             )
             np.testing.assert_array_almost_equal(
                 angle_hist.covariance_matrix,
                 joined_hist.covariance_matrix[len(energy_hist) :, len(energy_hist) :],
-                decimal=6 if strict_covar_checking else 1,
+                decimal=6,
             )
 
         run_test_with_mc_gen_class(mc_hist_generator_cls=None)
@@ -212,9 +209,6 @@ class TestRunHistGenerator(unittest.TestCase):
             mc_hist_generator_cls=SignalOverBackgroundGenerator,
             parameters=signal_parameters,
             mc_hist_generator_kwargs=sob_kwargs,
-            # The signal-over-background generator does not produce exactly the same results as the
-            # default generator.
-            strict_covar_checking=False,
         )
 
 

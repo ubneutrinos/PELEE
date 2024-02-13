@@ -730,14 +730,14 @@ class MultiChannelHistogram(Histogram):
         the covariance between the channels is :math:`V_{XY}`, then the covariance of the sum is
 
         .. math::
-            V_{X+Y} = V_X + V_Y + 2 V_{XY}
+            V_{X+Y} = V_X + V_Y + V_{XY} + V_{YX}
 
         For more than two channels, the covariance has to be corrected for the correlations between
         every combination of channels. That is, for three channels X, Y, and Z, the covariance of the
         sum is
 
         .. math::
-            V_{X+Y+Z} = V_X + V_Y + V_Z + 2 V_{XY} + 2 V_{XZ} + 2 V_{YZ}
+            V_{X+Y+Z} = V_X + V_Y + V_Z + V_{XY} + V_{XZ} + V_{YX} + V_{YZ} + V_{ZX} + V_{ZY}
 
         Finally, we also need to add the correct correlation between the new channel and the other channels.
         The covariance of the summed channel with respect to any other channel, C, is
@@ -762,13 +762,10 @@ class MultiChannelHistogram(Histogram):
         init_hist = Histogram.empty_like(self[sum_channels[0]])
         summed_hist: Histogram = sum([self[c] for c in sum_channels], init_hist)
         summed_hist.binning.label = new_label
-        # We extract the full 2D bin counts of the summed histogram, which include the number of events
-        # shared between bins.
         # Now we have to loop over every combination of channels and add the correction to the covariance matrix.
         for c1, c2 in itertools.combinations(sum_channels, 2):
-            # We have to keep in mind that the covariance matrix is a 2D array, where off-diagonal
-            # elements correspond to the number of events shared between two bins.
-            summed_hist.add_covariance(2 * self.channel_covariance(c1, c2))
+            summed_hist.add_covariance(self.channel_covariance(c1, c2))
+            summed_hist.add_covariance(self.channel_covariance(c2, c1))
 
         if inplace:
             output_hist = self

@@ -1,6 +1,13 @@
 import hashlib
 import logging
-from typing import Any, AnyStr, Dict, List, Optional, Sequence, Tuple, Union, cast
+from typing import Any, AnyStr, Dict, List, Optional, Sequence, Tuple, Union, cast, overload
+
+# Import Literal for Python <= 3.7
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
+import warnings
 
 import numpy as np
 from microfit.fileio import from_json
@@ -159,7 +166,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             Histogram of the data.
         """
 
-        binning = self.binning
+        binning = self.binning.copy()
         return_single_channel = False
         # If we were to check for "Binning", this would also return True for MultiChannelBinning
         if not isinstance(binning, MultiChannelBinning):
@@ -360,6 +367,15 @@ class HistogramGenerator(SmoothHistogramMixin):
             assert not use_sideband, "KDE smoothing is incompatible with sidebands."
 
         if use_sideband:
+            # Issue deprecation warning: In the future, passing a sideband generator will no
+            # longer be supported. Instead, one should use the "update_with_measurement"
+            # method of the MultiChannelHistogram which is the output of this function.
+            warnings.warn(
+                "Passing a sideband generator will be deprecated in the future. Instead, use the "
+                "update_with_measurement method of the MultiChannelHistogram which is the output of "
+                "this function.",
+                DeprecationWarning,
+            )
             assert sideband_generator is not None
             assert sideband_total_prediction is not None
             assert sideband_observed_hist is not None
@@ -418,10 +434,10 @@ class HistogramGenerator(SmoothHistogramMixin):
 
             # calculate multisim histograms
             for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
-                cov_mat, universe_hists = self.calculate_multisim_uncertainties(
+                cov_mat = self.calculate_multisim_uncertainties(
                     ms_column,
                     extra_query=extra_query,
-                    return_histograms=True,
+                    return_histograms=False,
                 )
                 hist.add_covariance(cov_mat)
 
@@ -764,15 +780,39 @@ class HistogramGenerator(SmoothHistogramMixin):
             )
         return weights
 
+    @overload
     def calculate_multisim_uncertainties(
         self,
-        multisim_weight_column,
-        weight_rescale=1 / 1000,
-        weight_column=None,
-        central_value_hist=None,
-        extra_query=None,
-        return_histograms=False,
-    ):
+        multisim_weight_column: str,
+        weight_rescale: float = ...,
+        weight_column: Optional[str] = ...,
+        central_value_hist: Optional[Union[Histogram, MultiChannelHistogram]] = ...,
+        extra_query: Optional[str] = ...,
+        return_histograms: Literal[False] = ...,
+    ) -> np.ndarray:
+        ...
+
+    @overload
+    def calculate_multisim_uncertainties(
+        self,
+        multisim_weight_column: str,
+        weight_rescale: float = ...,
+        weight_column: Optional[str] = ...,
+        central_value_hist: Optional[Union[Histogram, MultiChannelHistogram]] = ...,
+        extra_query: Optional[str] = ...,
+        return_histograms: Literal[True] = ...,
+    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        ...
+
+    def calculate_multisim_uncertainties(
+        self,
+        multisim_weight_column: str,
+        weight_rescale: float = 1 / 1000,
+        weight_column: Optional[str] = None,
+        central_value_hist: Optional[Union[Histogram, MultiChannelHistogram]] = None,
+        extra_query: Optional[str] = None,
+        return_histograms: bool = False,
+    ) -> Union[np.ndarray, Tuple[np.ndarray, Optional[np.ndarray]]]:
         """Calculate multisim uncertainties.
 
         Each of the given multisim weight columns is expected to contain a list of weights

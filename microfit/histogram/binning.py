@@ -1,5 +1,6 @@
 from dataclasses import dataclass, fields
 from typing import List, Optional, Tuple, Union
+import warnings
 from microfit.selections import find_common_selection, get_selection_query, get_selection_title
 
 import numpy as np
@@ -190,6 +191,11 @@ class Binning:
         """Create a copy of the binning."""
         return Binning(**self.to_dict())
 
+    @property
+    def channels(self) -> List[str]:
+        assert self.label is not None, "Binning must have a label"
+        return [self.label]
+
 
 @dataclass
 class MultiChannelBinning:
@@ -253,6 +259,18 @@ class MultiChannelBinning:
 
     @property
     def labels(self) -> List[str]:
+        """Labels of all channels."""
+        # Deprecation warning: We are renaming "labels" to "channels"
+        warnings.warn(
+            "The 'labels' property is deprecated. Use 'channels' instead.",
+        )
+        assert [b.label is not None for b in self.binnings], "All binnings must have a label"
+        # The filter seems superfluous, but it is needed for the type checker to
+        # understand that the labels are not None.
+        return [b.label for b in self.binnings if b.label is not None]
+
+    @property
+    def channels(self) -> List[str]:
         """Labels of all channels."""
         assert [b.label is not None for b in self.binnings], "All binnings must have a label"
         # The filter seems superfluous, but it is needed for the type checker to
@@ -441,7 +459,7 @@ class MultiChannelBinning:
             else:
                 binnings.extend(mcb.binnings)
         return cls(binnings)
-    
+
     def is_compatible(self, other):
         """Check that two MultiChannelBinning objects are compatible.
 
