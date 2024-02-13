@@ -589,6 +589,13 @@ selection_categories = {
     'NUMUNP0PI': {'query': NUMUSELNP0PI, 'title': r"$1\mu$Np0$\pi$ selection", 'dir': 'NUMUNP0PI'},
     'NUMU0P0PI': {'query': NUMUSEL0P0PI, 'title': r"$1\mu$0p0$\pi$ selection", 'dir': 'NUMU0P0PI'},
 
+ 
+    # Misc background selections
+    'ZPBDT_GoodBG': {'query': ZPBDTLOOSE + ' and (mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))', 'title': '1e0p BDT sel.', 'dir': 'ZPBDT_GoodBG'},
+    'ZPBDT_MiscBG': {'query': ZPBDTLOOSE + ' and extdata != True and mcf_pass_ncpi0 != 1 and (abs(nu_pdg) != 12 or ccnc != 0)', 'title': '1e0p BDT sel.', 'dir': 'ZPBDT_MiscBG'},
+    'NPBDT_GoodBG': {'query': BDTCQ + ' and (mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))', 'title': '1eNp BDT sel.', 'dir': 'NPBDT_GoodBG'},
+    'NPBDT_MiscBG': {'query': BDTCQ + ' and extdata != True and mcf_pass_ncpi0 != 1 and (abs(nu_pdg) != 12 or ccnc != 0)', 'title': '1eNp BDT sel.', 'dir': 'NPBDT_MiscBG'},
+
 }
 
 stages_queries = {
