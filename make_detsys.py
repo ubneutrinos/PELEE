@@ -40,9 +40,9 @@ def make_variation_histograms(
     )
 
     # We want the variations to be the events per POT
-    for sample in rundata.keys():
-        rundata[sample]["weights"] /= data_pot
-        rundata[sample]["weights_no_tune"] /= data_pot
+    #for sample in rundata.keys():
+    #    rundata[sample]["weights"] /= data_pot
+    #    rundata[sample]["weights_no_tune"] /= data_pot
 
     hist_dict = {}
     if use_kde_smoothing:
@@ -130,8 +130,6 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
     # variations, so we can just take the first one
     #filter_queries = filter_queries[variations[0]]
 
-    print(selection)
-    print(preselection)
 
     binning.selection_key = selection
     binning.preselection_key = preselection
@@ -144,7 +142,7 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
         "binning": binning,
         "variation_hist_data": variation_hist_data,
         #"filter_queries": filter_queries,
-        "mc_sets": ["mc","nue"]
+        "mc_sets": variation_hist_data.keys()
     }
 
     #to_json(ls.detvar_cache_path + "/" + output_file, detvar_data)

@@ -1075,8 +1075,8 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         variations = [
             "lydown",
-            #"lyatt",
-            #"lyrayleigh",
+            "lyatt",
+            "lyrayleigh",
             #"sce",
             #"recomb2",
             #"wiremodx",
@@ -1111,12 +1111,15 @@ class HistogramGenerator(SmoothHistogramMixin):
             variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].nominal_values)
             for v in variations:
                 variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].nominal_values)
+
+        for dataset in self.detvar_data["mc_sets"]:
+            for v in variations:
                 observation_dict[dataset][v] = (variation_hist_data[dataset][v].nominal_values - variation_cv_hist) * (cv_hist / variation_cv_hist)
-        
 
         with np.errstate(divide="ignore", invalid="ignore"):
             variation_diffs = {
-                v: (h - variation_cv_hist) * (cv_hist / variation_cv_hist)
+                #v: (h - variation_cv_hist) * (cv_hist / variation_cv_hist)
+                v: (h - variation_cv_hist)
                 for v, h in variation_hists.items()
             }
 
@@ -1195,6 +1198,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             cov_mat = np.diag(np.diag(cov_mat))
         if return_histograms:
             return cov_mat, observation_dict
+
 
         return cov_mat
 

@@ -32,6 +32,7 @@ class RunHistGenerator:
         parameters: Optional[ParameterSet] = None,
         detvar_data: Optional[dict] = None,
         mc_hist_generator_cls: Optional[type] = None,
+        extra_mc_covariance: Optional[np.ndarray] = None,
         showdata=True,
         **mc_hist_generator_kwargs,
     ) -> None:
@@ -78,6 +79,8 @@ class RunHistGenerator:
         showdata : bool, optional
             Whether to show data in the plot. If False, only MC is shown. Internally, this removes the
             dataframe for the real data entirely.
+        extra_frac_mc_covaraince: array_like, optional
+            Additional covariance applied to total mc prediction
         **mc_hist_generator_kwargs
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
@@ -146,14 +149,17 @@ class RunHistGenerator:
                     "Variable of detector variations does not match binning of main histogram."
                 )
 
+            '''
             if not self.detvar_data["selection_key"] == self.selection:
                 raise ValueError(
                     "Selection of detector variations does not match selection of main histogram."
                 )
+
             if not self.detvar_data["preselection_key"] == self.preselection:
                 raise ValueError(
                     "Preselection of detector variations does not match preselection of main histogram."
                 )
+            '''
 
         # ensure that the necessary keys are present
         if "data" not in rundata_dict.keys():
@@ -217,6 +223,7 @@ class RunHistGenerator:
             )
         self.sideband_generator = sideband_generator
         self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
+        self.extra_mc_covariance = extra_mc_covariance
 
     @classmethod
     def get_selection_query(cls, selection, preselection, extra_queries=None):
@@ -422,6 +429,9 @@ class RunHistGenerator:
         )
         hist.label = "MC"
 
+        if self.extra_mc_covariance is not None:
+            hist.add_covariance(self.extra_mc_covariance)
+
         hist *= scale_factor
         return hist
 
@@ -498,3 +508,4 @@ class RunHistGenerator:
             total_prediction.covariance_matrix,
         )
         return chi_sq
+

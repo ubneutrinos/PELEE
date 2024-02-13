@@ -406,7 +406,7 @@ class Histogram:
     def sum(self):
         return np.sum(self.bin_counts)
 
-    def add_covariance(self, cov_mat):
+    def add_covariance(self, cov_mat, fractional=False):
         """Add a covariance matrix to the uncertainties of the histogram.
 
         The covariance matrix is added to the existing covariance matrix. This can be used
@@ -417,9 +417,23 @@ class Histogram:
         ----------
         cov_mat : array_like
             Covariance matrix to be added to the histogram.
+        fractional: bool
+            Whether passed covariance matrix is fractional or not
         """
 
-        self.covariance_matrix += cov_mat
+        # TODO: Check dimensions of passed covariance matrix are compatible with
+        # the hitsograms
+
+        if fractional:
+            print("Adding fractional covariance matrix")
+            print(self.nominal_values)
+            for i in (0,len(cov_mat)-1):
+                for j in (0,len(cov_mat[i])-1):
+                    cov_mat[i][j] *= self.nominal_values[i]*self.nominal_values[j]
+        else:     
+            print("Adding covariance matrix")
+            self.covariance_matrix += cov_mat
+            self.bin_counts = np.array(correlated_values(self.nominal_values, self.covariance_matrix))
 
     def fluctuate(self, seed=None):
         """Fluctuate bin counts according to uncertainties and return a new histogram with the fluctuated counts."""
@@ -1357,3 +1371,4 @@ class MultiChannelHistogram(Histogram):
             if len(set(values)) == 1:
                 setattr(combined_hist, prop, values[0])
         return combined_hist
+

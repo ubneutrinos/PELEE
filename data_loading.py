@@ -27,7 +27,7 @@ from microfit.selections import extract_variables_from_query
 
 datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
 #detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-detector_variations = ["cv","lydown","wiremodthetayz"]
+detector_variations = ["cv","lydown","lyatt","lyrayleigh","wiremodthetayz"]
 
 verbose=True
 
@@ -2499,8 +2499,7 @@ def _load_run_detvar(
             df_temp = output[key].query(sdb_def)
             output[key] = df_temp
 
-    # TODO: Revert this when we have pion samples in the main simulation
-    # Hacky way to handle the fact we don't have pion samples in the main simulation
+    '''
     if "cc_pi0" in truth_filtered_sets and "mc" in output.keys():
         output["mc"] = pd.concat([output["mc"],output["cc_pi0"]])
         del output["cc_pi0"]
@@ -2509,6 +2508,7 @@ def _load_run_detvar(
         output["mc"] = pd.concat([output["mc"],output["nc_pi0"]])
         del output["nc_pi0"]
         del weights["nc_pi0"]
+    '''
 
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
@@ -2812,8 +2812,10 @@ def get_run_variables(
 
     # There are some additional variables that are only used for baseline "nu"
     # MC runs.
-    if dataset != "ext" and dataset != "data":
-        ALLVARS += VARDICT["MCFVARS"]
+    #if dataset != "ext" and dataset != "data":
+    #    ALLVARS += VARDICT["MCFVARS"]
+
+    ALLVARS += VARDICT["MCFVARS"]
 
     return list(set(ALLVARS))
 
