@@ -31,11 +31,11 @@ class Parameter:
     ):
         self.name = name
         self.value = value
-        self.bounds = bounds
         if isinstance(self.value, bool):
             self.is_discrete = True
         else:
             self.is_discrete = False
+        self.bounds = bounds
 
     @property
     def value(self) -> Union[bool, Quantity]:
@@ -57,7 +57,8 @@ class Parameter:
     
     @bounds.setter
     def bounds(self, bounds: Optional[Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]]):
-        assert not isinstance(self.value, bool), "Cannot assign bounds to a discrete parameter."
+        if bounds is not None and self.is_discrete:
+            raise ValueError("Bounds cannot be set for discrete parameters.")
         if bounds is None:
             self._bounds = None  # type: ignore
         elif isinstance(bounds[0], Quantity) and isinstance(bounds[1], Quantity):
@@ -69,6 +70,7 @@ class Parameter:
         else:
             assert isinstance(bounds[0], float) or isinstance(bounds[0], int)
             assert isinstance(bounds[1], float) or isinstance(bounds[1], int)
+            assert isinstance(self.value, Quantity), "Value must be a Quantity if bounds are given."
             self._bounds = (
                 Quantity(bounds[0], self.value.unit),
                 Quantity(bounds[1], self.value.unit),
@@ -97,7 +99,6 @@ class Parameter:
         d = {
             "name": self.name,
             "value": self.value,
-            "is_discrete": self.is_discrete,
             "bounds": self.bounds,
         }
         # Iterate through dictionary and handle Quantity
@@ -121,6 +122,11 @@ class Parameter:
 
     def copy(self):
         return Parameter.from_dict(self.to_dict())
+    
+    def __eq__(self, __value: object) -> bool:
+        if not isinstance(__value, Parameter):
+            return False
+        return self.name == __value.name and self.value == __value.value and self.bounds == __value.bounds
 
 
 class ParameterSet:
