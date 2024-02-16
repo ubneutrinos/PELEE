@@ -1,0 +1,24 @@
+{
+    "typeCheckingMode": "basic",
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "reportMissingModuleSource": true,
+    "reportOptionalMemberAccess": true,
+    "reportOptionalCall": false,
+    "reportOptionalSubscript": false,
+    "reportOptionalOperand": false,
+    "reportUninitializedInstanceVariable": false,
+    "reportGeneralTypeIssues": true,
+    "reportUnusedVariable": false,
+    "reportUnusedImport": false,
+    "reportUnusedFunction": false,
+    "reportUnusedClass": false,
+    "reportFunctionMemberAccess": false,
+    "reportPrivateUsage": false,
+    "reportConstantRedefinition": false,
+    "reportIncompatibleVariableOverride": true,
+    "reportIncompatibleMethodOverride": true,
+    "reportInconsistentConstructor": true,
+    "reportMissingSuperCall": false
+}
+  
