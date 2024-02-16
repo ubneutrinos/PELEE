@@ -38,10 +38,10 @@ jobs:
       # uses: jakebailey/pyright-action@03ab3c98073356eb56161009632b39fc2666321b
       uses: jakebailey/pyright-action@v2.0.1
       with:
-        # Ignore external imports for verify-types.
-        ignore-external: true
         # Analyze for a specific version (3.3, 3.4, etc.).
         python-version: 3.7
+        # Extra arguments; can be used to specify specific files to check.
+        extra-args: "microfit"
     - name: Run tests
       shell: bash -l {0}
       run: |
