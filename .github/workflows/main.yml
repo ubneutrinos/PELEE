@@ -33,6 +33,15 @@ jobs:
         # conda install -c conda-forge xgboost==0.90
         # conda install -c conda-forge shap
         pip install unitpy
+    - name: Run pyright
+      # You may pin to the exact commit or the version.
+      # uses: jakebailey/pyright-action@03ab3c98073356eb56161009632b39fc2666321b
+      uses: jakebailey/pyright-action@v2.0.1
+      with:
+        # Ignore external imports for verify-types.
+        ignore-external: true
+        # Analyze for a specific version (3.3, 3.4, etc.).
+        python-version: 3.7
     - name: Run tests
       shell: bash -l {0}
       run: |
