@@ -33,17 +33,19 @@ jobs:
         # conda install -c conda-forge xgboost==0.90
         # conda install -c conda-forge shap
         pip install unitpy
-    - name: Run pyright
-      # You may pin to the exact commit or the version.
-      # uses: jakebailey/pyright-action@03ab3c98073356eb56161009632b39fc2666321b
-      uses: jakebailey/pyright-action@v2.0.1
-      with:
-        # Analyze for a specific version (3.3, 3.4, etc.).
-        python-version: 3.7
-        # Extra arguments; can be used to specify specific files to check.
-        extra-args: "microfit"
+        # Install Node.js and npm (if not already installed)
+        conda install -c conda-forge nodejs
+        # Install Pyright using npm
+        npm install -g pyright
+    - name: Run Pyright
+      shell: bash -l {0}
+      run: |
+        conda activate python3LEE
+        # Run Pyright type checking
+        pyright microfit
     - name: Run tests
       shell: bash -l {0}
       run: |
         conda activate python3LEE
+        # Run your unit tests
         python -m unittest discover
