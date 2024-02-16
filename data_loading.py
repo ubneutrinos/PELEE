@@ -27,7 +27,7 @@ from microfit.selections import extract_variables_from_query
 
 datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
 #detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-detector_variations = ["cv","lydown","lyatt","lyrayleigh","wiremodthetayz"]
+detector_variations = ["cv","lydown","lyatt","lyrayleigh","wiremodx","wiremodthetayz"]
 
 verbose=True
 
