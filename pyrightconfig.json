@@ -1,4 +1,5 @@
 {
     "typeCheckingMode": "standard",
+    "reportIncompatibleMethodOverride": "warning"
 }
   
