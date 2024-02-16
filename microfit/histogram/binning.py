@@ -75,7 +75,7 @@ class Binning:
                     return False
         return True
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         for field in fields(self):
             attr_self = getattr(self, field.name)
             attr_other = getattr(other, field.name)

@@ -287,7 +287,7 @@ class Histogram:
         dictionary["check_psd"] = check_psd
         return cls(**dictionary)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """Compare two histograms.
 
         Parameters
@@ -304,8 +304,8 @@ class Histogram:
             return False
         return (
             self.binning == other.binning
-            and np.all(self._bin_counts == other._bin_counts)
-            and np.allclose(self.covariance_matrix, other.covariance_matrix)
+            and bool(np.all(self._bin_counts == other._bin_counts))
+            and bool(np.allclose(self.covariance_matrix, other.covariance_matrix))
             and self.label == other.label
             and self.color == other.color
             and self.tex_string == other.tex_string
@@ -696,7 +696,7 @@ class MultiChannelHistogram(Histogram):
         super().__init__(binning.get_unrolled_binning(), *args, **kwargs)
         # The attribute self.binning is set in the Histogram constructor, but we overwrite
         # it here again.
-        self.binning = binning
+        self.binning: MultiChannelBinning = binning
 
     @overload
     def sum_channels(
@@ -803,6 +803,8 @@ class MultiChannelHistogram(Histogram):
 
         if not inplace:
             return output_hist
+        else:
+            return None
 
     def scale_channel(
         self, channel: str, scale: float, inplace: bool = True
@@ -862,6 +864,8 @@ class MultiChannelHistogram(Histogram):
             ] *= scale
         if not inplace:
             return output_hist
+        else:
+            return None
 
     def channel_covariance(self, channel1: str, channel2: str) -> np.ndarray:
         """Get the covariance between two channels.
@@ -1245,11 +1249,19 @@ class MultiChannelHistogram(Histogram):
         return f"MultiChannelHistogram(binning={self.binning}, bin_counts={self.bin_counts}, label={self.label}, tex={self.tex_string})"
 
     def draw(
-        self, ax=None, as_errorbars=False, show_errors=True, show_channel_labels=True, **plot_kwargs
+        self,
+        ax=None,
+        as_errorbars=False,
+        show_errors=True,
+        with_ylabel=True,
+        show_channel_labels=True,
+        **plot_kwargs,
     ):
         # call the draw method of the unrolled histogram
         unrolled_hist = self.get_unrolled_histogram()
-        ax = unrolled_hist.draw(ax, as_errorbars, show_errors, **plot_kwargs)
+        ax = unrolled_hist.draw(
+            ax, as_errorbars, show_errors, with_ylabel=with_ylabel, **plot_kwargs
+        )
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
         channel_labels = [b.selection_tex_short or b.label for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
@@ -1270,8 +1282,12 @@ class MultiChannelHistogram(Histogram):
 
         return ax
 
-    def draw_covariance_matrix(self, ax=None, as_correlation=True, **plot_kwargs):
-        ax = self.get_unrolled_histogram().draw_covariance_matrix(ax, as_correlation, **plot_kwargs)
+    def draw_covariance_matrix(
+        self, ax=None, as_correlation=True, as_fractional=False, colorbar_kwargs=None, **plot_kwargs
+    ):
+        ax = self.get_unrolled_histogram().draw_covariance_matrix(
+            ax, as_correlation, as_fractional, colorbar_kwargs, **plot_kwargs
+        )
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
         channel_labels = [b.selection_tex_short or b.label for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
