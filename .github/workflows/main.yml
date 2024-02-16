@@ -32,6 +32,8 @@ jobs:
         # conda install -c conda-forge xgboost==0.90
         # conda install -c conda-forge shap
         pip install unitpy
+        # install typing stub packages for python 3.7
+        pip install pandas-stubs
         # Install Node.js and npm (if not already installed)
         conda install -c conda-forge nodejs
         # Install Pyright using npm
