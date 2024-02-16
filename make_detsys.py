@@ -3,7 +3,7 @@ import sys
 
 import data_loading as dl
 from microfit.histogram import Binning, HistogramGenerator, RunHistGenerator
-from microfit.fileio import to_json
+from microfit.fileio import to_json,from_json
 import logging
 import os
 import hashlib
@@ -72,14 +72,16 @@ def make_detvar_plots(detvar_data, output_dir, plotname):
             if name == "cv":
                 continue
             hist.draw(ax=ax, label=name, show_errors=False)
-        ax.set_ylabel("Events / POT")
+        #ax.set_ylabel("Events / POT")
+        ax.set_ylabel("Events")
         ax.set_xlabel(detvar_data["binning"].variable)
         ax.set_ylim(bottom=0)
         ax.legend(ncol=2)
         ax.set_title(f"Dataset: {truth_filter}, Selection: {detvar_data['selection_key']}")
 
-
-        '''
+        fig.savefig(output_dir + truth_filter + "_" + plotname)
+         
+        ''' 
         fig.savefig(
             os.path.join(
                 output_dir, f"detvar_{truth_filter}_{detvar_data['selection_key']}.pdf",
@@ -91,7 +93,16 @@ def make_detvar_plots(detvar_data, output_dir, plotname):
 # New function to enable integration of detvar generation into
 # notebooks insetad of as a separate function
 
-def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing=False,make_plots=False,plot_output_dir="",**dl_kwargs):
+def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing=False,make_plots=False,plot_output_dir="",enable_detvar_cache=False,**dl_kwargs):
+
+    runcombo_str = ""
+    for i_r in range(0,len(RUN)): runcombo_str = runcombo_str + RUN[i_r]
+    output_file = "run_" + runcombo_str + "_" + preselection + "_" + selection + "_" + binning.variable
+    detvar_file = ls.detvar_cache_path + "/" + output_file + ".json"
+
+    if enable_detvar_cache and os.path.isfile(detvar_file):
+        print("Loading devar histograms from file:",detvar_file) 
+        return from_json(detvar_file) 
 
     selection_query = RunHistGenerator.get_selection_query(
         selection=selection, preselection=preselection
@@ -142,16 +153,14 @@ def make_variations(RUN,dataset,selection,preselection,binning,use_kde_smoothing
         "binning": binning,
         "variation_hist_data": variation_hist_data,
         #"filter_queries": filter_queries,
-        "mc_sets": variation_hist_data.keys()
+        "mc_sets": list(variation_hist_data.keys())
     }
 
-    #to_json(ls.detvar_cache_path + "/" + output_file, detvar_data)
+    if enable_detvar_cache:
+        to_json(detvar_file,detvar_data)
 
     if make_plots:
-        runcombo_str = ""
-        for i_r in range(0,len(RUN)): runcombo_str = runcombo_str + RUN[i_r]
-        output_file = "run_" + runcombo_str + "_" + preselection + "_" + selection + "_" + binning.variable + ".png"
-        make_detvar_plots(detvar_data, plot_output_dir,output_file)
+        make_detvar_plots(detvar_data,plot_output_dir,output_file+".pdf")
 
     return detvar_data
 

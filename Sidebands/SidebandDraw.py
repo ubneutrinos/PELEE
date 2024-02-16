@@ -77,17 +77,16 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                   # Make the detvar histogram
                   if add_detsys:
                       if verb: print("Adding detsys")
-                      detsys_file=detsys.make_variations(
+                      detsys_data=detsys.make_variations(
                           run_combo,
                           DATASET,         
                           selection,
                           preselection,
                           binning,
                           make_plots=False,
-                          truth_filtered_sets=["nue","cc_pi0","nc_pi0"],
+                          truth_filtered_sets=["nue","nc_pi0"],
                           **dl_kwargs
                       )
-                      if verb: print("Detector variation histograms saved as",detsys_file)
                   
                   signal_generator = hist.RunHistGenerator(
                       rundata,
@@ -96,8 +95,8 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                       selection=selection,
                       preselection=preselection,
                       sideband_generator=None,
-                      uncertainty_defaults=None,
-                      detvar_data_path=detsys_file if add_detsys else None 
+                      uncertainty_defaults={"include_multisim_errors": True,"include_unisim_errors": True},
+                      detvar_data=detsys_data if add_detsys else None 
                   )
 
                   plotter = rp.RunHistPlotter(signal_generator)
@@ -130,7 +129,7 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                           show_data_mc_ratio=True,
                           show_chi_square=True,
                           smooth_ext_histogram=False,
-                          add_precomputed_detsys=False
+                          add_precomputed_detsys=True
                       )
 
                       pltname = "Plots/pdf/run_" + runcombo_str + "/" + DATASET + "/" + preselection + "_" + selection + "/WithDetvar/" +\

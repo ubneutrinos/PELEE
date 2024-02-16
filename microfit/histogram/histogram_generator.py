@@ -1079,7 +1079,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             "lyrayleigh",
             #"sce",
             #"recomb2",
-            #"wiremodx",
+            "wiremodx",
             #"wiremodyz",
             #"wiremodthetaxz",
             "wiremodthetayz",
