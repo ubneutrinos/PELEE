@@ -4,7 +4,7 @@ from typing import Any, AnyStr, Dict, List, Optional, Sequence, Tuple, Union, ca
 
 # Import Literal for Python <= 3.7
 try:
-    from typing import Literal
+    from typing import Literal  # type: ignore
 except ImportError:
     from typing_extensions import Literal
 import warnings
@@ -116,7 +116,7 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         self._invalidate_cache()
 
-    def _generate_hash(*args, **kwargs):
+    def _generate_hash(self, *args, **kwargs):
         hash_obj = hashlib.md5()
         data = str(args) + str(kwargs)
         hash_obj.update(data.encode("utf-8"))
@@ -295,7 +295,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             selection_masks.append(self._get_query_mask(dataframe, query))
         bin_edges = binning.consecutive_bin_edges
         base_weights = self.get_weights(dataframe, base_weight_column)
-        multisim_weights = dataframe[multisim_weight_column].values
+        multisim_weights: np.ndarray = dataframe[multisim_weight_column].to_numpy()
         # We have to make sure that there are no NaNs in the weights. Every row should contain
         # a list or np.ndarray of values of the same length. If there are NaNs, this indicates that the
         # selection might contain events that are acually not MC events (such as EXT). We

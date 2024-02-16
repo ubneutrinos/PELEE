@@ -1,13 +1,11 @@
 """Module to define parameters of an analysis."""
 
-from dataclasses import dataclass, asdict
 from numbers import Real
 from typing import Optional, Union, List, Tuple, overload
 from unitpy import Unit, Quantity
 import numpy as np
 
 
-@dataclass
 class Parameter:
     """Class to define a parameter of an analysis.
 
@@ -25,35 +23,59 @@ class Parameter:
         Bounds of the parameter. If not given, the parameter is assumed to be unconstrained.
     """
 
-    name: str
-    value: Union[bool, Quantity]
-    is_discrete: bool = False  # Automatically assigned in constructor
-    bounds: Optional[Tuple[Quantity, Quantity]] = None
-    _post_init_finished: bool = False
-
-    def __post_init__(self):
+    def __init__(
+        self,
+        name: str,
+        value: Union[bool, Quantity, int, float],
+        bounds: Optional[Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]] = None,
+    ):
+        self.name = name
+        self.value = value
+        self.bounds = bounds
         if isinstance(self.value, bool):
             self.is_discrete = True
         else:
             self.is_discrete = False
-        # convert float to Quantity
-        if isinstance(self.value, Real) and not isinstance(self.value, bool):
-            assert isinstance(self.value, float) or isinstance(self.value, int)
-            self.value = Quantity(self.value, Unit())
-        # if bounds are given, convert to Quantity if needed, assuming the same units as value
-        if self.bounds is not None:
-            if isinstance(self.value, bool):
-                raise TypeError("Cannot assign bounds to a discrete parameter.")
-            if isinstance(self.bounds[0], float) or isinstance(self.bounds[0], int):
-                assert isinstance(self.bounds[1], float) or isinstance(self.bounds[1], int)
-                self.bounds = (
-                    Quantity(self.bounds[0], self.value.unit),
-                    Quantity(self.bounds[1], self.value.unit),
-                )
+
+    @property
+    def value(self) -> Union[bool, Quantity]:
+        return self._value
+    
+    @value.setter
+    def value(self, value: Union[bool, Quantity, int, float]):
+        if isinstance(value, bool):
+            self._value = value
+        elif isinstance(value, Quantity):
+            self._value = value
+        else:
+            assert isinstance(value, float) or isinstance(value, int)
+            self._value = Quantity(value, Unit())
+    
+    @property
+    def bounds(self) -> Optional[Tuple[Quantity, Quantity]]:
+        return self._bounds
+    
+    @bounds.setter
+    def bounds(self, bounds: Optional[Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]]):
+        assert not isinstance(self.value, bool), "Cannot assign bounds to a discrete parameter."
+        if bounds is None:
+            self._bounds = None  # type: ignore
+        elif isinstance(bounds[0], Quantity) and isinstance(bounds[1], Quantity):
             # make sure bounds are sorted
-            if self.bounds[0] > self.bounds[1]:
-                self.bounds = (self.bounds[1], self.bounds[0])
-        self._post_init_finished = True
+            if  bounds[0] > bounds[1]:
+                self._bounds: Tuple[Quantity, Quantity] = (bounds[1], bounds[0])
+            else:
+                self._bounds: Tuple[Quantity, Quantity] = bounds  # type: ignore
+        else:
+            assert isinstance(bounds[0], float) or isinstance(bounds[0], int)
+            assert isinstance(bounds[1], float) or isinstance(bounds[1], int)
+            self._bounds = (
+                Quantity(bounds[0], self.value.unit),
+                Quantity(bounds[1], self.value.unit),
+            )
+            # make sure bounds are sorted
+            if self._bounds[0] > self._bounds[1]:
+                self._bounds = (self._bounds[1], self._bounds[0])
 
     @property
     def magnitude_bounds(self):
@@ -72,40 +94,20 @@ class Parameter:
             return self.value.value
 
     def to_dict(self):
-        d = asdict(self)
+        d = {
+            "name": self.name,
+            "value": self.value,
+            "is_discrete": self.is_discrete,
+            "bounds": self.bounds,
+        }
         # Iterate through dictionary and handle Quantity
         for key, value in d.items():
             if isinstance(value, Quantity):
                 d[key] = {"magnitude": value.value, "unit": str(value.unit)}
         return d
 
-    def __setattr__(self, name, value):
-        if name == "value":
-            if self._post_init_finished:  # Ensure post_init has run
-                if self.is_discrete and not isinstance(value, bool):
-                    raise TypeError("Cannot assign non-boolean value to a discrete parameter.")
-                elif not self.is_discrete and isinstance(value, bool):
-                    raise TypeError("Cannot assign boolean value to a continuous parameter.")
-                # if generic number, convert to Quantity, assuming the same units as value
-                if isinstance(value, Real) and not isinstance(value, bool):
-                    assert isinstance(value, float) or isinstance(value, int)
-                    assert isinstance(self.value, Quantity)
-                    value = Quantity(value, self.value.unit)
-                assert isinstance(value, Quantity) or isinstance(value, bool)
-                # make sure new value is within bounds
-                if self.bounds is not None and not self.is_discrete:
-                    assert isinstance(self.value, Quantity)
-                    assert isinstance(value, Quantity)
-                    if value < self.bounds[0] or value > self.bounds[1]:
-                        raise ValueError(
-                            f"New value is not within {self.bounds[0].value, self.bounds[1].value} {self.value.unit}."
-                        )
-        super().__setattr__(name, value)
-
     @classmethod
     def from_dict(cls, d):
-        if "_post_init_finished" in d:
-            d.pop("_post_init_finished")
         # Check if the value is a string with units
         if isinstance(d["value"], str):
             magnitude_str, unit_str = d["value"].split()

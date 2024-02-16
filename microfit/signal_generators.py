@@ -3,7 +3,7 @@ as a signal generator when defining an analysis in a toml file.
 """
 
 
-from typing import Union
+from typing import Optional, Tuple, Union
 import numpy as np
 from copy import deepcopy
 
@@ -119,7 +119,9 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
     def _resync_parameters(self):
         self.parameters.synchronize(self.hist_generator.parameters)
 
-    def calculate_multisim_uncertainties(self, *args, **kwargs):
+    def calculate_multisim_uncertainties(
+        self, *args, **kwargs
+    ) -> Union[np.ndarray, Tuple[np.ndarray, Optional[np.ndarray]]]:
         return_histograms = kwargs.get("return_histograms", False)
         result = self.hist_generator.calculate_multisim_uncertainties(*args, **kwargs)
         summed_cov = None

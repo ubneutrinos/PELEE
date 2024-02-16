@@ -44,7 +44,7 @@ class Transformer:
     def fit(self, data):
         """Fit the transformation to the given data."""
         self._scale = 1.0
-        pass
+        return self
 
     def transform(self, x):
         """The transformation function, :math:`g(x)`."""

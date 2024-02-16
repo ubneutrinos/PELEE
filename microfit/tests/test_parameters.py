@@ -1,6 +1,6 @@
 import unittest
 
-from typing import List
+from typing import List, Sequence, Union
 from unitpy import Unit, Quantity
 
 from ..parameters import Parameter, ParameterSet
@@ -112,8 +112,8 @@ class TestParameterSet(unittest.TestCase):
             def __init__(self, parameter_users: List[ParameterUser]):
                 self.parameter_users = parameter_users
                 self.parameters = sum(
-                    [pu.parameters for pu in parameter_users]
-                )  # type: ParameterSet
+                    [pu.parameters for pu in parameter_users], ParameterSet([])
+                )
 
         pu1 = ParameterUser(ps, name="pu1")
         pu2 = ParameterUser(ps2, name="pu2")
@@ -155,9 +155,8 @@ class TestParameterSet(unittest.TestCase):
                 self.name = name
 
         class ParameterUserUser:
-            def __init__(self, parameter_users: List[ParameterUser]):
-                self.parameter_users = parameter_users
-                self.parameters = sum([pu.parameters for pu in parameter_users])
+            def __init__(self, parameter_users: Sequence[Union[ParameterUser, "ParameterUserUser"]]):
+                self.parameters = sum([pu.parameters for pu in parameter_users], ParameterSet([]))
 
         pu1 = ParameterUser(ps1, name="pu1")
         pu2 = ParameterUser(ps2, name="pu2")
