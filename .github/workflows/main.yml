@@ -25,7 +25,9 @@ jobs:
       shell: bash -l {0}
       run: |
         conda activate python3LEE
-        conda install scipy pandas==1.0.5 matplotlib pyyaml iminuit tqdm
+        conda install scipy pandas==1.0.5 matplotlib pyyaml tqdm
+        # Analysis currently uses iminuit 1.5.4 syntax
+        conda install -c conda-forge iminuit==1.5.4
         conda install scikit-learn
         # For testing purposes, we don't need jupyter (it only slows down the workflow)
         # conda install jupyter
