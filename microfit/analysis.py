@@ -3,8 +3,11 @@
 import os
 import logging
 import sys
-from typing import List, Optional, Tuple, Union, Dict, overload
+from typing import Any, List, Optional, Tuple, Union, Dict, overload
+from iminuit import Minuit
 from matplotlib import pyplot as plt, ticker
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 import numpy as np
 
 from scipy.linalg import block_diag
@@ -763,22 +766,28 @@ class MultibandAnalysis(object):
             self.parameters[name].value = kwargs[name]
         return self.generate_multiband_histogram(include_multisim_errors=True, use_sideband=True)
 
-    def _get_minuit(self, observed_hist, scale_to_pot=None, reset_cache=True):
+    def _get_minuit(
+        self,
+        observed_hist: Histogram,
+        scale_to_pot: Optional[float] = None,
+        reset_cache: bool = True
+    ) -> Minuit:
         """Prepare the Minuit object that can run a fit and more.
 
         Parameters
         ----------
         observed_hist : Histogram
             The data histogram to be fitted.
+        scale_to_pot : Optional[float], optional
+            The scale factor to apply to the histogram, by default None.
+        reset_cache : bool, optional
+            Whether to reset the cache, by default True.
 
         Returns
         -------
         Minuit
             The Minuit object.
         """
-
-        # make this an optional dependency only in case one wants to run a fit
-        from iminuit import Minuit
 
         # clear the cache just to be safe
         if reset_cache:
@@ -918,12 +927,12 @@ class MultibandAnalysis(object):
     @classmethod
     def plot_fc_scan_results(
         cls,
-        fc_scan_results,
-        ax=None,
-        parameter_tex=None,
-        levels=[0.0, 0.68, 0.9, 0.95, 1.0],
+        fc_scan_results: dict,
+        ax: Optional[plt.Axes] = None,
+        parameter_tex: Optional[str] = None,
+        levels: List[float] = [0.0, 0.68, 0.9, 0.95, 1.0],
         **kwargs,
-    ):
+    ) -> Tuple[Figure, Axes]:
         """Plot the results of an FC scan."""
 
         if ax is None:
@@ -955,21 +964,21 @@ class MultibandAnalysis(object):
 
     def _fit_to_data_migrad(
         self,
-        data=None,
-        return_migrad=False,
-        reset_cache=True,
-    ):
+        data: Optional[MultiChannelHistogram] = None,
+        return_migrad: bool = False,
+        reset_cache: bool = True,
+    ) -> Union[Tuple[float, ParameterSet], Tuple[float, ParameterSet, Minuit]]:
         data = data or self.generate_multiband_data_histogram()
         assert data is not None, "Cannot fit to data when data is None"
         for channel in self.signal_channels:
             if channel not in data.channels:
                 raise ValueError(f"Channel {channel} not found in data histogram")
         data = data[self.signal_channels]
-        m = self._get_minuit(data, reset_cache=reset_cache)
+        m: Minuit = self._get_minuit(data, reset_cache=reset_cache)
         m.migrad()
         best_fit_parameters = self.parameters.copy()
         if return_migrad:
-            return m.fval, best_fit_parameters, m
+            return m.fval, best_fit_parameters, m 
         return m.fval, best_fit_parameters
 
     def _fit_to_data_grid_scan(
