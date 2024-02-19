@@ -2361,7 +2361,6 @@ def _load_run(
             print(sdb_def)
             print("I will also apply this query to the MC you're loading")
         for key in output:
-            print("key=",key)
             df_temp = output[key].query(sdb_def)
             output[key] = df_temp
 

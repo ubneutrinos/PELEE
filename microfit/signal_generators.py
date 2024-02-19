@@ -77,6 +77,9 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         return query + " and " + extra_query
 
     def generate(self, **kwargs):
+
+        # TODO: Change this to not load the detector systematics
+
         hist = self.hist_generator.generate(**kwargs)
         # It will have to be a MultiChannelHistogram because we are using a split-channel binning.
         assert isinstance(hist, MultiChannelHistogram), "Histogram must be a MultiChannelHistogram"
@@ -100,6 +103,10 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         assert (
             hist.binning == self.binning
         ), "Binning of the generated histogram does not match the binning of the generator"
+
+        # Add the covariance for the detector systematics down here
+
+
         return hist
 
     def _resync_parameters(self):

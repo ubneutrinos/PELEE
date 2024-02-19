@@ -425,15 +425,18 @@ class Histogram:
         # the hitsograms
 
         if fractional:
-            print("Adding fractional covariance matrix")
-            print(self.nominal_values)
+            if self.bin_counts.ndim == 1:
+                values = self.bin_counts
+            elif self.bin_counts.ndim == 2:
+                values = np.diag(self.bin_counts)
+            else:
+                raise ValueError("histogram bin counts can only be a 1D or 2D array")
+
             for i in (0,len(cov_mat)-1):
                 for j in (0,len(cov_mat[i])-1):
-                    cov_mat[i][j] *= self.nominal_values[i]*self.nominal_values[j]
-        else:     
-            print("Adding covariance matrix")
-            self.covariance_matrix += cov_mat
-            self.bin_counts = np.array(correlated_values(self.nominal_values, self.covariance_matrix))
+                    cov_mat[i][j] *= values[i]*values[j] 
+
+        self.covariance_matrix += cov_mat
 
     def fluctuate(self, seed=None):
         """Fluctuate bin counts according to uncertainties and return a new histogram with the fluctuated counts."""
