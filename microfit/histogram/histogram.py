@@ -8,7 +8,6 @@ import numpy as np
 from scipy.linalg import block_diag
 
 from numbers import Real, Real
-from uncertainties import correlated_values
 
 from microfit.statistics import (
     error_propagation_division,

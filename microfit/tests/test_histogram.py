@@ -13,8 +13,6 @@ from microfit.histogram import (
 from microfit.parameters import Parameter, ParameterSet
 import numpy as np
 import pandas as pd
-import uncertainties.unumpy as unumpy
-import logging
 from microfit.statistics import fronebius_nearest_psd, get_cnp_covariance
 from typing import Union, overload
 
