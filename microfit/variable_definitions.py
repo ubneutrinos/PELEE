@@ -193,7 +193,7 @@ pi0_variables = [
     ("pi0_mass_Y_corr", 49, (10, 500), "$\pi^0$ mass [MeV]"),
     ("reco_e", 19, (0.15, 2.15), "reconstructed energy [GeV]"),
     ("shr_energy_tot_cali", 20, (0.05, 1.50), "reconstructed shower energy [GeV]"),
-    ("trk_energy_tot", 20, (0.05, 1.50), "reconstructed track energy [GeV]"),
+    #("trk_energy_tot", 20, (0.05, 1.50), "reconstructed track energy [GeV]"),
     ("n_tracks_contained", 5, (0, 5), "number of contained tracks"),
     ("n_showers_contained", 5, (2, 7), "number of contained showers"),
     ("pi0_mass_U", 20, (10, 510), "$M_{\gamma\gamma}$ mass U plane [MeV]"),

@@ -505,6 +505,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         include_unisim_errors=True,
         include_stat_errors=True,
         extra_query=None,
+        add_precomputed_detsys=False
     ):
         """Generate a joint histogram from multiple histogram generators.
 
@@ -546,7 +547,6 @@ class HistogramGenerator(SmoothHistogramMixin):
             )
 
         # CT: Needs another block for the detvars here
-        
         if add_precomputed_detsys:
             print("Including detsim uncertainties")
             covariance_matrix += HistogramGenerator.multiband_detector_covariance(
@@ -714,39 +714,60 @@ class HistogramGenerator(SmoothHistogramMixin):
         # the universes in a meaningful way.
         # The detvar_data dictionary contains a dictionary of all the filter queries that
         # were used under the key `filter_queries`.
-        '''
-        reference_filter_queries = hist_generators[0].detvar_data["filter_queries"]
-        for hg in hist_generators:
-            assert (
-                hg.detvar_data["filter_queries"] == reference_filter_queries
-            ), "Not all histograms have the same filter queries."
-        '''
 
+        print("Calculating multichannel detsim uncertainties")
+
+        total_bins = sum([len(hg.binning) for hg in hist_generators])
+        summed_cov_mat = np.zeros((total_bins, total_bins))
         universe_hist_dicts = []
         for hg in hist_generators:
             universe_hist_dicts.append(hg.calculate_detector_covariance(return_histograms=True)[1])
         datasets = list(universe_hist_dicts[0].keys())
-        knobs = list(universe_hist_dicts[0][datasets[0]].keys())
-        total_bins = sum([len(hg.binning) for hg in hist_generators])
-        summed_cov_mat = np.zeros((total_bins, total_bins))
-        for dataset in datasets:
-            for knob in knobs:
-                assert all(
-                    knob in hist_dict[dataset] for hist_dict in universe_hist_dicts
-                ), f"Knob {knob} not found in all histograms."
-                concatenated_universes = np.concatenate(
-                    [hist_dict[dataset][knob] for hist_dict in universe_hist_dicts],
-                    axis=1,
-                )
-                # The detector universes are special, because the central value has already been subtracted
-                # by construction. Therefore, we can use the zero vector as the central value.
-                cov_mat = covariance(
-                    concatenated_universes,
-                    np.zeros(total_bins),
-                    allow_approximation=True,
-                    tolerance=1e-8,
-                )
-                summed_cov_mat += cov_mat
+        variations = list(universe_hist_dicts[0][datasets[0]].keys())
+
+        # Datasets can have different lengths as we don't use the nc pi0 sample in all of the sidebands
+
+        variation_diffs_dict = {variation: np.array([]) for variation in variations}
+        for hg in hist_generators:
+
+            cv_hist = hg.generate(add_precomputed_detsys=False).bin_counts
+            variation_hist_data = cast(
+                Dict[str, Dict[str, Histogram]],hg.detvar_data["variation_hist_data"]
+            )
+
+            # Get the CV variation hist
+            variation_cv_hist = np.zeros(hg.binning.n_bins)
+            variation_hists = {
+                        v: np.zeros(hg.binning.n_bins) 
+                        for v in variations
+            }
+
+            for dataset in hg.detvar_data["mc_sets"]:
+                variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].bin_counts)
+                for v in variations:
+                    variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].bin_counts)
+
+        
+            with np.errstate(divide="ignore", invalid="ignore"):
+                variation_diffs = {
+                    v: (h - variation_cv_hist)
+                    for v, h in variation_hists.items()
+                }
+        
+            for variation in variations:
+                variation_diffs_dict[variation] = np.concatenate([variation_diffs_dict[variation],variation_diffs[variation]])
+
+
+        for variation in variations:
+            cov_mat = covariance(
+                [variation_diffs_dict[variation]],
+                np.zeros(total_bins),
+                allow_approximation=True,
+                tolerance=1e-8,
+            )
+
+            summed_cov_mat += cov_mat
+
         return summed_cov_mat
 
     def adjust_weights(self, dataframe, base_weights):
@@ -1097,7 +1118,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
         observation_dict = {}
 
-        cv_hist = self.generate(add_precomputed_detsys=False).nominal_values
+        cv_hist = self.generate(add_precomputed_detsys=False).bin_counts
 
         # Get the CV variation hist
         variation_cv_hist = np.zeros(self.binning.n_bins)
@@ -1108,13 +1129,13 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         for dataset in self.detvar_data["mc_sets"]:
             observation_dict[dataset] = {}
-            variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].nominal_values)
+            variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].bin_counts)
             for v in variations:
-                variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].nominal_values)
+                variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].bin_counts)
 
         for dataset in self.detvar_data["mc_sets"]:
             for v in variations:
-                observation_dict[dataset][v] = (variation_hist_data[dataset][v].nominal_values - variation_cv_hist) * (cv_hist / variation_cv_hist)
+                observation_dict[dataset][v] = (variation_hist_data[dataset][v].bin_counts - variation_cv_hist) * (cv_hist / variation_cv_hist)
 
         with np.errstate(divide="ignore", invalid="ignore"):
             variation_diffs = {

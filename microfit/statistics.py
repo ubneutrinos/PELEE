@@ -153,6 +153,7 @@ def covariance(
     if central_value is not None:
         central_value = np.asarray(central_value)
     # make sure the central value, if given, has the right length
+
     if central_value is not None:
         if central_value.shape[0] != observations.shape[1]:
             raise ValueError("Central value has wrong length.")
@@ -290,6 +291,11 @@ def chi_square(
     float: The chi-square value.
 
     """
+
+    # TODO: Add a check to catch if the prediction/data histograms are empty. 
+    # CT has seen a crash caused by this that was annoying to debug
+
+
     n = observation
     mu = expectation
 
