@@ -12,6 +12,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        # Fetches all submodules recursively to download stubs needed for matplotlib type checking
+        submodules: 'recursive'
     - name: Set up Miniconda
       uses: conda-incubator/setup-miniconda@v2
       with:
