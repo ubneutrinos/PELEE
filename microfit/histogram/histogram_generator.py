@@ -35,7 +35,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         self,
         dataframe: pd.DataFrame,
         binning: Union[Binning, MultiChannelBinning],
-        parameters: Optional[ParameterSet] = None,
+        parameters: ParameterSet = ParameterSet([]),
         detvar_data: Optional[Union[Dict[str, AnyStr], str]] = None,
         enable_cache: bool = True,
         cache_total_covariance: bool = True,
@@ -83,8 +83,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         # anything else. The only exceptions are when we calculate systematics, but even
         # then we also hard-coded which column must be used when.
         self.weight_column = "weights"
-        if self.parameters is None:
-            self.parameters = ParameterSet([])  # empty parameter set, still needed to check cache
         self.parameters_last_evaluated = None  # used to invalidate the cache
         self.logger = logging.getLogger(__name__)
         self.logger.debug(f"Creating histogram generator for with binning: {binning}")
@@ -116,7 +114,7 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         self._invalidate_cache()
 
-    def _generate_hash(self, *args, **kwargs):
+    def _generate_hash(self, *args, **kwargs) -> str:
         hash_obj = hashlib.md5()
         data = str(args) + str(kwargs)
         hash_obj.update(data.encode("utf-8"))
@@ -124,13 +122,12 @@ class HistogramGenerator(SmoothHistogramMixin):
 
     def _invalidate_cache(self):
         """Invalidate the cache."""
-        self.hist_cache = dict()
+        self.hist_cache: Dict[str, Histogram] = dict()
         self.unisim_hist_cache = dict()
         self.multisim_hist_cache = dict()
         self.multisim_hist_cache["weightsReint"] = dict()
         self.multisim_hist_cache["weightsFlux"] = dict()
         self.multisim_hist_cache["weightsGenie"] = dict()
-        assert isinstance(self.parameters, ParameterSet)
         self.parameters_last_evaluated = self.parameters.copy()
 
     def _return_empty_hist(self):
@@ -437,7 +434,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             if self.enable_cache:
                 self.hist_cache[hash] = hist.copy()
         # if we reach this point without having a histogram, something went wrong
-        assert isinstance(hist, (Histogram, MultiChannelHistogram))
+        assert hist is not None
         self.logger.debug(f"Generated histogram: {hist}")
         if include_multisim_errors:
             self.logger.debug("Calculating multisim uncertainties")
@@ -445,7 +442,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             if use_sideband:
                 # initialize extended covariance matrix
                 n_bins = hist.n_bins
-                assert isinstance(sideband_observed_hist, Histogram)
+                assert sideband_observed_hist is not None
                 sb_n_bins = sideband_observed_hist.n_bins
                 extended_cov = np.zeros((n_bins + sb_n_bins, n_bins + sb_n_bins))
 
@@ -474,8 +471,8 @@ class HistogramGenerator(SmoothHistogramMixin):
 
             if use_sideband:
                 # calculate constraint correction
-                assert isinstance(sideband_total_prediction, Histogram)
-                assert isinstance(sideband_observed_hist, Histogram)
+                assert sideband_total_prediction is not None
+                assert sideband_observed_hist is not None
                 mu_offset, cov_corr = sideband_constraint_correction(
                     sideband_measurement=sideband_observed_hist.bin_counts,
                     sideband_central_value=sideband_total_prediction.bin_counts,
