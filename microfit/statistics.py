@@ -2,7 +2,8 @@
 
 import numpy as np
 import logging
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, overload
+from typing_extensions import Literal
 import scipy.linalg as lin
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,13 @@ def is_psd(A: np.ndarray, ignore_zeros: bool = False) -> bool:
     except np.linalg.LinAlgError:
         return False
 
+@overload
+def fronebius_nearest_psd(A: np.ndarray, return_distance: Literal[False] = False) -> np.ndarray:
+    ...
+
+@overload
+def fronebius_nearest_psd(A: np.ndarray, return_distance: Literal[True]) -> Tuple[np.ndarray, float]:
+    ...
 
 def fronebius_nearest_psd(A: np.ndarray, return_distance: bool = False) -> Union[np.ndarray, tuple]:
     """Find the positive semi-definite matrix closest to `A`.
@@ -203,7 +211,7 @@ def covariance(
     return cov
 
 
-def get_cnp_covariance(expectation: np.ndarray, observation: np.ndarray):
+def get_cnp_covariance(expectation: np.ndarray, observation: np.ndarray) -> np.ndarray:
     """Get the combined Neyman-Pearson covaraince matrix.
 
     This matrix may be used to calculate a chi-square between the expectation and observation
@@ -272,7 +280,6 @@ def get_cnp_covariance(expectation: np.ndarray, observation: np.ndarray):
         cnp_covariance = np.diag(cnp_covariance)
     assert cnp_covariance.shape == (len(expectation), len(expectation))
     cnp_covariance = fronebius_nearest_psd(cnp_covariance)
-    assert isinstance(cnp_covariance, np.ndarray)
     return cnp_covariance
 
 
