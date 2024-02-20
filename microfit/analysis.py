@@ -263,9 +263,7 @@ class MultibandAnalysis(object):
         signal_channels = signal_channels or self.signal_channels
         all_channels = signal_channels + constraint_channels
         mc_hist = mc_hist[all_channels]
-        assert isinstance(mc_hist, MultiChannelHistogram)
         joint_ext_hist = joint_ext_hist[all_channels]
-        assert isinstance(joint_ext_hist, MultiChannelHistogram)
 
         total_prediction = mc_hist + joint_ext_hist
 
@@ -283,7 +281,6 @@ class MultibandAnalysis(object):
             output_hist = mc_hist
         if not include_non_signal_channels:
             output_hist = output_hist[signal_channels]
-            assert isinstance(output_hist, MultiChannelHistogram)
         if scale_to_pot is not None:
             raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
 
@@ -983,7 +980,7 @@ class MultibandAnalysis(object):
 
     def _fit_to_data_grid_scan(
         self,
-        data: Optional[Histogram] = None,
+        data: Optional[MultiChannelHistogram] = None,
         fit_grid: Dict[str, np.ndarray] = {},
         reset_cache=True,
     ):
@@ -998,7 +995,6 @@ class MultibandAnalysis(object):
         """
         data = data or self.generate_multiband_data_histogram()
         assert data is not None, "Cannot fit to data when data is None"
-        assert isinstance(data, MultiChannelHistogram)
         for channel in self.signal_channels:
             if channel not in data.channels:
                 raise ValueError(f"Channel {channel} not found in data histogram")
