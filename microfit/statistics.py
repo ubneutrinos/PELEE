@@ -44,13 +44,18 @@ def is_psd(A: np.ndarray, ignore_zeros: bool = False) -> bool:
     except np.linalg.LinAlgError:
         return False
 
+
 @overload
 def fronebius_nearest_psd(A: np.ndarray, return_distance: Literal[False] = False) -> np.ndarray:
     ...
 
+
 @overload
-def fronebius_nearest_psd(A: np.ndarray, return_distance: Literal[True]) -> Tuple[np.ndarray, float]:
+def fronebius_nearest_psd(
+    A: np.ndarray, return_distance: Literal[True]
+) -> Tuple[np.ndarray, float]:
     ...
+
 
 def fronebius_nearest_psd(A: np.ndarray, return_distance: bool = False) -> Union[np.ndarray, tuple]:
     """Find the positive semi-definite matrix closest to `A`.
@@ -328,7 +333,7 @@ def sideband_constraint_correction(
     sideband_observations: Optional[np.ndarray] = None,
     concat_covariance: Optional[np.ndarray] = None,
     sideband_covariance: Optional[np.ndarray] = None,
-    cnp_covariance: Optional[np.ndarray] = None
+    cnp_covariance: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Calculate the corrections to the covariance and nominal values given the sideband measurement.
 

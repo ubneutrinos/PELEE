@@ -27,7 +27,9 @@ class Parameter:
         self,
         name: str,
         value: Union[bool, Quantity, int, float],
-        bounds: Optional[Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]] = None,
+        bounds: Optional[
+            Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]
+        ] = None,
     ):
         self.name = name
         self.value = value
@@ -40,7 +42,7 @@ class Parameter:
     @property
     def value(self) -> Union[bool, Quantity]:
         return self._value
-    
+
     @value.setter
     def value(self, value: Union[bool, Quantity, int, float]):
         if isinstance(value, bool):
@@ -50,20 +52,23 @@ class Parameter:
         else:
             assert isinstance(value, float) or isinstance(value, int)
             self._value = Quantity(value, Unit())
-    
+
     @property
     def bounds(self) -> Optional[Tuple[Quantity, Quantity]]:
         return self._bounds
-    
+
     @bounds.setter
-    def bounds(self, bounds: Optional[Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]]):
+    def bounds(
+        self,
+        bounds: Optional[Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]],
+    ):
         if bounds is not None and self.is_discrete:
             raise ValueError("Bounds cannot be set for discrete parameters.")
         if bounds is None:
             self._bounds = None  # type: ignore
         elif isinstance(bounds[0], Quantity) and isinstance(bounds[1], Quantity):
             # make sure bounds are sorted
-            if  bounds[0] > bounds[1]:
+            if bounds[0] > bounds[1]:
                 self._bounds: Tuple[Quantity, Quantity] = (bounds[1], bounds[0])
             else:
                 self._bounds: Tuple[Quantity, Quantity] = bounds  # type: ignore
@@ -122,11 +127,15 @@ class Parameter:
 
     def copy(self):
         return Parameter.from_dict(self.to_dict())
-    
+
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, Parameter):
             return False
-        return self.name == __value.name and self.value == __value.value and self.bounds == __value.bounds
+        return (
+            self.name == __value.name
+            and self.value == __value.value
+            and self.bounds == __value.bounds
+        )
 
 
 class ParameterSet:
