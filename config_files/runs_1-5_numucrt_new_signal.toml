@@ -108,7 +108,7 @@ limits = [0.0, 3.141]
 selection = "NPBDT"
 preselection = "NP"
 label = "NPBDT_SHR_THETA"
-variable_tex = "Reconstructed Shower $\theta$"
+variable_tex = "Reconstructed Shower $\\theta$"
 
 [[generator.channel]]
 variable = "shr_theta"
@@ -117,4 +117,4 @@ limits = [0.0, 3.141]
 selection = "ZPBDT"
 preselection = "ZP"
 label = "ZPBDT_SHR_THETA"
-variable_tex = "Reconstructed Shower $\theta$"
+variable_tex = "Reconstructed Shower $\\theta$"
