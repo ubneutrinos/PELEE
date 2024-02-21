@@ -421,20 +421,15 @@ class Histogram:
             Whether passed covariance matrix is fractional or not
         """
 
-        # TODO: Check dimensions of passed covariance matrix are compatible with
-        # the hitsograms
+        # Check dimensions of passed covariance matrix are compatible with
+        # the histogram's covariance matrix
+        if cov_mat.shape != self.covariance_matrix.shape:
+            raise ValueError(
+                "Covariance matrix must have the same shape as the existing covariance matrix."
+            )
 
         if fractional:
-            if self.bin_counts.ndim == 1:
-                values = self.bin_counts
-            elif self.bin_counts.ndim == 2:
-                values = np.diag(self.bin_counts)
-            else:
-                raise ValueError("histogram bin counts can only be a 1D or 2D array")
-
-            for i in (0,len(cov_mat)-1):
-                for j in (0,len(cov_mat[i])-1):
-                    cov_mat[i][j] *= values[i]*values[j] 
+            cov_mat = cov_mat * np.outer(self.bin_counts, self.bin_counts)
 
         self.covariance_matrix += cov_mat
 
