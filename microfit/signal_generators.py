@@ -44,6 +44,13 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         assert len(self.channels) > 0, "Binning must contain at least one channel"
         self.binning = binning
         sob_binning = self.split_binning(binning).copy()
+
+        self.extra_mc_covariance = kwargs.pop('extra_mc_covariance',None)
+        #print(self.extra_mc_covariance)
+
+        self.add_precomputed_detsys = kwargs.pop('add_precomputed_detsys',False) 
+        self.detvar_data = kwargs.pop('detvar_data',None)
+
         self.hist_generator = self.hist_gen_cls(
             dataframe, sob_binning, parameters=forward_parameters, **kwargs
         )
@@ -78,8 +85,7 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
 
     def generate(self, **kwargs):
 
-        # TODO: Change this to not load the detector systematics
-
+        add_precomputed_detsys = kwargs.pop('add_precomputed_detsys',False)
         hist = self.hist_generator.generate(**kwargs)
         # It will have to be a MultiChannelHistogram because we are using a split-channel binning.
         assert isinstance(hist, MultiChannelHistogram), "Histogram must be a MultiChannelHistogram"
@@ -105,7 +111,8 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         ), "Binning of the generated histogram does not match the binning of the generator"
 
         # Add the covariance for the detector systematics down here
-
+        if self.detvar_data is not None and add_precomputed_detsys: 
+            hist.add_covariance(self.calculate_detector_covariance())
 
         return hist
 

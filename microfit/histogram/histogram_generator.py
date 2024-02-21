@@ -28,6 +28,7 @@ from microfit.statistics import (
     sideband_constraint_correction,
 )
 
+from data_loading import detector_variations
 
 class HistogramGenerator(SmoothHistogramMixin):
     def __init__(
@@ -38,6 +39,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         detvar_data: Optional[Union[Dict[str, AnyStr], str]] = None,
         enable_cache: bool = True,
         cache_total_covariance: bool = True,
+        extra_mc_covariance: Optional[np.ndarray] = None
     ):
         """Create a histogram generator for a given dataframe.
 
@@ -90,6 +92,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         self.enable_cache = enable_cache
         self.cache_total_covariance = cache_total_covariance
         self.detvar_data = detvar_data
+        self.extra_mc_covariance = extra_mc_covariance
         # in case a string was passed to detvar_data, we load it from the file
         if isinstance(self.detvar_data, str):
             self.detvar_data = from_json(self.detvar_data)
@@ -492,6 +495,9 @@ class HistogramGenerator(SmoothHistogramMixin):
             if det_cov is not None:
                 hist.add_covariance(det_cov)
 
+        if self.extra_mc_covariance is not None:
+            hist.add_covariance(self.extra_mc_covariance)
+
         if self.enable_cache and self.cache_total_covariance:
             self.hist_cache[hash] = hist.copy()
         return hist
@@ -521,9 +527,11 @@ class HistogramGenerator(SmoothHistogramMixin):
         # in case of overlapping selections between channels).
         # The resulting covariance is block-diagonal, with each block corresponding to the output of one histogram
         # generator.
+
         histogram = MultiChannelHistogram.from_histograms(
             [h.generate(**generate_kwargs) for h in hist_generators]
         )
+
         if not include_stat_errors:
             histogram.covariance_matrix = np.zeros_like(histogram.covariance_matrix)
         if not include_multisim_errors:
@@ -546,13 +554,11 @@ class HistogramGenerator(SmoothHistogramMixin):
                 extra_queries=[extra_query] * len(hist_generators),
             )
 
-        # CT: Needs another block for the detvars here
         if add_precomputed_detsys:
             print("Including detsim uncertainties")
             covariance_matrix += HistogramGenerator.multiband_detector_covariance(
                 hist_generators
             )
-        
 
         histogram.add_covariance(covariance_matrix)
 
@@ -715,21 +721,13 @@ class HistogramGenerator(SmoothHistogramMixin):
         # The detvar_data dictionary contains a dictionary of all the filter queries that
         # were used under the key `filter_queries`.
 
-        print("Calculating multichannel detsim uncertainties")
-
         total_bins = sum([len(hg.binning) for hg in hist_generators])
         summed_cov_mat = np.zeros((total_bins, total_bins))
-        universe_hist_dicts = []
-        for hg in hist_generators:
-            universe_hist_dicts.append(hg.calculate_detector_covariance(return_histograms=True)[1])
-        datasets = list(universe_hist_dicts[0].keys())
-        variations = list(universe_hist_dicts[0][datasets[0]].keys())
 
-        # Datasets can have different lengths as we don't use the nc pi0 sample in all of the sidebands
-
-        variation_diffs_dict = {variation: np.array([]) for variation in variations}
+        variation_diffs_dict = {variation: np.array([]) for variation in detector_variations}
         for hg in hist_generators:
 
+            datasets = hg.detvar_data['mc_sets']
             cv_hist = hg.generate(add_precomputed_detsys=False).bin_counts
             variation_hist_data = cast(
                 Dict[str, Dict[str, Histogram]],hg.detvar_data["variation_hist_data"]
@@ -739,12 +737,12 @@ class HistogramGenerator(SmoothHistogramMixin):
             variation_cv_hist = np.zeros(hg.binning.n_bins)
             variation_hists = {
                         v: np.zeros(hg.binning.n_bins) 
-                        for v in variations
+                        for v in detector_variations
             }
 
             for dataset in hg.detvar_data["mc_sets"]:
                 variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].bin_counts)
-                for v in variations:
+                for v in detector_variations:
                     variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].bin_counts)
 
         
@@ -754,11 +752,10 @@ class HistogramGenerator(SmoothHistogramMixin):
                     for v, h in variation_hists.items()
                 }
         
-            for variation in variations:
+            for variation in detector_variations:
                 variation_diffs_dict[variation] = np.concatenate([variation_diffs_dict[variation],variation_diffs[variation]])
 
-
-        for variation in variations:
+        for variation in detector_variations:
             cov_mat = covariance(
                 [variation_diffs_dict[variation]],
                 np.zeros(total_bins),
@@ -1094,18 +1091,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         # from json in the constructor.
         assert isinstance(self.detvar_data, dict)
 
-        variations = [
-            "lydown",
-            "lyatt",
-            "lyrayleigh",
-            #"sce",
-            #"recomb2",
-            "wiremodx",
-            #"wiremodyz",
-            #"wiremodthetaxz",
-            "wiremodthetayz",
-        ]
-
         variation_hist_data = cast(
             Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"]
         )
@@ -1116,26 +1101,26 @@ class HistogramGenerator(SmoothHistogramMixin):
         #filter_queries = cast(Dict[str, str], self.detvar_data["filter_queries"])
         #assert isinstance(filter_queries, dict)
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins))
-        observation_dict = {}
+        #observation_dict = {}
 
-        cv_hist = self.generate(add_precomputed_detsys=False).bin_counts
+        #cv_hist = self.generate(add_precomputed_detsys=False).bin_counts
 
         # Get the CV variation hist
         variation_cv_hist = np.zeros(self.binning.n_bins)
         variation_hists = {
                     v: np.zeros(self.binning.n_bins) 
-                    for v in variations
+                    for v in detector_variations
         }
 
         for dataset in self.detvar_data["mc_sets"]:
-            observation_dict[dataset] = {}
+            #observation_dict[dataset] = {}
             variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].bin_counts)
-            for v in variations:
+            for v in detector_variations:
                 variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].bin_counts)
 
-        for dataset in self.detvar_data["mc_sets"]:
-            for v in variations:
-                observation_dict[dataset][v] = (variation_hist_data[dataset][v].bin_counts - variation_cv_hist) * (cv_hist / variation_cv_hist)
+        #for dataset in self.detvar_data["mc_sets"]:
+        #    for v in variations:
+        #        observation_dict[dataset][v] = (variation_hist_data[dataset][v].bin_counts - variation_cv_hist) * (cv_hist / variation_cv_hist)
 
         with np.errstate(divide="ignore", invalid="ignore"):
             variation_diffs = {
@@ -1217,9 +1202,8 @@ class HistogramGenerator(SmoothHistogramMixin):
         '''
         if only_diagonal:
             cov_mat = np.diag(np.diag(cov_mat))
-        if return_histograms:
-            return cov_mat, observation_dict
-
+        #if return_histograms:
+        #    return cov_mat, observation_dict
 
         return cov_mat
 
