@@ -626,7 +626,7 @@ class MultibandAnalysis(object):
         h1_params: ParameterSet,
         sensitivity_only: bool = False,
         n_trials: int = 1000,
-        add_precomputed_detsys: Optional[bool] = False,
+        add_precomputed_detsys: bool = False,
         scale_to_pot: Optional[float] = None,
     ):
         """Perform a two hypothesis test between two parameter sets.
@@ -694,34 +694,6 @@ class MultibandAnalysis(object):
         h1_hist = self.generate_multiband_histogram(
             include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=add_precomputed_detsys, scale_to_pot=scale_to_pot
         )
-
-        ''' 
-        # Debugging - generate the histograms without the detvars
-        print("Generating H0 histogram without detvars")
-        # generate the multiband histogram
-        self.set_parameters(h0_params, check_matching=True)
-        h0_hist_no_detvar = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=False, add_precomputed_detsys=False, scale_to_pot=scale_to_pot
-        )
-
-        print("Generating H1 histogram without detvars")
-        self.set_parameters(h1_params, check_matching=True)
-        h1_hist_no_detvar = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=False, add_precomputed_detsys=False, scale_to_pot=scale_to_pot
-        )
-        '''
-        '''
-        def diagonalise(matrix):
-            matrix_tmp = np.zeros_like(matrix)
-            for i in range(0,len(matrix_tmp)-1):
-                matrix_tmp[i][i] = matrix[i][i]
-            return matrix_tmp 
-
-        h0_hist.covariance_matrix = diagonalise(h0_hist.covariance_matrix) 
-        h1_hist.covariance_matrix = diagonalise(h1_hist.covariance_matrix) 
-        h0_hist_no_detvar.covariance_matrix = diagonalise(h0_hist_no_detvar.covariance_matrix) 
-        h1_hist_no_detvar.covariance_matrix = diagonalise(h1_hist_no_detvar.covariance_matrix) 
-        '''
 
         test_stat_h0 = []
         test_stat_h1 = []
