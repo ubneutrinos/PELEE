@@ -247,6 +247,7 @@ class MultibandAnalysis(object):
             include_stat_errors=include_stat_errors,
             add_precomputed_detsys=add_precomputed_detsys
         )
+
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
         joint_ext_hist = HistogramGenerator.generate_joint_histogram(
             ext_hist_generators,
@@ -263,8 +264,8 @@ class MultibandAnalysis(object):
         joint_ext_hist = joint_ext_hist[all_channels]
         assert isinstance(joint_ext_hist, MultiChannelHistogram)
 
-
         total_prediction = mc_hist + joint_ext_hist
+
         if use_sideband and len(constraint_channels) > 0:
             # We have to be careful here to use the *full* prediction as the central
             # value when applying the constraint, not just the MC prediction.
@@ -282,6 +283,7 @@ class MultibandAnalysis(object):
             assert isinstance(output_hist, MultiChannelHistogram)
         if scale_to_pot is not None:
             raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
+
         return output_hist
 
     def get_mc_hist(
@@ -298,7 +300,6 @@ class MultibandAnalysis(object):
         the RunHistGenerator class, so that the analysis can be dropped into the
         RunHistPlotter.
         """
-
         
         output = self.generate_multiband_histogram(
             include_multisim_errors=include_multisim_errors,
@@ -625,6 +626,7 @@ class MultibandAnalysis(object):
         h1_params: ParameterSet,
         sensitivity_only: bool = False,
         n_trials: int = 1000,
+        add_precomputed_detsys: Optional[bool] = False,
         scale_to_pot: Optional[float] = None,
     ):
         """Perform a two hypothesis test between two parameter sets.
@@ -685,13 +687,41 @@ class MultibandAnalysis(object):
         print("Generating H0 histogram")
         # generate the multiband histogram
         h0_hist = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=True, scale_to_pot=scale_to_pot
+            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=add_precomputed_detsys, scale_to_pot=scale_to_pot
         )
         print("Generating H1 histogram")
         self.set_parameters(h1_params, check_matching=True)
         h1_hist = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=True, scale_to_pot=scale_to_pot
+            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=add_precomputed_detsys, scale_to_pot=scale_to_pot
         )
+
+        ''' 
+        # Debugging - generate the histograms without the detvars
+        print("Generating H0 histogram without detvars")
+        # generate the multiband histogram
+        self.set_parameters(h0_params, check_matching=True)
+        h0_hist_no_detvar = self.generate_multiband_histogram(
+            include_multisim_errors=True, use_sideband=False, add_precomputed_detsys=False, scale_to_pot=scale_to_pot
+        )
+
+        print("Generating H1 histogram without detvars")
+        self.set_parameters(h1_params, check_matching=True)
+        h1_hist_no_detvar = self.generate_multiband_histogram(
+            include_multisim_errors=True, use_sideband=False, add_precomputed_detsys=False, scale_to_pot=scale_to_pot
+        )
+        '''
+        '''
+        def diagonalise(matrix):
+            matrix_tmp = np.zeros_like(matrix)
+            for i in range(0,len(matrix_tmp)-1):
+                matrix_tmp[i][i] = matrix[i][i]
+            return matrix_tmp 
+
+        h0_hist.covariance_matrix = diagonalise(h0_hist.covariance_matrix) 
+        h1_hist.covariance_matrix = diagonalise(h1_hist.covariance_matrix) 
+        h0_hist_no_detvar.covariance_matrix = diagonalise(h0_hist_no_detvar.covariance_matrix) 
+        h1_hist_no_detvar.covariance_matrix = diagonalise(h1_hist_no_detvar.covariance_matrix) 
+        '''
 
         test_stat_h0 = []
         test_stat_h1 = []
@@ -703,6 +733,7 @@ class MultibandAnalysis(object):
             chi2_h1 = chi_square(
                 observation.bin_counts, h1_hist.bin_counts, h1_hist.covariance_matrix
             )
+
             return chi2_h0 - chi2_h1
 
         for i in tqdm(range(n_trials), desc="Generating pseudo-experiments"):

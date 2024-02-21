@@ -203,6 +203,7 @@ class RunHistGenerator:
             self.binning,
             parameters=self.parameters,
             detvar_data=self.detvar_data,
+            extra_mc_covariance=extra_mc_covariance,
             **mc_hist_generator_kwargs,
         )
         if df_ext is not None:
