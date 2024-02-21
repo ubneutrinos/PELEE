@@ -28,7 +28,7 @@ jobs:
         # For testing purposes, we don't need jupyter (it only slows down the workflow)
         # conda install jupyter
         # TODO: Run some tests on the data loading part
-        # conda install -c conda-forge uproot==3.11.6
+        conda install -c conda-forge uproot==3.11.6
         # conda install dask-core
         # conda install -c conda-forge xgboost==0.90
         # conda install -c conda-forge shap
