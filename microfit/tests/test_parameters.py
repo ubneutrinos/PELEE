@@ -111,9 +111,7 @@ class TestParameterSet(unittest.TestCase):
         class ParameterUserUser:
             def __init__(self, parameter_users: List[ParameterUser]):
                 self.parameter_users = parameter_users
-                self.parameters = sum(
-                    [pu.parameters for pu in parameter_users], ParameterSet([])
-                )
+                self.parameters = sum([pu.parameters for pu in parameter_users], ParameterSet([]))
 
         pu1 = ParameterUser(ps, name="pu1")
         pu2 = ParameterUser(ps2, name="pu2")
@@ -155,7 +153,9 @@ class TestParameterSet(unittest.TestCase):
                 self.name = name
 
         class ParameterUserUser:
-            def __init__(self, parameter_users: Sequence[Union[ParameterUser, "ParameterUserUser"]]):
+            def __init__(
+                self, parameter_users: Sequence[Union[ParameterUser, "ParameterUserUser"]]
+            ):
                 self.parameters = sum([pu.parameters for pu in parameter_users], ParameterSet([]))
 
         pu1 = ParameterUser(ps1, name="pu1")

@@ -767,7 +767,7 @@ class MultibandAnalysis(object):
         self,
         observed_hist: Histogram,
         scale_to_pot: Optional[float] = None,
-        reset_cache: bool = True
+        reset_cache: bool = True,
     ) -> Minuit:
         """Prepare the Minuit object that can run a fit and more.
 
@@ -975,7 +975,7 @@ class MultibandAnalysis(object):
         m.migrad()
         best_fit_parameters = self.parameters.copy()
         if return_migrad:
-            return m.fval, best_fit_parameters, m 
+            return m.fval, best_fit_parameters, m
         return m.fval, best_fit_parameters
 
     def _fit_to_data_grid_scan(
