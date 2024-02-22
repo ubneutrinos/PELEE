@@ -694,7 +694,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         return summed_cov_mat
 
     @classmethod
-    def multiband_detector_covariance(cls, hist_generators):
+    def multiband_detector_covariance(cls, hist_generators: List["HistogramGenerator"]):
         """Calculate the covariance matrix for multiple histograms.
 
         Given a list of HistogramGenerator objects, calculate the covariance matrix of the
@@ -707,11 +707,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         """
 
         assert len(hist_generators) > 0, "Must provide at least one histogram generator."
-        # Before we start, we have to make sure that the same truth-filtered sets were used
-        # in the detector systematics of all histograms. Otherwise, we could not combine
-        # the universes in a meaningful way.
-        # The detvar_data dictionary contains a dictionary of all the filter queries that
-        # were used under the key `filter_queries`.
 
         total_bins = sum([len(hg.binning) for hg in hist_generators])
         summed_cov_mat = np.zeros((total_bins, total_bins))
@@ -719,30 +714,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         variation_diffs_dict = {variation: np.array([]) for variation in detector_variations}
         for hg in hist_generators:
 
-            datasets = hg.detvar_data['mc_sets']
-            cv_hist = hg.generate(add_precomputed_detsys=False).bin_counts
-            variation_hist_data = cast(
-                Dict[str, Dict[str, Histogram]],hg.detvar_data["variation_hist_data"]
-            )
-
-            # Get the CV variation hist
-            variation_cv_hist = np.zeros(hg.binning.n_bins)
-            variation_hists = {
-                        v: np.zeros(hg.binning.n_bins) 
-                        for v in detector_variations
-            }
-
-            for dataset in hg.detvar_data["mc_sets"]:
-                variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].bin_counts)
-                for v in detector_variations:
-                    variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].bin_counts)
-
-        
-            with np.errstate(divide="ignore", invalid="ignore"):
-                variation_diffs = {
-                    v: (h - variation_cv_hist)
-                    for v, h in variation_hists.items()
-                }
+            cov_mat, variation_diffs = hg.calculate_detector_covariance(return_histograms=True)
         
             for variation in detector_variations:
                 variation_diffs_dict[variation] = np.concatenate([variation_diffs_dict[variation],variation_diffs[variation]])

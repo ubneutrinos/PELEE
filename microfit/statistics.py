@@ -139,7 +139,7 @@ def check_frob_psd(A):
 
 def covariance(
     observations, central_value=None, allow_approximation=False, debug_name=None, tolerance=0.0
-):
+) -> np.ndarray:
     """Calculate the covariance matrix of the given observations.
 
     Optionally, a central value can be given that will be used instead of the mean of the
