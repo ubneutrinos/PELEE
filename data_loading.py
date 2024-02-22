@@ -46,8 +46,15 @@ def generate_hash(*args, **kwargs):
 
 
 def cache_dataframe(func):
-    import localSettings as ls
-    def wrapper(*args, enable_cache=False, cache_dir=ls.dataframe_cache_path, **kwargs):
+    # In a testing environment, we might not have local settings available. In that case,
+    # we just set a local directory for the cache.
+    try:
+        import localSettings as ls
+        default_cache_path = ls.dataframe_cache_path
+    except ImportError:
+        default_cache_path = "dataframe_cache"
+
+    def wrapper(*args, enable_cache=False, cache_dir=default_cache_path, **kwargs):
 
         if not enable_cache:
             return func(*args, **kwargs)
