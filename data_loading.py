@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import uproot
 import yaml
-import localSettings as ls
 from typing import List
 import numpy as np
 import awkward as ak
@@ -1960,6 +1959,7 @@ def drop_vector_columns(df):
 # loadtruthfilters are both set to True.
 # TODO: Use this function in the appropriate place in the code.
 def apply_bdt_truth_filters(df):
+    import localSettings as ls
     dfcsv = pd.read_csv(ls.ntuple_path + ls.RUN3 + "ccpi0nontrainevents.csv")
     dfcsv["identifier"] = dfcsv["run"] * 100000 + dfcsv["evt"]
     df["identifier"] = df["run"] * 100000 + df["evt"]
@@ -2023,6 +2023,7 @@ def load_sample(
     full_path="",
     keep_columns=None,
 ):
+    import localSettings as ls
     # Load the file from data_path.yml
     if full_path == "":
 
@@ -2621,6 +2622,8 @@ def update_proton_threshold(df, threshold):
 
 
 def add_bdt_scores(df):
+    import localSettings as ls
+
     TRAINVAR = [
         "shr_score",
         "tksh_distance",
@@ -2826,6 +2829,8 @@ def remove_duplicates(df):
 # Adding these functions to use in the filtterig code
 def get_path(run_number, category, dataset, append=""):
     """Load one sample of one run for a particular kind of events."""
+
+    import localSettings as ls
 
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata","detvar"]
 
