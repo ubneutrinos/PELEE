@@ -14,7 +14,6 @@ import yaml
 from typing import List
 import numpy as np
 import awkward as ak
-import nue_booster
 from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 from numu_tki import selection_1muNp 
@@ -2623,6 +2622,8 @@ def update_proton_threshold(df, threshold):
 def add_bdt_scores(df):
     import localSettings as ls
     import xgboost as xgb
+    import nue_booster
+
 
     TRAINVAR = [
         "shr_score",
