@@ -22,7 +22,7 @@ jobs:
       shell: bash -l {0}
       run: |
         conda activate python3LEE
-        conda install scipy pandas==1.0.5 matplotlib yaml toml
+        conda install scipy pandas==1.0.5 matplotlib pyyaml
         conda install -c conda-forge uncertainties
         conda install scikit-learn
         # For testing purposes, we don't need jupyter (it only slows down the workflow)
