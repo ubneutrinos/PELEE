@@ -99,15 +99,10 @@ class HistogramGenerator(SmoothHistogramMixin):
             
         # check that binning matches to detvar_data
         if self.detvar_data is not None:
-            '''
-            if not self.detvar_data["binning"] == self.binning:
-                raise ValueError(
-                    "Binning of detector variations does not match binning of main histogram."
-                )
-            '''
-
+            detvar_binning = self.detvar_data["binning"]
+            assert isinstance(detvar_binning, Binning), "Binning of detector variations must be a Binning object."
             # Just check the bin edges and variable rather than the entire binning object
-            if (self.detvar_data["binning"].bin_edges != self.binning.bin_edges).any():
+            if not detvar_binning.is_compatible(self.binning):
                 raise ValueError(
                     "Binning of detector variations does not match binning of main histogram."
                 )
