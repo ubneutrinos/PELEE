@@ -3,6 +3,8 @@ import unittest
 import numpy as np
 from microfit.histogram import MultiChannelBinning, Binning
 from typing import Union, List, cast
+import tempfile
+from microfit.fileio import to_json, from_json
 
 
 class TestMultiChannelBinning(unittest.TestCase):
@@ -174,6 +176,19 @@ class TestMultiChannelBinning(unittest.TestCase):
         for original_binning in [binning1, binning2, binning3]:
             for channel in original_binning:  # type: ignore
                 self.assertIn(channel, joined_binning)
+
+    def test_to_from_json(self):
+        binning = self.make_test_binning(multichannel=True)
+        assert isinstance(binning, MultiChannelBinning)
+        binning_dict = binning.to_dict()
+        binning_from_dict = MultiChannelBinning.from_dict(binning_dict)
+        self.assertEqual(binning, binning_from_dict)
+
+        # Test to_json and from_json
+        with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
+            to_json(tmp_file.name, binning)
+            binning_from_json = from_json(tmp_file.name)
+            self.assertEqual(binning, binning_from_json)
 
 
 if __name__ == "__main__":
