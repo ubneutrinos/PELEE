@@ -1038,11 +1038,12 @@ class HistogramGenerator(SmoothHistogramMixin):
                 observations = np.array(observations)
                 if self.enable_cache:
                     self.unisim_hist_cache[hash][knob] = observations
+                    assert central_value_hist is not None
                     self.unisim_hist_cache[hash]["central_value"] = central_value_hist
             observation_dict[knob] = observations
             # If we get to this point without having either calculated a central value hist
             # or taken one from the cache, something is wrong
-            #assert isinstance(central_value_hist, Histogram) #TODO: This assert is failing even when central_value_hist is a histogram
+            assert central_value_hist is not None
             if skip_covariance:
                 continue
             # calculate the covariance matrix from the histograms
