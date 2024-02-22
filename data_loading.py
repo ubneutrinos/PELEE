@@ -46,6 +46,7 @@ def generate_hash(*args, **kwargs):
 
 
 def cache_dataframe(func):
+    import localSettings as ls
     def wrapper(*args, enable_cache=False, cache_dir=ls.dataframe_cache_path, **kwargs):
 
         if not enable_cache:
