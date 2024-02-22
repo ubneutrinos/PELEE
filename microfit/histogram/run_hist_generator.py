@@ -1,7 +1,6 @@
 import os
 from typing import Dict, List, Optional, Union
 
-import localSettings as ls
 from microfit.histogram.histogram import MultiChannelHistogram
 from microfit.selections import get_selection_query
 from microfit.category_definitions import get_category_color, get_category_label
