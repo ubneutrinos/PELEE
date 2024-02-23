@@ -411,12 +411,12 @@ NP_medium_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
 # ZP Far Sideband
 
 ZP_far_sideband_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
-    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("shr_energy_tot_cali", 10, (0.65,1.55), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
 ] 
 
 ZP_high_energy_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
-    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("shr_energy_tot_cali", 10, (0.75,1.55), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.90, 2.55), r"Reconstructed Energy [GeV]", "note"),
     ("bkg_score",10,(0.0,1.0),"Background Score"),
 ]
