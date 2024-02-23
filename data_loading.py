@@ -23,10 +23,10 @@ from numu_tki import tki_calculators
 from microfit.selections import extract_variables_from_query
 
 datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
-#detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-detector_variations = ["cv","lydown","lyatt","lyrayleigh","wiremodx","wiremodthetayz"]
+detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
+#detector_variations = ["cv","lydown","lyatt","lyrayleigh","wiremodx","wiremodthetayz"]
 
-verbose=True
+verbose=False
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
@@ -119,7 +119,7 @@ def get_variables():
         "nu_e",
         # "hits_u", "hits_v", "hits_y",
         "nneutron",
-        "slnunhits",
+        #"slnunhits",
         "slnhits",
         "true_e_visible",
         "npi0",
@@ -128,7 +128,7 @@ def get_variables():
         "muon_e",
         "pi0truth_elec_etot",
         "pi0_e",
-        "evnunhits",
+        #"evnunhits",
         "nslice",
         "interaction",
         "proton_e",
@@ -737,7 +737,7 @@ def process_uproot_shower_variables(up, df):
     df["mevcm"] = 1000 * df["shr_energy_tot_cali"] / df["shr_trk_len"]
     #
     df["slclnhits"] = up.array("pfnhits").sum()
-    df["slclnunhits"] = up.array("pfnunhits").sum()
+    #df["slclnunhits"] = up.array("pfnunhits").sum()
     #
     pfp_pdg_v = up.array("backtracked_pdg")
     trk_pdg = get_elm_from_vec_idx(pfp_pdg_v, trk_id)
@@ -2061,9 +2061,6 @@ def load_sample(
             data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
        
         if verbose: print("Loading ntuple file",data_path)
-        if dataset in datasets:
-            print("Dataset",dataset,"is a data or EXT file")       
-
  
         # try returning an empty dataframe
         if os.path.basename(data_path) == "dummy.root":
@@ -2212,6 +2209,7 @@ def load_sample(
         if dataset in ["ext", "drt"]:
             df["nslice"] = 0
 
+    '''
     # add back the cosmic category, for background only
     df.loc[
         (df["category"] != 1)
@@ -2221,6 +2219,7 @@ def load_sample(
         & (df["slnunhits"] / df["slnhits"] < 0.2),
         "category",
     ] = 4
+    '''
 
     add_paper_categories(df, dataset)
 
@@ -2447,7 +2446,7 @@ def _load_run_detvar(
     """
     assert var in detector_variations 
  
-    print("Loading detvar data for run",run_number,"and variation",var)
+    if verbose: print("Loading detvar data for run",run_number,"and variation",var)
   
     assert isinstance(run_number,str), "You my only generate detector uncertainties for one run at a time"
 
