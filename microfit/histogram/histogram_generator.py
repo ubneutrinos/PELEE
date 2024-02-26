@@ -100,7 +100,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         # check that binning matches to detvar_data
         if self.detvar_data is not None:
             detvar_binning = self.detvar_data["binning"]
-            assert isinstance(detvar_binning, Binning), "Binning of detector variations must be a Binning object."
+            assert isinstance(detvar_binning, (Binning, MultiChannelBinning)), "Binning of detector variations must be a Binning or MultiChannelBinning object."
             # Just check the bin edges and variable rather than the entire binning object
             if not detvar_binning.is_compatible(self.binning):
                 raise ValueError(
@@ -708,7 +708,7 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         assert len(hist_generators) > 0, "Must provide at least one histogram generator."
 
-        total_bins = sum([len(hg.binning) for hg in hist_generators])
+        total_bins = sum([hg.binning.n_bins for hg in hist_generators])
         summed_cov_mat = np.zeros((total_bins, total_bins))
 
         variation_diffs_dict = {variation: np.array([]) for variation in detector_variations}
@@ -717,17 +717,16 @@ class HistogramGenerator(SmoothHistogramMixin):
             cov_mat, variation_diffs = hg.calculate_detector_covariance(return_histograms=True)
         
             for variation in detector_variations:
-                variation_diffs_dict[variation] = np.concatenate([variation_diffs_dict[variation],variation_diffs[variation]])
+                variation_diffs_dict[variation] = np.concatenate([variation_diffs_dict[variation], variation_diffs[variation]])
 
         for variation in detector_variations:
-            cov_mat = covariance(
-                [variation_diffs_dict[variation]],
+            h = variation_diffs_dict[variation]
+            summed_cov_mat += covariance(
+                h.reshape(1, -1),
                 np.zeros(total_bins),
                 allow_approximation=True,
-                tolerance=1e-8,
+                tolerance=1e-10,
             )
-
-            summed_cov_mat += cov_mat
 
         return summed_cov_mat
 
@@ -1047,7 +1046,7 @@ class HistogramGenerator(SmoothHistogramMixin):
     ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
         ...
 
-    def calculate_detector_covariance(self, only_diagonal: bool = False, return_histograms: bool = True) -> Optional[Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]]:
+    def calculate_detector_covariance(self, only_diagonal: bool = False, return_histograms: bool = False) -> Optional[Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]]:
         """Get the covariance matrix for detector uncertainties.
 
         This function follows the recommendation outlined in:
@@ -1089,7 +1088,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             v: (h - variation_cv_hist)
             for v, h in variation_hists.items()
         }
-
+        
         for v, h in variation_diffs.items():
             h[~np.isfinite(h)] = 0.0
 
@@ -1109,7 +1108,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         
         if return_histograms:
             return cov_mat, variation_diffs
-
         return cov_mat
 
     def _resync_parameters(self):
