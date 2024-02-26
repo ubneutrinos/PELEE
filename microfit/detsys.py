@@ -5,6 +5,7 @@ from microfit.histogram import Binning, HistogramGenerator, MultiChannelBinning
 from microfit.fileio import to_json, from_json
 import logging
 import os
+import localSettings as ls
 
 
 def make_variation_histograms(
@@ -76,8 +77,7 @@ def make_variations(
     extra_selection_query: Optional[str] = None,
     **dl_kwargs,
 ):
-    import localSettings as ls
-    
+
     runcombo_str = ""
     for i_r in range(0, len(run_numbers)):
         runcombo_str = runcombo_str + run_numbers[i_r]

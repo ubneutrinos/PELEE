@@ -43,6 +43,12 @@ jobs:
         conda install -c conda-forge nodejs
         # Install Pyright using npm
         npm install -g pyright
+    - name: Create localSettings module
+      shell: bash -l {0}
+      run: |
+        conda activate python3LEE
+        echo "detvar_cache_path = None" > localSettings.py
+        echo "ntuple_path = None" >> localSettings.py
     - name: Run Pyright
       shell: bash -l {0}
       run: |
