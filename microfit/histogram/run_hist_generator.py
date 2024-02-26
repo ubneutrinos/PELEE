@@ -32,6 +32,7 @@ class RunHistGenerator:
         detvar_data: Optional[dict] = None,
         mc_hist_generator_cls: Optional[type] = None,
         extra_mc_covariance: Optional[np.ndarray] = None,
+        extra_background_fractional_error: Optional[Dict[str, float]] = None,
         showdata=True,
         **mc_hist_generator_kwargs,
     ) -> None:
@@ -78,8 +79,11 @@ class RunHistGenerator:
         showdata : bool, optional
             Whether to show data in the plot. If False, only MC is shown. Internally, this removes the
             dataframe for the real data entirely.
-        extra_frac_mc_covaraince: array_like, optional
+        extra_mc_covaraince: array_like, optional
             Additional covariance applied to total mc prediction
+        extra_background_fractional_error: dict, optional
+            Dictionary where keys are the selection strings for the background and values are the 
+            fractional error to be applied to that background.
         **mc_hist_generator_kwargs
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
@@ -137,13 +141,19 @@ class RunHistGenerator:
         if detvar_data is not None:
             self.detvar_data = detvar_data
             detvar_binning = self.detvar_data["binning"]
-            assert isinstance(detvar_binning, Binning), "Detector variation binning must be a Binning."
+            assert isinstance(detvar_binning, (Binning, MultiChannelBinning)), "Detector variation binning must be a Binning or MultiChannelBinning."
             # Just check the bin edges and variable rather than the entire binning object
             if not detvar_binning.is_compatible(self.binning):
                 raise ValueError(
                     "Binning of detector variations does not match binning of main histogram."
                 )
-
+        self.extra_background_fractional_error = extra_background_fractional_error
+        if extra_background_fractional_error is not None:
+            if not isinstance(extra_background_fractional_error, dict):
+                raise ValueError("extra_background_fractional_error must be a dictionary.")
+            for k, v in extra_background_fractional_error.items():
+                if not isinstance(v, (float)):
+                    raise ValueError(f"Value for {k} in extra_background_fractional_error must be a number.")
         # ensure that the necessary keys are present
         if "data" not in rundata_dict.keys():
             raise ValueError("data key is missing from rundata_dict (may be None).")
@@ -415,6 +425,22 @@ class RunHistGenerator:
 
         if self.extra_mc_covariance is not None:
             hist.add_covariance(self.extra_mc_covariance)
+        
+        if self.extra_background_fractional_error is not None and add_precomputed_detsys:
+            for k, v in self.extra_background_fractional_error.items():
+                # Here, each key is the selection query for the background
+                # and the value is the fractional error to be applied.
+
+                # If the extra_query to this function is not None, we add
+                # the background query to it
+                backgr_query = extra_query
+                if backgr_query is not None:
+                    backgr_query += f" and {k}"
+                else:
+                    backgr_query = k
+                backgr_hist = hist_generator.generate(extra_query=backgr_query)
+                backgr_cov = np.diag(backgr_hist.bin_counts * v) ** 2
+                hist.add_covariance(backgr_cov)
 
         hist *= scale_factor
         return hist
