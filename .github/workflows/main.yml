@@ -49,6 +49,7 @@ jobs:
         conda activate python3LEE
         echo "detvar_cache_path = None" > localSettings.py
         echo "ntuple_path = None" >> localSettings.py
+        echo "dataframe_cache_path = None" >> localSettings.py
     - name: Run Pyright
       shell: bash -l {0}
       run: |
