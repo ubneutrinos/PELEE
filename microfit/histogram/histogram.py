@@ -432,10 +432,11 @@ class Histogram:
 
         self.covariance_matrix += cov_mat
 
-    def fluctuate(self, seed=None):
+    def fluctuate(self, seed=None, rng=None):
         """Fluctuate bin counts according to uncertainties and return a new histogram with the fluctuated counts."""
         # take full correlation into account
-        rng = np.random.default_rng(seed)
+        if rng is None:
+            rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.multivariate_normal(self.bin_counts, self.covariance_matrix)
         # clip bin counts from below
         fluctuated_bin_counts[fluctuated_bin_counts < 0] = 0
@@ -445,9 +446,10 @@ class Histogram:
             covariance_matrix=self.covariance_matrix,
         )
 
-    def fluctuate_poisson(self, seed=None):
+    def fluctuate_poisson(self, seed=None, rng=None):
         """Fluctuate bin counts according to Poisson uncertainties and return a new histogram with the fluctuated counts."""
-        rng = np.random.default_rng(seed)
+        if rng is None:
+            rng = np.random.default_rng(seed)
         fluctuated_bin_counts = rng.poisson(self.bin_counts)
         return self.__class__(
             self.binning,
