@@ -26,6 +26,12 @@ datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_s
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 #detector_variations = ["cv","lydown","lyatt","lyrayleigh","wiremodx","wiremodthetayz"]
 
+# Create a logger for this module
+logger = logging.getLogger(__name__)
+
+# Set the level of the logger. This can be DEBUG, INFO, WARNING, ERROR, CRITICAL
+logger.setLevel(logging.INFO)
+
 verbose=False
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
@@ -54,7 +60,7 @@ def cache_dataframe(func):
     except ImportError:
         default_cache_path = "dataframe_cache"
 
-    def wrapper(*args, enable_cache=False, cache_dir=default_cache_path, **kwargs):
+    def wrapper(*args, enable_cache=False, cache_dir=default_cache_path, overwrite=False, **kwargs):
 
         if not enable_cache:
             return func(*args, **kwargs)
@@ -66,9 +72,12 @@ def cache_dataframe(func):
         if not os.path.exists(cache_dir):
             os.mkdir(cache_dir)
 
-        if os.path.exists(hdf_filepath):
+        if os.path.exists(hdf_filepath) and not overwrite:
             df = pd.read_hdf(hdf_filepath, "data")
         else:
+            if overwrite:
+                logger.debug(f"Overwriting cache file: {hdf_filepath}")
+            logger.debug(f"Calculating dataframe and saving to cache: {hdf_filepath}")
             df = func(*args, **kwargs)
             assert isinstance(df, pd.DataFrame), "Output should be a pandas DataFrame"
             df.to_hdf(hdf_filepath, key="data", mode="w")
@@ -435,16 +444,16 @@ def add_paper_category(df, key):
     if key in ["data", "nu"]:
         return
     df.loc[df["paper_category"].isin([1, 10]), "paper_category"] = 11
-    if key is "nue":
+    if key == "nue":
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 0), "paper_category"] = 11
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 1), "paper_category"] = 2
         df.loc[(df["paper_category"] == 3), "paper_category"] = 2
         return
-    if key is "lee":
+    if key == "lee":
         df.loc[df["category"].isin([4, 5]), "paper_category"] = 111
         df.loc[(df["paper_category"] == 3), "paper_category"] = 2
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category"] = 2
         return
     df.loc[(df["npi0"] > 0), "paper_category"] = 31
@@ -467,7 +476,7 @@ def add_paper_xsec_category(df, key):
         return
     df.loc[(df["npi0"] > 0), "paper_category_xsec"] = 31
     df.loc[(df["npi0"] == 0), "paper_category_xsec"] = 2
-    if key is "nue":
+    if key == "nue":
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 1), "paper_category_xsec"] = 2
         df.loc[(df["category"] == 3), "paper_category_xsec"] = 2
         df.loc[
@@ -491,7 +500,7 @@ def add_paper_xsec_category(df, key):
             "paper_category_xsec",
         ] = 11
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category_xsec"] = 2
         return
 
@@ -502,13 +511,13 @@ def add_paper_numu_category(df, key):
         return
     df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 2
     df.loc[(df["ccnc"] == 1), "paper_category_numu"] = 3
-    if key is "nue":
+    if key == "nue":
         df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 11
         return
-    if key is "lee":
+    if key == "lee":
         df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 111
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category"] = 5
         df["paper_category_numu"] = 5
         return
@@ -2209,18 +2218,6 @@ def load_sample(
         if dataset in ["ext", "drt"]:
             df["nslice"] = 0
 
-    '''
-    # add back the cosmic category, for background only
-    df.loc[
-        (df["category"] != 1)
-        & (df["category"] != 10)
-        & (df["category"] != 11)
-        & (df["category"] != 111)
-        & (df["slnunhits"] / df["slnhits"] < 0.2),
-        "category",
-    ] = 4
-    '''
-
     add_paper_categories(df, dataset)
 
     # CT: For some reason this only run over the EXT and data in the old code
@@ -2397,17 +2394,6 @@ def load_runs_detvar(
 
     pot_sum = np.sum(data_pots)
 
-    '''
-    for run in run_numbers:
-        print(run)
-        for sample in runsdata[run].keys():
-            #print("Before:")
-            #print(runsdata[run][sample]["weights"])
-            runsdata[run][sample]["weights"] /= pot_sum      
-            #print("After:")
-            #print(runsdata[run][sample]["weights"])
-    '''
-
     rundict = runsdata[f"{run_numbers[0]}"]
     data_sets = rundict.keys()  # get the names of the datasets that have been loaded
     for dataset in data_sets:
@@ -2445,6 +2431,8 @@ def _load_run_detvar(
     truth-filtered sets.
     """
     assert var in detector_variations 
+
+    category = "numupresel" if numupresel else "runs"
  
     if verbose: print("Loading detvar data for run",run_number,"and variation",var)
   
@@ -2461,12 +2449,15 @@ def _load_run_detvar(
     assert "mc" not in truth_filtered_sets, "Unfiltered MC should not be passed in truth_filtered_sets"
     mc_sets = ["mc"] + truth_filtered_sets
 
-    data_pot, _ = get_pot_trig(run_number,"runs",dataset)  # nu has no trigger number
+    data_pot, _ = get_pot_trig(run_number, category, dataset)  # nu has no trigger number
 
     run_number_tmp = run_number
     if run_number in ["4b","4c","4d"]: run_number_tmp = "4"
     elif run_number in ["1","2"]: run_number_tmp = "1"
-    elif run_number in ["3", "3_crt"]: run_number_tmp = "3"
+    elif run_number == "3": run_number_tmp = "3"
+    elif run_number == "3_crt":
+        run_number_tmp = "4"
+        print("Using run 4 to compute detvars for run 3_crt! Please fix missing CRT variables in run 3!")
     elif run_number == "5": run_number_tmp = "5"
     else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,3_crt,4b,4c,4d,5")
 
@@ -2481,6 +2472,9 @@ def _load_run_detvar(
 
         # CT: Now apply POT scaling here to be consistent with other data loading functions,
         # divide out the total pot of data we're comparing to in make_detsys.py 
+        # AT: Tried to use tuned weights here instead of ones, but it turns out that there
+        # are inconsistencies between different variations of the same sample. The weight
+        # calculation fails sometimes and for some files, in which case we get negative values.
         mc_df["weights"] = np.ones(len(mc_df)) * data_pot  / mc_pot
         mc_df["weights_no_tune"] = np.ones(len(mc_df)) * data_pot / mc_pot
 
@@ -2489,11 +2483,11 @@ def _load_run_detvar(
     for truth_set in truth_filtered_sets:
         filter_query = rundict[var][truth_set]["filter"]
         df_temp = output["mc"].query(filter_query, engine="python")
-        logging.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
+        logger.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
         output["mc"].drop(index=df_temp.index, inplace=True)
 
     # If using one of the sideband datasets, apply the same query to the MC as well
-    datadict = get_rundict(run_number,"runs")[dataset] 
+    datadict = get_rundict(run_number,category)[dataset] 
     if "sideband_def" in datadict:
         sdb_def = datadict["sideband_def"]
         if verbose:
@@ -2569,7 +2563,7 @@ def load_run_detvar(
             rundict = get_rundict(1, "detvar")
             filter_query = rundict[var][truth_set]["filter"]
             df_temp = output["mc"].query(filter_query, engine="python")
-            logging.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
+            logger.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
             output["mc"].drop(index=df_temp.index, inplace=True)
             filter_queries[truth_set] = filter_query
     # output["data"] = None  # Key required by other code
