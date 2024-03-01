@@ -6,10 +6,17 @@ from microfit.fileio import to_json, from_json
 import logging
 import os
 import localSettings as ls
+from microfit.histogram import MultiChannelHistogram
 
 
 def make_variation_histograms(
-    run: List[str], dataset: str, variation: str, binning: Union[Binning, MultiChannelBinning], use_kde_smoothing: bool = False, extra_selection_query: Optional[str] = None, **dl_kwargs
+    run: List[str],
+    dataset: str,
+    variation: str,
+    binning: Union[Binning, MultiChannelBinning],
+    use_kde_smoothing: bool = False,
+    extra_selection_query: Optional[str] = None,
+    **dl_kwargs,
 ):
     """Load the data and Make the json file to store the detector variation predictions"""
 
@@ -18,7 +25,11 @@ def make_variation_histograms(
     hist_dict = {}
     if use_kde_smoothing:
         # Skip covariance calculation for KDE smoothing since we only need the CV
-        options = {"bound_transformation": "both", "calculate_covariance": False}
+        options = {
+            "bound_transformation": "both",
+            "calculate_covariance": False,
+            "bw_method": "bin_width",
+        }
     else:
         options = {}
     for dataset in rundata:
@@ -30,38 +41,76 @@ def make_variation_histograms(
     return hist_dict
 
 
-def make_detvar_plots(detvar_data, output_dir, plotname):
+def make_detvar_plots(detvar_data, output_dir, plotname, show_plots=True, channel=None):
     """Make plots of the histograms contained in the detvar data"""
 
     import matplotlib.pyplot as plt
+
+    def get_channel(hist, channel):
+        if channel is None:
+            return hist
+        elif isinstance(hist, (MultiChannelHistogram, MultiChannelBinning)):
+            return hist[channel]
+        else:
+            return hist
 
     for truth_filter in detvar_data["variation_hist_data"]:
         print("Making plots for", truth_filter)
         fig, ax = plt.subplots()
         hist_dict = detvar_data["variation_hist_data"][truth_filter]
-        hist_dict["cv"].draw(ax=ax, label="CV", color="k", show_errors=False, lw=3)
+        get_channel(hist_dict["cv"], channel).draw(ax=ax, label="CV", color="k", show_errors=False, lw=3)  # type: ignore
         for name, hist in hist_dict.items():
             if name == "cv":
                 continue
-            hist.draw(ax=ax, label=name, show_errors=False)
-        # ax.set_ylabel("Events / POT")
-        # ax.set_ylabel("Events")
-        # ax.set_xlabel(detvar_data["binning"].variable)
-        # ax.set_ylim(bottom=0)
-        # ax.legend(ncol=2)
-        ax.set_title(f"Dataset: {truth_filter}")
+            get_channel(hist, channel).draw(ax=ax, label=name, show_errors=False)  # type: ignore
+        ax.legend(ncol=2)
+        binning = get_channel(detvar_data["binning"], channel)
+        ax.set_title(f"Dataset: {truth_filter}, {binning.selection_tex}")  # type: ignore
 
-        fig.savefig(output_dir + truth_filter + "_" + plotname)
+        fig.savefig(os.path.join(output_dir, truth_filter + "_" + plotname))
+        if not show_plots:
+            plt.close(fig)
+    # Make one additional figure where we sum the histograms over all truth filters
+    fig, ax = plt.subplots()
+    summed_variations = {}
+    for truth_filter, hist_dict in detvar_data["variation_hist_data"].items():
+        for name, hist in hist_dict.items():
+            if name not in summed_variations:
+                summed_variations[name] = hist
+            else:
+                summed_variations[name] += hist
+    get_channel(summed_variations["cv"], channel).draw(ax=ax, label="CV", color="k", show_errors=False, lw=3)  # type: ignore
+    for name, hist in summed_variations.items():
+        if name == "cv":
+            continue
+        get_channel(hist, channel).draw(ax=ax, label=name, show_errors=False)  # type: ignore
+    ax.legend(ncol=2)
+    binning = get_channel(detvar_data["binning"], channel)
+    ax.set_title(f"Detector Systematics: {binning.selection_tex}")  # type: ignore
+    fig.savefig(os.path.join(output_dir, "summed_" + plotname))
+    if not show_plots:
+        plt.close(fig)
+
 
 def _sanitize_selection_query(query: str) -> str:
     """Remove any characters that are not legal inside a file name from the selection query."""
 
-    return query.replace(" ", "_").replace(">", "gt").replace("<", "lt").replace("=", "eq").replace("!", "not").replace("&", "and").replace("|", "or")
+    return (
+        query.replace(" ", "_")
+        .replace(">", "gt")
+        .replace("<", "lt")
+        .replace("=", "eq")
+        .replace("!", "not")
+        .replace("&", "and")
+        .replace("|", "or")
+    )
+
 
 def _negate_query(query: str) -> str:
     """Negate the selection query."""
 
     return "!(" + query + ")"
+
 
 def make_variations(
     run_numbers: List[str],
@@ -75,37 +124,54 @@ def make_variations(
     enable_detvar_cache: bool = False,
     detvar_cache_dir: Optional[str] = None,
     extra_selection_query: Optional[str] = None,
+    show_plots=True,
+    variations: Optional[List[str]] = None,
     **dl_kwargs,
 ):
-
     runcombo_str = ""
     for i_r in range(0, len(run_numbers)):
         runcombo_str = runcombo_str + run_numbers[i_r]
     channels_str = "_".join(binning.channels)
-    output_file = (
-        "run_" + runcombo_str + "_" + channels_str + "_" + data
-    )
+    output_file = "run_" + runcombo_str + "_" + channels_str + "_" + data
     if extra_selection_query is not None:
         output_file += "_" + _sanitize_selection_query(extra_selection_query)
-    detvar_file = ls.detvar_cache_path or detvar_cache_dir
-    assert detvar_file is not None, "detvar_cache_dir must be provided if detvar_cache_path is not set"
+    detvar_file = detvar_cache_dir or ls.detvar_cache_path
+    assert (
+        detvar_file is not None
+    ), "detvar_cache_dir must be provided if detvar_cache_path is not set"
     detvar_file += "/" + output_file + ".json"
 
     if enable_detvar_cache and os.path.isfile(detvar_file):
         print("Loading devar histograms from file:", detvar_file)
         detvar_data = from_json(detvar_file)
         if make_plots:
-            make_detvar_plots(detvar_data, plot_output_dir, output_file + ".pdf")
+            if isinstance(binning, MultiChannelBinning):
+                for channel in binning.channels:
+                    make_detvar_plots(
+                        detvar_data,
+                        plot_output_dir,
+                        output_file + "_" + channel + ".pdf",
+                        show_plots=show_plots,
+                        channel=channel,
+                    )
+            else:
+                make_detvar_plots(
+                    detvar_data, plot_output_dir, output_file + ".pdf", show_plots=show_plots
+                )
         return detvar_data
 
     if isinstance(binning, MultiChannelBinning):
-        assert selection is None and preselection is None, "Cannot pass selection and preselection with MultiChannelBinning"
+        assert (
+            selection is None and preselection is None
+        ), "Cannot pass selection and preselection with MultiChannelBinning"
     elif binning.selection_query is None:
-        assert selection is not None, "Selection must be provided if binning.selection_query is None"
+        assert (
+            selection is not None
+        ), "Selection must be provided if binning.selection_query is None"
         binning.set_selection(selection=selection, preselection=preselection)
     logging.debug(f"Binning: {binning}")
     variation_hist_data = {}
-    variations = dl.detector_variations
+    variations = variations or dl.detector_variations
 
     for variation in variations:
         logging.info(f"Making histogram for variation {variation}")
@@ -139,6 +205,18 @@ def make_variations(
         to_json(detvar_file, detvar_data)
 
     if make_plots:
-        make_detvar_plots(detvar_data, plot_output_dir, output_file + ".pdf")
+        if isinstance(binning, MultiChannelBinning):
+            for channel in binning.channels:
+                make_detvar_plots(
+                    detvar_data,
+                    plot_output_dir,
+                    output_file + "_" + channel + ".pdf",
+                    show_plots=show_plots,
+                    channel=channel,
+                )
+        else:
+            make_detvar_plots(
+                detvar_data, plot_output_dir, output_file + ".pdf", show_plots=show_plots
+            )
 
     return detvar_data

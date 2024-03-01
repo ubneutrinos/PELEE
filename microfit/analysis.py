@@ -27,6 +27,7 @@ from microfit import signal_generators
 from microfit.statistics import sideband_constraint_correction, chi_square
 from microfit import category_definitions
 from functools import lru_cache
+from microfit.detsys import make_variations
 
 
 class MultibandAnalysis(object):
@@ -37,9 +38,15 @@ class MultibandAnalysis(object):
         constraint_channels=[],
         signal_channels=[],
         uncertainty_defaults=None,
+        logging_level=logging.INFO,
+        overwrite_cached_df=False,
+        overwrite_cached_df_detvars=False,
+        output_dir: Optional[str] = None,
     ):
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging_level)
         self.parameters = ParameterSet([])
+        self.output_dir = output_dir
         self.constraint_channels = []  # type: List[str]
         self.signal_channels = []  # type: List[str]
         # This attribute is a dictionary holding additional keyword arguments that are forwarded to the
@@ -55,7 +62,7 @@ class MultibandAnalysis(object):
                 run_hist_generators, constraint_channels, signal_channels, uncertainty_defaults
             )
         else:
-            self._init_from_config(configuration)
+            self._init_from_config(configuration, overwrite_cached_df, overwrite_cached_df_detvars)
         self.channels = []
         for gen in self._run_hist_generators:
             self.channels.extend(gen.channels)
@@ -106,13 +113,26 @@ class MultibandAnalysis(object):
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
 
-    def _init_from_config(self, configuration):
+    def _init_from_config(
+        self, configuration, overwrite_cached_df=False, overwrite_cached_df_detvars=False
+    ):
         # The analysis may use several generators to produce a multi-channel histogram
         self._check_config(configuration)
+        if "persistence" in configuration:
+            if self.output_dir is None:
+                self.output_dir = configuration["persistence"].get("output_dir", None)
+            else:
+                print(f"Output dir from config overridden to: {self.output_dir}")
         self._run_hist_generators: List[RunHistGenerator] = []
         generator_configurations = configuration["generator"]
         for config in generator_configurations:
-            self._run_hist_generators.append(self.run_hist_generator_from_config(config))
+            self._run_hist_generators.append(
+                self.run_hist_generator_from_config(
+                    config,
+                    overwrite_cached_df=overwrite_cached_df,
+                    overwrite_cached_df_detvars=overwrite_cached_df_detvars,
+                )
+            )
         self.parameters = sum([g.parameters for g in self._run_hist_generators], ParameterSet([]))
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
@@ -161,8 +181,14 @@ class MultibandAnalysis(object):
         for generator_config in config["generator"]:
             self._check_run_hist_config(generator_config)
 
-    def run_hist_generator_from_config(self, config: dict) -> RunHistGenerator:
+    def run_hist_generator_from_config(
+        self,
+        config: dict,
+        overwrite_cached_df: bool = False,
+        overwrite_cached_df_detvars: bool = False,
+    ) -> RunHistGenerator:
         channel_configs = config["channel"]
+        self.logger.debug(f"Creating RunHistGenerator from config: {config}")
         channel_binnings = []
         for channel_config in channel_configs:
             binning_cfg = {
@@ -179,8 +205,40 @@ class MultibandAnalysis(object):
             binning.label = label or channel_config["selection"]
             channel_binnings.append(binning)
         binning = MultiChannelBinning(channel_binnings)
-
+        self.logger.info(f"Creating RunHistGenerator for channels {binning.channels}")
+        self.logger.info("Loading data...")
+        config["load_runs"]["overwrite"] = overwrite_cached_df
         rundata, weights, data_pot = load_runs(**config["load_runs"])
+        detvar_data = None
+        extra_background_fractional_error = None
+        if "detvars" in config:
+            self.logger.info("Loading detvar data... This can take some time.")
+            dv_config = config["load_runs"].copy()
+            dv_config.update(config["detvars"])
+            dv_config["binning"] = binning
+            misc_background_query = dv_config.pop("misc_background_query", None)
+            misc_background_error_frac = dv_config.pop("misc_background_error_frac", 0.0)
+            extra_background_fractional_error = {misc_background_query: misc_background_error_frac}
+            dv_config["load_lee"] = False  # do not want to use LEE to compute detvars
+            dv_config.pop("use_new_signal_model", None)  # not used for detvars, remove if present
+            dv_config["make_plots"] = False
+            dv_config["enable_detvar_cache"] = True
+            dv_config["loadsystematics"] = False  # not needed for detvars
+            dv_config["overwrite"] = overwrite_cached_df_detvars
+            dv_config["show_plots"] = False  # no need to show plots, just write to file and close
+            if self.output_dir is not None:
+                dv_config["detvar_cache_dir"] = os.path.abspath(
+                    os.path.join(self.output_dir, "detvar_cache")
+                )
+                dv_config["make_plots"] = True
+                dv_config["plot_output_dir"] = os.path.abspath(
+                    os.path.join(self.output_dir, "detvar_plots")
+                )
+                # If these paths do not exist yet, make them
+                os.makedirs(dv_config["detvar_cache_dir"], exist_ok=True)
+                os.makedirs(dv_config["plot_output_dir"], exist_ok=True)
+            self.logger.debug(f"Detvar config: {dv_config}")
+            detvar_data = make_variations(**dv_config)
         if "mc_hist_generator_cls" in config:
             try:
                 mc_hist_generator_cls = getattr(signal_generators, config["mc_hist_generator_cls"])
@@ -194,12 +252,15 @@ class MultibandAnalysis(object):
         parameters = None
         if "parameter" in config:
             parameters = ParameterSet.from_dict(config["parameter"])
+
         return RunHistGenerator(
             rundata,
             binning,
             data_pot=data_pot,
             parameters=parameters,
             mc_hist_generator_cls=mc_hist_generator_cls,
+            detvar_data=detvar_data,
+            extra_background_fractional_error=extra_background_fractional_error,
             **mc_hist_generator_kwargs,
         )
 
@@ -248,7 +309,7 @@ class MultibandAnalysis(object):
             ms_columns=ms_columns,
             include_unisim_errors=include_unisim_errors,
             include_stat_errors=include_stat_errors,
-            add_precomputed_detsys=add_precomputed_detsys
+            add_precomputed_detsys=add_precomputed_detsys,
         )
 
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
@@ -292,7 +353,7 @@ class MultibandAnalysis(object):
         extra_query: Optional[str] = None,
         scale_to_pot: Optional[float] = None,
         use_sideband: bool = False,
-        add_precomputed_detsys: bool = False,
+        add_precomputed_detsys: bool = True,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Get the MC histogram. This function is solely for plotting purposes.
 
@@ -300,7 +361,7 @@ class MultibandAnalysis(object):
         the RunHistGenerator class, so that the analysis can be dropped into the
         RunHistPlotter.
         """
-        
+
         output = self.generate_multiband_histogram(
             include_multisim_errors=include_multisim_errors,
             use_sideband=use_sideband,
@@ -342,7 +403,11 @@ class MultibandAnalysis(object):
         return data_hist[channels]
 
     def get_mc_hists(
-        self, category_column="dataset_name", include_multisim_errors=False,add_precomputed_detsys=False, scale_to_pot=None
+        self,
+        category_column="dataset_name",
+        include_multisim_errors=False,
+        add_precomputed_detsys=False,
+        scale_to_pot=None,
     ):
         """Get the MC histograms, split by category. This function is solely for plotting purposes.
 
@@ -360,7 +425,9 @@ class MultibandAnalysis(object):
         # ones that work differently.
         histograms = [
             g.get_mc_hists(
-                category_column=category_column, include_multisim_errors=include_multisim_errors,add_precomputed_detsys=add_precomputed_detsys
+                category_column=category_column,
+                include_multisim_errors=include_multisim_errors,
+                add_precomputed_detsys=add_precomputed_detsys,
             )
             for g in self._run_hist_generators
         ]
@@ -500,6 +567,8 @@ class MultibandAnalysis(object):
         else:
             channels = self.constraint_channels
             self.plot_sideband = True
+        if save_path is None and self.output_dir is not None:
+            save_path = os.path.join(self.output_dir, "plots")
 
         n_channels = len(channels)
         if n_channels == 0:
@@ -523,7 +592,6 @@ class MultibandAnalysis(object):
                     assert ax is not None, "Cannot save figure when ax is None"
                     fig = ax.figure
                     fig.savefig(os.path.join(save_path, filename_format.format(channel)))
-                    plt.close(fig)
             return
         show_data_mc_ratio = kwargs.get("show_data_mc_ratio", False)
         n_rows = 2 if show_data_mc_ratio else 1
@@ -598,7 +666,8 @@ class MultibandAnalysis(object):
         ax=None,
         include_unisim_errors=True,
         channels=None,
-        add_precomputed_detsys=False,
+        add_precomputed_detsys=True,
+        figsize=(10, 8),
         **draw_kwargs,
     ):
         hist_generators = []
@@ -608,13 +677,13 @@ class MultibandAnalysis(object):
             include_multisim_errors=True,
             ms_columns=ms_columns,
             include_unisim_errors=include_unisim_errors,
-            add_precomputed_detsys=add_precomputed_detsys
+            add_precomputed_detsys=add_precomputed_detsys,
         )
         all_channels = self.signal_channels + self.constraint_channels
         channels = channels or all_channels
         histogram = histogram[channels]
         if ax is None:
-            fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)
+            fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
         else:
             fig = ax.figure
         histogram.draw_covariance_matrix(ax=ax, **draw_kwargs)
@@ -626,7 +695,7 @@ class MultibandAnalysis(object):
         h1_params: ParameterSet,
         sensitivity_only: bool = False,
         n_trials: int = 1000,
-        add_precomputed_detsys: bool = False,
+        add_precomputed_detsys: bool = True,
         scale_to_pot: Optional[float] = None,
     ):
         """Perform a two hypothesis test between two parameter sets.
@@ -687,12 +756,18 @@ class MultibandAnalysis(object):
         print("Generating H0 histogram")
         # generate the multiband histogram
         h0_hist = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=add_precomputed_detsys, scale_to_pot=scale_to_pot
+            include_multisim_errors=True,
+            use_sideband=True,
+            add_precomputed_detsys=add_precomputed_detsys,
+            scale_to_pot=scale_to_pot,
         )
         print("Generating H1 histogram")
         self.set_parameters(h1_params, check_matching=True)
         h1_hist = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=add_precomputed_detsys, scale_to_pot=scale_to_pot
+            include_multisim_errors=True,
+            use_sideband=True,
+            add_precomputed_detsys=add_precomputed_detsys,
+            scale_to_pot=scale_to_pot,
         )
 
         test_stat_h0 = []
@@ -708,9 +783,10 @@ class MultibandAnalysis(object):
 
             return chi2_h0 - chi2_h1
 
+        rng = np.random.default_rng(0)
         for i in tqdm(range(n_trials), desc="Generating pseudo-experiments"):
-            pseudo_data_h0 = h0_hist.fluctuate(seed=4 * i).fluctuate_poisson(seed=4 * i + 1)
-            pseudo_data_h1 = h1_hist.fluctuate(seed=4 * i + 2).fluctuate_poisson(seed=4 * i + 3)
+            pseudo_data_h0 = h0_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
+            pseudo_data_h1 = h1_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
 
             test_stat_h0.append(test_statistic(pseudo_data_h0))
             test_stat_h1.append(test_statistic(pseudo_data_h1))
@@ -1115,8 +1191,21 @@ class MultibandAnalysis(object):
             self.parameters[name].value = parameter_set[name].value
 
     @classmethod
-    def from_toml(cls, file_path):
+    def from_toml(
+        cls,
+        file_path,
+        logging_level=logging.INFO,
+        overwrite_cached_df=False,
+        overwrite_cached_df_detvars=False,
+        output_dir=None,
+    ):
         # Try loading from file
         with open(file_path, "r") as file:
             configuration = toml.load(file)
-        return cls(configuration)
+        return cls(
+            configuration=configuration,
+            logging_level=logging_level,
+            overwrite_cached_df=overwrite_cached_df,
+            overwrite_cached_df_detvars=overwrite_cached_df_detvars,
+            output_dir=output_dir,
+        )

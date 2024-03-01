@@ -304,9 +304,8 @@ def chi_square(
 
     """
 
-    # TODO: Add a check to catch if the prediction/data histograms are empty. 
+    # TODO: Add a check to catch if the prediction/data histograms are empty.
     # CT has seen a crash caused by this that was annoying to debug
-
 
     n = observation
     mu = expectation

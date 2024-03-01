@@ -30,6 +30,7 @@ from microfit.statistics import (
 
 from data_loading import detector_variations
 
+
 class HistogramGenerator(SmoothHistogramMixin):
     def __init__(
         self,
@@ -39,7 +40,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         detvar_data: Optional[Union[Dict[str, AnyStr], str]] = None,
         enable_cache: bool = True,
         cache_total_covariance: bool = True,
-        extra_mc_covariance: Optional[np.ndarray] = None
+        extra_mc_covariance: Optional[np.ndarray] = None,
     ):
         """Create a histogram generator for a given dataframe.
 
@@ -94,13 +95,15 @@ class HistogramGenerator(SmoothHistogramMixin):
         # in case a string was passed to detvar_data, we load it from the file
         if isinstance(self.detvar_data, str):
             self.detvar_data = from_json(self.detvar_data)
-        #if isinstance(self.detvar_data):
+        # if isinstance(self.detvar_data):
         #    self.detvar_data = detvar_data
-            
+
         # check that binning matches to detvar_data
         if self.detvar_data is not None:
             detvar_binning = self.detvar_data["binning"]
-            assert isinstance(detvar_binning, (Binning, MultiChannelBinning)), "Binning of detector variations must be a Binning or MultiChannelBinning object."
+            assert isinstance(
+                detvar_binning, (Binning, MultiChannelBinning)
+            ), "Binning of detector variations must be a Binning or MultiChannelBinning object."
             # Just check the bin edges and variable rather than the entire binning object
             if not detvar_binning.is_compatible(self.binning):
                 raise ValueError(
@@ -503,7 +506,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         include_unisim_errors=True,
         include_stat_errors=True,
         extra_query=None,
-        add_precomputed_detsys=False
+        add_precomputed_detsys=False,
     ):
         """Generate a joint histogram from multiple histogram generators.
 
@@ -526,20 +529,20 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         if not include_stat_errors:
             histogram.covariance_matrix = np.zeros_like(histogram.covariance_matrix)
-        if not include_multisim_errors:
-            return histogram
         covariance_matrix = np.zeros((histogram.n_bins, histogram.n_bins))
         concatenated_cv = cls.multiband_cv(
             hist_generators, extra_queries=[extra_query] * len(hist_generators)
         )
-        for ms_column in ms_columns:
-            covariance_matrix += HistogramGenerator.multiband_covariance(
-                hist_generators,
-                ms_column,
-                concatenated_cv=concatenated_cv,
-                extra_queries=[extra_query] * len(hist_generators),
-            )
-        if include_unisim_errors:
+        if include_multisim_errors:
+            for ms_column in ms_columns:
+                covariance_matrix += HistogramGenerator.multiband_covariance(
+                    hist_generators,
+                    ms_column,
+                    concatenated_cv=concatenated_cv,
+                    extra_queries=[extra_query] * len(hist_generators),
+                )
+        # We never include the unisim errors without also using the multisim errors
+        if include_unisim_errors and include_multisim_errors:
             covariance_matrix += HistogramGenerator.multiband_unisim_covariance(
                 hist_generators,
                 concatenated_cv=concatenated_cv,
@@ -548,9 +551,7 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         if add_precomputed_detsys:
             print("Including detsim uncertainties")
-            covariance_matrix += HistogramGenerator.multiband_detector_covariance(
-                hist_generators
-            )
+            covariance_matrix += HistogramGenerator.multiband_detector_covariance(hist_generators)
 
         histogram.add_covariance(covariance_matrix)
 
@@ -713,11 +714,12 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         variation_diffs_dict = {variation: np.array([]) for variation in detector_variations}
         for hg in hist_generators:
-
             cov_mat, variation_diffs = hg.calculate_detector_covariance(return_histograms=True)
-        
+
             for variation in detector_variations:
-                variation_diffs_dict[variation] = np.concatenate([variation_diffs_dict[variation], variation_diffs[variation]])
+                variation_diffs_dict[variation] = np.concatenate(
+                    [variation_diffs_dict[variation], variation_diffs[variation]]
+                )
 
         for variation in detector_variations:
             h = variation_diffs_dict[variation]
@@ -920,10 +922,10 @@ class HistogramGenerator(SmoothHistogramMixin):
 
     def calculate_unisim_uncertainties(
         self,
-        central_value_hist: Optional[Histogram]=None,
-        extra_query: Optional[str]=None,
-        return_histograms: bool=False,
-        skip_covariance: bool=False,
+        central_value_hist: Optional[Histogram] = None,
+        extra_query: Optional[str] = None,
+        return_histograms: bool = False,
+        skip_covariance: bool = False,
     ):
         """Calculate unisim uncertainties.
 
@@ -1036,17 +1038,25 @@ class HistogramGenerator(SmoothHistogramMixin):
 
     @overload
     def calculate_detector_covariance(
-        self, only_diagonal: bool = ..., return_histograms: Literal[False] = ...
+        self,
+        only_diagonal: bool = ...,
+        fractional: bool = ...,
+        return_histograms: Literal[False] = ...,
     ) -> np.ndarray:
         ...
 
     @overload
     def calculate_detector_covariance(
-        self, only_diagonal: bool = ..., return_histograms: Literal[True] = ...
+        self,
+        only_diagonal: bool = ...,
+        fractional: bool = ...,
+        return_histograms: Literal[True] = ...,
     ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
         ...
 
-    def calculate_detector_covariance(self, only_diagonal: bool = False, return_histograms: bool = False) -> Optional[Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]]:
+    def calculate_detector_covariance(
+        self, only_diagonal: bool = False, fractional: bool = True, return_histograms: bool = False
+    ) -> Optional[Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]]:
         """Get the covariance matrix for detector uncertainties.
 
         This function follows the recommendation outlined in:
@@ -1074,21 +1084,27 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         # Get the CV variation hist
         variation_cv_hist = np.zeros(self.binning.n_bins)
-        variation_hists = {
-            v: np.zeros(self.binning.n_bins) 
-            for v in detector_variations
-        }
+        variation_hists = {v: np.zeros(self.binning.n_bins) for v in detector_variations}
 
         for dataset in cast(str, self.detvar_data["mc_sets"]):
-            variation_cv_hist = np.add(variation_cv_hist,variation_hist_data[dataset]["cv"].bin_counts)
+            variation_cv_hist = np.add(
+                variation_cv_hist, variation_hist_data[dataset]["cv"].bin_counts
+            )
             for v in detector_variations:
-                variation_hists[v] = np.add(variation_hists[v],variation_hist_data[dataset][v].bin_counts)
+                variation_hists[v] = np.add(
+                    variation_hists[v], variation_hist_data[dataset][v].bin_counts
+                )
 
         variation_diffs: Dict[str, np.ndarray] = {
-            v: (h - variation_cv_hist)
-            for v, h in variation_hists.items()
+            v: (h - variation_cv_hist) for v, h in variation_hists.items() if v != "cv"
         }
-        
+
+        if fractional:
+            this_histgen_cv = self.generate()
+            for v in variation_diffs.keys():
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    variation_diffs[v] *= this_histgen_cv.bin_counts / variation_cv_hist
+
         for v, h in variation_diffs.items():
             h[~np.isfinite(h)] = 0.0
 
@@ -1099,13 +1115,13 @@ class HistogramGenerator(SmoothHistogramMixin):
                 # As with all unisim variations, small deviations from the PSD case are expected
                 allow_approximation=True,
                 tolerance=1e-10,
-                #tolerance=1e-8,
+                # tolerance=1e-8,
                 debug_name=f"detector_{v}",
             )
 
         if only_diagonal:
             cov_mat = np.diag(np.diag(cov_mat))
-        
+
         if return_histograms:
             return cov_mat, variation_diffs
         return cov_mat

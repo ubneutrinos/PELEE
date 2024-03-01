@@ -82,7 +82,7 @@ class RunHistGenerator:
         extra_mc_covaraince: array_like, optional
             Additional covariance applied to total mc prediction
         extra_background_fractional_error: dict, optional
-            Dictionary where keys are the selection strings for the background and values are the 
+            Dictionary where keys are the selection strings for the background and values are the
             fractional error to be applied to that background.
         **mc_hist_generator_kwargs
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
@@ -141,7 +141,9 @@ class RunHistGenerator:
         if detvar_data is not None:
             self.detvar_data = detvar_data
             detvar_binning = self.detvar_data["binning"]
-            assert isinstance(detvar_binning, (Binning, MultiChannelBinning)), "Detector variation binning must be a Binning or MultiChannelBinning."
+            assert isinstance(
+                detvar_binning, (Binning, MultiChannelBinning)
+            ), "Detector variation binning must be a Binning or MultiChannelBinning."
             # Just check the bin edges and variable rather than the entire binning object
             if not detvar_binning.is_compatible(self.binning):
                 raise ValueError(
@@ -153,7 +155,9 @@ class RunHistGenerator:
                 raise ValueError("extra_background_fractional_error must be a dictionary.")
             for k, v in extra_background_fractional_error.items():
                 if not isinstance(v, (float)):
-                    raise ValueError(f"Value for {k} in extra_background_fractional_error must be a number.")
+                    raise ValueError(
+                        f"Value for {k} in extra_background_fractional_error must be a number."
+                    )
         # ensure that the necessary keys are present
         if "data" not in rundata_dict.keys():
             raise ValueError("data key is missing from rundata_dict (may be None).")
@@ -287,7 +291,7 @@ class RunHistGenerator:
         self,
         category_column="dataset_name",
         include_multisim_errors=None,
-        add_precomputed_detsys=False, 
+        add_precomputed_detsys=False,
         scale_to_pot=None,
         channel=None,
     ) -> Dict[Union[str, int], Histogram]:
@@ -425,7 +429,7 @@ class RunHistGenerator:
 
         if self.extra_mc_covariance is not None:
             hist.add_covariance(self.extra_mc_covariance)
-        
+
         if self.extra_background_fractional_error is not None and add_precomputed_detsys:
             for k, v in self.extra_background_fractional_error.items():
                 # Here, each key is the selection query for the background
@@ -518,4 +522,3 @@ class RunHistGenerator:
             total_prediction.covariance_matrix,
         )
         return chi_sq
-

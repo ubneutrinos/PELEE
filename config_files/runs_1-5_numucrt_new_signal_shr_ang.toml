@@ -1,0 +1,120 @@
+[plotting]
+[plotting.NUMUCRT]
+run_title = "Run 3-5"
+[plotting.NPBDT_SHR_E]
+run_title = "Run 1-5"
+[plotting.ZPBDT_SHR_E]
+run_title = "Run 1-5"
+
+[channels]
+signal_channels = ["NPBDT_SHR_THETA", "ZPBDT_SHR_THETA"]
+constraint_channels = ["NUMUCRT"]
+
+
+[[h0_params]]
+name = "signal_strength"
+value = 0.0
+
+[[h1_params]]
+name = "signal_strength"
+value = 1.0
+
+[fc_scan]
+parameter_name = "signal_strength"
+range = [0, 5]
+n_points = 40
+
+[[fc_scan.fit_grid]]
+parameter = "signal_strength"
+range = [0, 10]
+n_points = 100
+
+[uncertainty_defaults]
+include_multisim_errors = true
+add_ext_error_floor = false
+use_sideband = true
+
+[[generator]]
+[generator.load_runs]
+run_numbers = ["3","4b","4c","4d","5"]
+data = "muon_sideband"
+truth_filtered_sets = ["nue", "drt"]
+loadshowervariables = false
+loadsystematics = true
+use_bdt = false
+loadnumuvariables = true
+load_crt_vars = true
+numupresel = true
+enable_cache = true
+blinded = false
+load_lee = false
+
+[[generator.channel]]
+variable = "neutrino_energy"
+n_bins = 14
+limits = [0.15, 1.55]
+selection = "NUMUCRT"
+preselection = "NUMU"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+
+[[generator]]
+
+mc_hist_generator_cls = "SignalOverBackgroundGenerator"
+
+[generator.load_runs]
+run_numbers = ["1", "2", "3","4b","4c","4d","5"]
+data = "bnb"
+truth_filtered_sets = ["nue", "drt"]
+loadpi0variables = true
+loadshowervariables = true
+loadrecoveryvars = true
+loadsystematics = true
+load_lee = true
+use_new_signal_model = true
+enable_cache = true
+blinded = true
+
+[[generator.parameter]]
+name = "signal_strength"
+value = 1.0
+bounds = [0.0, 10.0]
+
+[[generator.channel]]
+variable = "shr_energy_tot_cali"
+n_bins = 14
+limits = [0.05, 1.55]
+selection = "NPBDT"
+preselection = "NP"
+label = "NPBDT_SHR_E"
+variable_tex = "Reconstructed Shower Energy (GeV)"
+
+[[generator.channel]]
+variable = "shr_energy_tot_cali"
+n_bins = 14
+limits = [0.05, 1.55]
+selection = "ZPBDT"
+preselection = "ZP"
+label = "ZPBDT_SHR_E"
+variable_tex = "Reconstructed Shower Energy (GeV)"
+
+# Add shower angle channels to the analysis, even though
+# we don't use them. This allows us to quickly make plots
+# of these channels and show them post-fit.
+
+[[generator.channel]]
+variable = "shr_theta"
+n_bins = 14
+limits = [0.0, 3.141]
+selection = "NPBDT"
+preselection = "NP"
+label = "NPBDT_SHR_THETA"
+variable_tex = "Reconstructed Shower $\\theta$"
+
+[[generator.channel]]
+variable = "shr_theta"
+n_bins = 14
+limits = [0.0, 3.141]
+selection = "ZPBDT"
+preselection = "ZP"
+label = "ZPBDT_SHR_THETA"
+variable_tex = "Reconstructed Shower $\\theta$"

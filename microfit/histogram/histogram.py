@@ -1386,4 +1386,3 @@ class MultiChannelHistogram(Histogram):
             if len(set(values)) == 1:
                 setattr(combined_hist, prop, values[0])
         return combined_hist
-

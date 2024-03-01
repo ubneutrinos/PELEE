@@ -68,7 +68,6 @@ class RunHistPlotter:
         legend_cols=3,
         **kwargs,
     ):
-
         gen = self.run_hist_generator
 
         def flatten(hist) -> Histogram:
