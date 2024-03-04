@@ -328,6 +328,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         sideband_total_prediction: Optional[Histogram] = None,
         sideband_observed_hist: Optional[Histogram] = None,
         add_precomputed_detsys: bool = False,
+        smooth_detsys_variations: bool = True,
         use_kde_smoothing: bool = False,
         options: Dict[str, Any] = {},
     ) -> Union[Histogram, MultiChannelHistogram]:
@@ -401,6 +402,7 @@ class HistogramGenerator(SmoothHistogramMixin):
             include_multisim_errors,
             use_kde_smoothing,
             options,
+            smooth_detsys_variations,
         )
         hist = None
         if self.enable_cache:
@@ -486,7 +488,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 hist.add_covariance(cov_corr)
 
         if add_precomputed_detsys:
-            det_cov = self.calculate_detector_covariance()
+            det_cov = self.calculate_detector_covariance(smooth_variations=smooth_detsys_variations)
             if det_cov is not None:
                 hist.add_covariance(det_cov)
 
@@ -507,6 +509,8 @@ class HistogramGenerator(SmoothHistogramMixin):
         include_stat_errors=True,
         extra_query=None,
         add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
+        include_detsys_variations=detector_variations,
     ):
         """Generate a joint histogram from multiple histogram generators.
 
@@ -551,7 +555,11 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         if add_precomputed_detsys:
             print("Including detsim uncertainties")
-            covariance_matrix += HistogramGenerator.multiband_detector_covariance(hist_generators)
+            covariance_matrix += HistogramGenerator.multiband_detector_covariance(
+                hist_generators,
+                smooth_variations=smooth_detsys_variations,
+                include_variations=include_detsys_variations,
+            )
 
         histogram.add_covariance(covariance_matrix)
 
@@ -695,7 +703,12 @@ class HistogramGenerator(SmoothHistogramMixin):
         return summed_cov_mat
 
     @classmethod
-    def multiband_detector_covariance(cls, hist_generators: List["HistogramGenerator"]):
+    def multiband_detector_covariance(
+        cls,
+        hist_generators: List["HistogramGenerator"],
+        smooth_variations=True,
+        include_variations=detector_variations,
+    ):
         """Calculate the covariance matrix for multiple histograms.
 
         Given a list of HistogramGenerator objects, calculate the covariance matrix of the
@@ -712,16 +725,22 @@ class HistogramGenerator(SmoothHistogramMixin):
         total_bins = sum([hg.binning.n_bins for hg in hist_generators])
         summed_cov_mat = np.zeros((total_bins, total_bins))
 
-        variation_diffs_dict = {variation: np.array([]) for variation in detector_variations}
+        variation_diffs_dict = {variation: np.array([]) for variation in include_variations}
         for hg in hist_generators:
-            cov_mat, variation_diffs = hg.calculate_detector_covariance(return_histograms=True)
+            cov_mat, variation_diffs = hg.calculate_detector_covariance(
+                return_histograms=True,
+                smooth_variations=smooth_variations,
+                include_variations=include_variations,
+            )
 
-            for variation in detector_variations:
+            for variation in include_variations:
                 variation_diffs_dict[variation] = np.concatenate(
                     [variation_diffs_dict[variation], variation_diffs[variation]]
                 )
 
-        for variation in detector_variations:
+        for variation in include_variations:
+            if variation == "cv":
+                continue
             h = variation_diffs_dict[variation]
             summed_cov_mat += covariance(
                 h.reshape(1, -1),
@@ -1041,6 +1060,8 @@ class HistogramGenerator(SmoothHistogramMixin):
         self,
         only_diagonal: bool = ...,
         fractional: bool = ...,
+        smooth_variations: bool = True,
+        include_variations: List[str] = detector_variations,
         return_histograms: Literal[False] = ...,
     ) -> np.ndarray:
         ...
@@ -1050,12 +1071,19 @@ class HistogramGenerator(SmoothHistogramMixin):
         self,
         only_diagonal: bool = ...,
         fractional: bool = ...,
+        smooth_variations: bool = True,
+        include_variations: List[str] = detector_variations,
         return_histograms: Literal[True] = ...,
     ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
         ...
 
     def calculate_detector_covariance(
-        self, only_diagonal: bool = False, fractional: bool = True, return_histograms: bool = False
+        self,
+        only_diagonal: bool = False,
+        fractional: bool = True,
+        smooth_variations: bool = True,
+        include_variations: List[str] = detector_variations,
+        return_histograms: bool = False,
     ) -> Optional[Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]]:
         """Get the covariance matrix for detector uncertainties.
 
@@ -1084,20 +1112,36 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         # Get the CV variation hist
         variation_cv_hist = np.zeros(self.binning.n_bins)
-        variation_hists = {v: np.zeros(self.binning.n_bins) for v in detector_variations}
+        variation_hists = {v: np.zeros(self.binning.n_bins) for v in include_variations}
 
         for dataset in cast(str, self.detvar_data["mc_sets"]):
             variation_cv_hist = np.add(
                 variation_cv_hist, variation_hist_data[dataset]["cv"].bin_counts
             )
-            for v in detector_variations:
+            for v in include_variations:
                 variation_hists[v] = np.add(
                     variation_hists[v], variation_hist_data[dataset][v].bin_counts
                 )
 
         variation_diffs: Dict[str, np.ndarray] = {
-            v: (h - variation_cv_hist) for v, h in variation_hists.items() if v != "cv"
+            v: (h - variation_cv_hist) for v, h in variation_hists.items()
         }
+
+        filter = np.array([0.1, 0.3, 1.0, 0.3, 0.1])
+        filter /= np.sum(filter)
+
+        def apply_filter(arr, filter):
+            """Filter the array with the given filter."""
+            # pad the array
+            arr_padded = np.pad(arr, (len(filter) // 2, len(filter) // 2), mode="edge")
+            # apply the filter
+            arr_filtered = np.convolve(arr_padded, filter, mode="valid")
+            return arr_filtered
+
+        if smooth_variations:
+            for v in variation_diffs.keys():
+                variation_diffs[v] = apply_filter(variation_diffs[v], filter)
+            variation_cv_hist = apply_filter(variation_cv_hist, filter)
 
         if fractional:
             this_histgen_cv = self.generate()
@@ -1106,6 +1150,8 @@ class HistogramGenerator(SmoothHistogramMixin):
                     variation_diffs[v] *= this_histgen_cv.bin_counts / variation_cv_hist
 
         for v, h in variation_diffs.items():
+            if v == "cv":
+                continue
             h[~np.isfinite(h)] = 0.0
 
             # We have just one observation and the central value is zero since it was already subtracted
