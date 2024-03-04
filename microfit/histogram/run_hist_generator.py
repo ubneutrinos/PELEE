@@ -292,6 +292,7 @@ class RunHistGenerator:
         category_column="dataset_name",
         include_multisim_errors=None,
         add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
         scale_to_pot=None,
         channel=None,
     ) -> Dict[Union[str, int], Histogram]:
@@ -328,6 +329,7 @@ class RunHistGenerator:
             hist = self.get_mc_hist(
                 include_multisim_errors=include_multisim_errors,
                 add_precomputed_detsys=add_precomputed_detsys,
+                smooth_detsys_variations=smooth_detsys_variations,
                 extra_query=extra_query,
                 scale_to_pot=scale_to_pot,
             )
@@ -350,7 +352,7 @@ class RunHistGenerator:
             mc_hists["Other"].color = "gray"
         return mc_hists
 
-    def get_hist_generator(self, which):
+    def get_hist_generator(self, which) -> HistogramGenerator:
         assert which in ["mc", "data", "ext"]
         hist_generator = {
             "mc": self.mc_hist_generator,
@@ -362,7 +364,8 @@ class RunHistGenerator:
     def get_mc_hist(
         self,
         include_multisim_errors: Optional[bool] = None,
-        add_precomputed_detsys: Optional[bool] = None,
+        add_precomputed_detsys: bool = False,
+        smooth_detsys_variations: bool = True,
         extra_query: Optional[str] = None,
         scale_to_pot: Optional[float] = None,
         use_sideband: Optional[bool] = None,
@@ -424,6 +427,7 @@ class RunHistGenerator:
             sideband_observed_hist=sideband_observed_hist,
             extra_query=extra_query,
             add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
         )
         hist.label = "MC"
 
@@ -457,6 +461,7 @@ class RunHistGenerator:
         use_sideband=None,
         add_ext_error_floor=None,
         add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
         smooth_ext_histogram=False,
     ):
         """Get the total prediction from MC and EXT.
@@ -487,6 +492,7 @@ class RunHistGenerator:
             scale_to_pot=scale_to_pot,
             use_sideband=use_sideband,
             add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
         )
         if self.ext_hist_generator is not None:
             ext_prediction = self.get_data_hist(

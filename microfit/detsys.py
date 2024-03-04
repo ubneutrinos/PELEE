@@ -1,5 +1,7 @@
 from typing import List, Optional, Union
 
+import numpy as np
+
 import data_loading as dl
 from microfit.histogram import Binning, HistogramGenerator, MultiChannelBinning
 from microfit.fileio import to_json, from_json
@@ -88,6 +90,42 @@ def make_detvar_plots(detvar_data, output_dir, plotname, show_plots=True, channe
     binning = get_channel(detvar_data["binning"], channel)
     ax.set_title(f"Detector Systematics: {binning.selection_tex}")  # type: ignore
     fig.savefig(os.path.join(output_dir, "summed_" + plotname))
+    if not show_plots:
+        plt.close(fig)
+
+    # Make another figure demonstrating the effect of smoothing the summed variations
+    filter = np.array([0.1, 0.3, 1.0, 0.3, 0.1])
+    filter /= np.sum(filter)
+
+    def filter_with_reflection(arr, filter):
+        """Filter the array with the given filter, reflecting the array at the edges."""
+        # pad the array with zeros
+        arr_padded = np.pad(arr, (len(filter) // 2, len(filter) // 2), mode="edge")
+        # apply the filter
+        arr_filtered = np.convolve(arr_padded, filter, mode="valid")
+        return arr_filtered
+
+    def filter_hist(hist):
+        hist.bin_counts = filter_with_reflection(hist.bin_counts, filter)
+        return hist
+
+    fig, ax = plt.subplots()
+    summed_variations = {}
+    for truth_filter, hist_dict in detvar_data["variation_hist_data"].items():
+        for name, hist in hist_dict.items():
+            if name not in summed_variations:
+                summed_variations[name] = hist
+            else:
+                summed_variations[name] += hist
+    filter_hist(get_channel(summed_variations["cv"], channel)).draw(ax=ax, label="CV", color="k", show_errors=False, lw=3)  # type: ignore
+    for name, hist in summed_variations.items():
+        if name == "cv":
+            continue
+        filter_hist(get_channel(hist, channel)).draw(ax=ax, label=name, show_errors=False)  # type: ignore
+    ax.legend(ncol=2)
+    binning = get_channel(detvar_data["binning"], channel)
+    ax.set_title(f"Detector Systematics: {binning.selection_tex}, Smoothed")  # type: ignore
+    fig.savefig(os.path.join(output_dir, "summed_filtered_" + plotname))
     if not show_plots:
         plt.close(fig)
 

@@ -12,7 +12,7 @@ import numpy as np
 
 from scipy.linalg import block_diag
 import toml
-from data_loading import load_runs
+from data_loading import load_runs, detector_variations
 from microfit.histogram import (
     Binning,
     HistogramGenerator,
@@ -295,6 +295,7 @@ class MultibandAnalysis(object):
         include_unisim_errors=True,
         include_stat_errors=True,
         add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
     ) -> MultiChannelHistogram:
         """Generate the combined MC histogram from all channels."""
 
@@ -310,6 +311,7 @@ class MultibandAnalysis(object):
             include_unisim_errors=include_unisim_errors,
             include_stat_errors=include_stat_errors,
             add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
         )
 
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
@@ -354,6 +356,7 @@ class MultibandAnalysis(object):
         scale_to_pot: Optional[float] = None,
         use_sideband: bool = False,
         add_precomputed_detsys: bool = True,
+        smooth_detsys_variations: bool = True,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Get the MC histogram. This function is solely for plotting purposes.
 
@@ -369,6 +372,7 @@ class MultibandAnalysis(object):
             include_ext=False,
             include_non_signal_channels=True,
             add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
             extra_query=extra_query,
         )
         channels = self.constraint_channels if self.plot_sideband else self.signal_channels
@@ -407,6 +411,7 @@ class MultibandAnalysis(object):
         category_column="dataset_name",
         include_multisim_errors=False,
         add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
         scale_to_pot=None,
     ):
         """Get the MC histograms, split by category. This function is solely for plotting purposes.
@@ -428,6 +433,7 @@ class MultibandAnalysis(object):
                 category_column=category_column,
                 include_multisim_errors=include_multisim_errors,
                 add_precomputed_detsys=add_precomputed_detsys,
+                smooth_detsys_variations=smooth_detsys_variations,
             )
             for g in self._run_hist_generators
         ]
@@ -667,7 +673,9 @@ class MultibandAnalysis(object):
         include_unisim_errors=True,
         channels=None,
         add_precomputed_detsys=True,
+        smooth_detsys_variations=True,
         figsize=(10, 8),
+        include_detsys_variations=detector_variations,
         **draw_kwargs,
     ):
         hist_generators = []
@@ -678,6 +686,8 @@ class MultibandAnalysis(object):
             ms_columns=ms_columns,
             include_unisim_errors=include_unisim_errors,
             add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
+            include_detsys_variations=include_detsys_variations,
         )
         all_channels = self.signal_channels + self.constraint_channels
         channels = channels or all_channels
