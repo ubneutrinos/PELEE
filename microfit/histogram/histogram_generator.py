@@ -41,6 +41,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         enable_cache: bool = True,
         cache_total_covariance: bool = True,
         extra_mc_covariance: Optional[np.ndarray] = None,
+        extra_background_fractional_error: Optional[Dict[str, float]] = None,
     ):
         """Create a histogram generator for a given dataframe.
 
@@ -77,6 +78,13 @@ class HistogramGenerator(SmoothHistogramMixin):
             be set to False. If the parameter affects both (for instance, an overall spectral index
             correction), it is fine to leave it as True because a recalculation of the sideband will
             also trigger a recalculation of this histogram.
+        detvar_data : dict or str, optional
+            Dictionary containing the detector variations.
+        extra_mc_covariance : np.ndarray, optional
+            Extra covariance matrix to be added to the total covariance matrix.
+        extra_background_fractional_error: dict, optional
+            Dictionary where keys are the selection strings for the background and values are the
+            fractional error to be applied to that background.
         """
         self.dataframe = dataframe
         self.parameters = parameters
@@ -92,6 +100,15 @@ class HistogramGenerator(SmoothHistogramMixin):
         self.cache_total_covariance = cache_total_covariance
         self.detvar_data = detvar_data
         self.extra_mc_covariance = extra_mc_covariance
+        if extra_background_fractional_error is not None:
+            if not isinstance(extra_background_fractional_error, dict):
+                raise ValueError("extra_background_fractional_error must be a dictionary.")
+            for k, v in extra_background_fractional_error.items():
+                if not isinstance(v, (float)):
+                    raise ValueError(
+                        f"Value for {k} in extra_background_fractional_error must be a number."
+                    )
+        self.extra_background_fractional_error = extra_background_fractional_error
         # in case a string was passed to detvar_data, we load it from the file
         if isinstance(self.detvar_data, str):
             self.detvar_data = from_json(self.detvar_data)
@@ -488,7 +505,9 @@ class HistogramGenerator(SmoothHistogramMixin):
                 hist.add_covariance(cov_corr)
 
         if add_precomputed_detsys:
-            det_cov = self.calculate_detector_covariance(smooth_variations=smooth_detsys_variations)
+            det_cov = self.calculate_detector_covariance(
+                smooth_variations=smooth_detsys_variations, extra_query=extra_query
+            )
             if det_cov is not None:
                 hist.add_covariance(det_cov)
 
@@ -593,8 +612,9 @@ class HistogramGenerator(SmoothHistogramMixin):
         # assert all(isinstance(hg, cls) for hg in hist_generators), f"Must provide a list of HistogramGenerator objects. Types are {types}."
 
         universe_hists = []
-        if extra_queries is None:
-            extra_queries = [None] * len(hist_generators)
+        if extra_queries is None or isinstance(extra_queries, str):
+            extra_queries = [extra_queries] * len(hist_generators)
+        assert isinstance(extra_queries, list)
         for hg, extra_query in zip(hist_generators, extra_queries):
             cov_mat, universe_hist = hg.calculate_multisim_uncertainties(
                 ms_column, return_histograms=True, extra_query=extra_query
@@ -638,8 +658,9 @@ class HistogramGenerator(SmoothHistogramMixin):
         # assert all(isinstance(hg, cls) for hg in hist_generators), f"Must provide a list of HistogramGenerator objects. Types are {types}."
 
         central_values = []
-        if extra_queries is None:
-            extra_queries = [None] * len(hist_generators)
+        if extra_queries is None or isinstance(extra_queries, str):
+            extra_queries = [extra_queries] * len(hist_generators)
+        assert isinstance(extra_queries, list)
         for hg, extra_query in zip(hist_generators, extra_queries):
             central_values.append(
                 hg.generate(extra_query=extra_query, include_multisim_errors=False).bin_counts
@@ -674,8 +695,9 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         assert len(hist_generators) > 0, "Must provide at least one histogram generator."
         universe_hist_dicts = []
-        if extra_queries is None:
-            extra_queries = [None] * len(hist_generators)
+        if extra_queries is None or isinstance(extra_queries, str):
+            extra_queries = [extra_queries] * len(hist_generators)
+        assert isinstance(extra_queries, list)
         for hg, extra_query in zip(hist_generators, extra_queries):
             universe_hist_dicts.append(
                 hg.calculate_unisim_uncertainties(
@@ -708,6 +730,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         hist_generators: List["HistogramGenerator"],
         smooth_variations=True,
         include_variations=detector_variations,
+        extra_queries=None,
     ):
         """Calculate the covariance matrix for multiple histograms.
 
@@ -724,19 +747,27 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         total_bins = sum([hg.binning.n_bins for hg in hist_generators])
         summed_cov_mat = np.zeros((total_bins, total_bins))
-
+        if extra_queries is None or isinstance(extra_queries, str):
+            extra_queries = [extra_queries] * len(hist_generators)
+        assert isinstance(extra_queries, list)
         variation_diffs_dict = {variation: np.array([]) for variation in include_variations}
-        for hg in hist_generators:
+        extra_background_variances = np.array([])
+        for hg, extra_query in zip(hist_generators, extra_queries):
             cov_mat, variation_diffs = hg.calculate_detector_covariance(
                 return_histograms=True,
                 smooth_variations=smooth_variations,
                 include_variations=include_variations,
+                extra_query=extra_query,
             )
 
             for variation in include_variations:
                 variation_diffs_dict[variation] = np.concatenate(
                     [variation_diffs_dict[variation], variation_diffs[variation]]
                 )
+
+            extra_background_variances = np.concatenate(
+                [extra_background_variances, hg.extra_background_variance(extra_query=extra_query)]
+            )
 
         for variation in include_variations:
             if variation == "cv":
@@ -748,6 +779,8 @@ class HistogramGenerator(SmoothHistogramMixin):
                 allow_approximation=True,
                 tolerance=1e-10,
             )
+
+        summed_cov_mat += np.diag(extra_background_variances)
 
         return summed_cov_mat
 
@@ -1062,6 +1095,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         fractional: bool = ...,
         smooth_variations: bool = True,
         include_variations: List[str] = detector_variations,
+        extra_query: Optional[str] = None,
         return_histograms: Literal[False] = ...,
     ) -> np.ndarray:
         ...
@@ -1073,6 +1107,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         fractional: bool = ...,
         smooth_variations: bool = True,
         include_variations: List[str] = detector_variations,
+        extra_query: Optional[str] = None,
         return_histograms: Literal[True] = ...,
     ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
         ...
@@ -1083,10 +1118,34 @@ class HistogramGenerator(SmoothHistogramMixin):
         fractional: bool = True,
         smooth_variations: bool = True,
         include_variations: List[str] = detector_variations,
+        extra_query: Optional[str] = None,
         return_histograms: bool = False,
     ) -> Optional[Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]]:
         """Get the covariance matrix for detector uncertainties.
 
+        Parameters
+        ----------
+        only_diagonal : bool, optional
+            If True, only return the diagonal of the covariance matrix.
+        fractional : bool, optional
+            If True, rescale the detector variations to the central value of this histogram generator.
+        smooth_variations : bool, optional
+            If True, apply a smoothing filter to the variations.
+        include_variations : list of str, optional
+            List of variations to include in the covariance matrix. The default is to include all
+            variations.
+        extra_query : str, optional
+            Extra query to apply to the dataframe before calculating the covariance matrix. This is only
+            relevant when `fractional` is set to `True`, as the extra query is used to calculate the
+            central value for the re-scaling.
+
+        Returns
+        -------
+        covariance_matrix : array_like
+            Covariance matrix of the bin counts.
+
+        Notes
+        -----
         This function follows the recommendation outlined in:
         A. Ashkenazi, et al., "Detector Systematics supporting note", DocDB 27009
 
@@ -1144,7 +1203,18 @@ class HistogramGenerator(SmoothHistogramMixin):
             variation_cv_hist = apply_filter(variation_cv_hist, filter)
 
         if fractional:
-            this_histgen_cv = self.generate()
+            # The detector systematics might have been calculated for a specific selection
+            # of events.
+            detvar_selection_query = self.detvar_data["extra_selection_query"]
+            if detvar_selection_query is not None:
+                assert isinstance(detvar_selection_query, str)
+                if extra_query is not None:
+                    combined_extra_query = f"({extra_query}) and ({detvar_selection_query})"
+                else:
+                    combined_extra_query = detvar_selection_query
+            else:
+                combined_extra_query = extra_query
+            this_histgen_cv = self.generate(extra_query=combined_extra_query)
             for v in variation_diffs.keys():
                 with np.errstate(divide="ignore", invalid="ignore"):
                     variation_diffs[v] *= this_histgen_cv.bin_counts / variation_cv_hist
@@ -1168,9 +1238,33 @@ class HistogramGenerator(SmoothHistogramMixin):
         if only_diagonal:
             cov_mat = np.diag(np.diag(cov_mat))
 
+        cov_mat += np.diag(self.extra_background_variance(extra_query=extra_query))
+
         if return_histograms:
             return cov_mat, variation_diffs
         return cov_mat
+
+    def extra_background_variance(self, extra_query: Optional[str] = None) -> np.ndarray:
+        """Calculate the variance (squared error) vector for extra background uncertainties.
+
+        These are a flat fractional error that we add to low-stats background.
+        """
+        output = np.zeros(self.binning.n_bins)
+        if self.extra_background_fractional_error is not None:
+            for k, v in self.extra_background_fractional_error.items():
+                # Here, each key is the selection query for the background
+                # and the value is the fractional error to be applied.
+
+                # If the extra_query to this function is not None, we add
+                # the background query to it
+                backgr_query = extra_query
+                if backgr_query is not None:
+                    backgr_query += f" and {k}"
+                else:
+                    backgr_query = k
+                backgr_hist = self.generate(extra_query=backgr_query)
+                output += (backgr_hist.bin_counts * v) ** 2
+        return output
 
     def _resync_parameters(self):
         """Not needed since there are no parameters in this class."""

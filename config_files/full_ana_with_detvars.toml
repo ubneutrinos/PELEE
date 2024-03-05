@@ -152,7 +152,7 @@ truth_filtered_sets = ["nue","nc_pi0"]
 # The full detvars are only calculated for this selection of events
 extra_selection_query = "(mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))"
 # For the misc. background, we just add a flat fractional covariance
-misc_background_query = "(mcf_pass_ncpi0 != 1 or (abs(nu_pdg) != 12 and ccnc != 0))"
+misc_background_query = "not (mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))"
 misc_background_error_frac = 0.2
 
 [[generator.parameter]]
