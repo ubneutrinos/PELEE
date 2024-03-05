@@ -149,15 +149,6 @@ class RunHistGenerator:
                 raise ValueError(
                     "Binning of detector variations does not match binning of main histogram."
                 )
-        self.extra_background_fractional_error = extra_background_fractional_error
-        if extra_background_fractional_error is not None:
-            if not isinstance(extra_background_fractional_error, dict):
-                raise ValueError("extra_background_fractional_error must be a dictionary.")
-            for k, v in extra_background_fractional_error.items():
-                if not isinstance(v, (float)):
-                    raise ValueError(
-                        f"Value for {k} in extra_background_fractional_error must be a number."
-                    )
         # ensure that the necessary keys are present
         if "data" not in rundata_dict.keys():
             raise ValueError("data key is missing from rundata_dict (may be None).")
@@ -201,6 +192,7 @@ class RunHistGenerator:
             parameters=self.parameters,
             detvar_data=self.detvar_data,
             extra_mc_covariance=extra_mc_covariance,
+            extra_background_fractional_error=extra_background_fractional_error,
             **mc_hist_generator_kwargs,
         )
         if df_ext is not None:
@@ -221,7 +213,6 @@ class RunHistGenerator:
             )
         self.sideband_generator = sideband_generator
         self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
-        self.extra_mc_covariance = extra_mc_covariance
 
     @classmethod
     def get_selection_query(cls, selection, preselection, extra_queries=None):
@@ -430,25 +421,6 @@ class RunHistGenerator:
             smooth_detsys_variations=smooth_detsys_variations,
         )
         hist.label = "MC"
-
-        if self.extra_mc_covariance is not None:
-            hist.add_covariance(self.extra_mc_covariance)
-
-        if self.extra_background_fractional_error is not None and add_precomputed_detsys:
-            for k, v in self.extra_background_fractional_error.items():
-                # Here, each key is the selection query for the background
-                # and the value is the fractional error to be applied.
-
-                # If the extra_query to this function is not None, we add
-                # the background query to it
-                backgr_query = extra_query
-                if backgr_query is not None:
-                    backgr_query += f" and {k}"
-                else:
-                    backgr_query = k
-                backgr_hist = hist_generator.generate(extra_query=backgr_query)
-                backgr_cov = np.diag(backgr_hist.bin_counts * v) ** 2
-                hist.add_covariance(backgr_cov)
 
         hist *= scale_factor
         return hist

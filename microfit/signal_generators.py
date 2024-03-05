@@ -112,6 +112,8 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
         # Add the covariance for the detector systematics down here
         if self.detvar_data is not None and add_precomputed_detsys:
             hist.add_covariance(self.calculate_detector_covariance())
+        if self.extra_mc_covariance is not None:
+            hist.add_covariance(self.extra_mc_covariance)
 
         return hist
 
