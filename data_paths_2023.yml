@@ -1170,7 +1170,7 @@ detvar:
     cv: 
       nue:
         file: run4_bnb_intrinsic_nue_detvar_cv_pandora_unified_reco2_reco2_ana 
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: Detvar_BNB_nu_pandora_reco2_CV_run4_reco2_ana
@@ -1182,7 +1182,7 @@ detvar:
     lydown: 
       nue:
         file: Run_4_BNB_Nue_Detvar_LY_Down_Pandora_Reco2_Run4_ana 
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: run4_5_bnb_nu_overlay_detvar_LYDown_reco2_pandora_unified_run4_ana 
@@ -1194,7 +1194,7 @@ detvar:
     lyatt: 
       nue:
         file: run4_bnb_intrinsic_nue_detvar_LYAttenuation_pandora_reco2_run4_ana 
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: Run_4_BNB_Nu_Detvar_LYAttenuation_Pandora_Reco2_run4_ana 
@@ -1206,7 +1206,7 @@ detvar:
     lyrayleigh: 
       nue:
         file: run4_bnb_intrinsic_nue_detvar_LYRayleigh_pandora_reco2_run4_ana 
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: run4_5_bnb_nu_overlay_detvar_LYRayleigh_reco2_pandora_unified_run4_ana
@@ -1218,7 +1218,7 @@ detvar:
     recomb2: 
       nue:
         file: run4_bnb_intrinsic_nue_detvar_Recomb2_pandora_reco2_ana  
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc: 
         file: run4_bnb_nu_detvar_Recomb2_pandora_reco2_ana
@@ -1230,7 +1230,7 @@ detvar:
     sce: 
       nue:
         file: run4_bnb_nue_detvar_SCE_pandora_reco2_ana
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc: 
         file: run4_bnb_nu_detvar_SCE_pandora_reco2_ana
@@ -1242,7 +1242,7 @@ detvar:
     wiremodx: 
       nue:
         file: run4_bnb_intrinsic_nue_detvar_wire_mod_x_Pandora_v2_reco2_reco2_ana 
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: run4_bnb_nu_detvar_wiremod_x_pandora_reco2_reco2_ana 
@@ -1254,7 +1254,7 @@ detvar:
     wiremodyz: 
       nue:
         file: run4_bnb_intrinsic_nue_detvar_wire_mod_yz_Pandora_reco2_reco2_ana  
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: run4_bnb_nu_detvar_wiremod_yz_pandora_reco2_reco2_ana 
@@ -1264,10 +1264,9 @@ detvar:
         pot: 5.0552e+21 
         filter: mcf_pass_ncpi0 == 1
     wiremodthetaxz: 
-        # TODO: Add the nue file when we have it, use the CV as a dummy for now
       nue:
-        file: run4_bnb_intrinsic_nue_detvar_cv_pandora_unified_reco2_reco2_ana
-        pot: 9.83345e+22
+        file: run4_bnb_intrinsic_nue_detvar_WireModThetaXZ_pandora_reco2_run4_ana 
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: run4_bnb_nu_detvar_Pandora_WireMod_Theta_XZ_reco2_ana 
@@ -1279,7 +1278,7 @@ detvar:
     wiremodthetayz: 
       nue:
         file: run4_bnb_intrinsic_nue_detvar_WireModThetaYZ_pandora_reco2_run4_ana  
-        pot: 9.83345e+22
+        pot: 9.78953e+22
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: run4_bnb_nu_detvar_Pandora_WireMod_Theta_YZ_reco2_ana

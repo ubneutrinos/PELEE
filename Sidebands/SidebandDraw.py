@@ -5,7 +5,7 @@ from microfit import histogram as hist
 import matplotlib.pyplot as plt
 from microfit import variable_definitions as vdef
 from microfit import selections
-import make_detsys as detsys
+from microfit import detsys
 
 # Draw a stack of plots for lots of variable/selection/dataset combinations
 # Author: C Thorpe (U of Manchester)
@@ -80,9 +80,9 @@ def draw_sideband(RUN_COMBOS_vv,SELECTION_v,PRESELECTION_v,VARIABLE_v,DATASET,si
                       detsys_data=detsys.make_variations(
                           run_combo,
                           DATASET,         
-                          selection,
-                          preselection,
-                          binning,
+                          binning.copy(),
+                          selection=selection,
+                          preselection=preselection,
                           make_plots=False,
                           truth_filtered_sets=["nue","nc_pi0"],
                           **dl_kwargs
