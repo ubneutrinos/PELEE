@@ -154,14 +154,15 @@ class TestDetSys(unittest.TestCase):
         binning = self.make_test_binning(
             multichannel=True, with_query=True, second_query="non_matching"
         )
-        detvar_data = make_variations(
-            ["1", "2", "3"],
-            "dataset",
-            binning,
-            detvar_cache_dir=None,
-            make_plots=False,
-            variations=["cv", "up", "down"],
-        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            detvar_data = make_variations(
+                ["1", "2", "3"],
+                "dataset",
+                binning,
+                detvar_cache_dir=tmp_dir,
+                make_plots=False,
+                variations=["cv", "up", "down"],
+            )
 
         hist_gen = HistogramGenerator(mock_df, binning, detvar_data=detvar_data)
 

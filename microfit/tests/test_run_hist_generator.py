@@ -1,3 +1,4 @@
+import tempfile
 from typing import Union
 import unittest
 from unittest.mock import patch
@@ -229,13 +230,15 @@ class TestRunHistGenerator(unittest.TestCase):
         )
 
         # Generate mock detvar_data
-        detvar_data = make_variations(
-            ["1", "2", "3"],
-            "dataset",
-            multi_binning,
-            make_plots=False,
-            variations=["cv", "up", "down"],
-        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            detvar_data = make_variations(
+                ["1", "2", "3"],
+                "dataset",
+                multi_binning,
+                make_plots=False,
+                variations=["cv", "up", "down"],
+                detvar_cache_dir=tmp_dir
+            )
 
         # Create mock run data
         mock_rundata = {
@@ -280,13 +283,15 @@ class TestRunHistGenerator(unittest.TestCase):
         )
 
         # Generate mock detvar_data
-        detvar_data = make_variations(
-            ["1", "2", "3"],
-            "dataset",
-            multi_binning,
-            make_plots=False,
-            variations=["cv", "up", "down"],
-        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            detvar_data = make_variations(
+                ["1", "2", "3"],
+                "dataset",
+                multi_binning,
+                make_plots=False,
+                variations=["cv", "up", "down"],
+                detvar_cache_dir=tmp_dir
+            )
 
         # Create mock run data, this time including a signal channel
         mock_rundata = {
