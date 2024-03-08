@@ -232,8 +232,9 @@ class TestHistogram(unittest.TestCase):
                 )
                 # fluctuate the histogram and check that the fluctuated bin counts are distributed according to the covariance matrix
                 fluctuated_counts = []
+                rng = np.random.default_rng(seed=0)
                 for i in range(10000):
-                    fluctuated_hist = hist.fluctuate(seed=i)
+                    fluctuated_hist = hist.fluctuate(rng=rng)
                     self.assertIsExactInstance(fluctuated_hist, HistogramClass)
                     fluctuated_counts.append(fluctuated_hist.bin_counts)
                 fluctuated_counts = np.array(fluctuated_counts)
@@ -288,11 +289,12 @@ class TestHistogram(unittest.TestCase):
                 # To test error propagation, we fluctuate hist1 and hist2 and divide them. The covariance matrix
                 # of the fluctuated divisions should be close to the expected covariance matrix that we get
                 # from the division function.
+                rng = np.random.default_rng(seed=0)
                 for i in range(10000):
-                    fluctuated_hist1 = hist1.fluctuate(seed=i)
+                    fluctuated_hist1 = hist1.fluctuate(rng=rng)
                     # It's important not to repeat seeds here, otherwise the values will be correlated
                     # when they should not be.
-                    fluctuated_hist2 = hist2.fluctuate(seed=i + 10000)
+                    fluctuated_hist2 = hist2.fluctuate(rng=rng)
                     self.assertIsExactInstance(fluctuated_hist1, HistogramClass)
                     self.assertIsExactInstance(fluctuated_hist2, HistogramClass)
                     fluctuated_division = fluctuated_hist1 / fluctuated_hist2
@@ -418,11 +420,12 @@ class TestHistogram(unittest.TestCase):
                 # To test error propagation, we fluctuate hist1 and hist2 and multiply them. The covariance matrix
                 # of the fluctuated multiplications should be close to the expected covariance matrix that we get
                 # from the multiplication function.
+                rng = np.random.default_rng(seed=0)
                 for i in range(10000):
-                    fluctuated_hist1 = hist1.fluctuate(seed=i)
+                    fluctuated_hist1 = hist1.fluctuate(rng=rng)
                     # It's important not to repeat seeds here, otherwise the values will be correlated
                     # when they should not be.
-                    fluctuated_hist2 = hist2.fluctuate(seed=i + 10000)
+                    fluctuated_hist2 = hist2.fluctuate(rng=rng)
                     self.assertIsExactInstance(fluctuated_hist1, HistogramClass)
                     self.assertIsExactInstance(fluctuated_hist2, HistogramClass)
                     fluctuated_multiplication = fluctuated_hist1 * fluctuated_hist2
