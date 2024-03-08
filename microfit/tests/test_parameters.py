@@ -3,7 +3,7 @@ import unittest
 from typing import List, Sequence, Union
 from unitpy import Unit, Quantity
 
-from ..parameters import Parameter, ParameterSet
+from microfit.parameters import Parameter, ParameterSet
 
 
 class TestParameter(unittest.TestCase):
