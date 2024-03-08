@@ -85,6 +85,7 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
 
     def generate(self, **kwargs):
         add_precomputed_detsys = kwargs.pop("add_precomputed_detsys", False)
+        include_detsys_variations = kwargs.pop("include_detsys_variations", None)
         hist = self.hist_generator.generate(**kwargs)
         # It will have to be a MultiChannelHistogram because we are using a split-channel binning.
         assert isinstance(hist, MultiChannelHistogram), "Histogram must be a MultiChannelHistogram"
@@ -111,7 +112,12 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
 
         # Add the covariance for the detector systematics down here
         if self.detvar_data is not None and add_precomputed_detsys:
-            hist.add_covariance(self.calculate_detector_covariance())
+            extra_query = kwargs.get("extra_query", None)
+            hist.add_covariance(
+                self.calculate_detector_covariance(
+                    extra_query=extra_query, include_variations=include_detsys_variations
+                )
+            )
         if self.extra_mc_covariance is not None:
             hist.add_covariance(self.extra_mc_covariance)
 
