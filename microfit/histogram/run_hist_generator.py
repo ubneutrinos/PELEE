@@ -357,6 +357,7 @@ class RunHistGenerator:
         include_multisim_errors: Optional[bool] = None,
         add_precomputed_detsys: bool = False,
         smooth_detsys_variations: bool = True,
+        include_detsys_variations: Optional[List[str]] = None,
         extra_query: Optional[str] = None,
         scale_to_pot: Optional[float] = None,
         use_sideband: Optional[bool] = None,
@@ -419,6 +420,7 @@ class RunHistGenerator:
             extra_query=extra_query,
             add_precomputed_detsys=add_precomputed_detsys,
             smooth_detsys_variations=smooth_detsys_variations,
+            include_detsys_variations=include_detsys_variations,
         )
         hist.label = "MC"
 

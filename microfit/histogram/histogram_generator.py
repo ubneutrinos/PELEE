@@ -346,6 +346,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         sideband_observed_hist: Optional[Histogram] = None,
         add_precomputed_detsys: bool = False,
         smooth_detsys_variations: bool = True,
+        include_detsys_variations: Optional[List[str]] = None,
         use_kde_smoothing: bool = False,
         options: Dict[str, Any] = {},
     ) -> Union[Histogram, MultiChannelHistogram]:
@@ -505,8 +506,12 @@ class HistogramGenerator(SmoothHistogramMixin):
                 hist.add_covariance(cov_corr)
 
         if add_precomputed_detsys:
+            if include_detsys_variations is None:
+                include_detsys_variations = detector_variations
             det_cov = self.calculate_detector_covariance(
-                smooth_variations=smooth_detsys_variations, extra_query=extra_query
+                smooth_variations=smooth_detsys_variations,
+                extra_query=extra_query,
+                include_variations=include_detsys_variations,
             )
             if det_cov is not None:
                 hist.add_covariance(det_cov)
@@ -573,11 +578,11 @@ class HistogramGenerator(SmoothHistogramMixin):
             )
 
         if add_precomputed_detsys:
-            print("Including detsim uncertainties")
             covariance_matrix += HistogramGenerator.multiband_detector_covariance(
                 hist_generators,
                 smooth_variations=smooth_detsys_variations,
                 include_variations=include_detsys_variations,
+                extra_queries=[extra_query] * len(hist_generators),
             )
 
         histogram.add_covariance(covariance_matrix)
@@ -1094,7 +1099,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         only_diagonal: bool = ...,
         fractional: bool = ...,
         smooth_variations: bool = True,
-        include_variations: List[str] = detector_variations,
+        include_variations: Optional[List[str]] = None,
         extra_query: Optional[str] = None,
         return_histograms: Literal[False] = ...,
     ) -> np.ndarray:
@@ -1106,7 +1111,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         only_diagonal: bool = ...,
         fractional: bool = ...,
         smooth_variations: bool = True,
-        include_variations: List[str] = detector_variations,
+        include_variations: Optional[List[str]] = None,
         extra_query: Optional[str] = None,
         return_histograms: Literal[True] = ...,
     ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
@@ -1117,7 +1122,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         only_diagonal: bool = False,
         fractional: bool = True,
         smooth_variations: bool = True,
-        include_variations: List[str] = detector_variations,
+        include_variations: Optional[List[str]] = None,
         extra_query: Optional[str] = None,
         return_histograms: bool = False,
     ) -> Optional[Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]]:
@@ -1171,6 +1176,8 @@ class HistogramGenerator(SmoothHistogramMixin):
 
         # Get the CV variation hist
         variation_cv_hist = np.zeros(self.binning.n_bins)
+        if include_variations is None:
+            include_variations = detector_variations
         variation_hists = {v: np.zeros(self.binning.n_bins) for v in include_variations}
 
         for dataset in cast(str, self.detvar_data["mc_sets"]):
@@ -1252,6 +1259,11 @@ class HistogramGenerator(SmoothHistogramMixin):
         output = np.zeros(self.binning.n_bins)
         if self.extra_background_fractional_error is not None:
             for k, v in self.extra_background_fractional_error.items():
+                if k is None:
+                    continue
+                if v == 0.0:
+                    continue
+                assert isinstance(k, str)
                 # Here, each key is the selection query for the background
                 # and the value is the fractional error to be applied.
 
