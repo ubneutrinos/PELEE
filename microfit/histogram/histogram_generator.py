@@ -749,6 +749,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         """
 
         assert len(hist_generators) > 0, "Must provide at least one histogram generator."
+        assert "cv" in include_variations, "Must include the central value variation."
 
         total_bins = sum([hg.binning.n_bins for hg in hist_generators])
         summed_cov_mat = np.zeros((total_bins, total_bins))
@@ -758,12 +759,19 @@ class HistogramGenerator(SmoothHistogramMixin):
         variation_diffs_dict = {variation: np.array([]) for variation in include_variations}
         extra_background_variances = np.array([])
         for hg, extra_query in zip(hist_generators, extra_queries):
-            cov_mat, variation_diffs = hg.calculate_detector_covariance(
+            detvar_output = hg.calculate_detector_covariance(
                 return_histograms=True,
                 smooth_variations=smooth_variations,
                 include_variations=include_variations,
                 extra_query=extra_query,
             )
+            if detvar_output is None:
+                cov_mat = np.zeros((hg.binning.n_bins, hg.binning.n_bins))
+                variation_diffs = {
+                    variation: np.zeros(hg.binning.n_bins) for variation in include_variations
+                }
+            else:
+                cov_mat, variation_diffs = detvar_output
 
             for variation in include_variations:
                 variation_diffs_dict[variation] = np.concatenate(
@@ -1102,7 +1110,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         include_variations: Optional[List[str]] = None,
         extra_query: Optional[str] = None,
         return_histograms: Literal[False] = ...,
-    ) -> np.ndarray:
+    ) -> Optional[np.ndarray]:
         ...
 
     @overload
@@ -1114,7 +1122,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         include_variations: Optional[List[str]] = None,
         extra_query: Optional[str] = None,
         return_histograms: Literal[True] = ...,
-    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+    ) -> Optional[Tuple[np.ndarray, Dict[str, np.ndarray]]]:
         ...
 
     def calculate_detector_covariance(
@@ -1179,7 +1187,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         if include_variations is None:
             include_variations = detector_variations
         variation_hists = {v: np.zeros(self.binning.n_bins) for v in include_variations}
-
         for dataset in cast(str, self.detvar_data["mc_sets"]):
             variation_cv_hist = np.add(
                 variation_cv_hist, variation_hist_data[dataset]["cv"].bin_counts
