@@ -10,9 +10,9 @@ runs:
   - run_id: "1"
     path: run1/nuepresel/
     opendata_bnb:
-      file: data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19
-      pot: 4.55E+19 
-      trig: 10172678
+      file: beamon_pelee_ntuple_opendata_run1_5e19_ana 
+      pot: 4.56E+19 
+      trig: 10127569
     bnb:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
       pot: 1.67E+20
@@ -47,6 +47,10 @@ runs:
       pot: 1.67E+20
       trig: 37273255.00
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
+      pot: 3.08E+20
+      trig: 0 
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
       trig: 65744587 
@@ -100,6 +104,10 @@ runs:
       pot: 2.61E+20 
       trig: 61882791 
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run2_NuWro_reco2_reco2
+      pot: 3.07E+20 
+      trig: 0 
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
       trig: 153905891 
@@ -117,9 +125,9 @@ runs:
   - run_id: "3"
     path: run3/nuepresel/
     opendata_bnb:
-      file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
-      pot: 9.43E+18
-      trig: 2271036
+      file: beamon_pelee_ntuple_opendata_run3_1e19_ana 
+      pot: 9.84E+18
+      trig: 2387969
     bnb:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3 
       pot: 2.57E+20
@@ -154,6 +162,10 @@ runs:
       pot: 2.57E+20
       trig: 6.13E+07
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2
+      pot: 2.89E+20
+      trig: 0
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 207167629
@@ -355,6 +367,10 @@ runs:
       pot: 9.04E+19 
       trig: 20485991  
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run4_pelee
+      pot: 3.48E+20
+      trig: 0
     ext:
       file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
       trig: 50506860
@@ -459,6 +475,10 @@ runs:
       pot: 1.48E+20 
       trig: 35265730
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run5_pelee 
+      pot: 3.68E+20
+      trig: 0
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
       trig: 107466402 
@@ -503,6 +523,10 @@ numupresel:
       pot: 1.67E+20
       trig: 37273255.00
       sideband_def: n_muons_tot > 0
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
+      pot: 3.08E+20
+      trig: 0 
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
       trig: 65744587 
@@ -546,6 +570,10 @@ numupresel:
       pot: 2.61E+20 
       trig: 61882791 
       sideband_def: n_muons_tot > 0
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run2_NuWro_reco2_reco2
+      pot: 3.07E+20 
+      trig: 0 
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
       trig: 153905891 
@@ -590,6 +618,10 @@ numupresel:
       pot: 2.57E+20
       trig: 6.13E+07
       sideband_def: n_muons_tot > 0  
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2
+      pot: 2.89E+20
+      trig: 0
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 207167629 
@@ -750,6 +782,10 @@ numupresel:
       pot: 9.04E+19 
       trig: 20485991  
       sideband_def: n_muons_tot > 0 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run4_pelee
+      pot: 3.48E+20
+      trig: 0
     ext:
       file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
       trig: 50978641 
@@ -828,6 +864,10 @@ numupresel:
       pot: 1.48E+20 
       trig: 35265730
       sideband_def: n_muons_tot > 0 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run5_pelee 
+      pot: 3.68E+20
+      trig: 0
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
       trig: 115079907   
