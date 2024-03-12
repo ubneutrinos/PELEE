@@ -1057,7 +1057,7 @@ class MultiChannelHistogram(Histogram):
     @property
     def channels(self) -> List[str]:
         """List of channels."""
-        return self.binning.labels
+        return self.binning.channels
 
     def channel_bin_counts(self, key: Union[int, str]) -> np.ndarray:
         """Get the bin counts of a given channel.
@@ -1264,7 +1264,15 @@ class MultiChannelHistogram(Histogram):
             ax, as_errorbars, show_errors, with_ylabel=with_ylabel, **plot_kwargs
         )
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
-        channel_labels = [b.selection_tex_short or b.label for b in self.binning]
+
+        def channel_label(binning):
+            if binning.selection_tex_short is None:
+                return binning.label
+            if binning.variable_tex_short is None:
+                return binning.selection_tex_short
+            return f"{binning.selection_tex_short}, {binning.variable_tex_short}"
+
+        channel_labels = [channel_label(b) for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
             ax.axvline(n_bins, color="k", linestyle="--")
 
@@ -1290,7 +1298,15 @@ class MultiChannelHistogram(Histogram):
             ax, as_correlation, as_fractional, colorbar_kwargs, **plot_kwargs
         )
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
-        channel_labels = [b.selection_tex_short or b.label for b in self.binning]
+
+        def channel_label(binning):
+            if binning.selection_tex_short is None:
+                return binning.label
+            if binning.variable_tex_short is None:
+                return binning.selection_tex_short
+            return f"{binning.selection_tex_short}, {binning.variable_tex_short}"
+
+        channel_labels = [channel_label(b) for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
             ax.axvline(n_bins, color="k", linestyle="--")
             ax.axhline(n_bins, color="k", linestyle="--")

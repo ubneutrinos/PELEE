@@ -1,15 +1,11 @@
 [persistence]
-output_dir = "./full_ana_output/"
+output_dir = "../old_model_opendata_bnb_ana_output/"
 
 [plotting]
-[plotting.NPBDT_SHR_E]
-run_title = "Runs 1-5"
-[plotting.ZPBDT_SHR_E]
-run_title = "Runs 1-5"
-[plotting.NPBDT_SHR_COSTHETA]
-run_title = "Runs 1-5"
-[plotting.ZPBDT_SHR_COSTHETA]
-run_title = "Runs 1-5"
+[plotting.NPBDT]
+run_title = "OD Runs 4-5"
+[plotting.ZPBDT]
+run_title = "OD Runs 4-5"
 [plotting.NUMUCRTNP0PI]
 run_title = "Runs 3-5"
 [plotting.NUMUCRT0P0PI]
@@ -18,7 +14,7 @@ run_title = "Runs 3-5"
 run_title = "Runs 3-5"
 
 [channels]
-signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
+signal_channels = ["NPBDT", "ZPBDT"]
 constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 
 [[h0_params]]
@@ -50,7 +46,6 @@ use_sideband = true
 # TODO: Run 3_crt detvars do not have CRT yet, the code is using run 4 to compute
 # detvars for run 3_crt
 run_numbers = ["3_crt", "4d","5"]
-# run_numbers = ["4d"]
 data = "muon_sideband"
 truth_filtered_sets = ["nue", "drt"]
 loadshowervariables = false
@@ -98,6 +93,7 @@ limits = [0.15, 1.55]
 selection = "NUMUCRT"
 preselection = "NUMUCRT"
 variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
 
 # ------ Two-shower Sideband Generator ----- 
 [[generator]]
@@ -105,7 +101,6 @@ variable_tex = "Neutrino Reconstructed Energy (GeV)"
 # TODO: Run 3_crt detvars do not have CRT yet, the code is using run 4 to compute
 # detvars for run 3_crt
 run_numbers = ["3_crt", "4d","5"]
-# run_numbers = ["4d"]
 data = "two_shr_sideband"
 truth_filtered_sets = ["nue", "drt"]
 loadpi0variables = true
@@ -142,18 +137,18 @@ selection_tex_short = "$1e0p$ 2+shr"
 mc_hist_generator_cls = "SignalOverBackgroundGenerator"
 
 [generator.load_runs]
-run_numbers = ["1", "2", "3","4b","4c","4d","5"]
-# run_numbers = ["3"]
-data = "bnb"
+# run_numbers = ["1", "2", "3","4b","4c","4d","5"]
+run_numbers = ["4b","4c","4d","5"]
+data = "opendata_bnb"
 truth_filtered_sets = ["nue", "drt"]
 loadpi0variables = true
 loadshowervariables = true
 loadrecoveryvars = true
 loadsystematics = true
 load_lee = true
-use_new_signal_model = true
+use_new_signal_model = false
 enable_cache = true
-blinded = true
+blinded = false
 
 [generator.detvars]
 # Only arguments that are to be overridden for detvars need to be 
@@ -172,45 +167,19 @@ value = 1.0
 bounds = [0.0, 10.0]
 
 [[generator.channel]]
-variable = "shr_energy_tot_cali"
-n_bins = 14
-limits = [0.05, 1.55]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.55]
 selection = "NPBDT"
 preselection = "NP"
-label = "NPBDT_SHR_E"
-variable_tex = "Reconstructed Shower Energy (GeV)"
-variable_tex_short = "$E_{\\mathrm{shr}}$"
+variable_tex = "Reconstructed Energy (GeV)"
+variable_tex_short = "$E_{\\mathrm{reco}}$"
 
 [[generator.channel]]
-variable = "shr_energy_tot_cali"
-n_bins = 14
-limits = [0.05, 1.55]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.55]
 selection = "ZPBDT"
 preselection = "ZP"
-label = "ZPBDT_SHR_E"
-variable_tex = "Reconstructed Shower Energy (GeV)"
-variable_tex_short = "$E_{\\mathrm{shr}}$"
-
-# Add shower angle channels to the analysis, even though
-# we don't use them. This allows us to quickly make plots
-# of these channels and show them post-fit.
-
-[[generator.channel]]
-variable = "cos_shr_theta"
-n_bins = 14
-limits = [-1.0, 1.0]
-selection = "NPBDT"
-preselection = "NP"
-label = "NPBDT_SHR_COSTHETA"
-variable_tex = "Reconstructed Shower $\\cos(\\theta)$"
-variable_tex_short = "$\\cos(\\theta_\\mathrm{shr})$"
-
-[[generator.channel]]
-variable = "cos_shr_theta"
-n_bins = 14
-limits = [-1.0, 1.0]
-selection = "ZPBDT"
-preselection = "ZP"
-label = "ZPBDT_SHR_COSTHETA"
-variable_tex = "Reconstructed Shower $\\cos(\\theta)$"
-variable_tex_short = "$\\cos(\\theta_\\mathrm{shr})$"
+variable_tex = "Reconstructed Energy (GeV)"
+variable_tex_short = "$E_{\\mathrm{reco}}$"

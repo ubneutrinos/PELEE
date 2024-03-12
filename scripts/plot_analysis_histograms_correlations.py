@@ -91,7 +91,7 @@ def print_error_budget_tables(analysis: MultibandAnalysis, output_file: str):
             file.write("\\begin{tabular}{lccccccc}\n")
             file.write("\\toprule\n")
             file.write(
-                rf"{hist_all_errors[channel].binning.variable_tex} & "
+                rf"{hist_all_errors[channel].binning.variable_tex_short} & "
                 "GENIE & "
                 "Flux & "
                 "G4 & "  # The hadronic reintegration errors can be thought of as Geant4 errors
@@ -147,10 +147,12 @@ def print_constraint_error_reduction_table(analysis: MultibandAnalysis, output_f
             file.write(f"\\caption{{Error reduction due to constraints for {selection_tex}}}\n")
             file.write("\\begin{tabular}{lccc}\n")
             file.write("\\toprule\n")
+            file.write(" & \\multicolumn{2}{c}{Error} &  \\\\ \n")
+            file.write("\\cmidrule(lr){2-3}\n")
             file.write(
-                rf"{hist_all_errors[channel].binning.variable_tex} & "
-                "Error before constraint & "
-                "Error after constraint & "
+                rf"{hist_all_errors[channel].binning.variable_tex_short} & "
+                "before constraint & "
+                "after constraint & "
                 "Reduction \\\\\n"
             )
             file.write("\\midrule\n")
