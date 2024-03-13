@@ -40,7 +40,7 @@ analysis.plot_signals(
     use_sideband=True,
     separate_figures=True,
     add_precomputed_detsys=True,
-    save_path=output_dir,
+    save_path=os.path.join(output_dir, "pre_fit"),
     show_chi_square=True,
     show_data_mc_ratio=True,
 )
@@ -68,17 +68,21 @@ plot_two_hypo_result(
     "Reco. $\\nu$ Energy",
 )
 
+# %%
 analysis.set_parameters(best_fit_parameters)
 print("Plotting signal channels at best fit point...")
+print(best_fit_parameters)
+extra_text = f"Best fit signal strength: {best_fit_parameters['signal_strength'].m:.3f}"
 analysis.plot_signals(
     include_multisim_errors=True,
     use_sideband=True,
     separate_figures=True,
     add_precomputed_detsys=True,
-    save_path=output_dir,
+    save_path=os.path.join(output_dir, "post_fit"),
     show_chi_square=True,
     show_data_mc_ratio=True,
     separate_signal=False,
+    extra_text=extra_text,
 )
 # %%
 fc_scan_results = from_json(os.path.join(output_dir, "fc_scan_results.json"))

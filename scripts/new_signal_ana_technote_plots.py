@@ -33,6 +33,7 @@ analysis = MultibandAnalysis.from_toml(
 print("Plotting sidebands...")
 analysis.parameters["signal_strength"].value = 1.0
 analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
+analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 analysis.plot_sidebands(
     include_multisim_errors=True,
     separate_figures=True,
@@ -41,11 +42,24 @@ analysis.plot_sidebands(
     show_chi_square=True,
     show_data_mc_ratio=True,
 )
-
+# %%
+print("Plotting old sidebands...")
+analysis.parameters["signal_strength"].value = 1.0
+analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
+analysis.constraint_channels = ["NUMUCRT"]
+analysis.plot_sidebands(
+    include_multisim_errors=True,
+    separate_figures=True,
+    add_precomputed_detsys=True,
+    save_path=output_dir,
+    show_chi_square=True,
+    show_data_mc_ratio=True,
+)
 # %%
 print("Plotting shower energy signal channels...")
 analysis.parameters["signal_strength"].value = 1.0
 analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
+analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 analysis.plot_signals(
     include_multisim_errors=True,
     use_sideband=True,
@@ -58,6 +72,7 @@ analysis.plot_signals(
 print("Plotting shower angle signal channels...")
 analysis.parameters["signal_strength"].value = 1.0
 analysis.signal_channels = ["NPBDT_SHR_COSTHETA", "ZPBDT_SHR_COSTHETA"]
+analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 analysis.plot_signals(
     include_multisim_errors=True,
     use_sideband=True,
@@ -66,6 +81,72 @@ analysis.plot_signals(
     save_path=output_dir,
 )
 
+# %%
+# analysis.parameters["signal_strength"].value = 1.0
+# analysis.signal_channels = ["NPBDT_SHR_THETA", "ZPBDT_SHR_THETA"]
+# analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
+# analysis.plot_signals(
+#     include_multisim_errors=True,
+#     use_sideband=True,
+#     separate_figures=True,
+#     add_precomputed_detsys=True,
+#     save_path=output_dir,
+# )
+
+# %%
+print("Plotting impact of new constraint procedure...")
+def plot_new_constraint_impact(signal_channels, plot_name):
+    analysis.signal_channels = signal_channels
+    analysis.parameters["signal_strength"].value = 0.0
+
+    multi_channel_hist_unconstrained = analysis.generate_multiband_histogram(
+        include_multisim_errors=True,
+        use_sideband=False,
+    )
+
+    multi_channel_hist_new_constraints = analysis.generate_multiband_histogram(
+        include_multisim_errors=True,
+        use_sideband=True,
+        constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
+    )
+
+    multi_channel_hist_old_constraints = analysis.generate_multiband_histogram(
+        include_multisim_errors=True,
+        use_sideband=True,
+        constraint_channels=["NUMUCRT"],
+    )
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(
+        figsize=(6, 4.5),
+        constrained_layout=True,
+        nrows=2,
+        gridspec_kw={"height_ratios": [3, 1]},
+        sharex=True,
+    )
+    multi_channel_hist_unconstrained.draw(ax=ax[0], label="Unconstrained", color="black")
+    multi_channel_hist_old_constraints.draw(ax=ax[0], label="Inclusive $\\nu_\\mu$ Constraints")
+    multi_channel_hist_new_constraints.draw(ax=ax[0], label="New Constraints w/ CRT")
+
+    rel_error_unconstr = multi_channel_hist_unconstrained / multi_channel_hist_unconstrained.bin_counts
+    rel_error_unconstr.draw(ax=ax[1], color="k", show_channel_labels=False)
+
+    rel_error_old = multi_channel_hist_old_constraints / multi_channel_hist_old_constraints.bin_counts
+    rel_error_old.draw(ax=ax[1], show_channel_labels=False)
+
+    rel_error_new = multi_channel_hist_new_constraints / multi_channel_hist_new_constraints.bin_counts
+    rel_error_new.draw(ax=ax[1], show_channel_labels=False)
+    ax[0].set_xlabel("")
+    ax[1].set_xlabel("Global bin number")
+    ax[1].set_ylabel("Rel. error")
+    ax[0].legend()
+    ax[0].set_title("Signal Channels, Runs 1-5, MC+EXT")
+    fig.savefig(os.path.join(output_dir, plot_name))
+
+plot_new_constraint_impact(["NPBDT_SHR_E", "ZPBDT_SHR_E"], "new_constraint_impact_shr_e.pdf")
+plot_new_constraint_impact(
+    ["NPBDT_SHR_COSTHETA", "ZPBDT_SHR_COSTHETA"], "new_constraint_impact_shr_costheta.pdf"
+)
 # %%
 from plot_analysis_histograms_correlations import (
     print_error_budget_tables,
@@ -77,7 +158,7 @@ from plot_analysis_histograms_correlations import (
 # %%
 print("Printing error budget tables...")
 analysis.parameters["signal_strength"].value = 0.0
-
+analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
 print_error_budget_tables(analysis, os.path.join(output_dir, "error_budget_tables_null_shr_e.tex"))
 
@@ -109,6 +190,7 @@ print_constraint_error_reduction_table(
 # %%
 analysis.parameters["signal_strength"].value = 0.0
 analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
+analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 fig, ax = analysis.plot_correlation(
     figsize=(5, 4),
     ms_columns=[],
@@ -134,6 +216,7 @@ fig.savefig(os.path.join(output_dir, "correlation_plot_signal_channels_smooth_de
 # %%
 analysis.parameters["signal_strength"].value = 0.0
 analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
+analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 fig, ax = analysis.plot_correlation(
     figsize=(10, 9),
     add_precomputed_detsys=True,
@@ -143,6 +226,7 @@ fig, ax = analysis.plot_correlation(
 fig.savefig(os.path.join(output_dir, "correlation_plot_smoothed_detvar_total_shr_e.pdf"))
 
 analysis.signal_channels = ["NPBDT_SHR_COSTHETA", "ZPBDT_SHR_COSTHETA"]
+analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
 fig, ax = analysis.plot_correlation(
     figsize=(10, 9),
     add_precomputed_detsys=True,

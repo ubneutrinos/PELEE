@@ -40,12 +40,15 @@ def run_unblinding(signal_channels, control_channels, plot_suffix, plot_title):
 
     analysis.signal_channels = signal_channels
     analysis.parameters["signal_strength"].value = 1.0
+    save_path = os.path.join(output_dir, "pre_fit")
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
     analysis.plot_signals(
         include_multisim_errors=True,
         use_sideband=True,
         separate_figures=True,
         add_precomputed_detsys=True,
-        save_path=output_dir,
+        save_path=save_path,
         show_chi_square=True,
         show_data_mc_ratio=True,
     )
@@ -67,15 +70,20 @@ def run_unblinding(signal_channels, control_channels, plot_suffix, plot_title):
 
     analysis.set_parameters(best_fit_parameters)
     print("Plotting signal channels at best fit point...")
+    save_path = os.path.join(output_dir, f"post_fit_{plot_suffix}")
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    extra_text = f"Best fit signal strength: {best_fit_parameters['signal_strength'].m:.3f}"
     analysis.plot_signals(
         include_multisim_errors=True,
         use_sideband=True,
         separate_figures=True,
         add_precomputed_detsys=True,
-        save_path=output_dir,
+        save_path=save_path,
         show_chi_square=True,
         show_data_mc_ratio=True,
         separate_signal=False,
+        extra_text=extra_text,
     )
 
     fc_scan_results = from_json(os.path.join(output_dir, f"fc_scan_results_{plot_suffix}.json"))

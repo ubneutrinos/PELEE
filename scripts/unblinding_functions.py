@@ -20,7 +20,7 @@ def plot_chi2_distribution(output_dir, chi2_results_file, chi2_at_h0, plot_suffi
     ax.axvline(
         x=chi2_at_h0,
         color="k",
-        label=f"Best fit $\\chi^2$: {chi2_at_h0:.3f}\np-val: {chi2_h0_pval*100:0.3f}%",
+        label=f"Obs. $\\chi^2$ at H0: {chi2_at_h0:.3f}\np-val: {chi2_h0_pval*100:0.3f}%",
     )
     ax.legend()
     ax.set_xlabel(r"$\chi^2$")
@@ -120,10 +120,10 @@ def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix):
     p_68_lower, p_68_upper = compute_confidence_interval(p_values, scan_points, 0.68)
     p_90_lower, p_90_upper = compute_confidence_interval(p_values, scan_points, 0.90)
 
-    fig, ax = plt.subplots()
-    ax.plot(scan_points, p_values, color="k", label="p-value")
+    fig, ax1 = plt.subplots()
+    ax1.plot(scan_points, p_values, color="k", label="p-value from FC trials")
 
-    ax.fill_between(
+    ax1.fill_between(
         [p_90_lower, p_90_upper],
         [0, 0],
         [1, 1],
@@ -131,7 +131,7 @@ def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix):
         label=f"90% C.L.: [{p_90_lower:.2f}, {p_90_upper:.2f}]",
         color="C0",
     )
-    ax.fill_between(
+    ax1.fill_between(
         [p_68_lower, p_68_upper],
         [0, 0],
         [1, 1],
@@ -140,12 +140,26 @@ def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix):
         color="C0",
     )
 
-    ax.axhline(1 - 0.68, color="k", linestyle="--", lw=1.0)
-    ax.axhline(1 - 0.90, color="k", linestyle="--", lw=1.0)
-    ax.legend()
-    ax.set_ylabel("p-value")
-    ax.set_xlabel("signal strength")
-    ax.grid()
+    ax1.axhline(1 - 0.68, color="k", linestyle="--", lw=1.0)
+    ax1.axhline(1 - 0.90, color="k", linestyle="--", lw=1.0)
+    ax1.text(0, 1 - 0.68, "68% C.L.", ha="left", va="bottom", color="k")
+    ax1.text(0, 1 - 0.90, "90% C.L.", ha="left", va="bottom", color="k")
+    ax1.set_ylabel("p-value")
+    ax1.set_xlabel("signal strength")
+    ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x*100:.0f}%"))  # type: ignore
+    # ax1.grid()
+
+    ax2 = ax1.twinx()
+    ax2.plot(scan_points, fc_scan_results["delta_chi2_scan"], color="r", label="Observed $\\Delta \\chi^2$")
+    ax2.set_ylabel("$\\Delta \\chi^2$")
+
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    ax2.legend(handles1 + handles2, labels1 + labels2, loc="upper right")
+
+    ax1.set_ylim(bottom=0)
+    ax2.set_ylim(bottom=0)
+
     plt.savefig(os.path.join(output_dir, f"confidence_intervals_{plot_suffix}.pdf"))
 
 

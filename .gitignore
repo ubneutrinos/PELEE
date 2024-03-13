@@ -18,7 +18,8 @@ scripts/test_output
 dataframes
 cached_dataframes
 plot_output/*
-
+ana_output*
+*_output
 # Ignore files from memory profiler
 mprofile_*.dat
 
