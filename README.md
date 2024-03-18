@@ -19,6 +19,7 @@ conda install -c conda-forge xgboost==0.90
 conda install -c conda-forge shap
 conda install -c conda-forge uncertainties
 pip install unitpy
+conda install pytables
 ```
 (the xgboost version needs to be specified to be compatible with the stored BDTs)
 
