@@ -160,10 +160,12 @@ class MultibandAnalysis(object):
                 ), f"Parameter {name} is not the same object in all ParameterSets"
 
     def _check_channel_config(self, config):
-        required_keys = ["variable", "n_bins", "limits", "selection", "preselection"]
+        required_keys = ["variable", "selection", "preselection"]
         assert all(
             key in config for key in required_keys
         ), f"Configuration for channel must contain the keys {required_keys}"
+        if "bin_edges" not in config:
+            assert "n_bins" in config and "limits" in config, "Must provide either bin_edges or n_bins and limits"
 
     def _check_run_hist_config(self, config):
         required_keys = ["channel", "load_runs"]
@@ -194,8 +196,12 @@ class MultibandAnalysis(object):
         for channel_config in channel_configs:
             binning_cfg = {
                 "variable": channel_config["variable"],
-                "n_bins": channel_config["n_bins"],
-                "limits": channel_config["limits"],
+                # Bin edges can be configered either by providing the number of bins and the limits,
+                # or by providing the values of the bin edges directly. In the latter case, bins
+                # are allowed to be irregular.
+                "n_bins": channel_config.get("n_bins", None),
+                "limits": channel_config.get("limits", None),
+                "bin_edges": channel_config.get("bin_edges", None),
                 "variable_tex": channel_config.get("variable_tex", None),
                 "variable_tex_short": channel_config.get("variable_tex_short", None),
             }

@@ -142,11 +142,12 @@ class Binning:
     def from_config(
         cls,
         variable: str,
-        n_bins: int,
-        limits: Tuple[float, float],
+        n_bins: Optional[int],
+        limits: Optional[Tuple[float, float]],
         variable_tex: Optional[str] = None,
         is_log: bool = False,
         label: Optional[str] = None,
+        bin_edges: Optional[Union[np.ndarray, List[float]]] = None,
         **kwargs,
     ):
         """Create a Binning object from a typical binning configuration
@@ -155,10 +156,10 @@ class Binning:
         -----------
         variable : str
             Name of the variable being binned
-        n_bins : int
-            Real of bins
-        limits : tuple
-            Tuple of lower and upper limits
+        n_bins : int, optional
+            Real of bins. If not provided, then bin_edges must be provided.
+        limits : tuple, optional
+            Tuple of lower and upper limits. If not provided, then bin_edges must be provided.
         variable_tex : str, optional
             Label for the binned variable. This will be used to label the x-axis in plots.
         is_log : bool, optional
@@ -166,17 +167,26 @@ class Binning:
         label : str, optional
             Label of the binning. In a multi-dimensional binning, this should be
             a unique key.
+        bin_edges : np.ndarray, optional
+            Array of bin edges. If this is provided, the n_bins and limits are ignored.
 
         Returns:
         --------
         Binning
             A Binning object with the specified bounds
         """
+
+        label = variable if label is None else label
+        if bin_edges is not None:
+            return cls(variable, np.array(bin_edges), label, variable_tex, is_log=is_log, **kwargs)
+        else:
+            assert n_bins is not None, "Must provide either n_bins or bin_edges"
+            assert limits is not None, "Must provide either limits or bin_edges"
         if is_log:
             bin_edges = np.geomspace(*limits, n_bins + 1)
         else:
             bin_edges = np.linspace(*limits, n_bins + 1)
-        label = variable if label is None else label
+        
         return cls(variable, bin_edges, label, variable_tex, is_log=is_log, **kwargs)
 
     @property

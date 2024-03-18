@@ -339,7 +339,7 @@ def plot_two_hypo_result(results_path, plot_path, title):
     ax.set_title(title)
     fig.savefig(plot_path)
 
-
+# %%
 plot_two_hypo_result(
     os.path.join(output_dir, "two_hypo_result_shr_e.json"),
     os.path.join(output_dir, "two_hypo_result_shr_e.pdf"),
