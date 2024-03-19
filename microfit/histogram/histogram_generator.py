@@ -1182,6 +1182,31 @@ class HistogramGenerator(SmoothHistogramMixin):
         )
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins), dtype=float)
 
+        filter = np.array([0.1, 0.3, 1.0, 0.3, 0.1])
+        filter /= np.sum(filter)
+
+        def smooth_bin_counts(arr, filter):
+            """Filter the array with the given filter, reflecting the array at the edges."""
+            # pad the array with zeros
+            arr_padded = np.pad(arr, (len(filter) // 2, len(filter) // 2), mode="edge")
+            # apply the filter
+            arr_filtered = np.convolve(arr_padded, filter, mode="valid")
+            return arr_filtered
+        
+        def filter_hist(hist):
+            if not smooth_variations:
+                return hist
+
+            if isinstance(hist, MultiChannelHistogram):
+                # We have to apply the filter separately for each channel, otherwise we would
+                # have unphysical correlations between the bins of adjacent channels.
+                return MultiChannelHistogram.from_histograms(
+                    [filter_hist(h) for h in  hist]
+                )
+            else:
+                hist.bin_counts = smooth_bin_counts(hist.bin_counts, filter)
+            return hist
+
         # Get the CV variation hist
         variation_cv_hist = np.zeros(self.binning.n_bins)
         if include_variations is None:
@@ -1189,32 +1214,16 @@ class HistogramGenerator(SmoothHistogramMixin):
         variation_hists = {v: np.zeros(self.binning.n_bins) for v in include_variations}
         for dataset in cast(str, self.detvar_data["mc_sets"]):
             variation_cv_hist = np.add(
-                variation_cv_hist, variation_hist_data[dataset]["cv"].bin_counts
+                variation_cv_hist, filter_hist(variation_hist_data[dataset]["cv"]).bin_counts
             )
             for v in include_variations:
                 variation_hists[v] = np.add(
-                    variation_hists[v], variation_hist_data[dataset][v].bin_counts
+                    variation_hists[v], filter_hist(variation_hist_data[dataset][v]).bin_counts
                 )
 
         variation_diffs: Dict[str, np.ndarray] = {
             v: (h - variation_cv_hist) for v, h in variation_hists.items()
         }
-
-        filter = np.array([0.1, 0.3, 1.0, 0.3, 0.1])
-        filter /= np.sum(filter)
-
-        def apply_filter(arr, filter):
-            """Filter the array with the given filter."""
-            # pad the array
-            arr_padded = np.pad(arr, (len(filter) // 2, len(filter) // 2), mode="edge")
-            # apply the filter
-            arr_filtered = np.convolve(arr_padded, filter, mode="valid")
-            return arr_filtered
-
-        if smooth_variations:
-            for v in variation_diffs.keys():
-                variation_diffs[v] = apply_filter(variation_diffs[v], filter)
-            variation_cv_hist = apply_filter(variation_cv_hist, filter)
 
         if fractional:
             # The detector systematics might have been calculated for a specific selection

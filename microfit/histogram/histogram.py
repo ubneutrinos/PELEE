@@ -787,16 +787,16 @@ class MultiChannelHistogram(Histogram):
         output_hist.append_empty_channel(summed_hist.binning)
         output_hist.replace_channel_histogram(new_label, summed_hist)
 
-        # Finally, set the correlations with the new channel and the other channels.
+        # Finally, set the covariances with the new channel and the other channels.
         for c in self.channels:
             if c == new_label:
                 continue
-            correlation = np.zeros((len(summed_hist), self[c].n_bins))
+            covariance = np.zeros((len(summed_hist), self[c].n_bins))
             for c1 in sum_channels:
-                correlation += self.channel_covariance(c1, c)
-            # The transpose of the correlation is automatically added as well, so no need
+                covariance += self.channel_covariance(c1, c)
+            # The transpose of the covariance is automatically added as well, so no need
             # to call this function twice.
-            output_hist.set_channel_correlation(new_label, c, correlation)
+            output_hist.set_channel_covariance(new_label, c, covariance)
 
         if replace:
             for c in sum_channels:
@@ -887,6 +887,25 @@ class MultiChannelHistogram(Histogram):
         idx2 = self.binning._channel_bin_idx(channel2)
         return self.covariance_matrix[np.ix_(idx1, idx2)]
 
+    def set_channel_covariance(
+        self, channel1: str, channel2: str, covariance: np.ndarray
+    ) -> None:
+        """Set the covariance between two channels.
+
+        Parameters
+        ----------
+        channel1 : str
+            Label of the first channel.
+        channel2 : str
+            Label of the second channel.
+        covariance : np.ndarray
+            Covariance matrix between the two channels.
+        """
+        idx1 = self.binning._channel_bin_idx(channel1)
+        idx2 = self.binning._channel_bin_idx(channel2)
+        self.covariance_matrix[np.ix_(idx1, idx2)] = covariance
+        self.covariance_matrix[np.ix_(idx2, idx1)] = covariance.T
+    
     def set_channel_correlation(
         self, channel1: str, channel2: str, correlation: np.ndarray
     ) -> None:
@@ -903,8 +922,11 @@ class MultiChannelHistogram(Histogram):
         """
         idx1 = self.binning._channel_bin_idx(channel1)
         idx2 = self.binning._channel_bin_idx(channel2)
-        self.covariance_matrix[np.ix_(idx1, idx2)] = correlation
-        self.covariance_matrix[np.ix_(idx2, idx1)] = correlation.T
+        self.covariance_matrix[np.ix_(idx1, idx2)] = correlation * np.outer(
+            np.sqrt(np.diag(self.covariance_matrix)[idx1]),
+            np.sqrt(np.diag(self.covariance_matrix)[idx2]),
+        )
+        self.covariance_matrix[np.ix_(idx2, idx1)] = self.covariance_matrix[np.ix_(idx1, idx2)].T
 
     def roll_channels(self, shift: int) -> None:
         """Roll the channels of the histogram.
