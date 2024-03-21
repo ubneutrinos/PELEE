@@ -205,6 +205,8 @@ ZPBDTLOOSE_onep_track_INV = ZPBDTLOOSE_all_tracks_INV + ' and n_tracks_contained
 ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
 ZPBDTLOOSE += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 
+ZPBDTLOOSE_CRT = ZPBDTLOOSE + ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
+
 ZPBDTLOOSE_INV = ZPBDTLOOSE_all_tracks_INV + ' and n_tracks_contained == 0'
 ZPBDTLOOSE_INV += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
 
@@ -595,6 +597,9 @@ selection_categories = {
     'ZPBDT_MiscBG': {'query': ZPBDTLOOSE + ' and extdata != True and mcf_pass_ncpi0 != 1 and (abs(nu_pdg) != 12 or ccnc != 0)', 'title': '1e0p BDT sel.', 'dir': 'ZPBDT_MiscBG'},
     'NPBDT_GoodBG': {'query': BDTCQ + ' and (mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))', 'title': '1eNp BDT sel.', 'dir': 'NPBDT_GoodBG'},
     'NPBDT_MiscBG': {'query': BDTCQ + ' and extdata != True and mcf_pass_ncpi0 != 1 and (abs(nu_pdg) != 12 or ccnc != 0)', 'title': '1eNp BDT sel.', 'dir': 'NPBDT_MiscBG'},
+
+    # Selections with added CRT
+    'ZPBDT_CRT': {'query': ZPBDTLOOSE_CRT, 'title': '1e0p BDT sel. w/ CRT', 'dir': 'ZPBDTCRT'},
 
 }
 
