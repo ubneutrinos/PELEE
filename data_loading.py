@@ -114,7 +114,7 @@ def get_variables():
         "CosmicDirAll3D",
         "CosmicIPAll3D",
         # "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
-        "flash_pe",
+        #"flash_pe",
         # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
         # "trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
@@ -1985,12 +1985,9 @@ def apply_bdt_truth_filters(df):
 
 def get_rundict(run_number, category):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
- 
-    # Old ntuple paths
-    #with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
 
     # New ntuple paths!
-    with open(os.path.join(thisfile_path, "data_paths_2023.yml"), "r") as f:
+    with open(os.path.join(thisfile_path, "data_paths_crt.yml"), "r") as f:
         pathdefs = yaml.safe_load(f)
 
     runpaths = pathdefs[category]
