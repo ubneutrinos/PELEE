@@ -53,32 +53,27 @@ Run the `MicroFit Tutorial.ipynb` notebook to familiarize yourself with the Micr
 
 ## Technote plots
 
-### Plots of the signal and sideband spectra with correlations
-Run the following to make the spectra plots, plots of the covariance matrices, and print a table of the fractional error contributions:
-```
-python scripts/plot_analysis_histograms_correlations.py --configuration /nashome/a/atrettin/PELEE/config_files/first_round_analysis_runs_1-5.toml --output-dir ana_output_runs_1-5 --print-tables
-```
+The following scripts make the technote plots for each sub-analysis. These include the histograms of the signal and sideband channels,
+the covariance matrices (total and split by error source), tables with error budgets and constraint updates in TeX format,
+chi-square distributions, two-hypothesis tests, and the FC corrected Asimov sensitivity scan. These scripts
+can take up to 2-3 hours to run if they are run from scratch without already existing cached dataframes.
 
-### First sensitivities with all runs
-To run the two-hypothesis test: 
-```
-python scripts/two_hypothesis_test.py run_analysis --configuration config_files/first_round_
-analysis_runs_1-5.toml --output-dir ana_output_runs_1-5 --sensitivity-only
-```
-To make the plots:
-```
-python scripts/two_hypothesis_test.py plot_results --configuration config_files/first_round_
-analysis_runs_1-5.toml --output-dir ana_output_runs_1-5 --sensitivity-only
-```
-This should run the two-hypothesis test and estimate the median sensitivity.
+### Technote plots for the new signal analysis
 
-To run the sensitivity scan for the signal strength fit: 
+All technote plots for the analysis with the new signal model can be produced by running 
 ```
-python scripts/fc_scan_signal_sensitivity.py run_analysis --configuration conf
-ig_files/first_round_analysis_runs_1-5.toml --output-dir ana_output_runs_1-5
+python new_signal_ana_technote_plots.py
 ```
-To make the plot
+while inside the `scripts` directory. Make sure to make a directory called `full_ana_remerged_crt_output` before running the script.
+The script is fully automated and loads all necessary data and produces the detector variations it needs. 
+All plots that are produced will be placed into `full_ana_remerged_crt_output`.
+
+### Technote plots for the old signal analysis
+
+All technote plots for the analysis with the old signal model can be produced by running
 ```
-python scripts/fc_scan_signal_sensitivity.py plot_results --configuration conf
-ig_files/first_round_analysis_runs_1-5.toml --output-dir ana_output_runs_1-5 --title "Runs 1-5, inclusive $\nu_\mu$ constraints"
+python old_signal_ana_technote_plots.py
 ```
+while inside the `scripts` directory. Make sure to make a directory called `old_model_ana_remerged_crt_output` before running the script.
+The script is fully automated and loads all necessary data and produces the detector variations it needs. 
+All plots that are produced will be placed into `old_model_ana_remerged_crt_output`.

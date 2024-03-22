@@ -109,7 +109,7 @@ class RunHistGenerator:
             # This query is the common selection that is applied to all channels. We can safely apply it to
             # the overall dataframe to reduce the number of events that need to be processed.
             query = self.binning.reduce_selection()
-            self.channels = self.binning.labels
+            self.channels = self.binning.channels
         elif isinstance(self.binning, Binning):
             if self.binning.selection_query is not None:
                 if self.selection is not None or self.preselection is not None:

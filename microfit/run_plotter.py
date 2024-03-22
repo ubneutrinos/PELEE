@@ -66,6 +66,7 @@ class RunHistPlotter:
         separate_signal=True,
         run_title=None,
         legend_cols=3,
+        extra_text=None,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -132,7 +133,7 @@ class RunHistPlotter:
             total_pred_hist += ext_hist
             total_pred_hist.tex_string = "Total Pred. (MC + EXT)"
         if use_sideband:
-            total_pred_hist.tex_string += "\n constrained"
+            total_pred_hist.tex_string += "\nconstrained"
         # This should not be the method to blind the analysis! The only purpose of this
         # flag is to hide the data in plots where all the data bin counts have been set to
         # zero. This happens inside a multi-band analysis, where not all bands might be
@@ -188,6 +189,7 @@ class RunHistPlotter:
             signal_hist=signal_hist,
             run_title=run_title,
             legend_cols=legend_cols,
+            extra_text=extra_text,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -244,6 +246,7 @@ class RunHistPlotter:
         run_title=None,
         include_empty_hists=False,
         legend_cols=3,
+        extra_text=None,
         **kwargs,
     ):
         if not include_empty_hists:
@@ -345,6 +348,8 @@ class RunHistPlotter:
                 title = f"{run_title}, {title}"
             else:
                 title = run_title
+        if extra_text is not None:
+            title += "\n" + extra_text
         if title is not None:
             ax.text(
                 0.97,
