@@ -4,6 +4,7 @@ import os
 import logging
 import sys
 from typing import Any, List, Optional, Tuple, Union, Dict, overload
+from typing_extensions import Literal
 from iminuit import Minuit
 from matplotlib import pyplot as plt, ticker
 from matplotlib.axes import Axes
@@ -159,10 +160,12 @@ class MultibandAnalysis(object):
                 ), f"Parameter {name} is not the same object in all ParameterSets"
 
     def _check_channel_config(self, config):
-        required_keys = ["variable", "n_bins", "limits", "selection", "preselection"]
+        required_keys = ["variable", "selection", "preselection"]
         assert all(
             key in config for key in required_keys
         ), f"Configuration for channel must contain the keys {required_keys}"
+        if "bin_edges" not in config:
+            assert "n_bins" in config and "limits" in config, "Must provide either bin_edges or n_bins and limits"
 
     def _check_run_hist_config(self, config):
         required_keys = ["channel", "load_runs"]
@@ -193,13 +196,21 @@ class MultibandAnalysis(object):
         for channel_config in channel_configs:
             binning_cfg = {
                 "variable": channel_config["variable"],
-                "n_bins": channel_config["n_bins"],
-                "limits": channel_config["limits"],
+                # Bin edges can be configered either by providing the number of bins and the limits,
+                # or by providing the values of the bin edges directly. In the latter case, bins
+                # are allowed to be irregular.
+                "n_bins": channel_config.get("n_bins", None),
+                "limits": channel_config.get("limits", None),
+                "bin_edges": channel_config.get("bin_edges", None),
                 "variable_tex": channel_config.get("variable_tex", None),
+                "variable_tex_short": channel_config.get("variable_tex_short", None),
             }
             binning = Binning.from_config(**binning_cfg)
             binning.set_selection(
-                selection=channel_config["selection"], preselection=channel_config["preselection"]
+                selection=channel_config["selection"],
+                preselection=channel_config["preselection"],
+                selection_tex=channel_config.get("selection_tex", None),
+                selection_tex_short=channel_config.get("selection_tex_short", None),
             )
             label = channel_config.get("label", None)
             binning.label = label or channel_config["selection"]
@@ -565,6 +576,7 @@ class MultibandAnalysis(object):
         separate_figures=False,
         save_path=None,
         filename_format="analysis_{}.pdf",
+        extra_text=None,
         **kwargs,
     ):
         if plot_signals:
@@ -592,6 +604,7 @@ class MultibandAnalysis(object):
                     channel=channel,
                     data_pot=self._get_pot_for_channel(channel),
                     show_data=not self._get_channel_is_blinded(channel),
+                    extra_text=extra_text,
                     **default_kwargs,
                 )
                 if save_path is not None:
@@ -620,6 +633,7 @@ class MultibandAnalysis(object):
                 channel=channel,
                 data_pot=self._get_pot_for_channel(channel),
                 show_data=not self._get_channel_is_blinded(channel),
+                extra_text=extra_text,
                 **kwargs,
             )
         return fig, axes
@@ -698,6 +712,72 @@ class MultibandAnalysis(object):
             fig = ax.figure
         histogram.draw_covariance_matrix(ax=ax, **draw_kwargs)
         return fig, ax
+
+    def get_chi_square_distribution(
+        self,
+        h0_params: ParameterSet,
+        n_trials: int = 1000,
+        run_fit: bool = True,
+        fit_method: str = "minuit",
+        **fit_kwargs,
+    ) -> Dict[str, np.ndarray]:
+        """Get the expected chi-square distribution at the null hypothesis.
+
+        This function generates pseudo-data by sampling first from the
+        covariance matrix of the histograms, and then using the result as
+        the expectation value for Poisson-fluctuations. For every trial,
+        the chi-square is recorded at the best fit point and also with
+        respect to the given null hypothesis.
+
+        Parameters
+        ----------
+        h0_params : ParameterSet
+            The parameters of the null hypothesis.
+        n_trials : int
+            The number of pseudo-experiments to generate.
+        run_fit : bool
+            If True, fit to the pseudo-data is performed.
+        fit_method : str
+            The fitting method to use.
+        fit_kwargs
+            Additional keyword arguments to pass to the fit function.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the results of the test with the keys
+            "chi2_h0" and "chi2_best_fit".
+        """
+
+        from tqdm import tqdm
+
+        self.set_parameters(h0_params, check_matching=True)
+        print("Generating H0 histogram")
+        # generate the multiband histogram
+        h0_hist = self.generate_multiband_histogram(
+            include_multisim_errors=True,
+            use_sideband=True,
+            add_precomputed_detsys=True,
+        )
+        output = {
+            "chi2_h0": [],
+            "chi2_best_fit": [],
+        }
+        rng = np.random.default_rng(0)
+        for i in tqdm(range(n_trials), desc="Generating pseudo-experiments"):
+            pseudo_data = h0_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
+            chi2_h0 = chi_square(
+                pseudo_data.bin_counts, h0_hist.bin_counts, h0_hist.covariance_matrix
+            )
+            output["chi2_h0"].append(chi2_h0)
+            if not run_fit:
+                continue
+            # Fit to pseudodata
+            chi2_best_fit = self.fit_to_data(pseudo_data, method=fit_method, **fit_kwargs)[0]
+            output["chi2_best_fit"].append(chi2_best_fit)
+        # Convert to numpy arrays
+        converted_output = {key: np.array(val) for key, val in output.items()}
+        return converted_output
 
     def two_hypothesis_test(
         self,
@@ -847,13 +927,16 @@ class MultibandAnalysis(object):
         ), "Must give values for all parameters"
         for name in kwargs:
             self.parameters[name].value = kwargs[name]
-        return self.generate_multiband_histogram(include_multisim_errors=True, use_sideband=True)
+        return self.generate_multiband_histogram(
+            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
+        )
 
     def _get_minuit(
         self,
         observed_hist: Histogram,
         scale_to_pot: Optional[float] = None,
         reset_cache: bool = True,
+        disp: bool = False,
     ) -> Minuit:
         """Prepare the Minuit object that can run a fit and more.
 
@@ -865,6 +948,8 @@ class MultibandAnalysis(object):
             The scale factor to apply to the histogram, by default None.
         reset_cache : bool, optional
             Whether to reset the cache, by default True.
+        disp : bool, optional
+            Whether to display parameter values and chi-square during minimization, by default False.
 
         Returns
         -------
@@ -882,11 +967,20 @@ class MultibandAnalysis(object):
             # generate the histogram
             generated_hist = self._get_hist_at_parameter_values(**parameter_kwargs)
             # calculate the chi-square
-            return chi_square(
+            chi2 = chi_square(
                 observed_hist.bin_counts,
                 generated_hist.bin_counts,
                 generated_hist.covariance_matrix,
             )
+            if disp:
+                disp_str = ""
+                # Add parameter values
+                for name, value in parameter_kwargs.items():
+                    disp_str += f"{name} = {value:.3f}, "
+                # Add chi-square
+                disp_str += f"chi2 = {chi2:.3f}"
+                print(disp_str)
+            return chi2
 
         # TODO: This is the syntax for the old Minuit 1.5.4 version. We should upgrade to the new version
         # at some point.
@@ -912,7 +1006,7 @@ class MultibandAnalysis(object):
         for scan_point in scan_points:
             self.parameters[parameter_name].value = scan_point
             expectation = self.generate_multiband_histogram(
-                include_multisim_errors=True, use_sideband=True
+                include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
             )
             chi2 = chi_square(
                 data.bin_counts, expectation.bin_counts, expectation.covariance_matrix
@@ -945,7 +1039,7 @@ class MultibandAnalysis(object):
 
         self.parameters[parameter_name].value = injection_point
         expectation = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=True
+            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
         )
         return self.scan_chi2(parameter_name, scan_points, data=expectation)
 
@@ -1045,11 +1139,32 @@ class MultibandAnalysis(object):
 
         return fig, ax
 
+    @overload
+    def _fit_to_data_migrad(
+        self,
+        data: Optional[MultiChannelHistogram] = None,
+        return_migrad: Literal[False] = False,
+        reset_cache: bool = True,
+        disp: bool = False,
+    ) -> Tuple[float, ParameterSet]:
+        ...
+
+    @overload
+    def _fit_to_data_migrad(
+        self,
+        data: Optional[MultiChannelHistogram] = None,
+        return_migrad: Literal[True] = True,
+        reset_cache: bool = True,
+        disp: bool = False,
+    ) -> Tuple[float, ParameterSet, Minuit]:
+        ...
+
     def _fit_to_data_migrad(
         self,
         data: Optional[MultiChannelHistogram] = None,
         return_migrad: bool = False,
         reset_cache: bool = True,
+        disp: bool = False,
     ) -> Union[Tuple[float, ParameterSet], Tuple[float, ParameterSet, Minuit]]:
         data = data or self.generate_multiband_data_histogram()
         assert data is not None, "Cannot fit to data when data is None"
@@ -1057,7 +1172,7 @@ class MultibandAnalysis(object):
             if channel not in data.channels:
                 raise ValueError(f"Channel {channel} not found in data histogram")
         data = data[self.signal_channels]
-        m: Minuit = self._get_minuit(data, reset_cache=reset_cache)
+        m: Minuit = self._get_minuit(data, reset_cache=reset_cache, disp=disp)
         m.migrad()
         best_fit_parameters = self.parameters.copy()
         if return_migrad:
@@ -1069,7 +1184,7 @@ class MultibandAnalysis(object):
         data: Optional[MultiChannelHistogram] = None,
         fit_grid: Dict[str, np.ndarray] = {},
         reset_cache=True,
-    ):
+    ) -> Tuple[float, ParameterSet]:
         """Fit the data to a grid of parameter values.
 
         The grid should be given as a dictionary where keys are the parameter
@@ -1121,13 +1236,27 @@ class MultibandAnalysis(object):
         # return the chi-square of the best fit and the best fit parameters
         return best_chi2, best_fit_parameters
 
-    def fit_to_data(self, data, method="migrad", **kwargs):
+    def fit_to_data(
+        self, data=None, method="migrad", **kwargs
+    ) -> Union[Tuple[float, ParameterSet], Tuple[float, ParameterSet, Minuit]]:
         assert method in ["migrad", "grid_scan"], "Invalid fitting method"
         if method == "migrad":
             return self._fit_to_data_migrad(data, **kwargs)
         elif method == "grid_scan":
             fit_grid = kwargs.pop("fit_grid")
             return self._fit_to_data_grid_scan(data, fit_grid=fit_grid, **kwargs)
+        else:
+            raise ValueError("Invalid fitting method")
+
+    def get_chi2_at_hypothesis(self, hypo_parameters: ParameterSet, data=None):
+        self.set_parameters(hypo_parameters, check_matching=True)
+        expectation = self.generate_multiband_histogram(
+            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
+        )
+        data = data or self.generate_multiband_data_histogram()
+        assert data is not None, "Cannot calculate chi-square when data is None"
+        data = data[self.signal_channels]
+        return chi_square(data.bin_counts, expectation.bin_counts, expectation.covariance_matrix)
 
     def fc_scan(
         self,
@@ -1154,7 +1283,10 @@ class MultibandAnalysis(object):
             for i, scan_point in enumerate(scan_points):
                 self.parameters[parameter_name].value = scan_point
                 expectation = self.generate_multiband_histogram(
-                    scale_to_pot=scale_to_pot, include_multisim_errors=True, use_sideband=True
+                    scale_to_pot=scale_to_pot,
+                    include_multisim_errors=True,
+                    use_sideband=True,
+                    add_precomputed_detsys=True,
                 )
                 delta_chi2 = []
                 for j in range(n_trials):
@@ -1169,13 +1301,9 @@ class MultibandAnalysis(object):
                         expectation.bin_counts,
                         expectation.covariance_matrix,
                     )
-                    # ignore typing here, this requires overloading that is not yet
-                    # available in Python 3.7 because it lacks the "Literal" type
                     chi2_at_best_fit = self.fit_to_data(
                         pseudo_data, reset_cache=False, method=fit_method, **fit_kwargs
-                    )[  # type: ignore
-                        0
-                    ]  # type: ignore
+                    )[0]
                     delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
                 delta_chi2 = np.array(delta_chi2)
                 results.append({"delta_chi2": delta_chi2, "scan_point": scan_point})

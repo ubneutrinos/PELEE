@@ -53,7 +53,8 @@ class TestHistogram(unittest.TestCase):
         ]
 
     def make_test_binning(self, multichannel=False, with_query=False, second_query="matching"):
-        bin_edges = np.array([0, 1, 2, 3])
+        # Making bin edges irregular.
+        bin_edges = np.array([0, 1, 2, 3, 5])
         first_channel_binning = Binning("x", bin_edges, "x")
         if with_query:
             first_channel_binning.selection_query = "bdt > 0.5"
@@ -456,7 +457,9 @@ class TestMultiChannelHistogram(unittest.TestCase):
         self.hist = self.make_test_histogram()  # Setup your histogram here
 
     def make_bin_edges(self, length):
-        return np.arange(length + 1)
+        regular_bins = np.arange(length + 2)
+        # Delete one bin edge to make the bin edges irregular
+        return np.delete(regular_bins, 1)
 
     @overload
     def _hist_from_binning(
