@@ -30,6 +30,7 @@ def print_error_budget_tables(analysis: MultibandAnalysis, output_file: str):
         include_multisim_errors=True,
         use_sideband=False,
         ms_columns=["weightsFlux"],
+        include_unisim_errors=False,
         include_stat_errors=False,
         include_non_signal_channels=True,
         add_precomputed_detsys=False,
@@ -38,6 +39,7 @@ def print_error_budget_tables(analysis: MultibandAnalysis, output_file: str):
         include_multisim_errors=True,
         use_sideband=False,
         ms_columns=["weightsReint"],
+        include_unisim_errors=False,
         include_stat_errors=False,
         include_non_signal_channels=True,
         add_precomputed_detsys=False,
@@ -61,6 +63,7 @@ def print_error_budget_tables(analysis: MultibandAnalysis, output_file: str):
     hist_all_except_stats = analysis.generate_multiband_histogram(
         include_multisim_errors=True,
         use_sideband=False,
+        include_unisim_errors=True,
         include_stat_errors=False,
         include_non_signal_channels=True,
         add_precomputed_detsys=True,

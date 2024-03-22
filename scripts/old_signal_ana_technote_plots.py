@@ -16,7 +16,7 @@ from microfit.analysis import MultibandAnalysis
 import logging
 
 config_file = "../config_files/old_model_ana_with_detvars.toml"
-output_dir = "../old_model_ana_output/"
+output_dir = "../old_model_ana_remerged_crt_output/"
 
 analysis = MultibandAnalysis.from_toml(
     config_file,
@@ -143,11 +143,12 @@ chi2_h0 = chi2_dict["chi2_h0"]
 # Exclude large outliers in the distribution to make the histogram more readable
 chi2_h0 = chi2_h0[chi2_h0 < np.percentile(chi2_h0, 99.9)]
 
-plt.hist(chi2_h0, bins=100, histtype="step")
-plt.xlabel(r"$\chi^2$")
-plt.ylabel("Samples")
-plt.title("Expected $\\chi^2$ distribution at null, Reco. $\\nu$ Energy")
-plt.savefig(os.path.join(output_dir, "chi2_distribution.pdf"))
+fig, ax = plt.subplots()
+ax.hist(chi2_h0, bins=100, histtype="step")
+ax.set_xlabel(r"$\chi^2$")
+ax.set_ylabel("Samples")
+ax.set_title("Expected $\\chi^2$ distribution at null, Reco. $\\nu$ Energy")
+fig.savefig(os.path.join(output_dir, "chi2_distribution.pdf"))
 
 # %%
 from microfit.parameters import ParameterSet, Parameter

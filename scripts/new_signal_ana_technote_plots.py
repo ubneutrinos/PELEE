@@ -18,8 +18,8 @@ logging.basicConfig(level=logging.INFO)
 from microfit.analysis import MultibandAnalysis
 import logging
 
-config_file = "../config_files/new_signal_ana_opendata_bnb.toml"
-output_dir = "../new_signal_ana_opendata_bnb_output/"
+config_file = "../config_files/full_ana_with_detvars.toml"
+output_dir = "../full_ana_remerged_crt_output/"
 
 analysis = MultibandAnalysis.from_toml(
     config_file,
@@ -255,12 +255,12 @@ chi2_dict = from_json(os.path.join(output_dir, "chi2_distribution_shr_e.json"))
 chi2_h0 = chi2_dict["chi2_h0"]
 # Exclude large outliers in the distribution to make the histogram more readable
 chi2_h0 = chi2_h0[chi2_h0 < np.percentile(chi2_h0, 99.9)]
-
-plt.hist(chi2_h0, bins=100, histtype="step")
-plt.xlabel(r"$\chi^2$")
-plt.ylabel("Samples")
-plt.title("Expected $\\chi^2$ distribution at null, Reco. Shower Energy")
-plt.savefig(os.path.join(output_dir, "chi2_distribution_shr_e.pdf"))
+fig, ax = plt.subplots()
+ax.hist(chi2_h0, bins=100, histtype="step")
+ax.set_xlabel(r"$\chi^2$")
+ax.set_ylabel("Samples")
+ax.set_title("Expected $\\chi^2$ distribution at null, Reco. Shower Energy")
+fig.savefig(os.path.join(output_dir, "chi2_distribution_shr_e.pdf"))
 # %%
 from microfit.parameters import ParameterSet, Parameter
 from microfit.fileio import to_json
@@ -282,11 +282,12 @@ chi2_h0 = chi2_dict["chi2_h0"]
 # Exclude large outliers in the distribution to make the histogram more readable
 chi2_h0 = chi2_h0[chi2_h0 < np.percentile(chi2_h0, 99.9)]
 
-plt.hist(chi2_h0, bins=100, histtype="step")
-plt.xlabel(r"$\chi^2$")
-plt.ylabel("Samples")
-plt.title("Expected $\\chi^2$ distribution at null, Reco. Shower $\\cos(\\theta)$")
-plt.savefig(os.path.join(output_dir, "chi2_distribution_shr_costheta.pdf"))
+fig, ax = plt.subplots()
+ax.hist(chi2_h0, bins=100, histtype="step")
+ax.set_xlabel(r"$\chi^2$")
+ax.set_ylabel("Samples")
+ax.set_title("Expected $\\chi^2$ distribution at null, Reco. Shower $\\cos(\\theta)$")
+fig.savefig(os.path.join(output_dir, "chi2_distribution_shr_costheta.pdf"))
 # %%
 from microfit.parameters import ParameterSet, Parameter
 from microfit.fileio import to_json

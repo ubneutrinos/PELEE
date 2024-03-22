@@ -46,7 +46,7 @@ use_sideband = true
 # TODO: Run 3_crt detvars do not have CRT yet, the code is using run 4 to compute
 # detvars for run 3_crt
 run_numbers = ["3_crt", "4b", "4c", "4d","5"]
-data = "muon_sideband"
+data = "bnb"
 truth_filtered_sets = ["nue", "drt"]
 loadshowervariables = false
 loadsystematics = true
@@ -101,7 +101,7 @@ variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
 # TODO: Run 3_crt detvars do not have CRT yet, the code is using run 4 to compute
 # detvars for run 3_crt
 run_numbers = ["3_crt", "4b", "4c", "4d","5"]
-data = "two_shr_sideband"
+data = "bnb"
 truth_filtered_sets = ["nue", "drt"]
 loadpi0variables = true
 loadshowervariables = true
@@ -185,5 +185,6 @@ limits = [0.15, 1.55]
 # Adding CRT cuts to the ZP channel
 selection = "ZPBDT_CRT"
 preselection = "ZP"
+label = "ZPBDT"
 variable_tex = "Reconstructed Energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
