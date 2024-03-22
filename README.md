@@ -20,6 +20,7 @@ conda install -c conda-forge shap
 conda install -c conda-forge uncertainties
 pip install unitpy
 conda install pytables
+pip install iminuit
 ```
 (the xgboost version needs to be specified to be compatible with the stored BDTs)
 
