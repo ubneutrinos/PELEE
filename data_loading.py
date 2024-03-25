@@ -22,7 +22,7 @@ from numu_tki import tki_calculators
 
 from microfit.selections import extract_variables_from_query
 
-datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband","nuwro_fd"]
+datasets = ["bnb","opendata_bnb","nuwro_fd"]
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 
 # Create a logger for this module
@@ -114,7 +114,7 @@ def get_variables():
         "CosmicDirAll3D",
         "CosmicIPAll3D",
         # "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
-        # "flash_pe",
+        #"flash_pe",
         # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
         # "trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
@@ -1985,9 +1985,6 @@ def apply_bdt_truth_filters(df):
 
 def get_rundict(run_number, category):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
- 
-    # Old ntuple paths
-    #with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
 
     # New ntuple paths!
     with open(os.path.join(thisfile_path, "data_paths_crt.yml"), "r") as f:

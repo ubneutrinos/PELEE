@@ -70,8 +70,8 @@ runs:
       trig: 2387969
     bnb:
       file: run3_bnb_beam_on_crtremerging_pandora_reco2_run3_ana  
-      pot: 2.337e+20
-      trig: 56257542 
+      pot: 2.568e+20 
+      trig: 61375491.0  
     nuwro_fd:
       file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2
       pot: 2.89E+20
@@ -97,8 +97,8 @@ runs:
       trig: 2271036
     bnb:
       file: PostCRTFix_run3_bnb_beam_on_crtremerging_pandora_reco2_run3_ana 
-      pot: 2.262e+20 
-      trig: 54108335.0 
+      pot: 2.568e+20 
+      trig: 61375491.0 
     ext:
       file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 191706142
@@ -295,8 +295,8 @@ numupresel:
       trig: 2271036
     bnb:
       file: run3_bnb_beam_on_crtremerging_pandora_reco2_run3_ana  
-      pot: 2.337e+20
-      trig: 56257542 
+      pot: 2.568e+20 
+      trig: 61375491.0
     nuwro_fd:
       file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2
       pot: 2.89E+20
@@ -322,8 +322,8 @@ numupresel:
       trig: 2271036
     bnb:
       file: PostCRTFix_run3_bnb_beam_on_crtremerging_pandora_reco2_run3_ana 
-      pot: 2.262e+20 
-      trig: 54108335.0 
+      pot: 2.152e+20 
+      trig: 51719436.0 
     ext:
       file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 191706142
