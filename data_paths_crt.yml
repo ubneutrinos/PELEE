@@ -97,11 +97,34 @@ runs:
       trig: 2271036
     bnb:
       file: PostCRTFix_run3_bnb_beam_on_crtremerging_pandora_reco2_run3_ana 
-      pot: 2.568e+20 
-      trig: 61375491.0 
+      pot: 2.152e+20 
+      trig: 51719436.0 
     ext:
       file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 191706142
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
+      pot: 1.31E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
+      pot: 7.77E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
+      pot: 3.27E+20
+  - run_id: "3_nocrt"
+    path: run3/nuepresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
+      pot: 9.43E+18
+      trig: 2271036
+    bnb:
+      file: PreCRTFix_run3_bnb_beam_on_crtremerging_pandora_reco2_run3_ana 
+      pot: 4.16E+19 
+      trig: 9.66E+06
+    ext:
+      file: PreCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
+      trig: 1.56E+07 
     mc:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
       pot: 1.31E+21 
@@ -327,6 +350,29 @@ numupresel:
     ext:
       file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 191706142
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
+      pot: 1.31E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
+      pot: 7.77E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
+      pot: 3.27E+20
+  - run_id: "3_nocrt"
+    path: run3/numupresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
+      pot: 9.43E+18
+      trig: 2271036
+    bnb:
+      file: PreCRTFix_run3_bnb_beam_on_crtremerging_pandora_reco2_run3_ana 
+      pot: 4.16E+19 
+      trig: 9.66E+06
+    ext:
+      file: PreCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
+      trig: 1.56E+07 
     mc:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
       pot: 1.31E+21 
