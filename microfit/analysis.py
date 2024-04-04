@@ -552,21 +552,23 @@ class MultibandAnalysis(object):
     def _get_pot_for_channel(self, channel):
         """Get the POT for the given channel."""
 
-        # Iterate through run hist generators. When the channel is found in a
-        # generator, return the POT of that generator.
-        for gen in self._run_hist_generators:
-            if channel in gen.channels:
-                return gen.data_pot
-        raise ValueError(f"Channel {channel} not found in analysis")
+        gen = self._get_channel_gen(channel)
+        return gen.data_pot
 
     def _get_channel_is_blinded(self, channel):
         """Get whether the given channel is blinded."""
 
+        gen = self._get_channel_gen(channel)
+        return gen.is_blinded
+    
+    def _get_channel_gen(self, channel):
+        """Get the RunHistGenerator for the given channel."""
+
         # Iterate through run hist generators. When the channel is found in a
         # generator, return the POT of that generator.
         for gen in self._run_hist_generators:
             if channel in gen.channels:
-                return gen.is_blinded
+                return gen
         raise ValueError(f"Channel {channel} not found in analysis")
 
     def _plot_bands(

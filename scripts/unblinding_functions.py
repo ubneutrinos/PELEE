@@ -15,7 +15,7 @@ def plot_chi2_distribution(output_dir, chi2_results_file, chi2_at_h0, plot_suffi
     chi2_h0 = chi2_h0[chi2_h0 < np.percentile(chi2_h0, 99.9)]
     # Get p-value of the observed chi2
     chi2_h0_pval = (chi2_h0 > chi2_at_h0).sum() / len(chi2_h0)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(5, 4), constrained_layout=True)
     ax.hist(chi2_h0, bins=100, histtype="step")
     ax.axvline(
         x=chi2_at_h0,
@@ -44,28 +44,37 @@ def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suf
     p_val = (samples_h0 > delta_chi2).sum() / len(samples_h0)
 
     fig, ax = plt.subplots(figsize=(5, 4), constrained_layout=True)
-    ax.hist(
+    n_h0, *_ = ax.hist(
         two_hypo_results["samples_h0"], bins=bin_edges, histtype="step", density=False, label="H0"
     )
-    ax.hist(
+    n_h1, *_ = ax.hist(
         two_hypo_results["samples_h1"], bins=bin_edges, histtype="step", density=False, label="H1"
     )
+    # Identify which bin the observed delta_chi2 falls into. Note that
+    # digitize returns 1 if the value falls into the first bin, so we
+    # subtract 1 to get the correct bin index.
+    bin_index = (np.digitize([delta_chi2], bin_edges) - 1)[0]
+    bayes_factor = n_h1[bin_index] / n_h0[bin_index]
+    bayes_factor_str = f"{bayes_factor:.1f}"
+    if bayes_factor < 1:
+        bayes_factor = 1 / bayes_factor
+        bayes_factor_str = f"1/{bayes_factor:.2g}"
     ax.axvline(
         x=two_hypo_results["ts_median_h1"],
         color="k",
         linestyle="--",
-        label=f"Median H1\np-val: {two_hypo_results['median_pval']*100:0.3f}%",
+        label=f"Median H1\np-val: {two_hypo_results['median_pval']*100:0.3g}%",
     )
     ax.axvline(
         x=delta_chi2,
         color="k",
         linestyle="-",
-        label=f"Observed $\\Delta \\chi^2$: {delta_chi2:.1f}\nH0 p-val: {p_val*100:0.3f}%",
+        label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH0 p-val: {p_val*100:0.3g}%\nBF: {bayes_factor_str}",
     )
     ax.legend()
     ax.set_xlabel(r"$\Delta \chi^2$")
     ax.set_ylabel("Samples")
-    ax.set_title(f"Two-Hypo. Test, OD Runs 4-5, {plot_title}")
+    ax.set_title(f"Two-Hypo. Test, {plot_title}")
     fig.savefig(os.path.join(output_dir, f"two_hypo_result_{plot_suffix}.pdf"))
 
 
@@ -107,7 +116,7 @@ def compute_confidence_interval(p_values, scan_points, confidence_level):
     return p_lower, p_upper
 
 
-def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix):
+def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix, ax=None, xlim=None):
     scan_points = fc_scan_results["scan_points"]
     p_values = np.array(
         [
@@ -119,15 +128,36 @@ def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix):
     )
     p_68_lower, p_68_upper = compute_confidence_interval(p_values, scan_points, 0.68)
     p_90_lower, p_90_upper = compute_confidence_interval(p_values, scan_points, 0.90)
+    p_95_lower, p_95_upper = compute_confidence_interval(p_values, scan_points, 0.95)
+    p_99_lower, p_99_upper = compute_confidence_interval(p_values, scan_points, 0.99)
 
-    fig, ax1 = plt.subplots()
+    if ax is None:
+        fig, ax1 = plt.subplots()
+    else:
+        ax1 = ax
     ax1.plot(scan_points, p_values, color="k", label="p-value from FC trials")
 
+    ax1.fill_between(
+        [p_99_lower, p_99_upper],
+        [0, 0],
+        [1, 1],
+        alpha=0.2,
+        label=f"99% C.L.: [{p_99_lower:.2f}, {p_99_upper:.2f}]",
+        color="C0",
+    )
+    ax1.fill_between(
+        [p_95_lower, p_95_upper],
+        [0, 0],
+        [1, 1],
+        alpha=0.4,
+        label=f"95% C.L.: [{p_95_lower:.2f}, {p_95_upper:.2f}]",
+        color="C0",
+    )
     ax1.fill_between(
         [p_90_lower, p_90_upper],
         [0, 0],
         [1, 1],
-        alpha=0.4,
+        alpha=0.6,
         label=f"90% C.L.: [{p_90_lower:.2f}, {p_90_upper:.2f}]",
         color="C0",
     )
@@ -135,23 +165,27 @@ def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix):
         [p_68_lower, p_68_upper],
         [0, 0],
         [1, 1],
-        alpha=0.7,
+        alpha=0.8,
         label=f"68% C.L.: [{p_68_lower:.2f}, {p_68_upper:.2f}]",
         color="C0",
     )
 
-    ax1.axhline(1 - 0.68, color="k", linestyle="--", lw=1.0)
-    ax1.axhline(1 - 0.90, color="k", linestyle="--", lw=1.0)
-    ax1.text(0, 1 - 0.68, "68% C.L.", ha="left", va="bottom", color="k")
-    ax1.text(0, 1 - 0.90, "90% C.L.", ha="left", va="bottom", color="k")
+    # ax1.axhline(1 - 0.68, color="k", linestyle="--", lw=1.0)
+    # ax1.axhline(1 - 0.90, color="k", linestyle="--", lw=1.0)
+    # ax1.text(0, 1 - 0.68, "68% C.L.", ha="left", va="bottom", color="k")
+    # ax1.text(0, 1 - 0.90, "90% C.L.", ha="left", va="bottom", color="k")
     ax1.set_ylabel("p-value")
     ax1.set_xlabel("signal strength")
     ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x*100:.0f}%"))  # type: ignore
     # ax1.grid()
 
+    if xlim is not None:
+        ax1.set_xlim(xlim)
     ax2 = ax1.twinx()
     ax2.plot(scan_points, fc_scan_results["delta_chi2_scan"], color="r", label="Observed $\\Delta \\chi^2$")
     ax2.set_ylabel("$\\Delta \\chi^2$")
+    ax2.tick_params(axis='y', colors='r')  # Set tick color to red
+    ax2.yaxis.label.set_color('r')  # Set label color to red
 
     handles1, labels1 = ax1.get_legend_handles_labels()
     handles2, labels2 = ax2.get_legend_handles_labels()
