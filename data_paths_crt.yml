@@ -97,8 +97,8 @@ runs:
       trig: 2271036
     bnb:
       file: PostCRTFix_run3_bnb_beam_on_crtremerging_pandora_reco2_run3_ana 
-      pot: 2.568e+20 
-      trig: 61375491.0 
+      pot: 2.152e+20 
+      trig: 51719436.0  
     ext:
       file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 191706142

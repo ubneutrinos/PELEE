@@ -3,9 +3,9 @@ output_dir = "../old_model_ana_output/"
 
 [plotting]
 [plotting.NPBDT]
-run_title = "Runs 1-5"
+run_title = "Runs 4-5"
 [plotting.ZPBDT]
-run_title = "Runs 1-5"
+run_title = "Runs 4-5"
 [plotting.NUMUCRTNP0PI]
 run_title = "Runs 3-5"
 [plotting.NUMUCRT0P0PI]
@@ -137,8 +137,8 @@ selection_tex_short = "$1e0p$ 2+shr"
 mc_hist_generator_cls = "SignalOverBackgroundGenerator"
 
 [generator.load_runs]
-run_numbers = ["1", "2", "3_crt","4b","4c","4d","5"]
-# run_numbers = ["4b","4c","4d","5"]
+# run_numbers = ["1", "2", "3_crt","4b","4c","4d","5"]
+run_numbers = ["4b","4c","4d","5"]
 data = "bnb"
 truth_filtered_sets = ["nue", "drt"]
 loadpi0variables = true
@@ -186,15 +186,5 @@ limits = [0.15, 1.55]
 selection = "ZPBDT_CRT"
 preselection = "ZP"
 label = "ZPBDT"
-variable_tex = "Reconstructed Energy (GeV)"
-variable_tex_short = "$E_{\\mathrm{reco}}$"
-
-[[generator.channel]]
-variable = "reco_e"
-n_bins = 10
-limits = [0.15, 1.55]
-selection = "ZPBDT"
-preselection = "ZP"
-label = "ZPBDT_NOCRT"
 variable_tex = "Reconstructed Energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
