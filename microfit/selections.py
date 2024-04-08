@@ -34,6 +34,7 @@ OnePLCUTQ += ' and shr_trk_len < 300.'
 # 1eNp preselection
 NPPRESQ = PRESQ
 NPPRESQ += ' and n_tracks_contained > 0'
+NPPRESQLowE = NPPRESQ + ' and (0.15 < reco_e and reco_e < 0.65)'
 NPPRESQ_one_shower = NPPRESQ + ' and n_showers_contained == 1'
 NPPRESQ_one_shower_one_track = NPPRESQ_one_shower + ' and n_tracks_contained == 1'
 NPPRESQ_one_shower_twoplus_tracks = NPPRESQ_one_shower + ' and n_tracks_contained > 1'
@@ -157,6 +158,7 @@ TESTBDT05CQ_all_showers += ' and pi0_score > 0.50'
 ZPPRESEL_all_tracks = PRESQ
 ZPPRESEL_onep_track = ZPPRESEL_all_tracks + ' and n_tracks_contained > 0'
 ZPPRESEL = ZPPRESEL_all_tracks + ' and n_tracks_contained == 0'
+ZPPRESELLowE = ZPPRESEL + ' and (0.15 < reco_e and reco_e < 0.65)'
 
 ZPBOXCUTS_all_tracks = ZPPRESEL_all_tracks
 ZPBOXCUTS_all_tracks += ' and n_showers_contained == 1'
@@ -441,10 +443,12 @@ preselection_categories = {
     'PI0': {'query': PREPI0Q, 'title': 'Pi0 Presel.', 'dir': 'PI0'},
     'NUE': {'query': PRESQ, 'title': 'Nue Presel.', 'dir': 'NUE'},
     'NP': {'query': NPPRESQ, 'title': '1eNp Presel.', 'dir': 'NP'},
+    'NPLowE': {'query': NPPRESQLowE, 'title': '1eNp Presel. Low E', 'dir': 'NPLowE'},
     'NPOneShr': {'query': NPPRESQ_one_shower, 'title': '1eNp Presel., 1 shower', 'dir': 'NPOneShr'},
     'NPOneTrk': {'query': NPPRESQ_one_track, 'title': '1eNp Presel., 1 track', 'dir': 'NPOneTrk'},
     'NPTwoPTrk': {'query': NPPRESQ_twoplus_tracks, 'title': '1eNp Presel., 2+ tracks', 'dir': 'NPTwoPTrk'},
     'ZP': {'query': ZPPRESEL, 'title': '1e0p Presel.', 'dir': 'ZP'},
+    'ZPLowE': {'query': ZPPRESELLowE, 'title': '1e0p Presel. Low E', 'dir': 'ZPLowE'},
     'ZPOneShr': {'query': ZPPRESEL_one_shower, 'title': '1e0p Presel., 1 shower', 'dir': 'ZPOneShr'},
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'ZPTwoShr': {'query': ZPPRESEL_two_shower, 'title': '1e0p Presel., 2+ shower', 'dir': 'ZPTwoShr'},
