@@ -8,19 +8,16 @@
 ```
 conda create -n python3LEE python=3.7
 conda activate python3LEE
-conda install scipy
-conda install scikit-learn
-conda install jupyter
-conda install pandas==1.0.5
-conda install matplotlib
+conda install scipy pandas==1.0.5 matplotlib pyyaml tqdm scikit-learn jupyter
+# Analysis currently uses iminuit 1.5.4 syntax
+conda install -c conda-forge iminuit==1.5.4
+pip install unitpy
 conda install -c conda-forge uproot==3.11.6
 conda install dask-core
 conda install -c conda-forge xgboost==0.90
 conda install -c conda-forge shap
-conda install -c conda-forge uncertainties
 pip install unitpy
 conda install pytables
-pip install iminuit
 ```
 (the xgboost version needs to be specified to be compatible with the stored BDTs)
 
