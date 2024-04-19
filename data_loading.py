@@ -21,7 +21,9 @@ from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 from numu_tki import selection_1muNp 
 from numu_tki import signal_1muNp 
-from numu_tki import tki_calculators 
+from numu_tki import tki_calculators
+from numu_tki import signal_1e1p
+from numu_tki import process_1e1p  
 
 from microfit.selections import extract_variables_from_query
 
@@ -79,14 +81,14 @@ def get_variables():
         # The variables below are not floating point numbers, but vectors of variable length
         # that can only be stored in awkward arrays. These are very memory intensive, so we
         # do not want to load them into the final dataframe.
-        "mc_pdg",
+        # "mc_pdg",
         # "mc_px",
         # "mc_py",
         # "mc_pz",
         # "mc_E",
         #############
         "slpdg",
-        # "backtracked_pdg",
+        "backtracked_pdg",
         # "trk_score_v",
         "category",
         "ccnc",
@@ -101,7 +103,7 @@ def get_variables():
         # "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
         "flash_pe",
         # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
-        # "trk_llr_pid_score_v",  # trk-PID score
+        "trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
         "_opfilter_pe_veto",  # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x",
@@ -145,11 +147,11 @@ def get_variables():
         # "shr_energy_tot_cali","selected","n_showers_contained",  # only if CC0piNp variables are saved!
         # We do not want to load "vector" variables into the final dataframe, as they take up 
         # a lot of memory
-        "pfp_generation_v",
+        # "pfp_generation_v",
         "shr_energy_cali",
-        "trk_dir_x_v",
-        "trk_dir_y_v",
-        "trk_dir_z_v",
+        # "trk_dir_x_v",
+        # "trk_dir_y_v",
+        # "trk_dir_z_v",
     ]
 
     VARDICT["VARIABLES"] = VARIABLES
@@ -445,9 +447,7 @@ def add_paper_category(df, key):
 
 
 def add_paper_category_1e1p(df, key):
-    df.loc[:, "category_1e1p"] = df[
-        "category"
-    ]  # makes a new column called 'category_1e1p' in df which copies the 'category'
+    df.loc[:, "category_1e1p"] = df["category"]  # makes a new column called 'category_1e1p' in df which copies the 'category'
     if key in ["data"]:
         return
     df.loc[
@@ -517,7 +517,7 @@ def add_paper_categories(df, key):
     add_paper_category(df, key)
     add_paper_xsec_category(df, key)
     add_paper_numu_category(df, key)
-    add_paper_category_1e1p(df, key)
+    #add_paper_category_1e1p(df, key)
 
 
 def load_data_run(
@@ -2025,6 +2025,7 @@ def load_sample(
     pi0scaling=0,
     load_crt_vars=False,
     load_numu_tki=False,
+    load_nue_tki=False,
     full_path="",
     keep_columns=None,
 ):
@@ -2138,7 +2139,10 @@ def load_sample(
             post_process_shower_vars(up, df)
         if load_numu_tki:
             df = signal_1muNp.set_Signal1muNp(up,df)
-            df = selection_1muNp.apply_selection_1muNp(up,df) 
+            df = selection_1muNp.apply_selection_1muNp(up,df)
+        if load_nue_tki:
+            df = signal_1e1p.set_Signal1e1p(up,df)
+            process_1e1p.process_1e1p_tki(up, df)
 
     if use_bdt:
         add_bdt_scores(df)
@@ -2181,7 +2185,7 @@ def load_sample(
         # We have to keep certain variables in order for everything to even function
         vardict = get_variables()
         minimum_columns = vardict["WEIGHTS"] + vardict["SYSTVARS"] + vardict["WEIGHTSLEE"]
-        minimum_columns += ["category", "paper_category", "paper_category_xsec", "category_1e1p", "interaction"]
+        minimum_columns += ["category", "paper_category", "paper_category_xsec", "category_1e1p_tki", "interaction"]
         keep_columns = set(keep_columns) | set(minimum_columns)
         # drop all columns that are not in keep_columns in place
         df.drop(columns=set(df.columns) - set(keep_columns), inplace=True)
