@@ -3,13 +3,16 @@ import unittest
 import numpy as np
 from microfit.histogram import MultiChannelBinning, Binning
 from typing import Union, List, cast
+import tempfile
+from microfit.fileio import to_json, from_json
 
 
 class TestMultiChannelBinning(unittest.TestCase):
     def make_test_binning(
         self, multichannel: bool = False, with_query: bool = False, second_query: str = "matching"
     ) -> Union[Binning, MultiChannelBinning]:
-        bin_edges = np.array([0, 1, 2, 3])
+        # Make bin edges irregular.
+        bin_edges = np.array([0, 1, 2, 3, 5])
         first_channel_binning = Binning("x", bin_edges, "x-axis label")
         if with_query:
             first_channel_binning.selection_query = "bdt > 0.5"
@@ -31,6 +34,15 @@ class TestMultiChannelBinning(unittest.TestCase):
             [first_channel_binning, second_channel_binning, third_channel_binning]
         )
         return binning
+
+    def test_irregular_bin_edges(self):
+        bin_edges = np.array([0, 1, 2, 3, 5])
+        binning = Binning("x", bin_edges, "x-axis label")
+
+        binning_dict = binning.to_dict()
+        new_binning = Binning.from_dict(binning_dict)
+
+        self.assertEqual(binning, new_binning)
 
     def test_binning_to_from_dict(self):
         bin_edges = np.array([0, 1, 2, 3])
@@ -174,6 +186,19 @@ class TestMultiChannelBinning(unittest.TestCase):
         for original_binning in [binning1, binning2, binning3]:
             for channel in original_binning:  # type: ignore
                 self.assertIn(channel, joined_binning)
+
+    def test_to_from_json(self):
+        binning = self.make_test_binning(multichannel=True)
+        assert isinstance(binning, MultiChannelBinning)
+        binning_dict = binning.to_dict()
+        binning_from_dict = MultiChannelBinning.from_dict(binning_dict)
+        self.assertEqual(binning, binning_from_dict)
+
+        # Test to_json and from_json
+        with tempfile.NamedTemporaryFile(delete=True) as tmp_file:
+            to_json(tmp_file.name, binning)
+            binning_from_json = from_json(tmp_file.name)
+            self.assertEqual(binning, binning_from_json)
 
 
 if __name__ == "__main__":

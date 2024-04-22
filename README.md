@@ -8,17 +8,16 @@
 ```
 conda create -n python3LEE python=3.7
 conda activate python3LEE
-conda install scipy
-conda install scikit-learn
-conda install jupyter
-conda install pandas==1.0.5
-conda install matplotlib
+conda install scipy pandas==1.0.5 matplotlib pyyaml tqdm scikit-learn jupyter
+# Analysis currently uses iminuit 1.5.4 syntax
+conda install -c conda-forge iminuit==1.5.4
+pip install unitpy
 conda install -c conda-forge uproot==3.11.6
 conda install dask-core
 conda install -c conda-forge xgboost==0.90
 conda install -c conda-forge shap
-conda install -c conda-forge uncertainties
 pip install unitpy
+conda install pytables
 ```
 (the xgboost version needs to be specified to be compatible with the stored BDTs)
 
@@ -52,26 +51,27 @@ Run the `MicroFit Tutorial.ipynb` notebook to familiarize yourself with the Micr
 
 ## Technote plots
 
-### Plots of the signal and sideband spectra with correlations
-Run the following to make the spectra plots:
-```
-python scripts/make_ana_plots_runs_1-5.py
-```
-### Plots of Giuseppe's new sidebands with their correlations
-```
-python scripts/plot_three_sidebands.py
-```
-### First sensitivities with all runs
-To run the two-hypothesis test: 
-```
-python scripts/two_hypothesis_test.py run_analysis --configuration /nashome/a/atrettin/PELEE/config_files/first_round_
-analysis_runs_1-5.toml --output-dir ana_output_runs_1-5_with_crt --sensitivity-only
-```
-To make the plots:
-```
-python scripts/two_hypothesis_test.py plot_results --configuration /nashome/a/atrettin/PELEE/config_files/first_round_
-analysis_runs_1-5.toml --output-dir ana_output_runs_1-5_with_crt --sensitivity-only
-```
-This should run the two-hypothesis test and estimate the median sensitivity.
+The following scripts make the technote plots for each sub-analysis. These include the histograms of the signal and sideband channels,
+the covariance matrices (total and split by error source), tables with error budgets and constraint updates in TeX format,
+chi-square distributions, two-hypothesis tests, and the FC corrected Asimov sensitivity scan. These scripts
+can take up to 2-3 hours to run if they are run from scratch without already existing cached dataframes.
 
+### Technote plots for the new signal analysis
 
+All technote plots for the analysis with the new signal model can be produced by running 
+```
+python new_signal_ana_technote_plots.py
+```
+while inside the `scripts` directory. Make sure to make a directory called `full_ana_remerged_crt_output` before running the script.
+The script is fully automated and loads all necessary data and produces the detector variations it needs. 
+All plots that are produced will be placed into `full_ana_remerged_crt_output`.
+
+### Technote plots for the old signal analysis
+
+All technote plots for the analysis with the old signal model can be produced by running
+```
+python old_signal_ana_technote_plots.py
+```
+while inside the `scripts` directory. Make sure to make a directory called `old_model_ana_remerged_crt_output` before running the script.
+The script is fully automated and loads all necessary data and produces the detector variations it needs. 
+All plots that are produced will be placed into `old_model_ana_remerged_crt_output`.

@@ -1,13 +1,11 @@
 """Module to define parameters of an analysis."""
 
-from dataclasses import dataclass, asdict
 from numbers import Real
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, overload
 from unitpy import Unit, Quantity
 import numpy as np
 
 
-@dataclass
 class Parameter:
     """Class to define a parameter of an analysis.
 
@@ -25,35 +23,66 @@ class Parameter:
         Bounds of the parameter. If not given, the parameter is assumed to be unconstrained.
     """
 
-    name: str
-    value: Union[bool, Quantity]
-    is_discrete: bool = False  # Automatically assigned in constructor
-    bounds: Optional[Tuple[Quantity, Quantity]] = None
-    _post_init_finished: bool = False
-
-    def __post_init__(self):
+    def __init__(
+        self,
+        name: str,
+        value: Union[bool, Quantity, int, float],
+        bounds: Optional[
+            Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]
+        ] = None,
+    ):
+        self.name = name
+        self.value = value
         if isinstance(self.value, bool):
             self.is_discrete = True
         else:
             self.is_discrete = False
-        # convert float to Quantity
-        if isinstance(self.value, Real) and not isinstance(self.value, bool):
-            assert isinstance(self.value, float) or isinstance(self.value, int)
-            self.value = Quantity(self.value, Unit())
-        # if bounds are given, convert to Quantity if needed, assuming the same units as value
-        if self.bounds is not None:
-            if isinstance(self.value, bool):
-                raise TypeError("Cannot assign bounds to a discrete parameter.")
-            if isinstance(self.bounds[0], float) or isinstance(self.bounds[0], int):
-                assert isinstance(self.bounds[1], float) or isinstance(self.bounds[1], int)
-                self.bounds = (
-                    Quantity(self.bounds[0], self.value.unit),
-                    Quantity(self.bounds[1], self.value.unit),
-                )
+        self.bounds = bounds
+
+    @property
+    def value(self) -> Union[bool, Quantity]:
+        return self._value
+
+    @value.setter
+    def value(self, value: Union[bool, Quantity, int, float]):
+        if isinstance(value, bool):
+            self._value = value
+        elif isinstance(value, Quantity):
+            self._value = value
+        else:
+            assert isinstance(value, float) or isinstance(value, int)
+            self._value = Quantity(value, Unit())
+
+    @property
+    def bounds(self) -> Optional[Tuple[Quantity, Quantity]]:
+        return self._bounds
+
+    @bounds.setter
+    def bounds(
+        self,
+        bounds: Optional[Union[Tuple[Quantity, Quantity], Tuple[float, float], Tuple[int, int]]],
+    ):
+        if bounds is not None and self.is_discrete:
+            raise ValueError("Bounds cannot be set for discrete parameters.")
+        if bounds is None:
+            self._bounds = None  # type: ignore
+        elif isinstance(bounds[0], Quantity) and isinstance(bounds[1], Quantity):
             # make sure bounds are sorted
-            if self.bounds[0] > self.bounds[1]:
-                self.bounds = (self.bounds[1], self.bounds[0])
-        self._post_init_finished = True
+            if bounds[0] > bounds[1]:
+                self._bounds: Tuple[Quantity, Quantity] = (bounds[1], bounds[0])
+            else:
+                self._bounds: Tuple[Quantity, Quantity] = bounds  # type: ignore
+        else:
+            assert isinstance(bounds[0], float) or isinstance(bounds[0], int)
+            assert isinstance(bounds[1], float) or isinstance(bounds[1], int)
+            assert isinstance(self.value, Quantity), "Value must be a Quantity if bounds are given."
+            self._bounds = (
+                Quantity(bounds[0], self.value.unit),
+                Quantity(bounds[1], self.value.unit),
+            )
+            # make sure bounds are sorted
+            if self._bounds[0] > self._bounds[1]:
+                self._bounds = (self._bounds[1], self._bounds[0])
 
     @property
     def magnitude_bounds(self):
@@ -62,49 +91,29 @@ class Parameter:
         return (self.bounds[0].value, self.bounds[1].value)
 
     @property
-    def m(self):
+    def m(self) -> Union[bool, int, float]:
         """Magnitude of the parameter value."""
         if self.is_discrete:
+            assert isinstance(self.value, bool)
             return self.value
         else:
             assert isinstance(self.value, Quantity)
             return self.value.value
 
     def to_dict(self):
-        d = asdict(self)
+        d = {
+            "name": self.name,
+            "value": self.value,
+            "bounds": self.bounds,
+        }
         # Iterate through dictionary and handle Quantity
         for key, value in d.items():
             if isinstance(value, Quantity):
                 d[key] = {"magnitude": value.value, "unit": str(value.unit)}
         return d
 
-    def __setattr__(self, name, value):
-        if name == "value":
-            if self._post_init_finished:  # Ensure post_init has run
-                if self.is_discrete and not isinstance(value, bool):
-                    raise TypeError("Cannot assign non-boolean value to a discrete parameter.")
-                elif not self.is_discrete and isinstance(value, bool):
-                    raise TypeError("Cannot assign boolean value to a continuous parameter.")
-                # if generic number, convert to Quantity, assuming the same units as value
-                if isinstance(value, Real) and not isinstance(value, bool):
-                    assert isinstance(value, float) or isinstance(value, int)
-                    assert isinstance(self.value, Quantity)
-                    value = Quantity(value, self.value.unit)
-                assert isinstance(value, Quantity) or isinstance(value, bool)
-                # make sure new value is within bounds
-                if self.bounds is not None and not self.is_discrete:
-                    assert isinstance(self.value, Quantity)
-                    assert isinstance(value, Quantity)
-                    if value < self.bounds[0] or value > self.bounds[1]:
-                        raise ValueError(
-                            f"New value is not within {self.bounds[0].value, self.bounds[1].value} {self.value.unit}."
-                        )
-        super().__setattr__(name, value)
-
     @classmethod
     def from_dict(cls, d):
-        if "_post_init_finished" in d:
-            d.pop("_post_init_finished")
         # Check if the value is a string with units
         if isinstance(d["value"], str):
             magnitude_str, unit_str = d["value"].split()
@@ -118,6 +127,15 @@ class Parameter:
 
     def copy(self):
         return Parameter.from_dict(self.to_dict())
+
+    def __eq__(self, __value: object) -> bool:
+        if not isinstance(__value, Parameter):
+            return False
+        return (
+            self.name == __value.name
+            and self.value == __value.value
+            and self.bounds == __value.bounds
+        )
 
 
 class ParameterSet:
@@ -154,7 +172,8 @@ class ParameterSet:
                 for i in indices[1:]:
                     self.parameters.pop(i)
 
-    def __add__(self, other):
+    def __add__(self, other: "ParameterSet"):
+        assert isinstance(other, ParameterSet)
         parameter_list = self.parameters + other.parameters
         new_parameter_set = ParameterSet(parameter_list, strict_duplicate_checking=False)
         # before we return, we set the parameter objects in the other set to the
@@ -209,6 +228,20 @@ class ParameterSet:
     @classmethod
     def from_dict(cls, d):
         return cls([Parameter.from_dict(p) for p in d])
+
+    # Overloads like these don't actually do anything, but they are useful for type checking.
+    # In this way, the type checker knows how the output type depends on the input type.
+    @overload
+    def __getitem__(self, key: str) -> Parameter:
+        ...
+
+    @overload
+    def __getitem__(self, key: int) -> Parameter:
+        ...
+
+    @overload
+    def __getitem__(self, key: List[str]) -> "ParameterSet":
+        ...
 
     def __getitem__(self, key):
         if isinstance(key, str):

@@ -1,0 +1,9 @@
+{
+    "typeCheckingMode": "standard",
+    "reportIncompatibleMethodOverride": "warning",
+    "include":[
+        "microfit/**"
+    ],
+    "stubPath": "./stubs/stubs",
+}
+  

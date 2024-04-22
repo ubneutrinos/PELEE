@@ -1,0 +1,93 @@
+[plotting]
+[plotting.NPBDT]
+run_title = "Runs 1-5"
+[plotting.ZPBDT]
+run_title = "Runs 1-5"
+[plotting.NUMUCRT]
+run_title = "Runs 3-5"
+
+[channels]
+signal_channels = ["NPBDT", "ZPBDT"]
+constraint_channels = ["NUMU"]
+
+[[h0_params]]
+name = "signal_strength"
+value = 0.0
+
+[[h1_params]]
+name = "signal_strength"
+value = 1.0
+
+[fc_scan]
+parameter_name = "signal_strength"
+range = [0, 5]
+n_points = 40
+
+[[fc_scan.fit_grid]]
+parameter = "signal_strength"
+range = [0, 10]
+n_points = 100
+
+[uncertainty_defaults]
+include_multisim_errors = true
+add_ext_error_floor = false
+use_sideband = true
+
+[[generator]]
+[generator.load_runs]
+run_numbers = ["3","4b","4c","4d","5"]
+data = "muon_sideband"
+truth_filtered_sets = ["nue", "drt"]
+loadshowervariables = false
+loadsystematics = true
+use_bdt = false
+loadnumuvariables = true
+load_crt_vars = true
+numupresel = true
+enable_cache = true
+blinded = false
+
+[[generator.channel]]
+variable = "neutrino_energy"
+n_bins = 14
+limits = [0.15, 1.55]
+selection = "NUMU"
+preselection = "NUMU"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+
+[[generator]]
+
+mc_hist_generator_cls = "SignalOverBackgroundGenerator"
+
+[generator.load_runs]
+run_numbers = ["1", "2", "3","4b","4c","4d","5"]
+data = "bnb"
+truth_filtered_sets = ["nue", "drt"]
+loadpi0variables = true
+loadshowervariables = true
+loadrecoveryvars = true
+loadsystematics = true
+load_lee = true
+enable_cache = true
+blinded = true
+
+[[generator.parameter]]
+name = "signal_strength"
+value = 1.0
+bounds = [0.0, 10.0]
+
+[[generator.channel]]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.55]
+selection = "NPBDT"
+preselection = "NP"
+variable_tex = "Reconstructed Energy (GeV)"
+
+[[generator.channel]]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.55]
+selection = "ZPBDT"
+preselection = "ZP"
+variable_tex = "Reconstructed Energy (GeV)"

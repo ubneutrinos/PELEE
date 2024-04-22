@@ -1,5 +1,6 @@
 from dataclasses import dataclass, fields
 from typing import List, Optional, Tuple, Union
+import warnings
 from microfit.selections import find_common_selection, get_selection_query, get_selection_title
 
 import numpy as np
@@ -25,19 +26,57 @@ class Binning:
         Whether the binning is logarithmic or not (default is False)
     selection_query : str, optional
         Query to be applied to the dataframe before generating the histogram.
+        This can be used to define a selection on the variable being binned.
+    selection_key : str, optional
+        Key of the selection in the selection dictionary. This is used to
+        identify the selection in the MultiChannelBinning.
+    preselection_key : str, optional
+        Key of the preselection in the selection dictionary. This is used to
+        identify the preselection in the MultiChannelBinning.
+    selection_tex : str, optional
+        LaTeX representation of the selection (default is None) that can be used
+        in plots.
+    selection_tex_short : str, optional
+        Short LaTeX representation of the selection (default is None) that can be used
+        in plots.
     """
 
     variable: str
     bin_edges: np.ndarray
     label: Optional[str] = None
     variable_tex: Optional[str] = None
+    variable_tex_short: Optional[str] = None
     is_log: bool = False
     selection_query: Optional[str] = None
     selection_key: Optional[str] = None
     preselection_key: Optional[str] = None
     selection_tex: Optional[str] = None
+    selection_tex_short: Optional[str] = None
 
-    def __eq__(self, other):
+    def is_compatible(self, other):
+        """Check that two binnings are compatible.
+
+        This function is a relaxed version of the __eq__ method. It checks that the
+        binning is compatible with another binning, i.e. that the bin edges are the
+        same, but it does not check other properties such as the selection. This is useful when
+        adding and subtracting histograms that may originate from different selections.
+        """
+
+        # The properties that must match are the bin edges, is_log, and the variable.
+        for field in fields(self):
+            if field.name not in ["variable", "bin_edges", "is_log"]:
+                continue
+            attr_self = getattr(self, field.name)
+            attr_other = getattr(other, field.name)
+            if isinstance(attr_self, np.ndarray) and isinstance(attr_other, np.ndarray):
+                if not np.array_equal(attr_self, attr_other):
+                    return False
+            else:
+                if attr_self != attr_other:
+                    return False
+        return True
+
+    def __eq__(self, other) -> bool:
         for field in fields(self):
             attr_self = getattr(self, field.name)
             attr_other = getattr(other, field.name)
@@ -45,7 +84,12 @@ class Binning:
             # uniquely identify the channel in the MultiChannelBinning.
             # But the TeX strings don't have to match, because they are only used
             # for plotting.
-            if field.name in ["variable_tex", "selection_tex"]:
+            if field.name in [
+                "variable_tex",
+                "selection_tex",
+                "selection_tex_short",
+                "variable_tex_short",
+            ]:
                 # It really doesn't matter if the variable_tex is different, as it is
                 # only used for plotting. So we can just skip it.
                 continue
@@ -67,22 +111,44 @@ class Binning:
     def __len__(self):
         return self.n_bins
 
-    def set_selection(self, selection=None, preselection=None):
+    def set_selection(
+        self,
+        selection=None,
+        preselection=None,
+        query=None,
+        selection_tex=None,
+        selection_tex_short=None,
+    ):
         """Set the selection query of the binning given the preselection and the selection."""
-        self.selection_query = get_selection_query(selection, preselection)
-        self.selection_key = selection
-        self.preselection_key = preselection
-        self.selection_tex = get_selection_title(selection, preselection)
+        if selection is not None or preselection is not None:
+            assert query is None, "Cannot set both query and selection/preselection"
+            self.selection_query = get_selection_query(selection, preselection)
+            self.selection_key = selection
+            self.preselection_key = preselection
+            self.selection_tex = selection_tex or get_selection_title(selection, preselection)
+            self.selection_tex_short = selection_tex_short or get_selection_title(
+                selection, preselection, short=True
+            )
+        elif query is not None:
+            self.selection_query = query
+            self.selection_key = None
+            self.preselection_key = None
+            self.selection_tex = selection_tex or query
+            self.selection_tex_short = selection_tex_short or query
+        else:
+            raise ValueError("Must specify either selection/preselection or query")
 
     @classmethod
     def from_config(
         cls,
         variable: str,
-        n_bins: int,
-        limits: Tuple[float, float],
+        n_bins: Optional[int],
+        limits: Optional[Tuple[float, float]],
         variable_tex: Optional[str] = None,
         is_log: bool = False,
         label: Optional[str] = None,
+        bin_edges: Optional[Union[np.ndarray, List[float]]] = None,
+        **kwargs,
     ):
         """Create a Binning object from a typical binning configuration
 
@@ -90,10 +156,10 @@ class Binning:
         -----------
         variable : str
             Name of the variable being binned
-        n_bins : int
-            Real of bins
-        limits : tuple
-            Tuple of lower and upper limits
+        n_bins : int, optional
+            Real of bins. If not provided, then bin_edges must be provided.
+        limits : tuple, optional
+            Tuple of lower and upper limits. If not provided, then bin_edges must be provided.
         variable_tex : str, optional
             Label for the binned variable. This will be used to label the x-axis in plots.
         is_log : bool, optional
@@ -101,18 +167,27 @@ class Binning:
         label : str, optional
             Label of the binning. In a multi-dimensional binning, this should be
             a unique key.
+        bin_edges : np.ndarray, optional
+            Array of bin edges. If this is provided, the n_bins and limits are ignored.
 
         Returns:
         --------
         Binning
             A Binning object with the specified bounds
         """
+
+        label = variable if label is None else label
+        if bin_edges is not None:
+            return cls(variable, np.array(bin_edges), label, variable_tex, is_log=is_log, **kwargs)
+        else:
+            assert n_bins is not None, "Must provide either n_bins or bin_edges"
+            assert limits is not None, "Must provide either limits or bin_edges"
         if is_log:
             bin_edges = np.geomspace(*limits, n_bins + 1)
         else:
             bin_edges = np.linspace(*limits, n_bins + 1)
-        label = variable if label is None else label
-        return cls(variable, bin_edges, label, variable_tex, is_log=is_log)
+        
+        return cls(variable, bin_edges, label, variable_tex, is_log=is_log, **kwargs)
 
     @property
     def n_bins(self):
@@ -140,6 +215,11 @@ class Binning:
         """Create a copy of the binning."""
         return Binning(**self.to_dict())
 
+    @property
+    def channels(self) -> List[str]:
+        assert self.label is not None, "Binning must have a label"
+        return [self.label]
+
 
 @dataclass
 class MultiChannelBinning:
@@ -161,6 +241,7 @@ class MultiChannelBinning:
     is_log: bool = False
 
     def __post_init__(self):
+        assert [b.label is not None for b in self.binnings], "All binnings must have a label"
         self.ensure_unique_labels()
 
     def ensure_unique_labels(self):
@@ -201,14 +282,24 @@ class MultiChannelBinning:
         return cls(**state)
 
     @property
-    def label(self) -> str:
-        """Label of the unrolled binning."""
-        return "Global Bin Real"
+    def labels(self) -> List[str]:
+        """Labels of all channels."""
+        # Deprecation warning: We are renaming "labels" to "channels"
+        warnings.warn(
+            "The 'labels' property is deprecated. Use 'channels' instead.",
+        )
+        assert [b.label is not None for b in self.binnings], "All binnings must have a label"
+        # The filter seems superfluous, but it is needed for the type checker to
+        # understand that the labels are not None.
+        return [b.label for b in self.binnings if b.label is not None]
 
     @property
-    def labels(self) -> List[Union[str, None]]:
+    def channels(self) -> List[str]:
         """Labels of all channels."""
-        return [b.label for b in self.binnings]
+        assert [b.label is not None for b in self.binnings], "All binnings must have a label"
+        # The filter seems superfluous, but it is needed for the type checker to
+        # understand that the labels are not None.
+        return [b.label for b in self.binnings if b.label is not None]
 
     @property
     def n_channels(self):
@@ -291,7 +382,7 @@ class MultiChannelBinning:
         if isinstance(key, int):
             return key
         elif isinstance(key, str):
-            return self.labels.index(key)
+            return self.channels.index(key)
         else:
             raise ValueError(f"Invalid key {key}. Must be an integer or a string.")
 
@@ -368,7 +459,7 @@ class MultiChannelBinning:
         label : str
             Label of the channel to be rolled to first.
         """
-        idx = self.labels.index(label)
+        idx = self.channels.index(label)
         self.roll_channels(-idx)
 
     @classmethod
@@ -392,3 +483,16 @@ class MultiChannelBinning:
             else:
                 binnings.extend(mcb.binnings)
         return cls(binnings)
+
+    def is_compatible(self, other):
+        """Check that two MultiChannelBinning objects are compatible.
+
+        This function is a relaxed version of the __eq__ method. It checks that the
+        binnings are compatible with another MultiChannelBinning, i.e. that the bin edges are the
+        same, but it does not check other properties such as the selection. This is useful when
+        adding and subtracting histograms that may originate from different selections.
+        """
+        for b1, b2 in zip(self.binnings, other.binnings):
+            if not b1.is_compatible(b2):
+                return False
+        return True

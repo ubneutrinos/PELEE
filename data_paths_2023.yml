@@ -10,9 +10,9 @@ runs:
   - run_id: "1"
     path: run1/nuepresel/
     opendata_bnb:
-      file: data_bnb_mcc9.1_v08_00_00_25_reco2_C1_beam_good_reco2_5e19
-      pot: 4.55E+19 
-      trig: 10172678
+      file: beamon_pelee_ntuple_opendata_run1_5e19_ana 
+      pot: 4.56E+19 
+      trig: 10127569
     bnb:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
       pot: 1.67E+20
@@ -32,6 +32,11 @@ runs:
       pot: 1.67E+20
       trig: 37273255.00
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+      sideband_def: n_muons_tot > 0
     near_sideband:
       file: NearSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
       pot: 1.67E+20
@@ -42,6 +47,10 @@ runs:
       pot: 1.67E+20
       trig: 37273255.00
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
+      pot: 3.08E+20
+      trig: 0 
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
       trig: 65744587 
@@ -80,6 +89,11 @@ runs:
       pot: 2.61E+20 
       trig: 61882791 
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
+      pot: 2.61E+20 
+      trig: 61882791 
+      sideband_def: n_muons_tot > 0
     near_sideband:
       file: NearSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
@@ -90,6 +104,10 @@ runs:
       pot: 2.61E+20 
       trig: 61882791 
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run2_NuWro_reco2_reco2
+      pot: 3.07E+20 
+      trig: 0 
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
       trig: 153905891 
@@ -105,6 +123,63 @@ runs:
       pot: 5.47E+20
     # apparently there are no detailed background MC sets for run2
   - run_id: "3"
+    path: run3/nuepresel/
+    opendata_bnb:
+      file: beamon_pelee_ntuple_opendata_run3_1e19_ana 
+      pot: 9.84E+18
+      trig: 2387969
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3 
+      pot: 2.57E+20
+      trig: 6.13E+07
+    bdt_sideband:
+      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: shr_energy_tot_cali > 0.75
+    two_shr_sideband:
+      file: TwoShowers_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: n_muons_tot > 0  
+    near_sideband:
+      file: NearSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: ((0.75 < reco_e < 1.05 and (pi0_score > 0.1 and nonpi0_score > 0.1)) or (reco_e < 0.75 and (0.1 < pi0_score < 0.67 and 0.1 < nonpi0_score < 0.7))) or ((0.65 < reco_e < 0.9 and bkg_score > 0.4) or (reco_e < 0.65 and 0.4 < bkg_score < 0.72)) 
+    far_sideband:
+      file: FarSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2
+      pot: 2.89E+20
+      trig: 0
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
+      trig: 207167629
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
+      pot: 1.31E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
+      pot: 7.77E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
+      pot: 3.27E+20
+  - run_id: "3_crt"
     path: run3/nuepresel/
     opendata_bnb:
       file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
@@ -152,27 +227,6 @@ runs:
     drt:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
       pot: 3.27E+20
-  - run_id: "3b"
-    path: run3/nuepresel/
-    two_shr_sideband:
-      file: TwoShowers_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.15E+20
-      trig: 5.17E+07
-      sideband_def: n_showers_contained >= 2 and run>=14114
-    ext:
-      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
-      trig: 1.92E+08
-      sideband_def: n_showers_contained >= 2 and run>=14114
-    mc:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
-      pot: 1.31E+21
-    nue:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
-      pot: 7.77E+22
-      filter: abs(nu_pdg)==12 and ccnc == 0
-    drt:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
-      pot: 3.27E+20
   - run_id: "4a"
     path: run4a/nuepresel/
     opendata_bnb:
@@ -194,6 +248,11 @@ runs:
       pot: 4.50E+19 
       trig: 9897624
       sideband_def: n_showers_contained >= 2
+    muon_sideband: 
+      file: NuMuSideband_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
+      pot: 4.50E+19 
+      trig: 9897624
+      sideband_def: n_muons_tot > 0
     near_sideband:
       file: NearSideband_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana
       pot: 4.50E+19 
@@ -241,6 +300,11 @@ runs:
       pot: 1.39E+20 
       trig: 32968190
       sideband_def: n_showers_contained >= 2
+    muon_sideband: 
+      file: NuMuSideband_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana
+      pot: 1.39E+20 
+      trig: 32968190
+      sideband_def: n_muons_tot > 0
     near_sideband:
       file: NearSideband_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana
       pot: 1.39E+20 
@@ -288,6 +352,11 @@ runs:
       pot: 9.04E+19 
       trig: 20485991  
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
+      pot: 9.04E+19 
+      trig: 20485991  
+      sideband_def: n_muons_tot > 0 
     near_sideband:
       file: NearSideband_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana 
       pot: 9.04E+19 
@@ -298,6 +367,10 @@ runs:
       pot: 9.04E+19 
       trig: 20485991  
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run4_pelee
+      pot: 3.48E+20
+      trig: 0
     ext:
       file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
       trig: 50506860
@@ -335,6 +408,11 @@ runs:
       pot: 4.93E+19
       trig: 11192660
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana  
+      pot: 4.93E+19
+      trig: 11192660
+      sideband_def: n_muons_tot > 0
     near_sideband:
       file: NearSideband_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana  
       pot: 4.93E+19
@@ -382,6 +460,11 @@ runs:
       pot: 1.48E+20 
       trig: 35265730
       sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana
+      pot: 1.48E+20 
+      trig: 35265730
+      sideband_def: n_muons_tot > 0 
     near_sideband:
       file: NearSideband_run5_bnb_beamon_PeLEE_ntuples_run5_ana
       pot: 1.48E+20 
@@ -392,6 +475,10 @@ runs:
       pot: 1.48E+20 
       trig: 35265730
       sideband_def: (reco_e > 1.05 or (pi0_score < 0.1 and nonpi0_score < 0.1)) or (reco_e > 0.9 or bkg_score < 0.4) 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run5_pelee 
+      pot: 3.68E+20
+      trig: 0
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
       trig: 107466402 
@@ -436,6 +523,10 @@ numupresel:
       pot: 1.67E+20
       trig: 37273255.00
       sideband_def: n_muons_tot > 0
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
+      pot: 3.08E+20
+      trig: 0 
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
       trig: 65744587 
@@ -479,6 +570,10 @@ numupresel:
       pot: 2.61E+20 
       trig: 61882791 
       sideband_def: n_muons_tot > 0
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run2_NuWro_reco2_reco2
+      pot: 3.07E+20 
+      trig: 0 
     ext:
       file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run2 
       trig: 153905891 
@@ -494,6 +589,53 @@ numupresel:
       pot: 5.47E+20
     # apparently there are no detailed background MC sets for run2
   - run_id: "3"
+    path: run3/numupresel/
+    opendata_bnb:
+      file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
+      pot: 9.43E+18
+      trig: 2271036
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3 
+      pot: 2.57E+20
+      trig: 6.13E+07
+    bdt_sideband:
+      file: SignalRemoved_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: (pi0_score < 0.67 or nonpi0_score < 0.70) and bkg_score < 0.72  
+    shr_energy_sideband:
+      file: ShowerSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: shr_energy_tot_cali > 0.75
+    two_shr_sideband:
+      file: TwoShowers_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: n_showers_contained >= 2
+    muon_sideband:
+      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
+      pot: 2.57E+20
+      trig: 6.13E+07
+      sideband_def: n_muons_tot > 0  
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_NuWro_reco2_reco2
+      pot: 2.89E+20
+      trig: 0
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
+      trig: 207167629 
+    mc:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
+      pot: 1.31E+21 
+    nue:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
+      pot: 7.77E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
+      pot: 3.27E+20
+  - run_id: "3_crt"
     path: run3/numupresel/
     opendata_bnb:
       file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
@@ -526,27 +668,6 @@ numupresel:
     ext:
       file: PostCRTFix_bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3 
       trig: 191706142
-    mc:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
-      pot: 1.31E+21 
-    nue:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nue
-      pot: 7.77E+22
-      filter: abs(nu_pdg)==12 and ccnc == 0 
-    drt:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
-      pot: 3.27E+20
-  - run_id: "3b"
-    path: run3/numupresel/
-    muon_sideband:
-      file: NuMuSideband_bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run3
-      pot: 2.15E+20
-      trig: 5.17E+07
-      sideband_def: n_muons_tot > 0 and run>=14114
-    ext:
-      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run3
-      trig: 1.92E+08
-      sideband_def: n_muons_tot > 0 and run>=14114
     mc:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_nu
       pot: 1.31E+21 
@@ -661,6 +782,10 @@ numupresel:
       pot: 9.04E+19 
       trig: 20485991  
       sideband_def: n_muons_tot > 0 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run4_pelee
+      pot: 3.48E+20
+      trig: 0
     ext:
       file: Run4c_bnb_beamOff_PeLee_ntuples_run4c_ana_ana 
       trig: 50978641 
@@ -739,6 +864,10 @@ numupresel:
       pot: 1.48E+20 
       trig: 35265730
       sideband_def: n_muons_tot > 0 
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run5_pelee 
+      pot: 3.68E+20
+      trig: 0
     ext:
       file: Run5_bnb_beamOff_PeLee_ntuples_run5_ana_ana 
       trig: 115079907   
@@ -763,7 +892,15 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_CV_reco2_reco2
-        pot: 1.66179e+20 
+        pot: 3.15E+20 
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lydown: # No LYDown used to run 1 - put the CV sample in as a dummy 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_CV_reco2_v08_00_00_38_run1_reco2_reco2 
@@ -771,7 +908,11 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_CV_reco2_reco2
-        pot: 1.66179e+20 
+        pot: 3.15E+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lyatt: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYAttenuation_v08_00_00_38_run1_reco2_reco2 
@@ -779,7 +920,15 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_LYAttenuation_reco2_reco2
-        pot: 1.66179e+20
+        pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYAttenuation_v08_00_00_45_run3b_reco2_reco2_nutples 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     lyrayleigh: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYRayleigh_v08_00_00_37_run1_reco2_reco2 
@@ -787,7 +936,15 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_LYRayleigh_reco2_reco2
-        pot: 1.66179e+20
+        pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYReyleigh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYReyliegh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     sce: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_detvar_sce_reco2_run1_reco2_reco2 
@@ -795,7 +952,15 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_SCE_reco2_reco2
-        pot: 1.66179e+20
+        pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_39_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     recomb2: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_detvar_recomb2_reco2_run1_reco2_reco2 
@@ -803,7 +968,15 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_Recombination_reco2_reco2
-        pot: 1.66179e+20
+        pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2_ntuples 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodx: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_wiremod_ScaleX_v08_00_00_42_run1_reco2_reco2 
@@ -811,7 +984,15 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_X_reco2_reco2
-        pot: 1.66179e+20
+        pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodyz: 
       nue:
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_42_run1_reco2_reco2
@@ -819,7 +1000,15 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc:
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_YZ_reco2_reco2
-        pot: 1.66179e+20
+        pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodthetaxz: 
       nue: 
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleXZ_v08_00_00_42_run1_reco2_reco2 
@@ -827,7 +1016,15 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc: 
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_ThetaXZ_reco2_reco2
-        pot: 1.66179e+20
+        pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_data_cc_pi0_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
     wiremodthetayz: 
       nue: 
         file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleYZ_v08_00_00_42_run1_reco2_reco2
@@ -835,5 +1032,420 @@ detvar:
         filter: abs(nu_pdg)==12 and ccnc == 0
       mc: 
         file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_ThetaYZ_reco2_reco2
-        pot: 1.66179e+20
+        pot: 3.15E+20
+      cc_pi0:
+        file: prodgenie_data_cc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
 
+  - run_id: "3"
+    path: run3/detvar/ 
+    cv: 
+      nue:
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 6.02283e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_CV_reco2_reco2 
+        pot: 3.95121e+20 
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lydown:  
+      nue:
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.99788e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYDown_reco2_reco2 
+        pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lyatt: 
+      nue:
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYAttenuation_v08_00_00_38_run3b_reco2_reco2  
+        pot: 5.76185e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYAttenuation_reco2_reco2 
+        pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYAttenuation_v08_00_00_45_run3b_reco2_reco2_nutples 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_NCPi0_overlay_DetVar_LYAttenuation_v08_00_00_38_run3b_reco2_reco2_ntuples 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lyrayleigh: 
+      nue:
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_LYRayleigh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.95097e+22 
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_LYRayleigh_reco2_reco2
+        pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_LYReyleigh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYReyliegh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    sce: 
+      nue:
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.17794e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_SCE_reco2_reco2
+        pot: 3.91364e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_39_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    recomb2: 
+      nue:
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2 
+        pot: 5.31577e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_Recombination_reco2_reco2
+        pot: 3.91364e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2_ntuples 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0: 
+        file: prodgenie_nc_pi0_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2_ntuples
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    wiremodx: 
+      nue:
+        file: prodgenie_bnb_nue_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2  
+        pot: 5.83759e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_X_reco2_reco2
+        pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    wiremodyz: 
+      nue:
+        file: prodgenie_bnb_nue_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.90273e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_YZ_reco2_reco2
+        pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_cc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    wiremodthetaxz: 
+      nue: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.57307e+22 
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      cc_pi0:
+        file: prodgenie_data_cc_pi0_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+      mc: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_ThetaXZ_reco2_reco2
+        pot: 3.95121e+20
+    wiremodthetayz: 
+      nue: 
+        file: prodgenie_bnb_intrinsic_nue_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.53926e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc: 
+        file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run3_ThetaYZ_reco2_reco2 
+        pot: 3.95121e+20
+      cc_pi0:
+        file: prodgenie_data_cc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2 
+        pot: 1.34475e+21 
+        filter: mcf_pass_ccpi0 == 1 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+
+  - run_id: "4"
+    path: run4_detvar/ 
+    cv: 
+      nue:
+        file: run4_bnb_intrinsic_nue_detvar_cv_pandora_unified_reco2_reco2_ana 
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: Detvar_BNB_nu_pandora_reco2_CV_run4_reco2_ana
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lydown: 
+      nue:
+        file: Run_4_BNB_Nue_Detvar_LY_Down_Pandora_Reco2_Run4_ana 
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run4_5_bnb_nu_overlay_detvar_LYDown_reco2_pandora_unified_run4_ana 
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lyatt: 
+      nue:
+        file: run4_bnb_intrinsic_nue_detvar_LYAttenuation_pandora_reco2_run4_ana 
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: Run_4_BNB_Nu_Detvar_LYAttenuation_Pandora_Reco2_run4_ana 
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_NCPi0_overlay_DetVar_LYAttenuation_v08_00_00_38_run3b_reco2_reco2_ntuples 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lyrayleigh: 
+      nue:
+        file: run4_bnb_intrinsic_nue_detvar_LYRayleigh_pandora_reco2_run4_ana 
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run4_5_bnb_nu_overlay_detvar_LYRayleigh_reco2_pandora_unified_run4_ana
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYReyliegh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    recomb2: 
+      nue:
+        file: run4_bnb_intrinsic_nue_detvar_Recomb2_pandora_reco2_ana  
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc: 
+        file: run4_bnb_nu_detvar_Recomb2_pandora_reco2_ana
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2_ntuples
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    sce: 
+      nue:
+        file: run4_bnb_nue_detvar_SCE_pandora_reco2_ana
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc: 
+        file: run4_bnb_nu_detvar_SCE_pandora_reco2_ana
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    wiremodx: 
+      nue:
+        file: run4_bnb_intrinsic_nue_detvar_wire_mod_x_Pandora_v2_reco2_reco2_ana 
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run4_bnb_nu_detvar_wiremod_x_pandora_reco2_reco2_ana 
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    wiremodyz: 
+      nue:
+        file: run4_bnb_intrinsic_nue_detvar_wire_mod_yz_Pandora_reco2_reco2_ana  
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run4_bnb_nu_detvar_wiremod_yz_pandora_reco2_reco2_ana 
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    wiremodthetaxz: 
+      nue:
+        file: run4_bnb_intrinsic_nue_detvar_WireModThetaXZ_pandora_reco2_run4_ana 
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run4_bnb_nu_detvar_Pandora_WireMod_Theta_XZ_reco2_ana 
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2_ntuples
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    wiremodthetayz: 
+      nue:
+        file: run4_bnb_intrinsic_nue_detvar_WireModThetaYZ_pandora_reco2_run4_ana  
+        pot: 9.78953e+22
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run4_bnb_nu_detvar_Pandora_WireMod_Theta_YZ_reco2_ana
+        pot: 6.11071e+20 
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+  - run_id: "5"
+    path: run5_detvar/ 
+    cv: 
+      nue:
+        file: run5_bnb_intrinsic_nue_detvar_cv_pandora_unified_reco2_reco2_ana
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run5_DetVar_bnb_CV_Pandora_Unified_reco2_run5_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_CV_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lydown: 
+      nue:
+        file: Run_5_BNB_Nue_Detvar_LYDown_Pandora_Reco2_run5_ana 
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run4_5_bnb_nu_overlay_detvar_LYDown_reco2_pandora_unified_run5_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYDown_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lyatt: 
+      nue:
+        file: Run_5_BNB_Nue_Detvar_LYAttenuation_Pandora_Reco2_run5_ana  
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: Run_5_BNB_Nu_Detvar_LYAttenuation_Pandora_Reco2_run5_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_NCPi0_overlay_DetVar_LYAttenuation_v08_00_00_38_run3b_reco2_reco2_ntuples 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    lyrayleigh: 
+      nue:
+        file: Run_5_BNB_Nue_Detvar_LYRayleigh_Pandora_Reco2_run5_ana   
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run4_5_bnb_nu_overlay_detvar_LYRayleigh_reco2_pandora_unified_run5_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_LYReyliegh_v08_00_00_37_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1 
+    recomb2: 
+      nue:
+        file: run5_bnb_intrinsic_nue_detvar_Recomb2_pandora_reco2_ana 
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc: 
+        file: run5_bnb_nu_detvar_Recomb2_pandora_reco2_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file:  prodgenie_nc_pi0_overlay_DetVar_Recomb2_reco2_v08_00_00_39_run3b_reco2_reco2_ntuples
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    sce: 
+      nue:
+        file: run5_bnb_intrinsic_nue_detvar_SCE_pandora_reco2_ana 
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc: 
+        file: run5_bnb_nu_detvar_SCE_pandora_reco2_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_SCE_reco2_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    wiremodx: 
+      nue:
+        file: Run_5_BNB_Nue_Detvar_WireModX_Pandora_Reco2_reco2_ana
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc: 
+        file: run5_bnb_nu_detvar_wire_mod_x_Pandora_reco2_reco2_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleX_v08_00_00_38_run3b_reco2_reco2 
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    wiremodyz: 
+      nue:
+        file: Run5_BNB_Nue_Detvar_WireModYZ_Pandora_Reco2_reco2_ana
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run5_bnb_nu_detvar_wire_mod_yz_Pandora_reco2_reco2_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_wiremod_ScaleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    wiremodthetaxz: 
+      nue:
+        file: Run_5_BNB_Nue_Pandora_DetVar_WireMod_ThetaXZ_fix_reco2_ana 
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run5_bnb_nu_detvar_Pandora_WireMod_Theta_XZ_reco2_reco2_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_WireModAngleXZ_v08_00_00_38_run3b_reco2_reco2_ntuples
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1
+    wiremodthetayz: 
+      nue:
+        file: run5_bnb_nue_detvar_WireModThetaYZ_pandora_reco2_run5_ana
+        pot: 1.19925e+23
+        filter: abs(nu_pdg)==12 and ccnc == 0
+      mc:
+        file: run5_bnb_nu_detvar_Pandora_WireMod_Theta_YZ_reco2_reco2_ana
+        pot: 5.15564e+20
+      nc_pi0:
+        file: prodgenie_nc_pi0_overlay_DetVar_WireModAngleYZ_v08_00_00_38_run3b_reco2_reco2
+        pot: 5.0552e+21 
+        filter: mcf_pass_ncpi0 == 1

@@ -44,7 +44,7 @@ class Transformer:
     def fit(self, data):
         """Fit the transformation to the given data."""
         self._scale = 1.0
-        pass
+        return self
 
     def transform(self, x):
         """The transformation function, :math:`g(x)`."""
@@ -275,11 +275,15 @@ class SmoothHistogramMixin:
         if isinstance(bw_method, str):
             if bw_method == "scott":
                 bw_method_ = X.shape[0] ** (-1 / (X.shape[1] + 4))
+                bandwidth = bw_method_ * data_std
             elif bw_method == "silverman":
                 bw_method_ = (X.shape[0] * (X.shape[1] + 2) / 4) ** (-1 / (X.shape[1] + 4))
+                bandwidth = bw_method_ * data_std
+            elif bw_method == "bin_width":
+                bandwidth = bin_width
             else:
                 raise ValueError(f"Unknown bw_method {bw_method}.")
-            bandwidth = bw_method_ * data_std
+
         assert isinstance(bandwidth, float)
         kde = TransformedKDE(data_transformer, bandwidth=bandwidth).fit(
             X, sample_weight=nonzero_weights

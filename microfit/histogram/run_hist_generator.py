@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Optional, Union
-from microfit.histogram.histogram import MultiChannelHistogram
 
+from microfit.histogram.histogram import MultiChannelHistogram
 from microfit.selections import get_selection_query
 from microfit.category_definitions import get_category_color, get_category_label
 from microfit.statistics import chi_square
@@ -29,8 +29,10 @@ class RunHistGenerator:
         sideband_generator: Optional["RunHistGenerator"] = None,
         uncertainty_defaults: Optional[Dict[str, bool]] = None,
         parameters: Optional[ParameterSet] = None,
-        detvar_data_path: Optional[str] = None,
+        detvar_data: Optional[dict] = None,
         mc_hist_generator_cls: Optional[type] = None,
+        extra_mc_covariance: Optional[np.ndarray] = None,
+        extra_background_fractional_error: Optional[Dict[str, float]] = None,
         showdata=True,
         **mc_hist_generator_kwargs,
     ) -> None:
@@ -77,6 +79,11 @@ class RunHistGenerator:
         showdata : bool, optional
             Whether to show data in the plot. If False, only MC is shown. Internally, this removes the
             dataframe for the real data entirely.
+        extra_mc_covaraince: array_like, optional
+            Additional covariance applied to total mc prediction
+        extra_background_fractional_error: dict, optional
+            Dictionary where keys are the selection strings for the background and values are the
+            fractional error to be applied to that background.
         **mc_hist_generator_kwargs
             Additional keyword arguments that are passed to the MC histogram generator on initialization.
         """
@@ -89,7 +96,7 @@ class RunHistGenerator:
         self.selection = selection
         self.preselection = preselection
         self.binning = binning.copy()
-        self.channels = None
+        self.channels = []  # type: List[str]
         if isinstance(self.binning, MultiChannelBinning):
             if self.selection is not None:
                 raise ValueError(
@@ -102,7 +109,7 @@ class RunHistGenerator:
             # This query is the common selection that is applied to all channels. We can safely apply it to
             # the overall dataframe to reduce the number of events that need to be processed.
             query = self.binning.reduce_selection()
-            self.channels = self.binning.labels
+            self.channels = self.binning.channels
         elif isinstance(self.binning, Binning):
             if self.binning.selection_query is not None:
                 if self.selection is not None or self.preselection is not None:
@@ -110,11 +117,13 @@ class RunHistGenerator:
                         "Cannot use selection or preselection when the Binning already "
                         "contains a selection query."
                     )
-            else:
+            elif self.selection is not None or self.preselection is not None:
                 # If we reach this point, we are working in "simplified" mode: There is only one channel
                 # and the binning does not contain a selection query. If no label is given, we just
                 # use the selection as the label.
                 self.binning.label = self.binning.label or self.selection
+                # Fallback to preselection if selection is not given
+                self.binning.label = self.binning.label or self.preselection
                 # For compatibility with newer plotting code, we also have to set the selection
                 # for the binning.
                 # This sets the selection_tex as well as the selection query string.
@@ -124,27 +133,22 @@ class RunHistGenerator:
             query = self.binning.selection_query
             # and remove the query string from the binning, so that it is not applied again
             self.binning.selection_query = None
+            assert self.binning.label is not None, "Binning must have a label."
             self.channels = [self.binning.label]
+        assert len(self.channels) > 0, "Binning must contain at least one channel."
         self.logger = logging.getLogger(__name__)
         self.detvar_data = None
-        if detvar_data_path is not None:
-            # check that path exists
-            if not os.path.exists(detvar_data_path):
-                raise ValueError(f"Path {detvar_data_path} does not exist.")
-            self.detvar_data = from_json(detvar_data_path)
-            if not self.detvar_data["binning"] == self.binning:
+        if detvar_data is not None:
+            self.detvar_data = detvar_data
+            detvar_binning = self.detvar_data["binning"]
+            assert isinstance(
+                detvar_binning, (Binning, MultiChannelBinning)
+            ), "Detector variation binning must be a Binning or MultiChannelBinning."
+            # Just check the bin edges and variable rather than the entire binning object
+            if not detvar_binning.is_compatible(self.binning):
                 raise ValueError(
                     "Binning of detector variations does not match binning of main histogram."
                 )
-            if not self.detvar_data["selection"] == self.selection:
-                raise ValueError(
-                    "Selection of detector variations does not match selection of main histogram."
-                )
-            if not self.detvar_data["preselection"] == self.preselection:
-                raise ValueError(
-                    "Preselection of detector variations does not match preselection of main histogram."
-                )
-
         # ensure that the necessary keys are present
         if "data" not in rundata_dict.keys():
             raise ValueError("data key is missing from rundata_dict (may be None).")
@@ -187,6 +191,8 @@ class RunHistGenerator:
             self.binning,
             parameters=self.parameters,
             detvar_data=self.detvar_data,
+            extra_mc_covariance=extra_mc_covariance,
+            extra_background_fractional_error=extra_background_fractional_error,
             **mc_hist_generator_kwargs,
         )
         if df_ext is not None:
@@ -203,7 +209,7 @@ class RunHistGenerator:
             warnings.warn(
                 "Using the sideband_generator argument is deprecated. Use the MultiBandAnalysis "
                 "class instead.",
-                DeprecationWarning
+                DeprecationWarning,
             )
         self.sideband_generator = sideband_generator
         self.uncertainty_defaults = dict() if uncertainty_defaults is None else uncertainty_defaults
@@ -264,7 +270,7 @@ class RunHistGenerator:
         data_hist = hist_generator.generate(use_kde_smoothing=smooth_ext_histogram)
         if add_error_floor:
             prior_errors = np.ones(data_hist.n_bins) * 1.4**2
-            prior_errors[data_hist.nominal_values > 0] = 0
+            prior_errors[data_hist.bin_counts > 0] = 0
             data_hist.add_covariance(np.diag(prior_errors))
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
@@ -276,9 +282,11 @@ class RunHistGenerator:
         self,
         category_column="dataset_name",
         include_multisim_errors=None,
+        add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
         scale_to_pot=None,
         channel=None,
-    ) -> Dict[str, Histogram]:
+    ) -> Dict[Union[str, int], Histogram]:
         """Get MC histograms that are split by event category.
 
         Parameters
@@ -305,12 +313,14 @@ class RunHistGenerator:
             if include_multisim_errors is None
             else include_multisim_errors
         )
-        mc_hists = {}  # type: Dict[str, Histogram]
+        mc_hists = {}  # type: Dict[str | int, Histogram]
         other_categories = []
         for i, category in enumerate(self.mc_hist_generator.dataframe[category_column].unique()):
             extra_query = f"{category_column} == '{category}'"
             hist = self.get_mc_hist(
                 include_multisim_errors=include_multisim_errors,
+                add_precomputed_detsys=add_precomputed_detsys,
+                smooth_detsys_variations=smooth_detsys_variations,
                 extra_query=extra_query,
                 scale_to_pot=scale_to_pot,
             )
@@ -333,7 +343,7 @@ class RunHistGenerator:
             mc_hists["Other"].color = "gray"
         return mc_hists
 
-    def get_hist_generator(self, which):
+    def get_hist_generator(self, which) -> HistogramGenerator:
         assert which in ["mc", "data", "ext"]
         hist_generator = {
             "mc": self.mc_hist_generator,
@@ -345,10 +355,12 @@ class RunHistGenerator:
     def get_mc_hist(
         self,
         include_multisim_errors: Optional[bool] = None,
+        add_precomputed_detsys: bool = False,
+        smooth_detsys_variations: bool = True,
+        include_detsys_variations: Optional[List[str]] = None,
         extra_query: Optional[str] = None,
         scale_to_pot: Optional[float] = None,
         use_sideband: Optional[bool] = None,
-        add_precomputed_detsys: bool = False,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Produce a histogram from the MC dataframe.
 
@@ -407,6 +419,8 @@ class RunHistGenerator:
             sideband_observed_hist=sideband_observed_hist,
             extra_query=extra_query,
             add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
+            include_detsys_variations=include_detsys_variations,
         )
         hist.label = "MC"
 
@@ -421,6 +435,7 @@ class RunHistGenerator:
         use_sideband=None,
         add_ext_error_floor=None,
         add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
         smooth_ext_histogram=False,
     ):
         """Get the total prediction from MC and EXT.
@@ -451,6 +466,7 @@ class RunHistGenerator:
             scale_to_pot=scale_to_pot,
             use_sideband=use_sideband,
             add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
         )
         if self.ext_hist_generator is not None:
             ext_prediction = self.get_data_hist(
@@ -472,13 +488,17 @@ class RunHistGenerator:
         chi_square : float
             Chi square between the data and the total prediction.
         """
+        # TODO: This currently does not take into account the covariance between bins due to shared events
+        warnings.warn(
+            "The chi-square calculation currently does not take into account contributions from correlated data bins."
+        )
         data_hist = self.get_data_hist(type="data")
         if data_hist is None:
             return np.nan
         total_prediction = self.get_total_prediction(**kwargs)
         chi_sq = chi_square(
-            data_hist.nominal_values,
-            total_prediction.nominal_values,
+            data_hist.bin_counts,
+            total_prediction.bin_counts,
             total_prediction.covariance_matrix,
         )
         return chi_sq

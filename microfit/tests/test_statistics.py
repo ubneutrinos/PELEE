@@ -21,7 +21,7 @@ class TestMatrix(unittest.TestCase):
 class TestCovariance(unittest.TestCase):
     # here we test if the naive loop implementation of the covariance matrix
     # calculation is equivalent to the numpy implementation
-    def loop_covariance(observations, central_value):
+    def loop_covariance(self, observations, central_value):
         cov = np.zeros((observations.shape[1], observations.shape[1]))
         for i in range(observations.shape[1]):
             for j in range(observations.shape[1]):
@@ -33,7 +33,7 @@ class TestCovariance(unittest.TestCase):
         return cov
 
     # This is the optimized implementation that we actually use in the code
-    def numpy_covariance(observations, central_value):
+    def numpy_covariance(self, observations, central_value):
         centered_data = observations - central_value
         cov_matrix = centered_data.T @ centered_data / observations.shape[0]
         return cov_matrix
@@ -47,9 +47,9 @@ class TestCovariance(unittest.TestCase):
         # calculate the covariance matrix
         cov = covariance(observations, central_value)
         # calculate the covariance matrix with the naive loop implementation
-        cov_loop = TestCovariance.loop_covariance(observations, central_value)
+        cov_loop = self.loop_covariance(observations, central_value)
         # calculate the covariance matrix with the numpy implementation
-        cov_numpy = TestCovariance.numpy_covariance(observations, central_value)
+        cov_numpy = self.numpy_covariance(observations, central_value)
         # check that the results are the same
         np.testing.assert_almost_equal(cov, cov_loop)
         np.testing.assert_almost_equal(cov, cov_numpy)

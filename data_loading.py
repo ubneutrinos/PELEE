@@ -11,12 +11,9 @@ import numpy as np
 import pandas as pd
 import uproot
 import yaml
-import localSettings as ls
 from typing import List
 import numpy as np
 import awkward as ak
-import nue_booster
-import xgboost as xgb
 from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 from numu_tki import selection_1muNp 
@@ -27,9 +24,16 @@ from numu_tki import process_1e1p
 
 from microfit.selections import extract_variables_from_query
 
-datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband"]
+datasets = ["bnb","opendata_bnb","nuwro_fd"]
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
-verbose=True
+
+# Create a logger for this module
+logger = logging.getLogger(__name__)
+
+# Set the level of the logger. This can be DEBUG, INFO, WARNING, ERROR, CRITICAL
+logger.setLevel(logging.INFO)
+
+verbose=False
 
 # Set to true if trying to exactly reproduce old plots, otherwise, false
 use_buggy_energy_estimator=False
@@ -49,7 +53,15 @@ def generate_hash(*args, **kwargs):
 
 
 def cache_dataframe(func):
-    def wrapper(*args, enable_cache=False, cache_dir=ls.dataframe_cache_path, **kwargs):
+    # In a testing environment, we might not have local settings available. In that case,
+    # we just set a local directory for the cache.
+    try:
+        import localSettings as ls
+        default_cache_path = ls.dataframe_cache_path
+    except ImportError:
+        default_cache_path = "dataframe_cache"
+
+    def wrapper(*args, enable_cache=False, cache_dir=default_cache_path, overwrite=False, **kwargs):
 
         if not enable_cache:
             return func(*args, **kwargs)
@@ -61,9 +73,12 @@ def cache_dataframe(func):
         if not os.path.exists(cache_dir):
             os.mkdir(cache_dir)
 
-        if os.path.exists(hdf_filepath):
+        if os.path.exists(hdf_filepath) and not overwrite:
             df = pd.read_hdf(hdf_filepath, "data")
         else:
+            if overwrite:
+                logger.debug(f"Overwriting cache file: {hdf_filepath}")
+            logger.debug(f"Calculating dataframe and saving to cache: {hdf_filepath}")
             df = func(*args, **kwargs)
             assert isinstance(df, pd.DataFrame), "Output should be a pandas DataFrame"
             df.to_hdf(hdf_filepath, key="data", mode="w")
@@ -101,7 +116,7 @@ def get_variables():
         "CosmicDirAll3D",
         "CosmicIPAll3D",
         # "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
-        "flash_pe",
+        #"flash_pe",
         # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
         "trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
@@ -114,7 +129,7 @@ def get_variables():
         "nu_e",
         # "hits_u", "hits_v", "hits_y",
         "nneutron",
-        "slnunhits",
+        #"slnunhits",
         "slnhits",
         "true_e_visible",
         "npi0",
@@ -123,7 +138,7 @@ def get_variables():
         "muon_e",
         "pi0truth_elec_etot",
         "pi0_e",
-        "evnunhits",
+        #"evnunhits",
         "nslice",
         "interaction",
         "proton_e",
@@ -430,16 +445,16 @@ def add_paper_category(df, key):
     if key in ["data", "nu"]:
         return
     df.loc[df["paper_category"].isin([1, 10]), "paper_category"] = 11
-    if key is "nue":
+    if key == "nue":
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 0), "paper_category"] = 11
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 1), "paper_category"] = 2
         df.loc[(df["paper_category"] == 3), "paper_category"] = 2
         return
-    if key is "lee":
+    if key == "lee":
         df.loc[df["category"].isin([4, 5]), "paper_category"] = 111
         df.loc[(df["paper_category"] == 3), "paper_category"] = 2
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category"] = 2
         return
     df.loc[(df["npi0"] > 0), "paper_category"] = 31
@@ -466,7 +481,7 @@ def add_paper_xsec_category(df, key):
         return
     df.loc[(df["npi0"] > 0), "paper_category_xsec"] = 31
     df.loc[(df["npi0"] == 0), "paper_category_xsec"] = 2
-    if key is "nue":
+    if key == "nue":
         df.loc[df["category"].isin([4, 5]) & (df["ccnc"] == 1), "paper_category_xsec"] = 2
         df.loc[(df["category"] == 3), "paper_category_xsec"] = 2
         df.loc[
@@ -490,7 +505,7 @@ def add_paper_xsec_category(df, key):
             "paper_category_xsec",
         ] = 11
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category_xsec"] = 2
         return
 
@@ -501,13 +516,13 @@ def add_paper_numu_category(df, key):
         return
     df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 2
     df.loc[(df["ccnc"] == 1), "paper_category_numu"] = 3
-    if key is "nue":
+    if key == "nue":
         df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 11
         return
-    if key is "lee":
+    if key == "lee":
         df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 111
         return
-    if key is "dirt":
+    if key == "dirt":
         df["paper_category"] = 5
         df["paper_category_numu"] = 5
         return
@@ -736,7 +751,7 @@ def process_uproot_shower_variables(up, df):
     df["mevcm"] = 1000 * df["shr_energy_tot_cali"] / df["shr_trk_len"]
     #
     df["slclnhits"] = up.array("pfnhits").sum()
-    df["slclnunhits"] = up.array("pfnunhits").sum()
+    #df["slclnunhits"] = up.array("pfnunhits").sum()
     #
     pfp_pdg_v = up.array("backtracked_pdg")
     trk_pdg = get_elm_from_vec_idx(pfp_pdg_v, trk_id)
@@ -1964,6 +1979,7 @@ def drop_vector_columns(df):
 # loadtruthfilters are both set to True.
 # TODO: Use this function in the appropriate place in the code.
 def apply_bdt_truth_filters(df):
+    import localSettings as ls
     dfcsv = pd.read_csv(ls.ntuple_path + ls.RUN3 + "ccpi0nontrainevents.csv")
     dfcsv["identifier"] = dfcsv["run"] * 100000 + dfcsv["evt"]
     df["identifier"] = df["run"] * 100000 + df["evt"]
@@ -1975,17 +1991,12 @@ def apply_bdt_truth_filters(df):
 
 def get_rundict(run_number, category):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
-    
-    # Old ntuple paths
-    #with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
 
     # New ntuple paths!
-    with open(os.path.join(thisfile_path, "data_paths_2023.yml"), "r") as f:
+    with open(os.path.join(thisfile_path, "data_paths_crt.yml"), "r") as f:
         pathdefs = yaml.safe_load(f)
 
     runpaths = pathdefs[category]
-
-    if verbose: print("get_rundict: run_number=",run_number)
 
     # runpaths is a list of dictionaries that each contain the 'run_id' and 'path' keys
     # Search for the dictionary where 'run_id' matches the run_number
@@ -1995,10 +2006,11 @@ def get_rundict(run_number, category):
 
     return rundict
 
-def get_pot_trig(run_number, category, dataset):
+def get_pot_trig(run_number, category, dataset,variation=None):
     rundict = get_rundict(run_number, category)
     # POT is the same for all detvar sets, taking it from CV
-    dataset_dict = rundict[dataset] if category != "detvar" else rundict["cv"][dataset]
+    # Get POT separately for each detector variation - temporary fix for inconsistent numbers of events in nue detvars
+    dataset_dict = rundict[dataset] if category != "detvar" else rundict[variation][dataset]
     pot = dataset_dict.pop("pot", None)
     trig = dataset_dict.pop("trig", None)
     if trig is not None:
@@ -2029,6 +2041,7 @@ def load_sample(
     full_path="",
     keep_columns=None,
 ):
+    import localSettings as ls
     # Load the file from data_path.yml
     if full_path == "":
 
@@ -2038,17 +2051,7 @@ def load_sample(
         
         #assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
         assert category in ["runs","numupresel","detvar"]
-        
-        if use_bdt:
-            assert loadshowervariables, "BDT requires shower variables"
-        
-        if use_lee_weights:
-            assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
-        
-        # CT: Slightly hacky way to ensure run number is >= 3 (assume first letter of string is >= 3)
-        if load_crt_vars:
-            assert int(run_number[0]) >= 3, "CRT variables only available for R3 and up"
-        
+
         # The path to the actual ROOT file
         if category != "detvar":
             rundict = get_rundict(run_number, category)
@@ -2060,9 +2063,6 @@ def load_sample(
             data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
        
         if verbose: print("Loading ntuple file",data_path)
-        if dataset in datasets:
-            print("Dataset",dataset,"is a data or EXT file")       
-
  
         # try returning an empty dataframe
         if os.path.basename(data_path) == "dummy.root":
@@ -2073,6 +2073,21 @@ def load_sample(
     else: 
         if verbose: print("Loading file",full_path,"instead of using data_paths.yml")
         data_path = full_path 
+    
+            
+    if use_bdt:
+        assert loadshowervariables, "BDT requires shower variables"
+    
+    if use_lee_weights:
+        assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
+    
+    # AT: We do not want to crash when we are loading the CRT variables for runs 1 and 2. Instead we put 
+    # dummy CRT variables into the dataframes that ensure that they have no effect when the CRT cuts 
+    # are applied, i.e., the CRT condition is always True.
+    if load_crt_vars:
+        if int(run_number[0]) < 3:
+            print("CRT variables are not available for runs < 3. Variables will be added to data frame with values "
+                  "that ensure that the CRT condition is always True.")
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
@@ -2090,6 +2105,8 @@ def load_sample(
             loadrecoveryvars=loadrecoveryvars,
             loadnumuvariables=loadnumuvariables,
             use_lee_weights=use_lee_weights,
+            # The function checks the run number internally and does not load the CRT
+            # variables for runs < 3
             load_crt_vars=load_crt_vars,
         )
 
@@ -2099,12 +2116,13 @@ def load_sample(
         df["extdata"] = dataset == "ext"
 
         # trk_energy_tot agrees here
-        # For runs before 3, we put zeros for the CRT variables
+        # For runs before 3, we put values into the CRT variables that ensure that the CRT condition is always True
+        # The CRT condition is: 
+        #    (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.0
         if int(run_number[0]) < 3:
-            vardict = get_variables()
-            crtvars = vardict["CRTVARS"]
-            for var in crtvars:
-                df[var] = 0.0
+            df["crtveto"] = 0
+            df["crthitpe"] = 0
+            df["_closestNuCosmicDist"] = 10.0
 
         # We also add some "one-hot" variables for the run number
         # TODO: Do we need this?
@@ -2122,6 +2140,56 @@ def load_sample(
             df["pot_scale"] = 1.0
 
         # If needed, load additional variables
+            
+        # new signal model weights 'leeweight_shwmodel'
+        if use_lee_weights:
+            df["leeweight_shwmodel"] = 0.
+            df["e_bin1"]  = (df["elec_e"]>=0.15)   & (df["elec_e"]<0.3)
+            df["e_bin2"]  = (df["elec_e"]>=0.3)    & (df["elec_e"]<0.45)
+            df["e_bin3"]  = (df["elec_e"]>=0.45)   & (df["elec_e"]<0.62)
+            df["e_bin4"]  = (df["elec_e"]>=0.62)   & (df["elec_e"]<0.8)
+            df["e_bin5"]  = (df["elec_e"]>=0.8)    & (df["elec_e"]<1.2)
+            df["pz_bin1"] = (df["elec_pz"]>=-1.)   & (df["elec_pz"]<-2./3)
+            df["pz_bin2"] = (df["elec_pz"]>=-2./3) & (df["elec_pz"]<-1./3)
+            df["pz_bin3"] = (df["elec_pz"]>=-1./3) & (df["elec_pz"]<0.)
+            df["pz_bin4"] = (df["elec_pz"]>=0.)    & (df["elec_pz"]<0.3)
+            df["pz_bin5"] = (df["elec_pz"]>=0.3)   & (df["elec_pz"]<0.72)
+            df["pz_bin6"] = (df["elec_pz"]>=0.72)  & (df["elec_pz"]<=1)
+                
+            df["bin1"]=(df["e_bin1"]==True)  & (df["pz_bin1"]==True)
+            df["bin2"]=(df["e_bin1"]==True)  & (df["pz_bin2"]==True)
+            df["bin3"]=(df["e_bin1"]==True)  & (df["pz_bin3"]==True)
+            df["bin4"]=(df["e_bin2"]==True)  & (df["pz_bin3"]==True)
+            df["bin5"]=(df["e_bin1"]==True)  & (df["pz_bin4"]==True)
+            df["bin6"]=(df["e_bin2"]==True)  & (df["pz_bin4"]==True)
+            df["bin7"]=(df["e_bin1"]==True)  & (df["pz_bin5"]==True)
+            df["bin8"]=(df["e_bin2"]==True)  & (df["pz_bin5"]==True)
+            df["bin9"]=(df["e_bin3"]==True)  & (df["pz_bin5"]==True)
+            df["bin10"]=(df["e_bin1"]==True) & (df["pz_bin6"]==True)
+            df["bin11"]=(df["e_bin2"]==True) & (df["pz_bin6"]==True)
+            df["bin12"]=(df["e_bin3"]==True) & (df["pz_bin6"]==True)
+            df["bin13"]=(df["e_bin4"]==True) & (df["pz_bin6"]==True)
+            df["bin14"]=(df["e_bin5"]==True) & (df["pz_bin6"]==True)
+
+            df.loc[df['bin1']  == True, 'leeweight_shwmodel'] = 1.083131
+            df.loc[df['bin2']  == True, 'leeweight_shwmodel'] = 1.548606
+            df.loc[df['bin3']  == True, 'leeweight_shwmodel'] = 0.986919
+            df.loc[df['bin4']  == True, 'leeweight_shwmodel'] = 0.174497
+            df.loc[df['bin5']  == True, 'leeweight_shwmodel'] = 1.139981
+            df.loc[df['bin6']  == True, 'leeweight_shwmodel'] = 0.587143
+            df.loc[df['bin7']  == True, 'leeweight_shwmodel'] = 1.234858
+            df.loc[df['bin8']  == True, 'leeweight_shwmodel'] = 0.141145
+            df.loc[df['bin9']  == True, 'leeweight_shwmodel'] = 0.055200
+            df.loc[df['bin10'] == True, 'leeweight_shwmodel'] = 10.707822
+            df.loc[df['bin11'] == True, 'leeweight_shwmodel'] = 1.735584
+            df.loc[df['bin12'] == True, 'leeweight_shwmodel'] = 0.367058
+            df.loc[df['bin13'] == True, 'leeweight_shwmodel'] = 0.231248
+            df.loc[df['bin14'] == True, 'leeweight_shwmodel'] = 0.112103
+
+            df.drop(columns=["bin1", "bin2", "bin3", "bin4", "bin5", "bin6", "bin7", "bin8", "bin9",
+                             "bin10", "bin11", "bin12", "bin13", "bin14"], inplace=True)
+            df.drop(columns=["e_bin1", "e_bin2", "e_bin3", "e_bin4", "e_bin5"], inplace=True)
+            df.drop(columns=["pz_bin1", "pz_bin2", "pz_bin3", "pz_bin4", "pz_bin5", "pz_bin6"], inplace=True)
 
         if loadnumuvariables:
             process_uproot_numu(up, df)
@@ -2149,8 +2217,7 @@ def load_sample(
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category == "runs" and dataset not in datasets and dataset != "ext" 
-    print("is_mc=",is_mc)
+    is_mc = category in ["runs", "numupresel"] and dataset not in datasets and dataset != "ext" 
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2164,16 +2231,6 @@ def load_sample(
     if category == "fakedata":
         if dataset in ["ext", "drt"]:
             df["nslice"] = 0
-
-    # add back the cosmic category, for background only
-    df.loc[
-        (df["category"] != 1)
-        & (df["category"] != 10)
-        & (df["category"] != 11)
-        & (df["category"] != 111)
-        & (df["slnunhits"] / df["slnhits"] < 0.2),
-        "category",
-    ] = 4
 
     add_paper_categories(df, dataset)
 
@@ -2199,13 +2256,14 @@ def _load_run(
     truth_filtered_sets=["nue", "drt"],
     blinded=True,
     load_lee=False,
+    use_new_signal_model=False,
     numupresel=False,
     **load_sample_kwargs,
 ):
 
     category = "numupresel" if numupresel else "runs"
     # As a preparation step, we find out which variables we will need in order to do the truth-filtering
-    rundict = get_rundict(1, category)
+    rundict = get_rundict(run_number, category)
     filter_vars = set()
     for truth_set in truth_filtered_sets:
         if truth_set == "drt":
@@ -2243,7 +2301,6 @@ def _load_run(
     expected_multisim_universes = {"weightsGenie": None, "weightsFlux": None, "weightsReint": None}
     for mc_set in mc_sets:
         if mc_set == "lee":
-            print("Loading lee sample")
             mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
             mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
         else:
@@ -2253,14 +2310,33 @@ def _load_run(
         # For better performance, we want to convert the "dataset" column into a categorical column
         # where the categories are all the entries in mc_sets
         mc_df["dataset"] = pd.Categorical(mc_df["dataset"], categories=mc_sets + ["data", "ext"])
+
+
+        # TODO CT temporary test to see if weights are driving discrepancy
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+        #mc_df["weights"] = data_pot / mc_pot
+
+
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
         # weights without the tune. We add this as a separate column here.
         mc_df["weights_no_tune"] = mc_df["weightSpline"] * data_pot / mc_pot
+        if mc_set == "lee":
+            mc_df["weights_oldmodel"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+            mc_df["weights_no_tune_oldmodel"] = mc_df["weightSpline"] * data_pot / mc_pot
+            mc_df["weights_shwmodel"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
+            mc_df["weights_no_tune_shwmodel"] = mc_df["weightSpline"] * data_pot / mc_pot
         
         if mc_set == "lee":
-            mc_df["weights"] *= mc_df["leeweight"]
-            mc_df["weights_no_tune"] *= mc_df["leeweight"]
+            if use_new_signal_model:
+                mc_df["weights"] *= mc_df["leeweight_shwmodel"]
+                mc_df["weights_no_tune"] *= mc_df["leeweight_shwmodel"]
+            else:
+                mc_df["weights"] *= mc_df["leeweight"]
+                mc_df["weights_no_tune"] *= mc_df["leeweight"]
+            mc_df["weights_oldmodel"] *= mc_df["leeweight"]
+            mc_df["weights_no_tune_oldmodel"] *= mc_df["leeweight"]
+            mc_df["weights_shwmodel"] *= mc_df["leeweight_shwmodel"]
+            mc_df["weights_no_tune_shwmodel"] *= mc_df["leeweight_shwmodel"]
         for ms_column in expected_multisim_universes:
             multisim_weights = mc_df[ms_column].values
             n_universes = len(multisim_weights[0])
@@ -2289,7 +2365,7 @@ def _load_run(
             continue
         else:
             # The filters are all the same, so we just take them from run 1 here
-            rundict = get_rundict(1, category)
+            rundict = get_rundict(run_number, category)
             df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
 
@@ -2307,6 +2383,150 @@ def _load_run(
 
     return output, weights, data_pot  # CT: Return the weight dict and data pot
 
+def load_runs_detvar( 
+    run_numbers,
+    dataset,
+    variation,
+    blinded=False,
+    loadsystematics=False, 
+    load_lee=False,
+    **load_run_detvar_kwargs,
+):
+
+    """Load detector variation samples for a several runs."""
+
+    runsdata = {}  # dictionary containing each run dictionary
+    weights = {}  # dictionary containing each weights dictionary
+    data_pots = np.zeros(len(run_numbers))  # array to store the POTs for each run
+    # Output variables:
+    output = {}  # same format as load_run output dictionary but with each dataset dataframe concatenated by run
+    weights_combined = (
+        {}
+    )  # same format as load_run weights dictionary but with the weights combined for each dataset by run
+    for run in run_numbers:
+        runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run_detvar(run, dataset, variation, **load_run_detvar_kwargs)
+
+    pot_sum = np.sum(data_pots)
+
+    rundict = runsdata[f"{run_numbers[0]}"]
+    data_sets = rundict.keys()  # get the names of the datasets that have been loaded
+    for dataset in data_sets:
+        if np.any([rundata[dataset] is None for rundata in runsdata.values()]):
+            df = None
+        else:
+            df = pd.concat([rundata[dataset] for run_key, rundata in runsdata.items()])
+        output[dataset] = df
+        weights_arr = np.array([])  # temporary array to store the weights of a particular dataset for each run
+        for run_key, weight_dict in weights.items():
+            weights_arr = np.append(weights_arr, weight_dict[dataset])
+        mc_pots = data_pots / weights_arr  # this is an array
+        weight_sum = pot_sum / np.sum(mc_pots)  # this is a single value of the combined weight over the runs
+        weights_combined[dataset] = weight_sum  # which gets stored in this output weights dictionary
+    return output, weights_combined, pot_sum
+
+def _load_run_detvar( 
+    run_number,
+    dataset,
+    var,
+    truth_filtered_sets=["nue"],
+    load_lee=False,
+    numupresel=False,
+    **load_sample_kwargs,
+):
+
+    """Load detector variation samples for a given run.
+    
+    This function is not compatible with the standard load_run function.
+    It is intended to be used with the `make_detsys.py` script.
+    A specialty of this function is that it returns the filter queries for
+    the input truth filtered samples. This is required to apply the same
+    filters when the uncertainties are calculated later when running the 
+    analysis, because the RunHistGenerator might now load the same 
+    truth-filtered sets.
+    """
+    assert var in detector_variations 
+
+    category = "numupresel" if numupresel else "runs"
+ 
+    if verbose: print("Loading detvar data for run",run_number,"and variation",var)
+  
+    assert isinstance(run_number,str), "You my only generate detector uncertainties for one run at a time"
+
+    if verbose and run_number == "1" and var == "lydown":
+        print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
+ 
+    if "drt" in truth_filtered_sets:
+        raise ValueError("We don't use dirt in detector uncertainties")
+
+    output = {}
+    filter_queries = {}
+    assert "mc" not in truth_filtered_sets, "Unfiltered MC should not be passed in truth_filtered_sets"
+    mc_sets = ["mc"] + truth_filtered_sets
+
+    data_pot, _ = get_pot_trig(run_number, category, dataset)  # nu has no trigger number
+
+    run_number_tmp = run_number
+    if run_number in ["4b","4c","4d"]: run_number_tmp = "4"
+    elif run_number in ["1","2"]: run_number_tmp = "1"
+    elif run_number == "3": run_number_tmp = "3"
+    elif run_number == "3_crt":
+        run_number_tmp = "4"
+        print("Using run 4 to compute detvars for run 3_crt! Please fix missing CRT variables in run 3!")
+    elif run_number == "5": run_number_tmp = "5"
+    else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,3_crt,4b,4c,4d,5")
+
+    rundict = get_rundict(run_number_tmp, "detvar")
+    weights = dict()
+
+    for mc_set in mc_sets:
+        mc_df = load_sample(run_number_tmp, "detvar", mc_set, variation=var, **load_sample_kwargs)
+        mc_pot, _ = get_pot_trig(run_number_tmp, "detvar", mc_set, variation=var)  # nu has no trigger number
+        output[mc_set] = mc_df
+        mc_df["dataset"] = mc_set
+
+        # CT: Now apply POT scaling here to be consistent with other data loading functions,
+        # divide out the total pot of data we're comparing to in make_detsys.py 
+        # AT: Tried to use tuned weights here instead of ones, but it turns out that there
+        # are inconsistencies between different variations of the same sample. The weight
+        # calculation fails sometimes and for some files, in which case we get negative values.
+        mc_df["weights"] = np.ones(len(mc_df)) * data_pot  / mc_pot
+        mc_df["weights_no_tune"] = np.ones(len(mc_df)) * data_pot / mc_pot
+
+        weights[mc_set] = data_pot / mc_pot
+
+    for truth_set in truth_filtered_sets:
+        filter_query = rundict[var][truth_set]["filter"]
+        df_temp = output["mc"].query(filter_query, engine="python")
+        logger.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
+        output["mc"].drop(index=df_temp.index, inplace=True)
+
+    # If using one of the sideband datasets, apply the same query to the MC as well
+    datadict = get_rundict(run_number,category)[dataset] 
+    if "sideband_def" in datadict:
+        sdb_def = datadict["sideband_def"]
+        if verbose:
+            print("The sideband data you're using had the following query applied:")
+            print(sdb_def)
+            print("I will also apply this query to the MC you're loading")
+        for key in output:
+            df_temp = output[key].query(sdb_def)
+            output[key] = df_temp
+
+    '''
+    if "cc_pi0" in truth_filtered_sets and "mc" in output.keys():
+        output["mc"] = pd.concat([output["mc"],output["cc_pi0"]])
+        del output["cc_pi0"]
+        del weights["cc_pi0"]
+    if "nc_pi0" in truth_filtered_sets and "mc" in output.keys():
+        output["mc"] = pd.concat([output["mc"],output["nc_pi0"]])
+        del output["nc_pi0"]
+        del weights["nc_pi0"]
+    '''
+
+    return output, weights, data_pot  # CT: Return the weight dict and data pot
+
+
+# CT: Keeing this in here as a separate function for the time being
 def load_run_detvar( 
     run_number,
     var,
@@ -2314,6 +2534,7 @@ def load_run_detvar(
     load_lee=False,
     **load_sample_kwargs,
 ):
+
     """Load detector variation samples for a given run.
     
     This function is not compatible with the standard load_run function.
@@ -2326,7 +2547,9 @@ def load_run_detvar(
     """
     assert var in detector_variations 
    
-    if verbose and run_number == 1 and var == "lydown":
+    assert isinstance(run_number,str), "You my only generate detector uncertainties for one run at a time"
+
+    if verbose and run_number == "1" and var == "lydown":
         print("LY Down uncertainties is not used in run 1, loading CV sample as a dummy")
  
     output = {}
@@ -2354,7 +2577,7 @@ def load_run_detvar(
             rundict = get_rundict(1, "detvar")
             filter_query = rundict[var][truth_set]["filter"]
             df_temp = output["mc"].query(filter_query, engine="python")
-            logging.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
+            logger.debug(f"Removing {df_temp.shape[0]} truth filtered events from {truth_set} in {var}")
             output["mc"].drop(index=df_temp.index, inplace=True)
             filter_queries[truth_set] = filter_query
     # output["data"] = None  # Key required by other code
@@ -2363,6 +2586,11 @@ def load_run_detvar(
 
 
 def load_runs(run_numbers, **load_run_kwargs):
+
+    # Can't use run 3 and run 3_crt at the same time - they're the same data!
+    if "3" in run_numbers and "3_crt" in run_numbers:
+        raise ValueError("You cannot use run 3 and run 3_crt at the same time. They contain overlapping data.")
+
     runsdata = {}  # dictionary containing each run dictionary
     weights = {}  # dictionary containing each weights dictionary
     data_pots = np.zeros(len(run_numbers))  # array to store the POTs for each run
@@ -2372,6 +2600,7 @@ def load_runs(run_numbers, **load_run_kwargs):
         {}
     )  # same format as load_run weights dictionary but with the weights combined for each dataset by run
     for run in run_numbers:
+        print("Loading run",run)
         runsdata[f"{run}"], weights[f"{run}"], data_pots[run_numbers.index(run)] = _load_run(run, **load_run_kwargs)
     pot_sum = np.sum(data_pots)
     rundict = runsdata[f"{run_numbers[0]}"]
@@ -2406,6 +2635,11 @@ def update_proton_threshold(df, threshold):
 
 
 def add_bdt_scores(df):
+    import localSettings as ls
+    import xgboost as xgb
+    import nue_booster
+
+
     TRAINVAR = [
         "shr_score",
         "tksh_distance",
@@ -2596,8 +2830,10 @@ def get_run_variables(
 
     # There are some additional variables that are only used for baseline "nu"
     # MC runs.
-    if dataset == "nu":
-        ALLVARS += VARDICT["MCFVARS"]
+    #if dataset != "ext" and dataset != "data":
+    #    ALLVARS += VARDICT["MCFVARS"]
+
+    ALLVARS += VARDICT["MCFVARS"]
 
     return list(set(ALLVARS))
 
@@ -2609,6 +2845,8 @@ def remove_duplicates(df):
 # Adding these functions to use in the filtterig code
 def get_path(run_number, category, dataset, append=""):
     """Load one sample of one run for a particular kind of events."""
+
+    import localSettings as ls
 
     assert category in ["runs", "nearsidebands", "farsidebands", "fakedata","detvar"]
 

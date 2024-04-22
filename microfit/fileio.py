@@ -6,21 +6,31 @@ import json
 
 # Custom JSON Encoder that can handle numpy arrays and other objects
 class MicrofitEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
+    def default(self, o):
+        if isinstance(o, np.ndarray):
             # Add a flag to know it was a numpy array
-            return {"_obj_type": "ndarray", "data": obj.tolist()}
+            return {"_obj_type": "ndarray", "data": o.tolist()}
         else:
-            if obj.__class__.__name__ in ["Binning", "Histogram"]:
-                return {"_obj_type": obj.__class__.__name__, "data": obj.to_dict()}
-        return super(MicrofitEncoder, self).default(obj)
+            if o.__class__.__name__ in [
+                "Binning",
+                "Histogram",
+                "MultiChannelBinning",
+                "MultiChannelHistogram",
+            ]:
+                return {"_obj_type": o.__class__.__name__, "data": o.to_dict()}
+        return super(MicrofitEncoder, self).default(o)
 
 
 def microfit_decoder(dct):
     if "_obj_type" in dct:
         if dct["_obj_type"] == "ndarray":
             return np.array(dct["data"])
-        elif dct["_obj_type"] in ["Binning", "Histogram"]:
+        elif dct["_obj_type"] in [
+            "Binning",
+            "Histogram",
+            "MultiChannelBinning",
+            "MultiChannelHistogram",
+        ]:
             try:
                 module = __import__("microfit").histogram
             except AttributeError:

@@ -2,7 +2,8 @@
 
 import numpy as np
 import logging
-from typing import Union
+from typing import Optional, Tuple, Union, overload
+from typing_extensions import Literal
 import scipy.linalg as lin
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,18 @@ def is_psd(A: np.ndarray, ignore_zeros: bool = False) -> bool:
         return True
     except np.linalg.LinAlgError:
         return False
+
+
+@overload
+def fronebius_nearest_psd(A: np.ndarray, return_distance: Literal[False] = False) -> np.ndarray:
+    ...
+
+
+@overload
+def fronebius_nearest_psd(
+    A: np.ndarray, return_distance: Literal[True]
+) -> Tuple[np.ndarray, float]:
+    ...
 
 
 def fronebius_nearest_psd(A: np.ndarray, return_distance: bool = False) -> Union[np.ndarray, tuple]:
@@ -126,7 +139,7 @@ def check_frob_psd(A):
 
 def covariance(
     observations, central_value=None, allow_approximation=False, debug_name=None, tolerance=0.0
-):
+) -> np.ndarray:
     """Calculate the covariance matrix of the given observations.
 
     Optionally, a central value can be given that will be used instead of the mean of the
@@ -153,6 +166,7 @@ def covariance(
     if central_value is not None:
         central_value = np.asarray(central_value)
     # make sure the central value, if given, has the right length
+
     if central_value is not None:
         if central_value.shape[0] != observations.shape[1]:
             raise ValueError("Central value has wrong length.")
@@ -202,7 +216,7 @@ def covariance(
     return cov
 
 
-def get_cnp_covariance(expectation, observation):
+def get_cnp_covariance(expectation: np.ndarray, observation: np.ndarray) -> np.ndarray:
     """Get the combined Neyman-Pearson covaraince matrix.
 
     This matrix may be used to calculate a chi-square between the expectation and observation
@@ -211,9 +225,9 @@ def get_cnp_covariance(expectation, observation):
 
     Parameters
     ----------
-    expectation : array_like
+    expectation : np.ndarray
         Array of expectation values.
-    observation : array_like
+    observation : np.ndarray
         Array of observations.
 
     Returns
@@ -237,33 +251,40 @@ def get_cnp_covariance(expectation, observation):
         C_{ij} = 3 \\mu_i n_i \\delta_{ij} / \\left( \\mu_i + 2 n_i \\right)
 
     A special case we have to take care of is when the observation is zero. In this case,
-    we can recover the Poisson likelihood by setting the covariance to :math:`\mu_i / 2`. We
+    we can recover the Poisson likelihood by setting the covariance to :math:`\\mu_i / 2`. We
     can see this by considering
 
     .. math::
-        \chi^2_{\\text{Poisson}} = 2 \sum_{i=1}^n \left( \mu - M_i + M_i \ln \\frac{M_i}{\mu} \\right)
+        \\chi^2_{\\text{Poisson}} = 2 \\sum_{i=1}^n \\left( \\mu - M_i + M_i \\ln \\frac{M_i}{\\mu} \\right)
 
     When the observation is zero, we have :math:`M_i = 0` and the chi-square reduces to
-    :math:`\chi^2_{\\text{Poisson}} = 2 \mu`. Since we calculate the chi-square as
-    :math:`\chi^2 = (n - \mu)^T C^{-1} (n - \mu)`, we need to set :math:`C = \mu / 2` to
+    :math:`\\chi^2_{\\text{Poisson}} = 2 \\mu`. Since we calculate the chi-square as
+    :math:`\\chi^2 = (n - \\mu)^T C^{-1} (n - \\mu)`, we need to set :math:`C = \\mu / 2` to
     recover the Poisson likelihood.
     """
-
     expectation = np.asarray(expectation)
     observation = np.asarray(observation)
     if expectation.shape != observation.shape:
         raise ValueError("Expectation and observation must have the same shape.")
-    if expectation.ndim != 1:
-        raise ValueError("Expectation and observation must be 1D arrays.")
-    if np.any(expectation <= 0):
-        raise ValueError("Expectation must be positive.")
+    if expectation.ndim not in [1, 2]:
+        raise ValueError("Expectation and observation must be 1D or 2D arrays.")
+    if np.any(expectation[observation > 0] <= 0):
+        raise ValueError("Expectation must be positive where the observation is positive.")
     if np.any(observation < 0):
-        raise ValueError("Observation must be non-negative.")
-    cnp_covariance = 3 * expectation * observation / (expectation + 2 * observation)
+        raise ValueError("Observation must be non-negative everywhere.")
+    # in bins where both the expectation and the observation are zero, the covariance is zero
+    with np.errstate(divide="ignore", invalid="ignore"):
+        cnp_covariance = 3 * expectation * observation / (expectation + 2 * observation)
+    cnp_covariance[np.logical_and(expectation == 0, observation == 0)] = 0
+    assert np.all(np.isfinite(cnp_covariance))
+    assert np.all(cnp_covariance >= 0)
     # set the covariance to mu / 2 where the observation is zero
     if np.any(observation == 0):
         cnp_covariance[observation == 0] = expectation[observation == 0] / 2
-    cnp_covariance = np.diag(cnp_covariance)
+    if cnp_covariance.ndim == 1:
+        cnp_covariance = np.diag(cnp_covariance)
+    assert cnp_covariance.shape == (len(expectation), len(expectation))
+    cnp_covariance = fronebius_nearest_psd(cnp_covariance)
     return cnp_covariance
 
 
@@ -282,6 +303,10 @@ def chi_square(
     float: The chi-square value.
 
     """
+
+    # TODO: Add a check to catch if the prediction/data histograms are empty.
+    # CT has seen a crash caused by this that was annoying to debug
+
     n = observation
     mu = expectation
 
@@ -300,14 +325,15 @@ def chi_square(
 
 
 def sideband_constraint_correction(
-    sideband_measurement,
-    sideband_central_value,
-    obs_central_value=None,
-    observations=None,
-    sideband_observations=None,
-    concat_covariance=None,
-    sideband_covariance=None,
-):
+    sideband_measurement: np.ndarray,
+    sideband_central_value: np.ndarray,
+    obs_central_value: Optional[np.ndarray] = None,
+    observations: Optional[np.ndarray] = None,
+    sideband_observations: Optional[np.ndarray] = None,
+    concat_covariance: Optional[np.ndarray] = None,
+    sideband_covariance: Optional[np.ndarray] = None,
+    cnp_covariance: Optional[np.ndarray] = None,
+) -> Tuple[np.ndarray, np.ndarray]:
     """Calculate the corrections to the covariance and nominal values given the sideband measurement.
 
     This follows the Block-matrix prescription that can be found in
@@ -315,33 +341,37 @@ def sideband_constraint_correction(
 
     Parameters
     ----------
-    sideband_measurement : array_like
+    sideband_measurement : np.ndarray
         Measurement of the sideband.
-    sideband_central_value : array_like
+    sideband_central_value : np.ndarray
         Central value of the sideband observations.
-    obs_central_value : array_like or None
+    obs_central_value : np.ndarray, optional
         Central value of the observations. Not needed if concat_covariance is given.
-    observations : array_like or None
+    observations : np.ndarray, optional
         Array of observations. If None, the concat_covariance must be given.
-    sideband_observations : array_like or None
+    sideband_observations : np.ndarray, optional
         Array of sideband observations. If None, the concat_covariance must be given.
-    concat_covariance : array_like, optional
+    concat_covariance : np.ndarray, optional
         Covariance matrix of the concatenated observations. If not given, it will be calculated
         from the observations and the central value.
-    sideband_covariance : array_like, optional
+    sideband_covariance : np.ndarray, optional
         Covariance matrix of the sideband. If given, this replaces the lower right corner of the
         concatenated covariance. This is expected to only contain the MC uncertainty of the
         sideband, as the Neyman-Pearson covariance that takes care of the data uncertainty is
         added in this function.
+    cnp_covariance : np.ndarray, optional
+        Override the calculation of the Neyman-Pearson covariance matrix. This should have
+        the shape of the sideband covariance matrix.
 
     Returns
     -------
-    mu_offset : array_like
-        Offset of the nominal values.
-    covariance_correction : array_like
-        Correction to the covariance matrix.
+    Tuple[np.ndarray, np.ndarray]
+        mu_offset : Offset of the nominal values.
+        covariance_correction : Correction to the covariance matrix.
     """
-
+    assert sideband_measurement.shape[0] == sideband_central_value.shape[0]
+    assert sideband_measurement.ndim == 1
+    assert sideband_central_value.ndim == 1
     if concat_covariance is None:
         assert observations is not None
         assert sideband_observations is not None
@@ -369,7 +399,9 @@ def sideband_constraint_correction(
         assert sideband_covariance.shape[1] == Kyy.shape[1]
         Kyy = sideband_covariance
     # We also add the CNP covariance to the sideband
-    Kyy += get_cnp_covariance(sideband_central_value, sideband_measurement)
+    if cnp_covariance is None:
+        cnp_covariance = get_cnp_covariance(sideband_central_value, sideband_measurement)
+    Kyy += cnp_covariance
 
     # now we can calculate the conditional mean
     mu_offset = Kxy @ np.linalg.inv(Kyy) @ (sideband_measurement - sideband_central_value)

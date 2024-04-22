@@ -12,6 +12,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        # Fetches all submodules recursively to download stubs needed for matplotlib type checking
+        submodules: 'recursive'
     - name: Set up Miniconda
       uses: conda-incubator/setup-miniconda@v2
       with:
@@ -22,19 +25,40 @@ jobs:
       shell: bash -l {0}
       run: |
         conda activate python3LEE
-        conda install scipy pandas==1.0.5 matplotlib
-        conda install -c conda-forge uncertainties
+        conda install scipy pandas==1.0.5 matplotlib pyyaml tqdm
+        # Analysis currently uses iminuit 1.5.4 syntax
+        conda install -c conda-forge iminuit==1.5.4
         conda install scikit-learn
         # For testing purposes, we don't need jupyter (it only slows down the workflow)
         # conda install jupyter
         # TODO: Run some tests on the data loading part
-        # conda install -c conda-forge uproot==3.11.6
+        conda install -c conda-forge uproot==3.11.6
         # conda install dask-core
         # conda install -c conda-forge xgboost==0.90
         # conda install -c conda-forge shap
         pip install unitpy
+        # install typing stub packages for python 3.7
+        pip install pandas-stubs
+        # Install Node.js and npm (if not already installed)
+        conda install -c conda-forge nodejs
+        # Install Pyright using npm
+        npm install -g pyright
+    - name: Create localSettings module
+      shell: bash -l {0}
+      run: |
+        conda activate python3LEE
+        echo "detvar_cache_path = None" > localSettings.py
+        echo "ntuple_path = None" >> localSettings.py
+        echo "dataframe_cache_path = None" >> localSettings.py
+    - name: Run Pyright
+      shell: bash -l {0}
+      run: |
+        conda activate python3LEE
+        # Run Pyright type checking
+        pyright microfit
     - name: Run tests
       shell: bash -l {0}
       run: |
         conda activate python3LEE
+        # Run your unit tests
         python -m unittest discover

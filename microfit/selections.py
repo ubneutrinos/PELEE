@@ -52,6 +52,7 @@ OnePTCUTQ += ' and shr_trk_len < 300.'
 # 1eNp preselection
 NPPRESQ = PRESQ
 NPPRESQ += ' and n_tracks_contained > 0'
+NPPRESQLowE = NPPRESQ + ' and (0.15 < reco_e and reco_e < 0.65)'
 NPPRESQ_one_shower = NPPRESQ + ' and n_showers_contained == 1'
 NPPRESQ_one_shower_one_track = NPPRESQ_one_shower + ' and n_tracks_contained == 1'
 NPPRESQ_one_shower_twoplus_tracks = NPPRESQ_one_shower + ' and n_tracks_contained > 1'
@@ -175,6 +176,7 @@ TESTBDT05CQ_all_showers += ' and pi0_score > 0.50'
 ZPPRESEL_all_tracks = PRESQ
 ZPPRESEL_onep_track = ZPPRESEL_all_tracks + ' and n_tracks_contained > 0'
 ZPPRESEL = ZPPRESEL_all_tracks + ' and n_tracks_contained == 0'
+ZPPRESELLowE = ZPPRESEL + ' and (0.15 < reco_e and reco_e < 0.65)'
 
 ZPBOXCUTS_all_tracks = ZPPRESEL_all_tracks
 ZPBOXCUTS_all_tracks += ' and n_showers_contained == 1'
@@ -222,6 +224,8 @@ ZPBDTLOOSE_onep_track_INV = ZPBDTLOOSE_all_tracks_INV + ' and n_tracks_contained
 
 ZPBDTLOOSE = ZPBDTLOOSE_all_tracks + ' and n_tracks_contained == 0'
 ZPBDTLOOSE += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
+
+ZPBDTLOOSE_CRT = ZPBDTLOOSE + ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
 
 ZPBDTLOOSE_INV = ZPBDTLOOSE_all_tracks_INV + ' and n_tracks_contained == 0'
 ZPBDTLOOSE_INV += ' and (n_tracks_tot == 0 or (n_tracks_tot>0 and tk1sh1_angle_alltk>-0.9))'
@@ -457,10 +461,12 @@ preselection_categories = {
     'PI0': {'query': PREPI0Q, 'title': 'Pi0 Presel.', 'dir': 'PI0'},
     'NUE': {'query': PRESQ, 'title': 'Nue Presel.', 'dir': 'NUE'},
     'NP': {'query': NPPRESQ, 'title': '1eNp Presel.', 'dir': 'NP'},
+    'NPLowE': {'query': NPPRESQLowE, 'title': '1eNp Presel. Low E', 'dir': 'NPLowE'},
     'NPOneShr': {'query': NPPRESQ_one_shower, 'title': '1eNp Presel., 1 shower', 'dir': 'NPOneShr'},
     'NPOneTrk': {'query': NPPRESQ_one_track, 'title': '1eNp Presel., 1 track', 'dir': 'NPOneTrk'},
     'NPTwoPTrk': {'query': NPPRESQ_twoplus_tracks, 'title': '1eNp Presel., 2+ tracks', 'dir': 'NPTwoPTrk'},
     'ZP': {'query': ZPPRESEL, 'title': '1e0p Presel.', 'dir': 'ZP'},
+    'ZPLowE': {'query': ZPPRESELLowE, 'title': '1e0p Presel. Low E', 'dir': 'ZPLowE'},
     'ZPOneShr': {'query': ZPPRESEL_one_shower, 'title': '1e0p Presel., 1 shower', 'dir': 'ZPOneShr'},
     'ZPAllTrks': {'query': ZPPRESEL_all_tracks, 'title': '1e0p Presel., 0+ tracks', 'dir': 'ZPAllTrks'},
     'ZPTwoShr': {'query': ZPPRESEL_two_shower, 'title': '1e0p Presel., 2+ shower', 'dir': 'ZPTwoShr'},
@@ -607,6 +613,16 @@ selection_categories = {
     'NUMU0PI': {'query': NUMUSEL0PI, 'title': r"$\nu_{\mu}$0$\pi$ selection", 'dir': 'NUMU0PI'},
     'NUMUNP0PI': {'query': NUMUSELNP0PI, 'title': r"$1\mu$Np0$\pi$ selection", 'dir': 'NUMUNP0PI'},
     'NUMU0P0PI': {'query': NUMUSEL0P0PI, 'title': r"$1\mu$0p0$\pi$ selection", 'dir': 'NUMU0P0PI'},
+
+ 
+    # Misc background selections
+    'ZPBDT_GoodBG': {'query': ZPBDTLOOSE + ' and (mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))', 'title': '1e0p BDT sel.', 'dir': 'ZPBDT_GoodBG'},
+    'ZPBDT_MiscBG': {'query': ZPBDTLOOSE + ' and extdata != True and mcf_pass_ncpi0 != 1 and (abs(nu_pdg) != 12 or ccnc != 0)', 'title': '1e0p BDT sel.', 'dir': 'ZPBDT_MiscBG'},
+    'NPBDT_GoodBG': {'query': BDTCQ + ' and (mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))', 'title': '1eNp BDT sel.', 'dir': 'NPBDT_GoodBG'},
+    'NPBDT_MiscBG': {'query': BDTCQ + ' and extdata != True and mcf_pass_ncpi0 != 1 and (abs(nu_pdg) != 12 or ccnc != 0)', 'title': '1eNp BDT sel.', 'dir': 'NPBDT_MiscBG'},
+
+    # Selections with added CRT
+    'ZPBDT_CRT': {'query': ZPBDTLOOSE_CRT, 'title': '1e0p BDT sel. w/ CRT', 'dir': 'ZPBDTCRT'},
 
 }
 
@@ -762,7 +778,22 @@ def get_selection_query(selection, preselection, extra_queries=None):
             query = f"{query} and {q}"
     return query
 
-def get_selection_title(selection, preselection, with_presel=False):
+def _shorten_title(title):
+    """Heuristically shorten the title of a selection.
+    
+    This tries to remove redundant words like "selection" or "sel.".
+    """
+    if title is None:
+        return None
+    # Remove "selection" from the title
+    title = title.replace("selection", "")
+    # Remove "sel." from the title
+    title = title.replace("sel.", "")
+    # Remove double whitespaces
+    title = re.sub(r"\s+", " ", title)
+    return title.strip()
+
+def get_selection_title(selection, preselection, with_presel=False, short=False):
     """Get the title for the given selection and preselection.
 
     Parameters
@@ -771,6 +802,11 @@ def get_selection_title(selection, preselection, with_presel=False):
         Name of the selection category.
     preselection : str
         Name of the preselection category.
+    with_presel : bool, optional
+        Whether to include the preselection title in the selection title.
+    short : bool, optional
+        Whether to use the short title. If a short title is not defined for a selection,
+        the function will try to shorten the title heuristically.
 
     Returns
     -------
@@ -779,8 +815,18 @@ def get_selection_title(selection, preselection, with_presel=False):
     """
     if selection is None and preselection is None:
         return None
-    presel_title = preselection_categories[preselection]["title"]
-    sel_title = selection_categories[selection]["title"]
+    if short and "short_title" in selection_categories[selection]:
+        sel_title = selection_categories[selection]["short_title"]
+    else:
+        sel_title = selection_categories[selection]["title"]
+        if short:
+            sel_title = _shorten_title(sel_title)
+    if short and "short_title" in preselection_categories[preselection]:
+        presel_title = preselection_categories[preselection]["short_title"]
+    else:
+        presel_title = preselection_categories[preselection]["title"]
+        if short:
+            presel_title = _shorten_title(presel_title)
 
     if presel_title is None:
         title = sel_title

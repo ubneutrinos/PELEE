@@ -2,13 +2,18 @@
 
 import os
 import logging
-from typing import List, Optional, Union
+import sys
+from typing import Any, List, Optional, Tuple, Union, Dict, overload
+from typing_extensions import Literal
+from iminuit import Minuit
 from matplotlib import pyplot as plt, ticker
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 import numpy as np
 
 from scipy.linalg import block_diag
 import toml
-from data_loading import load_runs
+from data_loading import load_runs, detector_variations
 from microfit.histogram import (
     Binning,
     HistogramGenerator,
@@ -23,38 +28,75 @@ from microfit import signal_generators
 from microfit.statistics import sideband_constraint_correction, chi_square
 from microfit import category_definitions
 from functools import lru_cache
+from microfit.detsys import make_variations
 
 
 class MultibandAnalysis(object):
     def __init__(
         self,
         configuration=None,
-        run_hist_generators=None,
+        run_hist_generators: Optional[List[RunHistGenerator]] = None,
         constraint_channels=[],
         signal_channels=[],
         uncertainty_defaults=None,
+        logging_level=logging.INFO,
+        overwrite_cached_df=False,
+        overwrite_cached_df_detvars=False,
+        output_dir: Optional[str] = None,
     ):
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging_level)
+        self.parameters = ParameterSet([])
+        self.output_dir = output_dir
+        self.constraint_channels = []  # type: List[str]
+        self.signal_channels = []  # type: List[str]
+        # This attribute is a dictionary holding additional keyword arguments that are forwarded to the
+        # `.plot` functino of the RunHistPlotter. It's a good idea to set the `run_title` property here
+        # so that the runs can be shown next to the selection (e.g. "Runs 1-5").
+        self.plotting_config = {}
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
         if configuration is None:
+            assert run_hist_generators is not None
             self._init_from_generators(
                 run_hist_generators, constraint_channels, signal_channels, uncertainty_defaults
             )
         else:
-            self._init_from_config(configuration)
+            self._init_from_config(configuration, overwrite_cached_df, overwrite_cached_df_detvars)
         self.channels = []
         for gen in self._run_hist_generators:
-            if isinstance(gen.binning, MultiChannelBinning):
-                self.channels.extend(gen.binning.labels)
-            else:
-                self.channels.append(gen.binning.label)
-        for ch in constraint_channels:
+            self.channels.extend(gen.channels)
+        for ch in self.signal_channels:
+            assert ch in self.channels, f"Signal channel {ch} not found in analysis channels"
+        for ch in self.constraint_channels:
             assert ch in self.channels, f"Constraint channel {ch} not found in analysis channels"
         # Adding the data_pot property just for compatibility with the RunHistPlotter
         self.data_pot = None
         self.plot_sideband = False
+        assert isinstance(self.parameters, ParameterSet)
+        assert len(self.signal_channels) > 0, "No signal channels given"
+
+    def print_configuration(self):
+        """Print a summary of the configuration of the analysis to console.
+
+        This function should be used after completing the configuration
+        to give the analyzer a confirmation that the analysis is configured
+        as expected.
+        """
+
+        print("Analysis configuration:")
+        print(f"  Signal channels: {self.signal_channels}")
+        if len(self.constraint_channels) > 0:
+            print(f"  Constraint channels: {self.constraint_channels}")
+        else:
+            print("  No constraint channels")
+        print(self.parameters)  # relying on __repr__ of the ParameterSet class
+        # also print plotting config if not empty
+        if self.plotting_config:
+            print("  Plotting configuration:")
+            for key, value in self.plotting_config.items():
+                print(f"    {key}: {value}")
 
     def _init_from_generators(
         self,
@@ -67,27 +109,42 @@ class MultibandAnalysis(object):
         self.constraint_channels = constraint_channels
         self.uncertainty_defaults = uncertainty_defaults or {}
         self.signal_channels = signal_channels
-        self.parameters = sum([g.parameters for g in self._run_hist_generators])
+        self.parameters = sum([g.parameters for g in self._run_hist_generators], ParameterSet([]))
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
 
-    def _init_from_config(self, configuration):
+    def _init_from_config(
+        self, configuration, overwrite_cached_df=False, overwrite_cached_df_detvars=False
+    ):
         # The analysis may use several generators to produce a multi-channel histogram
-        raise NotImplementedError("TODO: update implementation for configuration loading")
+        self._check_config(configuration)
+        if "persistence" in configuration:
+            if self.output_dir is None:
+                self.output_dir = configuration["persistence"].get("output_dir", None)
+            else:
+                print(f"Output dir from config overridden to: {self.output_dir}")
+        self._run_hist_generators: List[RunHistGenerator] = []
         generator_configurations = configuration["generator"]
         for config in generator_configurations:
-            self._check_config(config)
-        rundata, weights, data_pot = load_runs(**configuration["data_loading"])
-        self.data_pot = data_pot
-        self._run_hist_generators = [
-            self.run_hist_generator_from_config(rundata, weights, data_pot, config)
-            for config in generator_configurations
-        ]
-        self.parameters = sum([g.parameters for g in self._run_hist_generators])
+            self._run_hist_generators.append(
+                self.run_hist_generator_from_config(
+                    config,
+                    overwrite_cached_df=overwrite_cached_df,
+                    overwrite_cached_df_detvars=overwrite_cached_df_detvars,
+                )
+            )
+        self.parameters = sum([g.parameters for g in self._run_hist_generators], ParameterSet([]))
         for gen in self._run_hist_generators:
             gen.mc_hist_generator._resync_parameters()
         self._check_shared_params([g.parameters for g in self._run_hist_generators])
+        self.signal_channels = configuration["channels"]["signal_channels"]
+        if "constraint_channels" in configuration["channels"]:
+            self.constraint_channels = configuration["channels"]["constraint_channels"]
+        else:
+            self.constraint_channels = []
+        self.uncertainty_defaults = configuration.get("uncertainty_defaults", {})
+        self.plotting_config = configuration.get("plotting", {})
 
     def _check_shared_params(self, param_sets: List[ParameterSet]):
         shared_names = list(
@@ -102,39 +159,121 @@ class MultibandAnalysis(object):
                     ref_param is ps[name]
                 ), f"Parameter {name} is not the same object in all ParameterSets"
 
+    def _check_channel_config(self, config):
+        required_keys = ["variable", "selection", "preselection"]
+        assert all(
+            key in config for key in required_keys
+        ), f"Configuration for channel must contain the keys {required_keys}"
+        if "bin_edges" not in config:
+            assert "n_bins" in config and "limits" in config, "Must provide either bin_edges or n_bins and limits"
+
+    def _check_run_hist_config(self, config):
+        required_keys = ["channel", "load_runs"]
+        assert all(
+            key in config for key in required_keys
+        ), f"Configuration for RunHistGenerator must contain the keys {required_keys}"
+        for channel_config in config["channel"]:
+            self._check_channel_config(channel_config)
+
     def _check_config(self, config):
-        return True  # TODO: implement
+        assert isinstance(config, dict), "Configuration must be a dictionary"
+        required_keys = ["generator", "channels"]
+        assert all(
+            key in config for key in required_keys
+        ), f"Configuration must contain the keys {required_keys}"
+        for generator_config in config["generator"]:
+            self._check_run_hist_config(generator_config)
 
     def run_hist_generator_from_config(
-        self, rundata, weights, data_pot, config, is_signal=True
+        self,
+        config: dict,
+        overwrite_cached_df: bool = False,
+        overwrite_cached_df_detvars: bool = False,
     ) -> RunHistGenerator:
-        raise NotImplementedError("TODO: update implementation for configuration loading")
-        # binning = Binning.from_config(**config["binning"])
-        # print(f"Making generator for selection {config['selection']} and preselection {config['preselection']}")
-        # parameters = ParameterSet.from_dict(config["parameter"]) if "parameter" in config else None
-        # if "mc_hist_generator_cls" in config:
-        #     try:
-        #         mc_hist_generator_cls = getattr(signal_generators, config["mc_hist_generator_cls"])
-        #     except AttributeError:
-        #         # try globals instead
-        #         mc_hist_generator_cls = globals()[config["mc_hist_generator_cls"]]
-        #     mc_hist_generator_kwargs = config.get("mc_hist_generator_kwargs", {})
-        # else:
-        #     mc_hist_generator_cls = None
-        #     mc_hist_generator_kwargs = {}
-        # run_generator = RunHistGenerator(
-        #     rundata,
-        #     binning,
-        #     data_pot=data_pot,
-        #     selection=config["selection"],
-        #     preselection=config["preselection"],
-        #     sideband_generator=self._sideband_generator,
-        #     uncertainty_defaults=config["uncertainties"],
-        #     mc_hist_generator_cls=mc_hist_generator_cls if is_signal else None,
-        #     parameters=parameters,
-        #     **mc_hist_generator_kwargs,
-        # )
-        # return run_generator
+        channel_configs = config["channel"]
+        self.logger.debug(f"Creating RunHistGenerator from config: {config}")
+        channel_binnings = []
+        for channel_config in channel_configs:
+            binning_cfg = {
+                "variable": channel_config["variable"],
+                # Bin edges can be configered either by providing the number of bins and the limits,
+                # or by providing the values of the bin edges directly. In the latter case, bins
+                # are allowed to be irregular.
+                "n_bins": channel_config.get("n_bins", None),
+                "limits": channel_config.get("limits", None),
+                "bin_edges": channel_config.get("bin_edges", None),
+                "variable_tex": channel_config.get("variable_tex", None),
+                "variable_tex_short": channel_config.get("variable_tex_short", None),
+            }
+            binning = Binning.from_config(**binning_cfg)
+            binning.set_selection(
+                selection=channel_config["selection"],
+                preselection=channel_config["preselection"],
+                selection_tex=channel_config.get("selection_tex", None),
+                selection_tex_short=channel_config.get("selection_tex_short", None),
+            )
+            label = channel_config.get("label", None)
+            binning.label = label or channel_config["selection"]
+            channel_binnings.append(binning)
+        binning = MultiChannelBinning(channel_binnings)
+        self.logger.info(f"Creating RunHistGenerator for channels {binning.channels}")
+        self.logger.info("Loading data...")
+        config["load_runs"]["overwrite"] = overwrite_cached_df
+        rundata, weights, data_pot = load_runs(**config["load_runs"])
+        detvar_data = None
+        extra_background_fractional_error = None
+        if "detvars" in config:
+            self.logger.info("Loading detvar data... This can take some time.")
+            dv_config = config["load_runs"].copy()
+            dv_config.update(config["detvars"])
+            dv_config["binning"] = binning
+            misc_background_query = dv_config.pop("misc_background_query", None)
+            misc_background_error_frac = dv_config.pop("misc_background_error_frac", 0.0)
+            extra_background_fractional_error = {misc_background_query: misc_background_error_frac}
+            dv_config["load_lee"] = False  # do not want to use LEE to compute detvars
+            dv_config.pop("use_new_signal_model", None)  # not used for detvars, remove if present
+            dv_config["make_plots"] = False
+            dv_config["enable_detvar_cache"] = True
+            dv_config["loadsystematics"] = False  # not needed for detvars
+            dv_config["overwrite"] = overwrite_cached_df_detvars
+            dv_config["show_plots"] = False  # no need to show plots, just write to file and close
+            if self.output_dir is not None:
+                dv_config["detvar_cache_dir"] = os.path.abspath(
+                    os.path.join(self.output_dir, "detvar_cache")
+                )
+                dv_config["make_plots"] = True
+                dv_config["plot_output_dir"] = os.path.abspath(
+                    os.path.join(self.output_dir, "detvar_plots")
+                )
+                # If these paths do not exist yet, make them
+                os.makedirs(dv_config["detvar_cache_dir"], exist_ok=True)
+                os.makedirs(dv_config["plot_output_dir"], exist_ok=True)
+            self.logger.debug(f"Detvar config: {dv_config}")
+            detvar_data = make_variations(**dv_config)
+        if "mc_hist_generator_cls" in config:
+            try:
+                mc_hist_generator_cls = getattr(signal_generators, config["mc_hist_generator_cls"])
+            except AttributeError:
+                # try globals instead
+                mc_hist_generator_cls = globals()[config["mc_hist_generator_cls"]]
+            mc_hist_generator_kwargs = config.get("mc_hist_generator_kwargs", {})
+        else:
+            mc_hist_generator_cls = None
+            mc_hist_generator_kwargs = {}
+        parameters = None
+        if "parameter" in config:
+            parameters = ParameterSet.from_dict(config["parameter"])
+
+        return RunHistGenerator(
+            rundata,
+            binning,
+            data_pot=data_pot,
+            parameters=parameters,
+            mc_hist_generator_cls=mc_hist_generator_cls,
+            detvar_data=detvar_data,
+            extra_background_fractional_error=extra_background_fractional_error,
+            **mc_hist_generator_kwargs,
+        )
 
     def _apply_constraints(
         self, hist: MultiChannelHistogram, constraint_channels=None, total_prediction_hist=None
@@ -146,14 +285,11 @@ class MultibandAnalysis(object):
             return hist
         constraint_channels = constraint_channels or self.constraint_channels
         total_prediction_hist = total_prediction_hist or hist
-        for constraint_channel in constraint_channels:
-            constraint_hist = data_hist[constraint_channel]
-            prediction_hist = total_prediction_hist[constraint_channel]
-            hist = hist.update_with_measurement(
-                constraint_channel,
-                measurement=constraint_hist.nominal_values,
-                central_value=prediction_hist.nominal_values,
-            )
+        assert len(constraint_channels) > 0, "No constraint channels given"
+        constraint_data = data_hist[constraint_channels]
+        hist = hist.update_with_measurement(
+            measurement=constraint_data, central_value=total_prediction_hist
+        )
         return hist
 
     def generate_multiband_histogram(
@@ -165,16 +301,36 @@ class MultibandAnalysis(object):
         signal_channels: Optional[List[str]] = None,
         include_non_signal_channels: bool = False,
         include_ext: bool = True,
+        extra_query=None,
+        ms_columns=["weightsGenie", "weightsFlux", "weightsReint"],
+        include_unisim_errors=True,
+        include_stat_errors=True,
+        add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
     ) -> MultiChannelHistogram:
         """Generate the combined MC histogram from all channels."""
 
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
+
+        # Try adding detvars in here
+
         mc_hist = HistogramGenerator.generate_joint_histogram(
-            mc_hist_generators, include_multisim_errors=include_multisim_errors
+            mc_hist_generators,
+            include_multisim_errors=include_multisim_errors,
+            extra_query=extra_query,
+            ms_columns=ms_columns,
+            include_unisim_errors=include_unisim_errors,
+            include_stat_errors=include_stat_errors,
+            add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
         )
+
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
         joint_ext_hist = HistogramGenerator.generate_joint_histogram(
-            ext_hist_generators, include_multisim_errors=False
+            ext_hist_generators,
+            include_multisim_errors=False,
+            extra_query=extra_query,
+            include_stat_errors=include_stat_errors,
         )
 
         constraint_channels = constraint_channels or self.constraint_channels
@@ -184,7 +340,8 @@ class MultibandAnalysis(object):
         joint_ext_hist = joint_ext_hist[all_channels]
 
         total_prediction = mc_hist + joint_ext_hist
-        if use_sideband:
+
+        if use_sideband and len(constraint_channels) > 0:
             # We have to be careful here to use the *full* prediction as the central
             # value when applying the constraint, not just the MC prediction.
             mc_hist = self._apply_constraints(
@@ -200,15 +357,17 @@ class MultibandAnalysis(object):
             output_hist = output_hist[signal_channels]
         if scale_to_pot is not None:
             raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
+
         return output_hist
 
     def get_mc_hist(
         self,
-        include_multisim_errors: Optional[bool] = None,
+        include_multisim_errors: bool = True,
         extra_query: Optional[str] = None,
         scale_to_pot: Optional[float] = None,
-        use_sideband: Optional[bool] = None,
-        add_precomputed_detsys: bool = False,
+        use_sideband: bool = False,
+        add_precomputed_detsys: bool = True,
+        smooth_detsys_variations: bool = True,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Get the MC histogram. This function is solely for plotting purposes.
 
@@ -216,18 +375,16 @@ class MultibandAnalysis(object):
         the RunHistGenerator class, so that the analysis can be dropped into the
         RunHistPlotter.
         """
-        if extra_query is not None:
-            raise NotImplementedError("extra_query not implemented in the Analysis class.")
-        if add_precomputed_detsys:
-            raise NotImplementedError(
-                "add_precomputed_detsys not implemented in the Analysis class."
-            )
+
         output = self.generate_multiband_histogram(
             include_multisim_errors=include_multisim_errors,
             use_sideband=use_sideband,
             scale_to_pot=scale_to_pot,
             include_ext=False,
             include_non_signal_channels=True,
+            add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
+            extra_query=extra_query,
         )
         channels = self.constraint_channels if self.plot_sideband else self.signal_channels
         return output[channels]
@@ -253,7 +410,7 @@ class MultibandAnalysis(object):
             return None
         if add_error_floor:
             prior_errors = np.ones(data_hist.n_bins) * 1.4**2
-            prior_errors[data_hist.nominal_values > 0] = 0
+            prior_errors[data_hist.bin_counts > 0] = 0
             data_hist.add_covariance(np.diag(prior_errors))
         if scale_to_pot is not None:
             raise NotImplementedError("Scaling to POT not implemented in the Analysis class.")
@@ -261,7 +418,12 @@ class MultibandAnalysis(object):
         return data_hist[channels]
 
     def get_mc_hists(
-        self, category_column="dataset_name", include_multisim_errors=False, scale_to_pot=None
+        self,
+        category_column="dataset_name",
+        include_multisim_errors=False,
+        add_precomputed_detsys=False,
+        smooth_detsys_variations=True,
+        scale_to_pot=None,
     ):
         """Get the MC histograms, split by category. This function is solely for plotting purposes.
 
@@ -279,7 +441,10 @@ class MultibandAnalysis(object):
         # ones that work differently.
         histograms = [
             g.get_mc_hists(
-                category_column=category_column, include_multisim_errors=include_multisim_errors
+                category_column=category_column,
+                include_multisim_errors=include_multisim_errors,
+                add_precomputed_detsys=add_precomputed_detsys,
+                smooth_detsys_variations=smooth_detsys_variations,
             )
             for g in self._run_hist_generators
         ]
@@ -360,7 +525,9 @@ class MultibandAnalysis(object):
         return ext_hist
 
     @lru_cache(maxsize=1)
-    def generate_multiband_data_histogram(self, impute_blinded_channels=False):
+    def generate_multiband_data_histogram(
+        self, impute_blinded_channels=False
+    ) -> Optional[MultiChannelHistogram]:
         """Generate a combined histogram from all unblinded data channels."""
 
         unblinded_generators = [
@@ -378,17 +545,30 @@ class MultibandAnalysis(object):
         full_hist = self.generate_multiband_histogram()
         for channel in full_hist.channels:
             if channel not in data_hist.channels:
-                data_hist.append_empty_channel(full_hist[channel].binning)
+                # extracting one channel is known to return a Histogram
+                data_hist.append_empty_channel(full_hist[channel].binning)  # type: ignore
         return data_hist
 
     def _get_pot_for_channel(self, channel):
         """Get the POT for the given channel."""
 
+        gen = self._get_channel_gen(channel)
+        return gen.data_pot
+
+    def _get_channel_is_blinded(self, channel):
+        """Get whether the given channel is blinded."""
+
+        gen = self._get_channel_gen(channel)
+        return gen.is_blinded
+    
+    def _get_channel_gen(self, channel):
+        """Get the RunHistGenerator for the given channel."""
+
         # Iterate through run hist generators. When the channel is found in a
         # generator, return the POT of that generator.
         for gen in self._run_hist_generators:
             if channel in gen.channels:
-                return gen.data_pot
+                return gen
         raise ValueError(f"Channel {channel} not found in analysis")
 
     def _plot_bands(
@@ -398,6 +578,7 @@ class MultibandAnalysis(object):
         separate_figures=False,
         save_path=None,
         filename_format="analysis_{}.pdf",
+        extra_text=None,
         **kwargs,
     ):
         if plot_signals:
@@ -406,30 +587,40 @@ class MultibandAnalysis(object):
         else:
             channels = self.constraint_channels
             self.plot_sideband = True
+        if save_path is None and self.output_dir is not None:
+            save_path = os.path.join(self.output_dir, "plots")
 
         n_channels = len(channels)
         if n_channels == 0:
             return None
-        show_data_mc_ratio = kwargs.get("show_data_mc_ratio", False)
+
         if separate_figures:
             for channel in channels:
+                if channel in self.plotting_config:
+                    default_kwargs = self.plotting_config[channel].copy()
+                    default_kwargs.update(kwargs)
+                else:
+                    default_kwargs = kwargs
                 ax, _ = RunHistPlotter(self).plot(
                     category_column=category_column,
                     channel=channel,
                     data_pot=self._get_pot_for_channel(channel),
-                    **kwargs,
+                    show_data=not self._get_channel_is_blinded(channel),
+                    extra_text=extra_text,
+                    **default_kwargs,
                 )
                 if save_path is not None:
+                    assert ax is not None, "Cannot save figure when ax is None"
                     fig = ax.figure
                     fig.savefig(os.path.join(save_path, filename_format.format(channel)))
-                    plt.close(fig)
             return
+        show_data_mc_ratio = kwargs.get("show_data_mc_ratio", False)
         n_rows = 2 if show_data_mc_ratio else 1
         n_cols = n_channels
         fig, axes = plt.subplots(
             n_rows,
             n_cols,
-            figsize=(n_cols * 8, 5 if n_rows == 1 else 8),
+            figsize=(n_cols * 6, 5 if n_rows == 1 else 8),
             squeeze=False,
             gridspec_kw={"height_ratios": [3, 1] if show_data_mc_ratio else [1]},
             constrained_layout=True,
@@ -443,6 +634,8 @@ class MultibandAnalysis(object):
                 ax_ratio=axes[1, channels.index(channel)] if show_data_mc_ratio else None,
                 channel=channel,
                 data_pot=self._get_pot_for_channel(channel),
+                show_data=not self._get_channel_is_blinded(channel),
+                extra_text=extra_text,
                 **kwargs,
             )
         return fig, axes
@@ -485,7 +678,9 @@ class MultibandAnalysis(object):
             the argument. For example, the default format string is "analysis_{}.pdf",
             which will result in filenames like "analysis_nue.pdf".
         """
-        return self._plot_bands(category_column, plot_signals=False, **kwargs)
+        # When plotting sidebands, we of course never want to use the sideband as a constraint
+        kwargs.pop("use_sideband", None)
+        return self._plot_bands(category_column, plot_signals=False, use_sideband=False, **kwargs)
 
     def plot_correlation(
         self,
@@ -493,6 +688,10 @@ class MultibandAnalysis(object):
         ax=None,
         include_unisim_errors=True,
         channels=None,
+        add_precomputed_detsys=True,
+        smooth_detsys_variations=True,
+        figsize=(10, 8),
+        include_detsys_variations=detector_variations,
         **draw_kwargs,
     ):
         hist_generators = []
@@ -502,16 +701,85 @@ class MultibandAnalysis(object):
             include_multisim_errors=True,
             ms_columns=ms_columns,
             include_unisim_errors=include_unisim_errors,
+            add_precomputed_detsys=add_precomputed_detsys,
+            smooth_detsys_variations=smooth_detsys_variations,
+            include_detsys_variations=include_detsys_variations,
         )
         all_channels = self.signal_channels + self.constraint_channels
         channels = channels or all_channels
         histogram = histogram[channels]
         if ax is None:
-            fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)
+            fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
         else:
             fig = ax.figure
         histogram.draw_covariance_matrix(ax=ax, **draw_kwargs)
         return fig, ax
+
+    def get_chi_square_distribution(
+        self,
+        h0_params: ParameterSet,
+        n_trials: int = 1000,
+        run_fit: bool = True,
+        fit_method: str = "minuit",
+        **fit_kwargs,
+    ) -> Dict[str, np.ndarray]:
+        """Get the expected chi-square distribution at the null hypothesis.
+
+        This function generates pseudo-data by sampling first from the
+        covariance matrix of the histograms, and then using the result as
+        the expectation value for Poisson-fluctuations. For every trial,
+        the chi-square is recorded at the best fit point and also with
+        respect to the given null hypothesis.
+
+        Parameters
+        ----------
+        h0_params : ParameterSet
+            The parameters of the null hypothesis.
+        n_trials : int
+            The number of pseudo-experiments to generate.
+        run_fit : bool
+            If True, fit to the pseudo-data is performed.
+        fit_method : str
+            The fitting method to use.
+        fit_kwargs
+            Additional keyword arguments to pass to the fit function.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the results of the test with the keys
+            "chi2_h0" and "chi2_best_fit".
+        """
+
+        from tqdm import tqdm
+
+        self.set_parameters(h0_params, check_matching=True)
+        print("Generating H0 histogram")
+        # generate the multiband histogram
+        h0_hist = self.generate_multiband_histogram(
+            include_multisim_errors=True,
+            use_sideband=True,
+            add_precomputed_detsys=True,
+        )
+        output = {
+            "chi2_h0": [],
+            "chi2_best_fit": [],
+        }
+        rng = np.random.default_rng(0)
+        for i in tqdm(range(n_trials), desc="Generating pseudo-experiments"):
+            pseudo_data = h0_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
+            chi2_h0 = chi_square(
+                pseudo_data.bin_counts, h0_hist.bin_counts, h0_hist.covariance_matrix
+            )
+            output["chi2_h0"].append(chi2_h0)
+            if not run_fit:
+                continue
+            # Fit to pseudodata
+            chi2_best_fit = self.fit_to_data(pseudo_data, method=fit_method, **fit_kwargs)[0]
+            output["chi2_best_fit"].append(chi2_best_fit)
+        # Convert to numpy arrays
+        converted_output = {key: np.array(val) for key, val in output.items()}
+        return converted_output
 
     def two_hypothesis_test(
         self,
@@ -519,6 +787,7 @@ class MultibandAnalysis(object):
         h1_params: ParameterSet,
         sensitivity_only: bool = False,
         n_trials: int = 1000,
+        add_precomputed_detsys: bool = True,
         scale_to_pot: Optional[float] = None,
     ):
         """Perform a two hypothesis test between two parameter sets.
@@ -568,6 +837,7 @@ class MultibandAnalysis(object):
         dict
             A dictionary containing the results of the test.
         """
+        from tqdm import tqdm
 
         if scale_to_pot is not None:
             assert sensitivity_only, "Can only scale to POT when calculating sensitivity"
@@ -575,14 +845,21 @@ class MultibandAnalysis(object):
             h1_params.names
         ), "Parameter sets must have the same parameters"
         self.set_parameters(h0_params, check_matching=True)
+        print("Generating H0 histogram")
         # generate the multiband histogram
         h0_hist = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=True, scale_to_pot=scale_to_pot
+            include_multisim_errors=True,
+            use_sideband=True,
+            add_precomputed_detsys=add_precomputed_detsys,
+            scale_to_pot=scale_to_pot,
         )
-
+        print("Generating H1 histogram")
         self.set_parameters(h1_params, check_matching=True)
         h1_hist = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=True, scale_to_pot=scale_to_pot
+            include_multisim_errors=True,
+            use_sideband=True,
+            add_precomputed_detsys=add_precomputed_detsys,
+            scale_to_pot=scale_to_pot,
         )
 
         test_stat_h0 = []
@@ -590,16 +867,18 @@ class MultibandAnalysis(object):
 
         def test_statistic(observation):
             chi2_h0 = chi_square(
-                observation.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix
+                observation.bin_counts, h0_hist.bin_counts, h0_hist.covariance_matrix
             )
             chi2_h1 = chi_square(
-                observation.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix
+                observation.bin_counts, h1_hist.bin_counts, h1_hist.covariance_matrix
             )
+
             return chi2_h0 - chi2_h1
 
-        for i in range(n_trials):
-            pseudo_data_h0 = h0_hist.fluctuate(seed=4 * i).fluctuate_poisson(seed=4 * i + 1)
-            pseudo_data_h1 = h1_hist.fluctuate(seed=4 * i + 2).fluctuate_poisson(seed=4 * i + 3)
+        rng = np.random.default_rng(0)
+        for i in tqdm(range(n_trials), desc="Generating pseudo-experiments"):
+            pseudo_data_h0 = h0_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
+            pseudo_data_h1 = h1_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
 
             test_stat_h0.append(test_statistic(pseudo_data_h0))
             test_stat_h1.append(test_statistic(pseudo_data_h1))
@@ -626,24 +905,53 @@ class MultibandAnalysis(object):
         # calculate the p-value of the observed data under H0
         real_data_ts = test_statistic(data_hist)
         results["chi2_h0"] = chi_square(
-            data_hist.nominal_values, h0_hist.nominal_values, h0_hist.covariance_matrix
+            data_hist.bin_counts, h0_hist.bin_counts, h0_hist.covariance_matrix
         )
         results["pval_h0"] = np.sum(test_stat_h0 > real_data_ts) / n_trials
         # calculate the p-value of the observed data under H1
         results["chi2_h1"] = chi_square(
-            data_hist.nominal_values, h1_hist.nominal_values, h1_hist.covariance_matrix
+            data_hist.bin_counts, h1_hist.bin_counts, h1_hist.covariance_matrix
         )
         results["pval_h1"] = np.sum(test_stat_h1 > real_data_ts) / n_trials
 
         return results
 
-    def _get_minuit(self, observed_hist, scale_to_pot=None):
+    @lru_cache(maxsize=1000)
+    def _get_hist_at_parameter_values(self, **kwargs):
+        """Get the histogram at the given parameter values.
+
+        This function is cached, so that the histogram is only generated once.
+        Be sure to clear the cache if any settings of the analysis change.
+        """
+
+        assert set(kwargs.keys()) == set(
+            self.parameters.names
+        ), "Must give values for all parameters"
+        for name in kwargs:
+            self.parameters[name].value = kwargs[name]
+        return self.generate_multiband_histogram(
+            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
+        )
+
+    def _get_minuit(
+        self,
+        observed_hist: Histogram,
+        scale_to_pot: Optional[float] = None,
+        reset_cache: bool = True,
+        disp: bool = False,
+    ) -> Minuit:
         """Prepare the Minuit object that can run a fit and more.
 
         Parameters
         ----------
         observed_hist : Histogram
             The data histogram to be fitted.
+        scale_to_pot : Optional[float], optional
+            The scale factor to apply to the histogram, by default None.
+        reset_cache : bool, optional
+            Whether to reset the cache, by default True.
+        disp : bool, optional
+            Whether to display parameter values and chi-square during minimization, by default False.
 
         Returns
         -------
@@ -651,28 +959,30 @@ class MultibandAnalysis(object):
             The Minuit object.
         """
 
-        # make this an optional dependency only in case one wants to run a fit
-        from iminuit import Minuit
-
-        # if scale_to_pot is not None:
-        # Warn the user that this should only be used when calculating a sensitivity
-        # self.logger.warning("Scaling MC to non-default POT. This should only be used when calculating a sensitivity.")
+        # clear the cache just to be safe
+        if reset_cache:
+            self._get_hist_at_parameter_values.cache_clear()
 
         def loss(*args):
             # set the parameters
-            for i, name in enumerate(self.parameters.names):
-                self.parameters[name].value = args[i]
+            parameter_kwargs = {name: value for name, value in zip(self.parameters.names, args)}
             # generate the histogram
-            generated_hist = self.generate_multiband_histogram(
-                include_multisim_errors=True,
-                use_sideband=True,
-            )
+            generated_hist = self._get_hist_at_parameter_values(**parameter_kwargs)
             # calculate the chi-square
-            return chi_square(
-                observed_hist.nominal_values,
-                generated_hist.nominal_values,
+            chi2 = chi_square(
+                observed_hist.bin_counts,
+                generated_hist.bin_counts,
                 generated_hist.covariance_matrix,
             )
+            if disp:
+                disp_str = ""
+                # Add parameter values
+                for name, value in parameter_kwargs.items():
+                    disp_str += f"{name} = {value:.3f}, "
+                # Add chi-square
+                disp_str += f"chi2 = {chi2:.3f}"
+                print(disp_str)
+            return chi2
 
         # TODO: This is the syntax for the old Minuit 1.5.4 version. We should upgrade to the new version
         # at some point.
@@ -689,6 +999,7 @@ class MultibandAnalysis(object):
         """Perform a scan of the chi-square as a function of the given parameter."""
 
         data = data or self.generate_multiband_data_histogram()
+        assert data is not None, "Cannot scan chi-square when data is None"
         for channel in self.signal_channels:
             if channel not in data.channels:
                 raise ValueError(f"Channel {channel} not found in data histogram")
@@ -697,10 +1008,10 @@ class MultibandAnalysis(object):
         for scan_point in scan_points:
             self.parameters[parameter_name].value = scan_point
             expectation = self.generate_multiband_histogram(
-                include_multisim_errors=True, use_sideband=True
+                include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
             )
             chi2 = chi_square(
-                data.nominal_values, expectation.nominal_values, expectation.covariance_matrix
+                data.bin_counts, expectation.bin_counts, expectation.covariance_matrix
             )
             results.append(chi2)
         results = np.array(results)
@@ -730,54 +1041,77 @@ class MultibandAnalysis(object):
 
         self.parameters[parameter_name].value = injection_point
         expectation = self.generate_multiband_histogram(
-            include_multisim_errors=True, use_sideband=True
+            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
         )
         return self.scan_chi2(parameter_name, scan_points, data=expectation)
 
     def scan_asimov_fc_sensitivity(
         self,
-        asimov_scan_points,
         scan_points=None,
         parameter_name=None,
         n_trials=100,
-        fc_scan_results: Optional[dict]=None,
+        fc_scan_results: Optional[dict] = None,
+        **fc_scan_kwargs,
     ):
         if fc_scan_results is None:
             assert scan_points is not None, "Either fc_scan_results or scan_points must be given"
-            assert parameter_name is not None, "Either fc_scan_results or parameter_name must be given"
-            fc_scan_results = self.fc_scan(parameter_name, scan_points, n_trials=n_trials)
+            assert (
+                parameter_name is not None
+            ), "Either fc_scan_results or parameter_name must be given"
+            fc_scan_results = self.fc_scan(
+                parameter_name, scan_points, n_trials=n_trials, **fc_scan_kwargs
+            )
         elif scan_points is not None:
-            raise ValueError("Cannot give both fc_scan_results and scan_points")
+            if "scan_points" not in fc_scan_results:
+                assert np.allclose(
+                    scan_points,
+                    np.array([result["scan_point"] for result in fc_scan_results["results"]]),
+                ), "incomptible scan points"
+                fc_scan_results["scan_points"] = scan_points
         elif parameter_name is not None:
             assert parameter_name == fc_scan_results["parameter_name"]
-        
+
         scan_points = np.array([result["scan_point"] for result in fc_scan_results["results"]])
         parameter_name = fc_scan_results["parameter_name"]
-        assert set(fc_scan_results.keys()) == {"parameter_name", "scan_points", "results"}
+        assert set({"parameter_name", "scan_points", "results"}).issubset(
+            set(fc_scan_results.keys())
+        )
 
         def inverse_quantile(x, q):
             return sum(x < q) / len(x)
 
-        inverse_quantile = np.vectorize(inverse_quantile, excluded=[0])
-
-        print(f"Calculating Asimov sensitivity for {len(asimov_scan_points)} points...")
+        print(f"Calculating Asimov sensitivity for {len(scan_points)} points...")
         for result in fc_scan_results["results"]:
             result["asimov_chi2"] = self.scan_asimov_sensitivity(
                 parameter_name,
                 injection_point=result["scan_point"],
-                scan_points=asimov_scan_points,
+                scan_points=scan_points,
             )
-            result["pval"] = inverse_quantile(result["delta_chi2"], result["asimov_chi2"])
+            # For every value in the asimov chi-square, we want to know the p-value.
+            # To get it we have to loop over the fc scan we did earlier for all the points.
+            result["pval"] = [
+                inverse_quantile(r["delta_chi2"], asim_chi2)
+                for (r, asim_chi2) in zip(fc_scan_results["results"], result["asimov_chi2"])
+            ]
         # For convenience, we also already compute the 2D map of p-values and return them as well.
         # These can be used for plotting.
-        fc_scan_results["pval_map"] = np.array([result["pval"] for result in fc_scan_results["results"]])
-        X, Y = np.meshgrid(asimov_scan_points, scan_points)
+        fc_scan_results["pval_map"] = np.array(
+            [result["pval"] for result in fc_scan_results["results"]]
+        ).T
+        X, Y = np.meshgrid(scan_points, scan_points)
         fc_scan_results["measured_map"] = X
         fc_scan_results["truth_map"] = Y
         return fc_scan_results
-    
+
     @classmethod
-    def plot_fc_scan_results(cls, fc_scan_results, ax=None, parameter_tex=None, levels=[0.0, 0.68, 0.9, 0.95, 1.0], **kwargs):
+    def plot_fc_scan_results(
+        cls,
+        fc_scan_results: dict,
+        ax: Optional[plt.Axes] = None,
+        parameter_tex: Optional[str] = None,
+        levels: List[float] = [0.0, 0.68, 0.9, 0.95, 1.0],
+        **kwargs,
+    ) -> Tuple[Figure, Axes]:
         """Plot the results of an FC scan."""
 
         if ax is None:
@@ -786,11 +1120,20 @@ class MultibandAnalysis(object):
             fig = ax.figure
         pval_map = fc_scan_results["pval_map"]
         X, Y = fc_scan_results["measured_map"], fc_scan_results["truth_map"]
-        levels = [0.0, 0.68, 0.9, 0.95, 1.0]  # Quantiles corresponding to 1 sigma, 90%, and 2 sigma sensitivity
-        contour = ax.contourf(X, Y, pval_map, levels=levels, cmap="Blues")
-        cbar = fig.colorbar(contour, format=ticker.FuncFormatter(lambda x, pos: f"{x * 100:.0f}%"))
-        cbar.ax.set_ylabel("p-value")
+        contour = ax.contourf(X, Y, pval_map, levels=levels, cmap="Blues_r")
+        cbar = fig.colorbar(
+            contour, format=ticker.FuncFormatter(lambda x, pos: f"{x * 100:.0f}%"), drawedges=True
+        )
+        cbar.ax.set_ylabel("Confidence Level")
         ax.contour(X, Y, pval_map, levels=levels, colors="k", linewidths=0.5)
+        # add line where x=y
+        ax.plot(
+            [min(X.min(), Y.min()), max(X.max(), Y.max())],
+            [min(X.min(), Y.min()), max(X.max(), Y.max())],
+            color="k",
+            linestyle="--",
+            linewidth=0.5,
+        )
         if parameter_tex is None:
             parameter_tex = fc_scan_results["parameter_name"]
         ax.set_xlabel(rf"Measured {parameter_tex}")
@@ -798,24 +1141,134 @@ class MultibandAnalysis(object):
 
         return fig, ax
 
-    def fit_to_data(
+    @overload
+    def _fit_to_data_migrad(
         self,
-        data=None,
-        return_migrad=True,
-    ):
+        data: Optional[MultiChannelHistogram] = None,
+        return_migrad: Literal[False] = False,
+        reset_cache: bool = True,
+        disp: bool = False,
+    ) -> Tuple[float, ParameterSet]:
+        ...
+
+    @overload
+    def _fit_to_data_migrad(
+        self,
+        data: Optional[MultiChannelHistogram] = None,
+        return_migrad: Literal[True] = True,
+        reset_cache: bool = True,
+        disp: bool = False,
+    ) -> Tuple[float, ParameterSet, Minuit]:
+        ...
+
+    def _fit_to_data_migrad(
+        self,
+        data: Optional[MultiChannelHistogram] = None,
+        return_migrad: bool = False,
+        reset_cache: bool = True,
+        disp: bool = False,
+    ) -> Union[Tuple[float, ParameterSet], Tuple[float, ParameterSet, Minuit]]:
         data = data or self.generate_multiband_data_histogram()
+        assert data is not None, "Cannot fit to data when data is None"
         for channel in self.signal_channels:
             if channel not in data.channels:
                 raise ValueError(f"Channel {channel} not found in data histogram")
         data = data[self.signal_channels]
-        m = self._get_minuit(data)
+        m: Minuit = self._get_minuit(data, reset_cache=reset_cache, disp=disp)
         m.migrad()
         best_fit_parameters = self.parameters.copy()
         if return_migrad:
-            return best_fit_parameters, m
-        return best_fit_parameters
+            return m.fval, best_fit_parameters, m
+        return m.fval, best_fit_parameters
 
-    def fc_scan(self, parameter_name, scan_points, n_trials=100, scale_to_pot=None):
+    def _fit_to_data_grid_scan(
+        self,
+        data: Optional[MultiChannelHistogram] = None,
+        fit_grid: Dict[str, np.ndarray] = {},
+        reset_cache=True,
+    ) -> Tuple[float, ParameterSet]:
+        """Fit the data to a grid of parameter values.
+
+        The grid should be given as a dictionary where keys are the parameter
+        names and values are the scan points for that parameter.
+        The chi-square will be calculated for each combination of parameter values. The function then
+        returns the chi-square grid and the best fit parameters.
+
+        This function can be potentially fast for repeated fits since it uses caching.
+        """
+        data = data or self.generate_multiband_data_histogram()
+        assert data is not None, "Cannot fit to data when data is None"
+        for channel in self.signal_channels:
+            if channel not in data.channels:
+                raise ValueError(f"Channel {channel} not found in data histogram")
+        data = data[self.signal_channels]
+        assert fit_grid is not None, "Must give fit grid"
+        assert set(fit_grid.keys()) == set(
+            self.parameters.names
+        ), "Must give fit grid for all parameters"
+
+        if reset_cache:
+            self._get_hist_at_parameter_values.cache_clear()
+
+        def loss(*args):
+            # set the parameters, make sure to use the same order as in the fit grid
+            parameter_kwargs = {name: value for name, value in zip(fit_grid.keys(), args)}
+            # generate the histogram
+            generated_hist = self._get_hist_at_parameter_values(**parameter_kwargs)
+            # calculate the chi-square
+            return chi_square(
+                data.bin_counts,
+                generated_hist.bin_counts,
+                generated_hist.covariance_matrix,
+            )
+
+        loss = np.vectorize(loss)  # simplify broadcasting
+        # Evaluate the loss over a meshgrid of parameter values
+        meshgrid = np.meshgrid(*fit_grid.values())
+        chi2_grid = loss(*meshgrid)
+        # Find the minimum
+        min_index = np.unravel_index(np.argmin(chi2_grid), chi2_grid.shape)
+        best_fit_parameter_dict = {
+            name: meshgrid[i][min_index] for i, name in enumerate(fit_grid.keys())
+        }
+        best_chi2 = chi2_grid[min_index]
+        for name in best_fit_parameter_dict:
+            self.parameters[name].value = best_fit_parameter_dict[name]
+        best_fit_parameters = self.parameters.copy()
+        # return the chi-square of the best fit and the best fit parameters
+        return best_chi2, best_fit_parameters
+
+    def fit_to_data(
+        self, data=None, method="migrad", **kwargs
+    ) -> Union[Tuple[float, ParameterSet], Tuple[float, ParameterSet, Minuit]]:
+        assert method in ["migrad", "grid_scan"], "Invalid fitting method"
+        if method == "migrad":
+            return self._fit_to_data_migrad(data, **kwargs)
+        elif method == "grid_scan":
+            fit_grid = kwargs.pop("fit_grid")
+            return self._fit_to_data_grid_scan(data, fit_grid=fit_grid, **kwargs)
+        else:
+            raise ValueError("Invalid fitting method")
+
+    def get_chi2_at_hypothesis(self, hypo_parameters: ParameterSet, data=None):
+        self.set_parameters(hypo_parameters, check_matching=True)
+        expectation = self.generate_multiband_histogram(
+            include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
+        )
+        data = data or self.generate_multiband_data_histogram()
+        assert data is not None, "Cannot calculate chi-square when data is None"
+        data = data[self.signal_channels]
+        return chi_square(data.bin_counts, expectation.bin_counts, expectation.covariance_matrix)
+
+    def fc_scan(
+        self,
+        parameter_name,
+        scan_points,
+        n_trials=100,
+        scale_to_pot=None,
+        fit_method="migrad",
+        **fit_kwargs,
+    ):
         """Perform a Feldman-Cousins scan of the given parameter."""
         from tqdm import tqdm
 
@@ -826,31 +1279,37 @@ class MultibandAnalysis(object):
         # a fit where the parameter in question is fixed to the assumed truth.
         results = []
         print(f"Running FC scan over {len(scan_points)} points in {parameter_name}...")
+        self._get_hist_at_parameter_values.cache_clear()
         number_of_samples = len(scan_points) * n_trials
-        for i, scan_point in enumerate(tqdm(scan_points)):
-            self.parameters[parameter_name].value = scan_point
-            expectation = self.generate_multiband_histogram(
-                scale_to_pot=scale_to_pot, include_multisim_errors=True, use_sideband=True
-            )
-            delta_chi2 = []
-            for j in range(n_trials):
-                global_trial_index = n_trials * i + j
-                # the seeds are chosen such that no seed is used twice
-                pseudo_data = expectation.fluctuate(seed=global_trial_index).fluctuate_poisson(
-                    seed=global_trial_index + number_of_samples
-                )
+        with tqdm(total=len(scan_points), desc="Scanning") as pbar1:
+            for i, scan_point in enumerate(scan_points):
                 self.parameters[parameter_name].value = scan_point
-                chi2_at_truth = chi_square(
-                    pseudo_data.nominal_values,
-                    expectation.nominal_values,
-                    expectation.covariance_matrix,
+                expectation = self.generate_multiband_histogram(
+                    scale_to_pot=scale_to_pot,
+                    include_multisim_errors=True,
+                    use_sideband=True,
+                    add_precomputed_detsys=True,
                 )
-                m = self._get_minuit(pseudo_data, scale_to_pot=scale_to_pot)
-                m.migrad()
-                chi2_at_best_fit = m.fval
-                delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
-            delta_chi2 = np.array(delta_chi2)
-            results.append({"delta_chi2": delta_chi2, "scan_point": scan_point})
+                delta_chi2 = []
+                for j in range(n_trials):
+                    global_trial_index = n_trials * i + j
+                    # the seeds are chosen such that no seed is used twice
+                    pseudo_data = expectation.fluctuate(seed=global_trial_index).fluctuate_poisson(
+                        seed=global_trial_index + number_of_samples
+                    )
+                    self.parameters[parameter_name].value = scan_point
+                    chi2_at_truth = chi_square(
+                        pseudo_data.bin_counts,
+                        expectation.bin_counts,
+                        expectation.covariance_matrix,
+                    )
+                    chi2_at_best_fit = self.fit_to_data(
+                        pseudo_data, reset_cache=False, method=fit_method, **fit_kwargs
+                    )[0]
+                    delta_chi2.append(chi2_at_truth - chi2_at_best_fit)
+                delta_chi2 = np.array(delta_chi2)
+                results.append({"delta_chi2": delta_chi2, "scan_point": scan_point})
+                pbar1.update()
         return {"parameter_name": parameter_name, "scan_points": scan_points, "results": results}
 
     def set_parameters(self, parameter_set, check_matching=True):
@@ -872,8 +1331,21 @@ class MultibandAnalysis(object):
             self.parameters[name].value = parameter_set[name].value
 
     @classmethod
-    def from_toml(cls, file_path):
+    def from_toml(
+        cls,
+        file_path,
+        logging_level=logging.INFO,
+        overwrite_cached_df=False,
+        overwrite_cached_df_detvars=False,
+        output_dir=None,
+    ):
         # Try loading from file
         with open(file_path, "r") as file:
             configuration = toml.load(file)
-        return cls(configuration)
+        return cls(
+            configuration=configuration,
+            logging_level=logging_level,
+            overwrite_cached_df=overwrite_cached_df,
+            overwrite_cached_df_detvars=overwrite_cached_df_detvars,
+            output_dir=output_dir,
+        )

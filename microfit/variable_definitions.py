@@ -1,5 +1,5 @@
 normalization = [
-    ("dummy",1,(-0.5,0.5),"normalization")
+    ("run",1,(-1e10,1e10),"normalization")
 ]
 
 basic_variables = [
@@ -72,8 +72,8 @@ loosesel_variables_1eNp = [
     ("trkpid", 21, (-1, 1), "track LLR PID"),
     ("shrmoliereavg", 20, (0, 50), "average Moliere angle [degrees]"),
     ("shr_trk_len", 40, (0, 400), "Shower track fit length [cm]"),
-    ("nonpi0_score", 10, (0, 1.0), "BDT non-$\pi^0$ score", "log", True),
-    ("pi0_score", 10, (0, 1.0), "BDT $\pi^0$ score", "log", True),
+    ("nonpi0_score", 10, (0, 1.0), "BDT non-$\\pi^0$ score", "log", True),
+    ("pi0_score", 10, (0, 1.0), "BDT $\\pi^0$ score", "log", True),
     ("bkg_score", 10, (0, 1.0), "1e0p BDT score", "log", True),
 ]
 
@@ -130,12 +130,12 @@ shr2sel_variables = [
 ]
 bdtscore_variables = [
     # ('nonpi0_score',10,(0.,0.5),"BDT non-$\pi^0$ score", "low_bdt"),
-    ("nonpi0_score", 10, (0.5, 1.0), "BDT non-$\pi^0$ score", "high_bdt"),
-    ("nonpi0_score", 10, (0, 1.0), "BDT non-$\pi^0$ score"),
+    ("nonpi0_score", 10, (0.5, 1.0), "BDT non-$\\pi^0$ score", "high_bdt"),
+    ("nonpi0_score", 10, (0, 1.0), "BDT non-$\\pi^0$ score"),
     # ('nonpi0_score',10,(0,1.0),"BDT non-$\pi^0$ score", "log", True),
     # ('pi0_score',10,(0.,0.5),"BDT $\pi^0$ score", "low_bdt"),
-    ("pi0_score", 10, (0.5, 1.0), "BDT $\pi^0$ score", "high_bdt"),
-    ("pi0_score", 10, (0, 1.0), "BDT $\pi^0$ score"),
+    ("pi0_score", 10, (0.5, 1.0), "BDT $\\pi^0$ score", "high_bdt"),
+    ("pi0_score", 10, (0, 1.0), "BDT $\\pi^0$ score"),
     # ('pi0_score',10,(0,1.0),"BDT $\pi^0$ score", "log", True),
     # ('bkg_score',10,(0,1.0),"1e0p BDT score"),
     # ('bkg_score',10,(0,1.0),"1e0p BDT score", "log", True),
@@ -198,31 +198,31 @@ other_variables = [
 ]
 pi0_variables = [
     ("reco_e",20, (0.0,2.0), "Reconstructed Energy [GeV]"),
-    ("pi0_gammadot", 20, (-1, 1), "$\pi^0$ $\gamma_{\\theta\\theta}$"),
-    ("pi0energy", 20, (135, 1135), "$\pi^0$ Energy [MeV]"),
-    ("pi0energyraw", 20, (0, 1135), "$\pi^0$ Calorimeric Energy $E_1 + E_2$ [MeV]"),
-    ("pi0momentum", 20, (0, 1000), "$\pi^0$ Momentum [MeV]"),
-    ("pi0beta", 40, (0, 1), "$\pi^0$ $\\beta$"),
-    ("pi0momanglecos", 40, (0, 1), "$\pi^0$ $\cos\theta$"),
-    ("epicospi", 40, (0, 800), "$\pi^0$ $\cos{\theta}$ $\times$ $E_{\pi}$"),
-    ("asymm", 20, (0, 1), "$\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
-    ("pi0thetacm", 20, (0, 1), "$\cos\\theta_{\gamma}^{CM} = \\frac{1}{\\beta_{\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
-    ("pi0_mass_Y_corr", 49, (10, 500), "$\pi^0$ mass [MeV]"),
+    ("pi0_gammadot", 20, (-1, 1), "$\\pi^0$ $\\gamma_{\\theta\\theta}$"),
+    ("pi0energy", 20, (135, 1135), "$\\pi^0$ Energy [MeV]"),
+    ("pi0energyraw", 20, (0, 1135), "$\\pi^0$ Calorimeric Energy $E_1 + E_2$ [MeV]"),
+    ("pi0momentum", 20, (0, 1000), "$\\pi^0$ Momentum [MeV]"),
+    ("pi0beta", 40, (0, 1), "$\\pi^0$ $\\beta$"),
+    ("pi0momanglecos", 40, (0, 1), "$\\pi^0$ $\\cos\\theta$"),
+    ("epicospi", 40, (0, 800), "$\\pi^0$ $\\cos{\\theta}$ $\\times$ $E_{\\pi}$"),
+    ("asymm", 20, (0, 1), "$\\pi^0$ asymmetry $\\frac{|E_1-E_2|}{E_1+E_2}$"),
+    ("pi0thetacm", 20, (0, 1), "$\\cos\\theta_{\\gamma}^{CM} = \\frac{1}{\\beta_{\\pi^0}} \\frac{|E_1-E_2|}{E_1+E_2}$"),
+    ("pi0_mass_Y_corr", 49, (10, 500), "$\\pi^0$ mass [MeV]"),
     ("reco_e", 19, (0.15, 2.15), "reconstructed energy [GeV]"),
     ("shr_energy_tot_cali", 20, (0.05, 1.50), "reconstructed shower energy [GeV]"),
-    ("trk_energy_tot", 20, (0.05, 1.50), "reconstructed track energy [GeV]"),
+    #("trk_energy_tot", 20, (0.05, 1.50), "reconstructed track energy [GeV]"),
     ("n_tracks_contained", 5, (0, 5), "number of contained tracks"),
     ("n_showers_contained", 5, (2, 7), "number of contained showers"),
-    ("pi0_mass_U", 20, (10, 510), "$M_{\gamma\gamma}$ mass U plane [MeV]"),
-    ("pi0_mass_V", 20, (10, 510), "$M_{\gamma\gamma}$ mass V plane [MeV]"),
-    ("pi0_mass_Y", 20, (10, 510), "$M_{\gamma\gamma}$ mass Y plane [MeV]"),
-    ("pi0_shrscore1", 20, (0, 1), "leading $\gamma$ shower score"),
-    ("pi0_shrscore2", 20, (0, 1), "sub-leading $\gamma$ shower score"),
-    ("pi0_radlen1", 20, (3, 103), "leading $\gamma$ shower conversion distance [cm]"),
-    ("pi0_radlen2", 20, (3, 103), "sub-leading $\gamma$ shower conversion distance [cm]"),
-    ("pi0_energy1_Y", 20, (60, 460), "leading $\gamma$ shower energy [MeV]"),
-    ("pi0_energy2_Y", 20, (40, 240), "sub-leading $\gamma$ shower energy [MeV]"),
-    ("pi0_dedx1_fit_Y", 20, (1.0, 11.0), "leading $\gamma$ shower dE/dx [MeV/cm]"),
+    ("pi0_mass_U", 20, (10, 510), "$M_{\\gamma\\gamma}$ mass U plane [MeV]"),
+    ("pi0_mass_V", 20, (10, 510), "$M_{\\gamma\\gamma}$ mass V plane [MeV]"),
+    ("pi0_mass_Y", 20, (10, 510), "$M_{\\gamma\\gamma}$ mass Y plane [MeV]"),
+    ("pi0_shrscore1", 20, (0, 1), "leading $\\gamma$ shower score"),
+    ("pi0_shrscore2", 20, (0, 1), "sub-leading $\\gamma$ shower score"),
+    ("pi0_radlen1", 20, (3, 103), "leading $\\gamma$ shower conversion distance [cm]"),
+    ("pi0_radlen2", 20, (3, 103), "sub-leading $\\gamma$ shower conversion distance [cm]"),
+    ("pi0_energy1_Y", 20, (60, 460), "leading $\\gamma$ shower energy [MeV]"),
+    ("pi0_energy2_Y", 20, (40, 240), "sub-leading $\\gamma$ shower energy [MeV]"),
+    ("pi0_dedx1_fit_Y", 20, (1.0, 11.0), "leading $\\gamma$ shower dE/dx [MeV/cm]"),
     # ('pi0_radlen1',25,(0,100),"leading $\gamma$ shower conversion distance [cm]"),
     # ('pi0_radlen2',25,(0,100),"sub-leading $\gamma$ shower conversion distance [cm]"),
     # ('pi0_energy1_Y',25,(0,500),"leading $\gamma$ shower energy [MeV]"),
@@ -411,7 +411,7 @@ NP_near_sideband_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
 
 NP_medium_energy_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
     ("shr_energy_tot_cali", 10, (0.25,0.9), "shr energy (calibrated) [GeV]"),
-    ("reco_e", 5, (0.75, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("reco_e", 10, (0.75, 1.05), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
     ("pi0_score",10,(0.1,1.0),"pi0 score"),
     ("nonpi0_score",10,(0.1,1.0),"non-pi0 score"),
@@ -419,7 +419,7 @@ NP_medium_energy_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
 
 NP_medium_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
     ("shr_energy_tot_cali", 10, (0.05,0.7), "shr energy (calibrated) [GeV]"),
-    ("reco_e", 5, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
+    ("reco_e", 10, (0.05, 1.05), r"Reconstructed Energy [GeV]", "note"),
     ("trk_energy_tot", 10, (0, 0.6), "trk energy (range, P) [GeV]"),
     ("pi0_score",10,(0.1,0.67),"pi0 score"),
     ("nonpi0_score",10,(0.1,0.7),"non-pi0 score"),
@@ -428,12 +428,12 @@ NP_medium_pid_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
 # ZP Far Sideband
 
 ZP_far_sideband_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
-    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("shr_energy_tot_cali", 10, (0.65,1.55), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.05, 2.05), r"Reconstructed Energy [GeV]", "note"),
 ] 
 
 ZP_high_energy_variables = bdt_common_variables_1e0p + bdt_1e0p_variables + [
-    ("shr_energy_tot_cali", 10, (0.05,0.6), "shr energy (calibrated) [GeV]"),
+    ("shr_energy_tot_cali", 10, (0.75,1.55), "shr energy (calibrated) [GeV]"),
     ("reco_e", 10, (0.90, 2.55), r"Reconstructed Energy [GeV]", "note"),
     ("bkg_score",10,(0.0,1.0),"Background Score"),
 ]
