@@ -17,30 +17,47 @@ basic_variables = [
 ]
 
 variables_1e1p = [
-    # ('reco_e',21,(0.05,2.15),r"Reconstructed Energy [GeV]"),
-    # ('reco_e',20,(0.05,3.05),r"Reconstructed Energy [GeV]","extended"),
-    # ('reco_e',7,(0.05,2.85),r"Reconstructed Energy [GeV]","coarse"),
-    # ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
-    # ('reco_e',21,(-0.05,4.15),r"Reconstructed Energy [GeV]","extended"),
-    ("reco_e", 20, (0.15, 2.95), "Reconstructed Neutrino Energy [GeV] \n (reco_e)", "note"),
-    # ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
-    ("p", 20, (0, 4), "Total Reconstructed Momentum [GeV/c] \n (p)"),
-    ("pt", 20, (0, 2), "Total Reconstructed Transverse Momentum [GeV/c] \n (pt)"),
-    ("trk_energy", 10, (0, 1), "Reconstructed Proton Kinetic Energy [GeV] \n (trk_energy)"),
-    ("shr_energy_cali", 16, (0, 4), "Reconstructed Electron Energy [GeV] \n (shr_energy_cali)"),
-    ("mod_shr_p", 20, (0, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c] \n (mod_shr_p)"),
-    ("shr_px", 12, (-1.5, 1.5), "x component of Reconstructed Electron Momentum [GeV/c] \n (shr_px)"),
-    ("shr_py", 12, (-1.5, 1.5), "y component of Reconstructed Electron Momentum [GeV/c] \n (shr_py)"),
-    ("shr_pz", 12, (-1, 5), "z component of Reconstructed Electron Momentum [GeV/c] \n (shr_pz)"),
-    ("mod_trk_p", 20, (0, 1.5), "Modulus of the Reconstructed Proton Momentum [GeV/c] \n (mod_trk_p)"),
-    ("trk_px", 20, (-1, 1), "x component of Reconstructed Proton Momentum [GeV/c] \n (trk_px)"),
-    ("trk_py", 20, (-1.5, 1.5), "y component of Reconstructed Proton Momentum [GeV/c] \n (trk_py)"),
-    ("trk_pz", 20, (-1, 1.5), "z component of Reconstructed Proton Momentum [GeV/c] \n (trk_pz)"),
+#     ("reco_e", 20, (0.15, 2.95), "Reconstructed Neutrino Energy [GeV] \n (reco_e)", "note"),
+#     # ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
+#     ("p", 20, (0, 4), "Total Reconstructed Momentum [GeV/c] \n (p)"),
+#     ("pt", 20, (0, 2), "Total Reconstructed Transverse Momentum [GeV/c] \n (pt)"),
+#     ("trk_energy", 10, (0, 1), "Reconstructed Proton Kinetic Energy [GeV] \n (trk_energy)"),
+#     ("shr_energy_cali", 16, (0, 4), "Reconstructed Electron Energy [GeV] \n (shr_energy_cali)"),
+#     ("mod_shr_p", 20, (0, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c] \n (mod_shr_p)"),
+#     ("shr_px", 12, (-1.5, 1.5), "x component of Reconstructed Electron Momentum [GeV/c] \n (shr_px)"),
+#     ("shr_py", 12, (-1.5, 1.5), "y component of Reconstructed Electron Momentum [GeV/c] \n (shr_py)"),
+#     ("shr_pz", 12, (-1, 5), "z component of Reconstructed Electron Momentum [GeV/c] \n (shr_pz)"),
+#     ("mod_trk_p", 20, (0, 1.5), "Modulus of the Reconstructed Proton Momentum [GeV/c] \n (mod_trk_p)"),
+#     ("trk_px", 20, (-1, 1), "x component of Reconstructed Proton Momentum [GeV/c] \n (trk_px)"),
+#     ("trk_py", 20, (-1.5, 1.5), "y component of Reconstructed Proton Momentum [GeV/c] \n (trk_py)"),
+#     ("trk_pz", 20, (-1, 1.5), "z component of Reconstructed Proton Momentum [GeV/c] \n (trk_pz)"),
+    ("trk_llr_pid_score_v", 32, (-1, 1), "LLR PID Score"),
 ]
 
 TKI_variables_1e1p = [
     ("mod_delta_pt", 20, (0, 2), "$\\delta p_T$ [GeV/c] \n (mod_delta_pt)"),
     ("delta_alpha", 20, (0, 180), "$\\delta \\alpha_T$ [degrees] \n (delta_alpha)"),
+]
+
+tightsel_variables = [
+    ("CosmicIPAll3D", 20, (0, 200), "CosmicIPAll3D [cm]"),
+    ("CosmicDirAll3D", 20, (-1, 1), "CosmicDirAll3D"),
+    ("trkpid", 21, (-1, 1), "track LLR PID"),
+    ("hits_ratio", 20, (0, 1), "shower hits/all hits"),
+    ("shrmoliereavg", 20, (0, 50), "average Moliere angle [degrees]"),
+    ("subcluster", 20, (0, 40), "N sub-clusters in shower"),
+    ("trkfit", 20, (0, 1.0), "Fraction of Track-fitted points"),
+    ("shr_trk_len", 40, (0, 400), "Shower track fit length [cm]"),
+    ("shr_score", 20, (0, 0.5), "Shower score"),
+    ("tksh_distance", 20, (0, 40), "trk-shr distance [cm]"),
+    ("shr_tkfit_nhits_tot", 20, (0, 20), "shr tkfit nhits (tot, 0-4 cm) [MeV/cm]"),
+    ("shr_tkfit_dedx_max", 20, (0, 10), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    ("trkshrhitdist2", 20, (0, 10), "2D trk-shr distance (Y)"),
+    ("secondshower_Y_nhit", 20, (0, 200), "Nhit 2nd shower (Y)"),
+    ("secondshower_Y_dot", 20, (-1, 1), "cos(2nd shower direction wrt vtx) (Y)"),
+    ("anglediff_Y", 14, (0, 350), "angle diff 1st-2nd shower (Y) [degrees]"),
+    ("secondshower_Y_vtxdist", 20, (0.0, 200), "vtx dist 2nd shower (Y)"),
+    ("tksh_angle", 20, (-1, 1), "cos(trk-shr angle)"),
 ]
 
 loosesel_variables_1eNp = [

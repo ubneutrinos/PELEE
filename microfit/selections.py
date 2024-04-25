@@ -31,6 +31,24 @@ OnePLCUTQ += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr
 OnePLCUTQ += ' and tksh_angle > -0.9'
 OnePLCUTQ += ' and shr_trk_len < 300.'
 
+# 1e1p tight box cuts (same as 1eNp tight box cuts)
+OnePTCUTQ = OnePPRESQ
+#OnePTCUTQ = OnePLCUTQ # only for investigation purposes
+OnePTCUTQ += ' and CosmicIPAll3D > 30.'
+OnePTCUTQ += ' and CosmicDirAll3D > -0.98 and CosmicDirAll3D < 0.98' # new cut
+OnePTCUTQ += ' and trkpid < 0.02'
+OnePTCUTQ += ' and hits_ratio > 0.65'
+OnePTCUTQ += ' and shr_score < 0.25' # new cut
+OnePTCUTQ += ' and shrmoliereavg > 2 and shrmoliereavg < 10'
+OnePTCUTQ += ' and subcluster > 7'
+OnePTCUTQ += ' and trkfit < 0.70'
+OnePTCUTQ += ' and tksh_distance < 4.0'
+OnePTCUTQ += ' and trkshrhitdist2 < 1.5' # new cut
+OnePTCUTQ += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 1.0 and shr_tkfit_dedx_max < 3.8)'
+OnePTCUTQ += ' and (secondshower_Y_nhit<=8 or secondshower_Y_dot<=0.8 or anglediff_Y<=40 or secondshower_Y_vtxdist>=100)' # new cut
+OnePTCUTQ += ' and tksh_angle > -0.9 and tksh_angle < 0.70'
+OnePTCUTQ += ' and shr_trk_len < 300.'
+
 # 1eNp preselection
 NPPRESQ = PRESQ
 NPPRESQ += ' and n_tracks_contained > 0'
@@ -516,6 +534,7 @@ selection_categories = {
     'ZPXSBDTAllShr': {'query': ZPXSBDTQ_all_showers, 'title': '1e0p xsec BDT sel., 0+ showers', 'dir': 'ZPXSBDTAllShr'},
     'XPXSBDT': {'query': XPXSBDTQ, 'title': '1eXp xsec BDT sel.', 'dir': 'XPXSBDT'},
     'OnePL': {'query': OnePLCUTQ, 'title': '1e1p Loose cuts', 'dir': 'OnePL'},
+    'OnePT': {'query': OnePTCUTQ, 'title': '1e1p Tight cuts', 'dir': 'OnePT'},
 
     # CT: Full selections with BDT cuts inverted
     'ZPBDT_INV': {'query': ZPBDTLOOSE_INV, 'title': 'Inverted 1e0p BDT sel.', 'dir': 'ZPBDT_INV'},
