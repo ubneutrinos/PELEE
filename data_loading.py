@@ -2459,11 +2459,9 @@ def _load_run_detvar(
     if run_number in ["4b","4c","4d"]: run_number_tmp = "4"
     elif run_number in ["1","2"]: run_number_tmp = "1"
     elif run_number == "3": run_number_tmp = "3"
-    elif run_number == "3_crt":
-        run_number_tmp = "4"
-        print("Using run 4 to compute detvars for run 3_crt! Please fix missing CRT variables in run 3!")
+    elif run_number == "3_crt" or run_number == "3" or run_number == "3_nocrt": run_number_tmp = "3"
     elif run_number == "5": run_number_tmp = "5"
-    else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,3_crt,4b,4c,4d,5")
+    else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,3_crt,3_nocrt,4b,4c,4d,5")
 
     rundict = get_rundict(run_number_tmp, "detvar")
     weights = dict()
