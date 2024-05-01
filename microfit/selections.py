@@ -588,12 +588,12 @@ selection_categories = {
 
     # Giuseppe's selections
     'ZPTwoShrCRT': {'query': ZPPRESEL_two_shower_CRT, 'title': '1e0p Presel. w/ CRT, 2+ shower', 'dir': 'ZPTwoShrCRT'},
-    'NUMUCRT0PI': {'query': NUMUSELCRT0PI, 'title': r"$\nu_{\mu}$0$\pi$ selection w/ CRT", 'dir': 'NUMUCRT0PI'},
-    'NUMUCRTNP0PI': {'query': NUMUSELCRTNP0PI, 'title': r"$1\mu$Np0$\pi$ selection w/ CRT", 'dir': 'NUMUCRTNP0PI'},
-    'NUMUCRT0P0PI': {'query': NUMUSELCRT0P0PI, 'title': r"$1\mu$0p0$\pi$ selection w/ CRT", 'dir': 'NUMUCRT0P0PI'},
-    'NUMU0PI': {'query': NUMUSEL0PI, 'title': r"$\nu_{\mu}$0$\pi$ selection", 'dir': 'NUMU0PI'},
-    'NUMUNP0PI': {'query': NUMUSELNP0PI, 'title': r"$1\mu$Np0$\pi$ selection", 'dir': 'NUMUNP0PI'},
-    'NUMU0P0PI': {'query': NUMUSEL0P0PI, 'title': r"$1\mu$0p0$\pi$ selection", 'dir': 'NUMU0P0PI'},
+    'NUMUCRT0PI': {'query': NUMUSELCRT0PI, 'title': r"$\nu_{\mu}$0$\pi$ sel. w/ CRT", 'dir': 'NUMUCRT0PI'},
+    'NUMUCRTNP0PI': {'query': NUMUSELCRTNP0PI, 'title': r"$1\mu$Np0$\pi$ sel. w/ CRT", 'dir': 'NUMUCRTNP0PI'},
+    'NUMUCRT0P0PI': {'query': NUMUSELCRT0P0PI, 'title': r"$1\mu$0p0$\pi$ sel. w/ CRT", 'dir': 'NUMUCRT0P0PI'},
+    'NUMU0PI': {'query': NUMUSEL0PI, 'title': r"$\nu_{\mu}$0$\pi$ sel.", 'dir': 'NUMU0PI'},
+    'NUMUNP0PI': {'query': NUMUSELNP0PI, 'title': r"$1\mu$Np0$\pi$ sel.", 'dir': 'NUMUNP0PI'},
+    'NUMU0P0PI': {'query': NUMUSEL0P0PI, 'title': r"$1\mu$0p0$\pi$ sel.", 'dir': 'NUMU0P0PI'},
 
  
     # Misc background selections
