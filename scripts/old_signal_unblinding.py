@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 MAKE_DIAGNOSTIC_PLOTS = True
 # %%
 config_file = "../config_files/old_model_ana_with_detvars.toml"
-output_dir = "../old_model_ana_remerged_crt_output/"
+output_dir = "../old_model_ana_output_with_3a/"
 
 analysis = MultibandAnalysis.from_toml(
     config_file,
@@ -37,6 +37,8 @@ analysis = MultibandAnalysis.from_toml(
 # %%
 print("Plotting signal channels...")
 analysis.parameters["signal_strength"].value = 1.0
+# make the pre_fit output directory if it doesn't exist yet
+os.makedirs(os.path.join(output_dir, "pre_fit"), exist_ok=True)
 analysis.plot_signals(
     include_multisim_errors=True,
     use_sideband=True,
@@ -93,6 +95,7 @@ analysis.set_parameters(best_fit_parameters)
 print("Plotting signal channels at best fit point...")
 print(best_fit_parameters)
 extra_text = f"Best fit signal strength: {best_fit_parameters['signal_strength'].m:.3f}"
+os.makedirs(os.path.join(output_dir, "post_fit"), exist_ok=True)
 analysis.plot_signals(
     include_multisim_errors=True,
     use_sideband=True,
@@ -129,9 +132,14 @@ print(f"Best fit parameters: {best_fit_parameters}")
 
 # %%
 data_gen = analysis._get_channel_gen("NPBDT").data_hist_generator
+assert data_gen is not None
 data_df = data_gen.dataframe
-zpbdt_crt_query = data_gen.binning["ZPBDT"].selection_query
-zpbdt_no_crt_query = data_gen.binning["ZPBDT_NOCRT"].selection_query
+# Type technically requires the binning to be a MultiChannelBinning, which could theoretically
+# not be true, but we just assume that it is here.
+zpbdt_crt_query = data_gen.binning["ZPBDT"].selection_query  # type: ignore
+zpbdt_no_crt_query = data_gen.binning["ZPBDT_NOCRT"].selection_query  # type: ignore
+assert isinstance(zpbdt_crt_query, str)
+assert isinstance(zpbdt_no_crt_query, str)
 data_with_crt = data_df.query(zpbdt_crt_query, engine="python")
 data_no_crt = data_df.query(zpbdt_no_crt_query, engine="python")
 # %%
@@ -154,6 +162,7 @@ analysis.set_parameters(best_fit_parameters)
 print("Plotting signal channels at best fit point...")
 print(best_fit_parameters)
 extra_text = f"Best fit signal strength: {best_fit_parameters['signal_strength'].m:.3f}"
+os.makedirs(os.path.join(output_dir, "post_fit_npbdt"), exist_ok=True)
 analysis.plot_signals(
     include_multisim_errors=True,
     use_sideband=True,
@@ -179,6 +188,7 @@ analysis.set_parameters(best_fit_parameters)
 print("Plotting signal channels at best fit point...")
 print(best_fit_parameters)
 extra_text = f"Best fit signal strength: {best_fit_parameters['signal_strength'].m:.3f}"
+os.makedirs(os.path.join(output_dir, "post_fit_zpbdt"), exist_ok=True)
 analysis.plot_signals(
     include_multisim_errors=True,
     use_sideband=True,
