@@ -20,7 +20,7 @@ value = 1.0
 
 [fc_scan]
 parameter_name = "signal_strength"
-range = [0, 5]
+range = [0, 7]
 n_points = 40
 
 [[fc_scan.fit_grid]]
@@ -33,10 +33,11 @@ include_multisim_errors = true
 add_ext_error_floor = false
 use_sideband = true
 
+# ------ Muon Sideband Generator ----- 
 [[generator]]
 [generator.load_runs]
-run_numbers = ["3"]
-data = "muon_sideband"
+run_numbers = ["3_crt"]
+data = "bnb"
 truth_filtered_sets = ["nue", "drt"]
 loadshowervariables = false
 loadsystematics = true
@@ -47,13 +48,71 @@ numupresel = true
 enable_cache = true
 blinded = false
 
+[generator.detvars]
+# Only arguments that are to be overridden for detvars need to be 
+# repeated here, otherwise all arguments from load_runs will be 
+# copied over.
+truth_filtered_sets = ["nue","nc_pi0"]
+
+[[generator.channel]]
+variable = "neutrino_energy"
+n_bins = 14
+limits = [0.15, 1.55]
+selection = "NUMUCRTNP0PI"
+preselection = "NUMUCRT"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
+
+[[generator.channel]]
+variable = "neutrino_energy"
+n_bins = 14
+limits = [0.15, 1.55]
+selection = "NUMUCRT0P0PI"
+preselection = "NUMUCRT"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
+
 [[generator.channel]]
 variable = "neutrino_energy"
 n_bins = 14
 limits = [0.15, 1.55]
 selection = "NUMUCRT"
-preselection = "NUMU"
+preselection = "NUMUCRT"
 variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
+
+# ------ Two-shower Sideband Generator ----- 
+[[generator]]
+[generator.load_runs]
+run_numbers = ["3_crt"]
+data = "bnb"
+truth_filtered_sets = ["nue", "drt"]
+loadpi0variables = true
+loadshowervariables = true
+loadrecoveryvars = false
+loadsystematics = true
+load_crt_vars = true
+load_lee = false
+enable_cache = true
+blinded = false
+
+[generator.detvars]
+# Only arguments that are to be overridden for detvars need to be 
+# repeated here, otherwise all arguments from load_runs will be 
+# copied over.
+truth_filtered_sets = ["nue","nc_pi0"]
+
+[[generator.channel]]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.0]
+selection = "ZPLOOSESELTWOSHR"
+preselection = "ZPTwoShrCRT"
+label = "TWOSHR"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex_short = "$E_{\\mathrm{reco}}$"
+selection_tex = "$1e0p$ loose 2+ shower selection"
+selection_tex_short = "$1e0p$ 2+shr"
 
 [[generator]]
 
@@ -69,7 +128,18 @@ loadrecoveryvars = true
 loadsystematics = true
 load_lee = true
 enable_cache = true
-blinded = true
+blinded = false
+
+[generator.detvars]
+# Only arguments that are to be overridden for detvars need to be 
+# repeated here, otherwise all arguments from load_runs will be 
+# copied over.
+truth_filtered_sets = ["nue","nc_pi0"]
+# The full detvars are only calculated for this selection of events
+extra_selection_query = "(mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))"
+# For the misc. background, we just add a flat fractional covariance
+misc_background_query = "not (mcf_pass_ncpi0 == 1 or (abs(nu_pdg) == 12 and ccnc == 0))"
+misc_background_error_frac = 0.2
 
 [[generator.parameter]]
 name = "signal_strength"
