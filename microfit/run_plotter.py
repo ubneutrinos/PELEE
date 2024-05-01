@@ -265,9 +265,8 @@ class RunHistPlotter:
                 **kwargs,
             )
             if signal_hist is not None and signal_hist.sum() > 0:
-                background_sum = sum(background_hists, Histogram.empty_like(background_hists[0]))
-                # Plot the signal on top of the background
-                y_bkg = background_sum.bin_counts
+                # Plot signal on top of total prediction (incl. constraints)
+                y_bkg = total_pred_hist.bin_counts
                 y_sig = signal_hist.bin_counts
                 # Repeat the last element so that we can make a step plot
                 y_bkg = np.append(y_bkg, y_bkg[-1])
