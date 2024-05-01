@@ -600,12 +600,13 @@ class MultibandAnalysis(object):
                     default_kwargs = self.plotting_config[channel].copy()
                     default_kwargs.update(kwargs)
                 else:
-                    default_kwargs = kwargs
+                    default_kwargs = kwargs.copy()
+                show_data = default_kwargs.pop("show_data", not self._get_channel_is_blinded(channel))
                 ax, _ = RunHistPlotter(self).plot(
                     category_column=category_column,
                     channel=channel,
                     data_pot=self._get_pot_for_channel(channel),
-                    show_data=not self._get_channel_is_blinded(channel),
+                    show_data=show_data,
                     extra_text=extra_text,
                     **default_kwargs,
                 )

@@ -29,7 +29,7 @@ def plot_chi2_distribution(output_dir, chi2_results_file, chi2_at_h0, plot_suffi
     fig.savefig(os.path.join(output_dir, f"chi2_distribution_with_result_{plot_suffix}.pdf"))
 
 
-def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suffix, plot_title):
+def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suffix, plot_title, sensitivity_only=False):
     two_hypo_results = from_json(os.path.join(output_dir, two_hypo_results_file))
     minimum = np.min(two_hypo_results["samples_h0"])
     minimum = min(minimum, np.min(two_hypo_results["samples_h1"]))
@@ -65,12 +65,13 @@ def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suf
         linestyle="--",
         label=f"Median H1\np-val: {two_hypo_results['median_pval']*100:0.3g}%",
     )
-    ax.axvline(
-        x=delta_chi2,
-        color="k",
-        linestyle="-",
-        label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH0 p-val: {p_val*100:0.3g}%\nBF: {bayes_factor_str}",
-    )
+    if not sensitivity_only:
+        ax.axvline(
+            x=delta_chi2,
+            color="k",
+            linestyle="-",
+            label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH0 p-val: {p_val*100:0.3g}%\nBF: {bayes_factor_str}",
+        )
     ax.legend()
     ax.set_xlabel(r"$\Delta \chi^2$")
     ax.set_ylabel("Samples")
@@ -97,22 +98,22 @@ def compute_confidence_interval(p_values, scan_points, confidence_level):
     fit_results_x = [r.x[0] for r in fit_results if r.success and r.fun < 1e-5]
 
     sorted_crossings = np.sort(fit_results_x)
-
-    # There are two cases to be distinguished: Either there is only one crossing,
-    # in which case the values will be very close to each other. Otherwise,
-    # the first and last value will be the two crossings.
-    if np.abs(sorted_crossings[0] - sorted_crossings[-1]) < 0.01:
-        # If there is only one crossing, we want to put the interval between
-        # it and either the upper or lower bound of the scan, depending on
-        # which one has the smallest p-value.
-        p_lower_bound = p_interp(np.min(scan_points))
-        p_upper_bound = p_interp(np.max(scan_points))
-        if p_lower_bound < p_upper_bound:
-            p_lower, p_upper = sorted_crossings[0], np.max(scan_points)
-        else:
-            p_lower, p_upper = np.min(scan_points), sorted_crossings[-1]
-    else:
-        p_lower, p_upper = sorted_crossings[0], sorted_crossings[-1]
+    # Get the x-value of the maximum p-value
+    max_pval_x = scan_points[np.argmax(p_values)]
+    # For a two-sided confidence interval, we expect that one crossing will be below
+    # the maximum p-value and the other above it. If this is not the case, we
+    # take the crossing with the largest value as an upper bound if the crossings are
+    # above the maximum, and we take the lowest value as a lower bound if it is below
+    # the maximum.
+    if len(sorted_crossings) == 0:
+        logging.error("No crossing found for confidence interval.")
+        return max_pval_x, max_pval_x
+    if sorted_crossings[0] > max_pval_x:
+        return np.min(scan_points), sorted_crossings[-1]
+    if sorted_crossings[-1] < max_pval_x:
+        return sorted_crossings[0], np.max(scan_points)
+    p_lower = sorted_crossings[0]
+    p_upper = sorted_crossings[-1]
     return p_lower, p_upper
 
 

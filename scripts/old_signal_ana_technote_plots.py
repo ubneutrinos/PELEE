@@ -1,4 +1,7 @@
 # %%
+# %load_ext autoreload
+# %autoreload 2
+# %%
 import sys, os
 
 sys.path.append("../")
@@ -16,7 +19,7 @@ from microfit.analysis import MultibandAnalysis
 import logging
 
 config_file = "../config_files/old_model_ana_with_detvars.toml"
-output_dir = "../old_model_ana_remerged_crt_output/"
+output_dir = "../old_model_ana_output_with_3a/"
 
 analysis = MultibandAnalysis.from_toml(
     config_file,
@@ -36,17 +39,21 @@ analysis.plot_sidebands(
     show_chi_square=True,
     show_data_mc_ratio=True,
     save_path=output_dir,
+    figsize=(6, 6),
 )
 
 # %%
 print("Plotting signal channels...")
 analysis.parameters["signal_strength"].value = 1.0
+os.makedirs(os.path.join(output_dir, "mc_only"), exist_ok=True)
 analysis.plot_signals(
     include_multisim_errors=True,
     use_sideband=True,
     separate_figures=True,
     add_precomputed_detsys=True,
-    save_path=output_dir,
+    save_path=os.path.join(output_dir, "mc_only"),
+    show_data=False,
+    figsize=(6, 4.5),
 )
 
 # %%
