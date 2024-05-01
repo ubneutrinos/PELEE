@@ -1,5 +1,5 @@
 [persistence]
-output_dir = "../old_model_ana_output/"
+output_dir = "../old_model_ana_output_with_3a/"
 
 [plotting]
 [plotting.NPBDT]
@@ -43,8 +43,6 @@ use_sideband = true
 # ------ Muon Sideband Generator ----- 
 [[generator]]
 [generator.load_runs]
-# TODO: Run 3_crt detvars do not have CRT yet, the code is using run 4 to compute
-# detvars for run 3_crt
 run_numbers = ["3_crt", "4b", "4c", "4d","5"]
 data = "bnb"
 truth_filtered_sets = ["nue", "drt"]
@@ -98,8 +96,6 @@ variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
 # ------ Two-shower Sideband Generator ----- 
 [[generator]]
 [generator.load_runs]
-# TODO: Run 3_crt detvars do not have CRT yet, the code is using run 4 to compute
-# detvars for run 3_crt
 run_numbers = ["3_crt", "4b", "4c", "4d","5"]
 data = "bnb"
 truth_filtered_sets = ["nue", "drt"]
@@ -127,7 +123,7 @@ preselection = "ZPTwoShrCRT"
 label = "TWOSHR"
 variable_tex = "Neutrino Reconstructed Energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
-selection_tex = "$1e0p$ loose 2+ shower selection"
+selection_tex = "$1e0p$ loose 2+ shower sel."
 selection_tex_short = "$1e0p$ 2+shr"
 
 
@@ -137,7 +133,7 @@ selection_tex_short = "$1e0p$ 2+shr"
 mc_hist_generator_cls = "SignalOverBackgroundGenerator"
 
 [generator.load_runs]
-run_numbers = ["1", "2", "3_crt","4b","4c","4d","5"]
+run_numbers = ["1", "2", "3_nocrt", "3_crt","4b","4c","4d","5"]
 # run_numbers = ["4b","4c","4d","5"]
 data = "bnb"
 truth_filtered_sets = ["nue", "drt"]
