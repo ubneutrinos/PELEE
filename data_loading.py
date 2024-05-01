@@ -2078,8 +2078,8 @@ def load_sample(
     # dummy CRT variables into the dataframes that ensure that they have no effect when the CRT cuts 
     # are applied, i.e., the CRT condition is always True.
     if load_crt_vars:
-        if int(run_number[0]) < 3:
-            print("CRT variables are not available for runs < 3. Variables will be added to data frame with values "
+        if run_number in ["1", "2", "3_nocrt"]:
+            print("CRT variables are not available for runs 1, 2 and 3a ('3_nocrt'). Variables will be added to data frame with values "
                   "that ensure that the CRT condition is always True.")
 
     fold = "nuselection"
@@ -2109,10 +2109,10 @@ def load_sample(
         df["extdata"] = dataset == "ext"
 
         # trk_energy_tot agrees here
-        # For runs before 3, we put values into the CRT variables that ensure that the CRT condition is always True
+        # For runs 1, 2 and 3a ('3_nocrt'), we put values into the CRT variables that ensure that the CRT condition is always True
         # The CRT condition is: 
         #    (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.0
-        if int(run_number[0]) < 3:
+        if run_number in ["1", "2", "3_nocrt"]:
             df["crtveto"] = 0
             df["crthitpe"] = 0
             df["_closestNuCosmicDist"] = 10.0
@@ -2576,8 +2576,8 @@ def load_run_detvar(
 def load_runs(run_numbers, **load_run_kwargs):
 
     # Can't use run 3 and run 3_crt at the same time - they're the same data!
-    if "3" in run_numbers and "3_crt" in run_numbers:
-        raise ValueError("You cannot use run 3 and run 3_crt at the same time. They contain overlapping data.")
+    if "3" in run_numbers and ("3_crt" in run_numbers or "3_nocrt" in run_numbers):
+        raise ValueError("You cannot use run 3 and run 3_crt or 3_nocrt at the same time. They contain overlapping data.")
 
     runsdata = {}  # dictionary containing each run dictionary
     weights = {}  # dictionary containing each weights dictionary
