@@ -22,7 +22,7 @@ from numu_tki import tki_calculators
 
 from microfit.selections import extract_variables_from_query
 
-datasets = ["bnb","opendata_bnb","bdt_sideband","shr_energy_sideband","two_shr_sideband","muon_sideband","near_sideband","far_sideband","nuwro_fd"]
+datasets = ["bnb","opendata_bnb","nuwro_fd"]
 detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 
 # Create a logger for this module
@@ -114,7 +114,7 @@ def get_variables():
         "CosmicDirAll3D",
         "CosmicIPAll3D",
         # "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
-        "flash_pe",
+        #"flash_pe",
         # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
         # "trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
@@ -1985,12 +1985,9 @@ def apply_bdt_truth_filters(df):
 
 def get_rundict(run_number, category):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
- 
-    # Old ntuple paths
-    #with open(os.path.join(thisfile_path, "data_paths.yml"), "r") as f:
 
     # New ntuple paths!
-    with open(os.path.join(thisfile_path, "data_paths_2023.yml"), "r") as f:
+    with open(os.path.join(thisfile_path, "data_paths_crt.yml"), "r") as f:
         pathdefs = yaml.safe_load(f)
 
     runpaths = pathdefs[category]
@@ -2047,17 +2044,7 @@ def load_sample(
         
         #assert category in ["runs", "nearsidebands", "farsidebands", "fakedata", "numupresel","detvar"]
         assert category in ["runs","numupresel","detvar"]
-        
-        if use_bdt:
-            assert loadshowervariables, "BDT requires shower variables"
-        
-        if use_lee_weights:
-            assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
-        
-        # CT: Slightly hacky way to ensure run number is >= 3 (assume first letter of string is >= 3)
-        if load_crt_vars:
-            assert int(run_number[0]) >= 3, "CRT variables only available for R3 and up"
-        
+
         # The path to the actual ROOT file
         if category != "detvar":
             rundict = get_rundict(run_number, category)
@@ -2079,6 +2066,21 @@ def load_sample(
     else: 
         if verbose: print("Loading file",full_path,"instead of using data_paths.yml")
         data_path = full_path 
+    
+            
+    if use_bdt:
+        assert loadshowervariables, "BDT requires shower variables"
+    
+    if use_lee_weights:
+        assert category == "runs" and dataset == "nue", "LEE weights only available for nue runs"
+    
+    # AT: We do not want to crash when we are loading the CRT variables for runs 1 and 2. Instead we put 
+    # dummy CRT variables into the dataframes that ensure that they have no effect when the CRT cuts 
+    # are applied, i.e., the CRT condition is always True.
+    if load_crt_vars:
+        if run_number in ["1", "2", "3_nocrt"]:
+            print("CRT variables are not available for runs 1, 2 and 3a ('3_nocrt'). Variables will be added to data frame with values "
+                  "that ensure that the CRT condition is always True.")
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
@@ -2096,6 +2098,8 @@ def load_sample(
             loadrecoveryvars=loadrecoveryvars,
             loadnumuvariables=loadnumuvariables,
             use_lee_weights=use_lee_weights,
+            # The function checks the run number internally and does not load the CRT
+            # variables for runs < 3
             load_crt_vars=load_crt_vars,
         )
 
@@ -2105,12 +2109,13 @@ def load_sample(
         df["extdata"] = dataset == "ext"
 
         # trk_energy_tot agrees here
-        # For runs before 3, we put zeros for the CRT variables
-        if int(run_number[0]) < 3:
-            vardict = get_variables()
-            crtvars = vardict["CRTVARS"]
-            for var in crtvars:
-                df[var] = 0.0
+        # For runs 1, 2 and 3a ('3_nocrt'), we put values into the CRT variables that ensure that the CRT condition is always True
+        # The CRT condition is: 
+        #    (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.0
+        if run_number in ["1", "2", "3_nocrt"]:
+            df["crtveto"] = 0
+            df["crthitpe"] = 0
+            df["_closestNuCosmicDist"] = 10.0
 
         # We also add some "one-hot" variables for the run number
         # TODO: Do we need this?
@@ -2202,7 +2207,7 @@ def load_sample(
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category == "runs" and dataset not in datasets and dataset != "ext" 
+    is_mc = category in ["runs", "numupresel"] and dataset not in datasets and dataset != "ext" 
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2454,11 +2459,9 @@ def _load_run_detvar(
     if run_number in ["4b","4c","4d"]: run_number_tmp = "4"
     elif run_number in ["1","2"]: run_number_tmp = "1"
     elif run_number == "3": run_number_tmp = "3"
-    elif run_number == "3_crt":
-        run_number_tmp = "4"
-        print("Using run 4 to compute detvars for run 3_crt! Please fix missing CRT variables in run 3!")
+    elif run_number == "3_crt" or run_number == "3" or run_number == "3_nocrt": run_number_tmp = "3"
     elif run_number == "5": run_number_tmp = "5"
-    else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,3_crt,4b,4c,4d,5")
+    else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,3_crt,3_nocrt,4b,4c,4d,5")
 
     rundict = get_rundict(run_number_tmp, "detvar")
     weights = dict()
@@ -2573,8 +2576,8 @@ def load_run_detvar(
 def load_runs(run_numbers, **load_run_kwargs):
 
     # Can't use run 3 and run 3_crt at the same time - they're the same data!
-    if "3" in run_numbers and "3_crt" in run_numbers:
-        raise ValueError("You cannot use run 3 and run 3_crt at the same time. They contain overlapping data.")
+    if "3" in run_numbers and ("3_crt" in run_numbers or "3_nocrt" in run_numbers):
+        raise ValueError("You cannot use run 3 and run 3_crt or 3_nocrt at the same time. They contain overlapping data.")
 
     runsdata = {}  # dictionary containing each run dictionary
     weights = {}  # dictionary containing each weights dictionary

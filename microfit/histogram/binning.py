@@ -45,6 +45,7 @@ class Binning:
     bin_edges: np.ndarray
     label: Optional[str] = None
     variable_tex: Optional[str] = None
+    variable_tex_short: Optional[str] = None
     is_log: bool = False
     selection_query: Optional[str] = None
     selection_key: Optional[str] = None
@@ -83,7 +84,12 @@ class Binning:
             # uniquely identify the channel in the MultiChannelBinning.
             # But the TeX strings don't have to match, because they are only used
             # for plotting.
-            if field.name in ["variable_tex", "selection_tex"]:
+            if field.name in [
+                "variable_tex",
+                "selection_tex",
+                "selection_tex_short",
+                "variable_tex_short",
+            ]:
                 # It really doesn't matter if the variable_tex is different, as it is
                 # only used for plotting. So we can just skip it.
                 continue
@@ -105,7 +111,14 @@ class Binning:
     def __len__(self):
         return self.n_bins
 
-    def set_selection(self, selection=None, preselection=None, query=None, selection_tex=None):
+    def set_selection(
+        self,
+        selection=None,
+        preselection=None,
+        query=None,
+        selection_tex=None,
+        selection_tex_short=None,
+    ):
         """Set the selection query of the binning given the preselection and the selection."""
         if selection is not None or preselection is not None:
             assert query is None, "Cannot set both query and selection/preselection"
@@ -113,7 +126,7 @@ class Binning:
             self.selection_key = selection
             self.preselection_key = preselection
             self.selection_tex = selection_tex or get_selection_title(selection, preselection)
-            self.selection_tex_short = selection_tex or get_selection_title(
+            self.selection_tex_short = selection_tex_short or get_selection_title(
                 selection, preselection, short=True
             )
         elif query is not None:
@@ -121,7 +134,7 @@ class Binning:
             self.selection_key = None
             self.preselection_key = None
             self.selection_tex = selection_tex or query
-            self.selection_tex_short = selection_tex or query
+            self.selection_tex_short = selection_tex_short or query
         else:
             raise ValueError("Must specify either selection/preselection or query")
 
@@ -129,11 +142,13 @@ class Binning:
     def from_config(
         cls,
         variable: str,
-        n_bins: int,
-        limits: Tuple[float, float],
+        n_bins: Optional[int],
+        limits: Optional[Tuple[float, float]],
         variable_tex: Optional[str] = None,
         is_log: bool = False,
         label: Optional[str] = None,
+        bin_edges: Optional[Union[np.ndarray, List[float]]] = None,
+        **kwargs,
     ):
         """Create a Binning object from a typical binning configuration
 
@@ -141,10 +156,10 @@ class Binning:
         -----------
         variable : str
             Name of the variable being binned
-        n_bins : int
-            Real of bins
-        limits : tuple
-            Tuple of lower and upper limits
+        n_bins : int, optional
+            Real of bins. If not provided, then bin_edges must be provided.
+        limits : tuple, optional
+            Tuple of lower and upper limits. If not provided, then bin_edges must be provided.
         variable_tex : str, optional
             Label for the binned variable. This will be used to label the x-axis in plots.
         is_log : bool, optional
@@ -152,18 +167,27 @@ class Binning:
         label : str, optional
             Label of the binning. In a multi-dimensional binning, this should be
             a unique key.
+        bin_edges : np.ndarray, optional
+            Array of bin edges. If this is provided, the n_bins and limits are ignored.
 
         Returns:
         --------
         Binning
             A Binning object with the specified bounds
         """
+
+        label = variable if label is None else label
+        if bin_edges is not None:
+            return cls(variable, np.array(bin_edges), label, variable_tex, is_log=is_log, **kwargs)
+        else:
+            assert n_bins is not None, "Must provide either n_bins or bin_edges"
+            assert limits is not None, "Must provide either limits or bin_edges"
         if is_log:
             bin_edges = np.geomspace(*limits, n_bins + 1)
         else:
             bin_edges = np.linspace(*limits, n_bins + 1)
-        label = variable if label is None else label
-        return cls(variable, bin_edges, label, variable_tex, is_log=is_log)
+        
+        return cls(variable, bin_edges, label, variable_tex, is_log=is_log, **kwargs)
 
     @property
     def n_bins(self):
@@ -358,7 +382,7 @@ class MultiChannelBinning:
         if isinstance(key, int):
             return key
         elif isinstance(key, str):
-            return self.labels.index(key)
+            return self.channels.index(key)
         else:
             raise ValueError(f"Invalid key {key}. Must be an integer or a string.")
 
@@ -435,7 +459,7 @@ class MultiChannelBinning:
         label : str
             Label of the channel to be rolled to first.
         """
-        idx = self.labels.index(label)
+        idx = self.channels.index(label)
         self.roll_channels(-idx)
 
     @classmethod

@@ -3,6 +3,7 @@
 from typing import List, Optional
 from matplotlib.patches import Patch
 import numpy as np
+from scipy.stats import chi2
 import itertools
 import matplotlib.pyplot as plt
 from .histogram import (
@@ -66,6 +67,8 @@ class RunHistPlotter:
         separate_signal=True,
         run_title=None,
         legend_cols=3,
+        extra_text=None,
+        figsize=(6, 4),
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -132,7 +135,7 @@ class RunHistPlotter:
             total_pred_hist += ext_hist
             total_pred_hist.tex_string = "Total Pred. (MC + EXT)"
         if use_sideband:
-            total_pred_hist.tex_string += "\n constrained"
+            total_pred_hist.tex_string += "\nconstrained"
         # This should not be the method to blind the analysis! The only purpose of this
         # flag is to hide the data in plots where all the data bin counts have been set to
         # zero. This happens inside a multi-band analysis, where not all bands might be
@@ -159,6 +162,7 @@ class RunHistPlotter:
                     sharex=True,
                     gridspec_kw={"height_ratios": [3, 1]},
                     constrained_layout=True,
+                    figsize=figsize,
                 )  # type: ignore
             else:
                 assert (
@@ -188,6 +192,8 @@ class RunHistPlotter:
             signal_hist=signal_hist,
             run_title=run_title,
             legend_cols=legend_cols,
+            extra_text=extra_text,
+            figsize=figsize,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -244,6 +250,8 @@ class RunHistPlotter:
         run_title=None,
         include_empty_hists=False,
         legend_cols=3,
+        extra_text=None,
+        figsize=(6, 4),
         **kwargs,
     ):
         if not include_empty_hists:
@@ -253,12 +261,12 @@ class RunHistPlotter:
                 background_hists,
                 ax=ax,
                 show_errorband=False,
+                figsize=figsize,
                 **kwargs,
             )
             if signal_hist is not None and signal_hist.sum() > 0:
-                background_sum = sum(background_hists, Histogram.empty_like(background_hists[0]))
-                # Plot the signal on top of the background
-                y_bkg = background_sum.bin_counts
+                # Plot signal on top of total prediction (incl. constraints)
+                y_bkg = total_pred_hist.bin_counts
                 y_sig = signal_hist.bin_counts
                 # Repeat the last element so that we can make a step plot
                 y_bkg = np.append(y_bkg, y_bkg[-1])
@@ -322,7 +330,10 @@ class RunHistPlotter:
                 )
         if chi_square is not None:
             n_bins = total_pred_hist.binning.n_bins
-            chi2_label = rf"$\chi^2$ = {chi_square:.1f} / {n_bins}"
+            # calculate the p-value corresponding to the observed chi-square
+            # and dof using scipy
+            p_value = 1 - chi2.cdf(chi_square, n_bins)
+            chi2_label = rf"$\chi^2$ = {chi_square:.1f}, p={p_value*100:.1f}%"
             ax.text(
                 0.05,
                 0.97,
@@ -345,6 +356,8 @@ class RunHistPlotter:
                 title = f"{run_title}, {title}"
             else:
                 title = run_title
+        if extra_text is not None:
+            title += "\n" + extra_text
         if title is not None:
             ax.text(
                 0.97,
@@ -385,6 +398,7 @@ class RunHistPlotter:
             labels=labels,
         )
         ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
+        ax.grid(axis="y")
         return ax
 
     def plot_hist(
@@ -408,14 +422,17 @@ class RunHistPlotter:
         label = kwargs.pop("label", hist.tex_string)
         color = kwargs.pop("color", hist.color)
         if as_errorbars:
+            bin_widths = np.diff(bin_edges)
             ax.errorbar(
                 hist.binning.bin_centers,
                 bin_counts,
+                xerr=bin_widths / 2,
                 yerr=hist.std_devs,
                 linestyle="none",
                 marker=".",
                 label=label,
                 color=color,
+                linewidth=1.0,
                 **kwargs,
             )
             return ax
@@ -463,11 +480,12 @@ class RunHistPlotter:
         uncertainty_color=None,
         uncertainty_label=None,
         show_counts=True,
+        figsize=(6, 4),
         **kwargs,
     ):
         """Plot a stack of histograms."""
         if ax is None:
-            fig, ax = plt.subplots(constrained_layout=True)
+            fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
 
         x = hists[0].binning.bin_edges
 
