@@ -4,7 +4,7 @@ import numpy as np
 import logging
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
-from microfit.fileio import from_json
+from microfit.fileio import from_json, to_json
 import matplotlib.pyplot as plt
 
 
@@ -196,6 +196,23 @@ def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix, ax=None,
     ax2.set_ylim(bottom=0)
 
     plt.savefig(os.path.join(output_dir, f"confidence_intervals_{plot_suffix}.pdf"))
+    # Create a dictionary containing all of the information needed to 
+    # recreate the plot, and store it to JSON.
+    confidence_intervals_dict = {
+        "scan_points": scan_points.tolist(),
+        "p_values": p_values.tolist(),
+        "delta_chi2_scan": fc_scan_results["delta_chi2_scan"].tolist(),
+        "p_68_lower": p_68_lower,
+        "p_68_upper": p_68_upper,
+        "p_90_lower": p_90_lower,
+        "p_90_upper": p_90_upper,
+        "p_95_lower": p_95_lower,
+        "p_95_upper": p_95_upper,
+        "p_99_lower": p_99_lower,
+        "p_99_upper": p_99_upper,
+    }
+    print("Storing confidence interval information to JSON...")
+    to_json(os.path.join(output_dir, f"confidence_intervals_{plot_suffix}.json"), confidence_intervals_dict)
 
 
 def plot_confidence_interval_diagnostic(fc_scan_results):

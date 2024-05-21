@@ -230,4 +230,58 @@ fc_scan_results["delta_chi2_scan"] = delta_chi2_scan
 from matplotlib import pyplot as plt
 fig, ax = plt.subplots(figsize=(5, 4), constrained_layout=True)
 plot_confidence_intervals(output_dir, fc_scan_results, "rec_nu_energy_zpbdt", ax=ax, xlim=[0, 5])
+
+# Finally, run the analysis also with just NPBDT
+analysis.signal_channels = ["NPBDT"]
+best_fit_chi2, best_fit_parameters = analysis.fit_to_data(disp=True)  # type: ignore
+print(f"Best fit chi2: {best_fit_chi2}")
+print(f"Best fit parameters: {best_fit_parameters}")
+
+# %%
+# show NPBDT channel at best fit point
+analysis.set_parameters(best_fit_parameters)
+print("Plotting signal channels at best fit point...")
+print(best_fit_parameters)
+extra_text = f"Best fit signal strength: {best_fit_parameters['signal_strength'].m:.3f}"
+os.makedirs(os.path.join(output_dir, "post_fit_npbdt"), exist_ok=True)
+analysis.plot_signals(
+    include_multisim_errors=True,
+    use_sideband=True,
+    separate_figures=True,
+    add_precomputed_detsys=True,
+    save_path=os.path.join(output_dir, "post_fit_npbdt"),
+    show_chi_square=True,
+    show_data_mc_ratio=True,
+    separate_signal=False,
+    extra_text=extra_text,
+    figsize=(6, 6),
+)
+# %%
+
+analysis.signal_channels = ["NPBDT"]
+scan_points = np.linspace(0, 5, 40)
+fit_grid = {
+    "signal_strength": np.linspace(0, 10, 50),
+}
+fc_scan_results = analysis.scan_asimov_fc_sensitivity(
+    scan_points=scan_points,
+    parameter_name="signal_strength",
+    n_trials=1000,
+    fit_method="grid_scan",
+    fit_grid=fit_grid,
+)
+to_json(os.path.join(output_dir, "fc_scan_results_npbdt.json"), fc_scan_results)
+
+# %%
+analysis.signal_channels = ["NPBDT"]
+fc_scan_results = from_json(os.path.join(output_dir, "fc_scan_results_npbdt.json"))
+scan_points = fc_scan_results["scan_points"]
+scan_chi2 = analysis.scan_chi2(fc_scan_results["parameter_name"], scan_points=scan_points)
+delta_chi2_scan = scan_chi2 - best_fit_chi2
+fc_scan_results["delta_chi2_scan"] = delta_chi2_scan
+# %%
+from matplotlib import pyplot as plt
+fig, ax = plt.subplots(figsize=(5, 4), constrained_layout=True)
+plot_confidence_intervals(output_dir, fc_scan_results, "rec_nu_energy_npbdt", ax=ax, xlim=[0, 5])
+
 # %%

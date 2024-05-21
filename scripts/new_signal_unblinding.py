@@ -146,7 +146,7 @@ def run_unblinding(signal_channels, control_channels, plot_suffix, plot_title, w
     print("Plotting control channel post fit...")
     analysis.signal_channels = control_channels
     original_sideband_channels = analysis.constraint_channels.copy()
-    analysis.constraint_channels = original_sideband_channels + signal_channels
+    analysis.constraint_channels = signal_channels + original_sideband_channels
     save_path = os.path.join(output_dir, f"post_fit_{plot_suffix}_control_channels")
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -176,6 +176,14 @@ def run_unblinding(signal_channels, control_channels, plot_suffix, plot_title, w
         extra_text=extra_text,
         figsize=(6, 6),
     )
+    fig, ax = analysis.plot_correlation(
+        figsize=(15, 14),
+        add_precomputed_detsys=True,
+        smooth_detsys_variations=True,
+        colorbar_kwargs={"shrink": 0.7},
+    )
+    fig.savefig(os.path.join(save_path, "correlation_matrix_with_control.png"), bbox_inches="tight", dpi=200)
+    fig.savefig(os.path.join(save_path, "correlation_matrix_with_control.pdf"), bbox_inches="tight")
 
     analysis.constraint_channels = original_sideband_channels
 
@@ -215,4 +223,33 @@ run_unblinding(
     plot_title="Shr. $\\cos(\\theta)$, $1e0p0\\pi$",
     with_fc=True,
 )
+# %%
+# run the unblinding using only the NPBDT channel
+run_unblinding(
+    signal_channels=["NPBDT_SHR_E"],
+    control_channels=["NPBDT_SHR_COSTHETA"],
+    plot_suffix="shr_e_npbdt",
+    plot_title="Shr. Energy, $1eNp0\\pi$",
+    with_fc=True,
+)
+
+# %%
+run_unblinding(
+    signal_channels=["NPBDT_SHR_COSTHETA"],
+    control_channels=["NPBDT_SHR_E"],
+    plot_suffix="shr_costheta_npbdt",
+    plot_title="Shr. $\\cos(\\theta)$, $1eNp0\\pi$",
+    with_fc=True,
+)
+# %%
+analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E", "NPBDT_SHR_COSTHETA", "ZPBDT_SHR_COSTHETA"]
+analysis.parameters["signal_strength"].value = 1.0
+os.makedirs(os.path.join(output_dir, "interaction"), exist_ok=True)
+analysis.plot_signals(
+    category_column="interaction",
+    add_precomputed_detsys=True,
+    separate_figures=True,
+    save_path=os.path.join(output_dir, "interaction"),
+)
+
 # %%
