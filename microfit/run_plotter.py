@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 from matplotlib.patches import Patch
+from matplotlib.transforms import blended_transform_factory
 import numpy as np
 from scipy.stats import chi2
 import itertools
@@ -35,13 +36,38 @@ class RunHistPlotter:
         if data_pot is None:
             return None
         if scale_to_pot is None:
-            pot_in_sci_notation = "{:.1e}".format(data_pot)
+            pot_in_sci_notation = "{:.2e}".format(data_pot)
             base, exponent = pot_in_sci_notation.split("e")
             return f"${base} \\times 10^{{{int(exponent)}}}$ POT"
         else:
-            pot_in_sci_notation = "{:.1e}".format(scale_to_pot)
+            pot_in_sci_notation = "{:.2e}".format(scale_to_pot)
             base, exponent = pot_in_sci_notation.split("e")
             return f"MC scaled to ${base} \\times 10^{{{int(exponent)}}}$ POT"
+    
+    def add_pot_label(self, ax, data_pot, position="right", ypos=0.85):
+        pot_text = self.get_pot_label(None, data_pot=data_pot)
+        if position == "right":
+            ax.text(
+                0.97,
+                ypos,
+                f"MicroBooNE, {pot_text}",
+                ha="right",
+                va="top",
+                transform=ax.transAxes,
+                fontsize=9,
+            )
+        elif position == "left":
+            ax.text(
+                0.05,
+                ypos,
+                f"MicroBooNE, {pot_text}",
+                ha="left",
+                va="top",
+                transform=ax.transAxes,
+                fontsize=9,
+            )
+        else:
+            raise ValueError(f"unknown position '{position}'")
 
     def plot(
         self,
@@ -67,8 +93,12 @@ class RunHistPlotter:
         separate_signal=True,
         run_title=None,
         legend_cols=3,
+        legend_kwargs=None,
+        draw_legend=True,
+        sums_in_legend=True,
         extra_text=None,
         figsize=(6, 4),
+        mb_label_location="right",
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -130,10 +160,10 @@ class RunHistPlotter:
             extra_query=extra_query,
         )
         total_pred_hist = flatten(total_mc_hist)
-        total_pred_hist.tex_string = "Total Pred. (MC)"
+        total_pred_hist.tex_string = "Total (MC)"
         if ext_hist is not None:
             total_pred_hist += ext_hist
-            total_pred_hist.tex_string = "Total Pred. (MC + EXT)"
+            total_pred_hist.tex_string = "Total (MC + EXT)"
         if use_sideband:
             total_pred_hist.tex_string += "\nconstrained"
         # This should not be the method to blind the analysis! The only purpose of this
@@ -192,8 +222,12 @@ class RunHistPlotter:
             signal_hist=signal_hist,
             run_title=run_title,
             legend_cols=legend_cols,
+            legend_kwargs=legend_kwargs,
+            draw_legend=draw_legend,
+            sums_in_legend=sums_in_legend,
             extra_text=extra_text,
             figsize=figsize,
+            mb_label_location=mb_label_location,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -250,8 +284,12 @@ class RunHistPlotter:
         run_title=None,
         include_empty_hists=False,
         legend_cols=3,
+        legend_kwargs=None,
+        draw_legend=True,
+        sums_in_legend=True,
         extra_text=None,
         figsize=(6, 4),
+        mb_label_location="right",
         **kwargs,
     ):
         if not include_empty_hists:
@@ -262,6 +300,7 @@ class RunHistPlotter:
                 ax=ax,
                 show_errorband=False,
                 figsize=figsize,
+                show_counts=sums_in_legend,
                 **kwargs,
             )
             if signal_hist is not None and signal_hist.sum() > 0:
@@ -303,6 +342,7 @@ class RunHistPlotter:
                     background_hist,
                     ax=ax,
                     show_errorband=False,
+                    sums_in_legend=sums_in_legend,
                     **kwargs,
                 )
         if show_total:
@@ -319,7 +359,10 @@ class RunHistPlotter:
         if scale_to_pot is None:
             if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
-                data_label = f"Data: {data_hist.sum():.1f}"
+                if sums_in_legend:
+                    data_label = f"Data: {data_hist.sum():.1f}"
+                else:
+                    data_label = "Data"
                 ax = self.plot_hist(
                     data_hist,
                     ax=ax,
@@ -342,24 +385,20 @@ class RunHistPlotter:
                 va="top",
                 transform=ax.transAxes,
                 fontsize=10,
-                bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
             )
-        pot_label = self.get_pot_label(
-            scale_to_pot, has_data=data_hist is not None, data_pot=data_pot
-        )
-        if title is not None and pot_label is not None:
-            title += ", " + pot_label
-        elif title is None:
-            title = pot_label
         if run_title is not None:
             if title is not None:
                 title = f"{run_title}, {title}"
             else:
                 title = run_title
         if extra_text is not None:
-            title += "\n" + extra_text
+            if title is not None:
+                title += "\n" + extra_text
+            else:
+                title = extra_text
+        title_text = None
         if title is not None:
-            ax.text(
+            title_text = ax.text(
                 0.97,
                 0.97,
                 title,
@@ -383,9 +422,12 @@ class RunHistPlotter:
             )
             # Append new handle and label
             handles.append(red_patch)
-            labels.append(f"{signal_hist.tex_string}: {signal_hist.sum():.1f}")
+            if sums_in_legend:
+                labels.append(f"{signal_hist.tex_string}: {signal_hist.sum():.1f}")
+            else:
+                labels.append(signal_hist.tex_string)
 
-        ax.legend(
+        default_legend_kwargs = dict(
             loc="lower left",
             bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
             ncol=legend_cols,
@@ -394,11 +436,25 @@ class RunHistPlotter:
             bbox_transform=ax.transAxes,
             fontsize="small",
             frameon=False,
-            handles=handles,
-            labels=labels,
         )
-        ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
-        ax.grid(axis="y")
+        if legend_kwargs is None:
+            legend_kwargs = default_legend_kwargs
+        legend_kwargs.update(handles=handles, labels=labels)
+        if draw_legend:
+            ax.legend(**legend_kwargs)
+        ax.set_ylim(0, ax.get_ylim()[1] * 1.15)
+
+        fig = ax.get_figure()
+        fig.canvas.draw()
+        if title_text is not None and data_pot is not None:
+            # Get the bounding box of the title text in display coordinates
+            bbox_display = title_text.get_window_extent()
+            # Transform the bounding box to axes coordinates
+            bbox_axes = bbox_display.transformed(ax.transAxes.inverted())
+            title_ypos_in_axes = bbox_axes.y0
+            # Add the label
+            self.add_pot_label(ax, data_pot, position=mb_label_location, ypos=title_ypos_in_axes)
+        # ax.grid(axis="y")
         return ax
 
     def plot_hist(

@@ -73,6 +73,9 @@ class MultibandAnalysis(object):
             assert ch in self.channels, f"Constraint channel {ch} not found in analysis channels"
         # Adding the data_pot property just for compatibility with the RunHistPlotter
         self.data_pot = None
+        # The following is a flag that needs to be set in the analysis such that it 
+        # "knows" that we are trying to plot the sidebands now. It will then provide
+        # histograms for the sidebands as if they were signal.
         self.plot_sideband = False
         assert isinstance(self.parameters, ParameterSet)
         assert len(self.signal_channels) > 0, "No signal channels given"
@@ -310,6 +313,8 @@ class MultibandAnalysis(object):
     ) -> MultiChannelHistogram:
         """Generate the combined MC histogram from all channels."""
 
+        if use_sideband and include_non_signal_channels:
+            raise ValueError("Cannot set both `use_sideband` and `include_non_signal_channels` to `True` at the same time, because constraint channels will be lost after the constraint is applied.")
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
 
         # Try adding detvars in here
@@ -381,7 +386,7 @@ class MultibandAnalysis(object):
             use_sideband=use_sideband,
             scale_to_pot=scale_to_pot,
             include_ext=False,
-            include_non_signal_channels=True,
+            include_non_signal_channels=self.plot_sideband,
             add_precomputed_detsys=add_precomputed_detsys,
             smooth_detsys_variations=smooth_detsys_variations,
             extra_query=extra_query,
