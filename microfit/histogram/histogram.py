@@ -404,6 +404,13 @@ class Histogram:
 
     def sum(self):
         return np.sum(self.bin_counts)
+    
+    def sum_std(self):
+        """Return the standard deviation of the sum of the bin counts. This takes the correlation
+        between the bin counts into account."""
+        a = np.ones(self.n_bins)
+        cov = self.covariance_matrix
+        return np.sqrt(np.dot(a, np.dot(cov, a)))
 
     def add_covariance(self, cov_mat, fractional=False):
         """Add a covariance matrix to the uncertainties of the histogram.
