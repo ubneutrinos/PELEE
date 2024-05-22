@@ -123,8 +123,8 @@ preselection = "ZPTwoShrCRT"
 label = "TWOSHR"
 variable_tex = "Neutrino Reconstructed Energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
-selection_tex = "$1e0p$ loose 2+ shower sel."
-selection_tex_short = "$1e0p$ 2+shr"
+selection_tex = "NC $\\pi^0$ sel."
+selection_tex_short = "NC $\\pi^0$"
 
 
 # ------- NUE Signal Generator -------
