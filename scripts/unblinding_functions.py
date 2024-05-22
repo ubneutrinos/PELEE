@@ -6,7 +6,91 @@ from scipy.interpolate import interp1d
 from scipy.optimize import minimize
 from microfit.fileio import from_json, to_json
 import matplotlib.pyplot as plt
+from microfit.parameters import ParameterSet, Parameter
+from microfit.histogram import Histogram
 
+def extract_bin_range(histogram, bin_range):
+    """Extract a range of bins from a given histogram.
+    
+    The returned Histogram has all of the same properties as the original,
+    but with a reduced number of bins. The covariance matrix is also 
+    updated accordingly.
+    """
+    new_binning = histogram.binning.copy()
+    new_binning.bin_edges = new_binning.bin_edges[bin_range[0]:bin_range[1] + 2]
+    new_covariance_matrix = histogram.covariance_matrix[
+        bin_range[0]:bin_range[1]+1, bin_range[0]:bin_range[1]+1
+    ]
+    new_histogram = Histogram.empty_like(histogram)
+    new_histogram.binning = new_binning
+    new_histogram.covariance_matrix = new_covariance_matrix
+    new_histogram.bin_counts = histogram.bin_counts[bin_range[0]:bin_range[1]+1]
+    return new_histogram
+
+def get_signal_count(analysis, channel):
+    """Extract the signal count from the analysis for a given channel."""
+
+    original_channels = analysis.signal_channels.copy()
+    analysis.signal_channels = [channel]
+    h0_params = ParameterSet([Parameter("signal_strength", 0.0)])
+    h1_params = ParameterSet([Parameter("signal_strength", 1.0)])
+
+    analysis.set_parameters(h0_params)
+    sig_hist_h0 = analysis.generate_multiband_histogram(
+        include_multisim_errors=True,
+        add_precomputed_detsys=True,
+        use_sideband=True,
+    )[channel]
+
+    analysis.set_parameters(h1_params)
+    sig_hist_h1 = analysis.generate_multiband_histogram(
+        include_multisim_errors=True,
+        add_precomputed_detsys=True,
+        use_sideband=True,
+    )[channel]
+
+    sig_hist_h0_sigrange = extract_bin_range(sig_hist_h0, [0, 4])
+    sig_hist_h1_sigrange = extract_bin_range(sig_hist_h1, [0, 4])
+    data_hist = analysis.get_data_hist()[channel]
+    data_hist_sigrange = extract_bin_range(data_hist, [0, 4])
+
+    analysis.signal_channels = original_channels
+    return {
+        "e_sig": [(150,850)], #mev
+        "observed": data_hist_sigrange.sum(),
+        "expected_x0": sig_hist_h0_sigrange.sum(),
+        "expected_x0_err_sys": sig_hist_h0_sigrange.sum_std(),
+        "expected_x1": sig_hist_h1_sigrange.sum(),
+        "expected_x1_err_sys": sig_hist_h1_sigrange.sum_std(),
+    }
+
+def get_signal_count_channels(analysis, channels):
+    """Get the combined signal counts for one or more channels.
+    
+    Errors are summed in quadrature.
+    """
+
+    # Use get_signal_count on each channel, then combine the results
+    signal_counts = [get_signal_count(analysis, channel) for channel in channels]
+    combined = {
+        "e_sig": [(150,850)],
+        "observed": sum([sc["observed"] for sc in signal_counts]),
+        "expected_x0": sum([sc["expected_x0"] for sc in signal_counts]),
+        "expected_x0_err_sys": sum([sc["expected_x0_err_sys"]**2 for sc in signal_counts])**0.5,
+        "expected_x1": sum([sc["expected_x1"] for sc in signal_counts]),
+        "expected_x1_err_sys": sum([sc["expected_x1_err_sys"]**2 for sc in signal_counts])**0.5,
+    }
+    return combined
+
+def get_signal_n_bins(analysis):
+    """Get the total number of bins in the signal histogram."""
+
+    sig_hist = analysis.generate_multiband_histogram(
+        include_multisim_errors=True,
+        add_precomputed_detsys=True,
+        use_sideband=True,
+    )
+    return sig_hist.n_bins
 
 def plot_chi2_distribution(output_dir, chi2_results_file, chi2_at_h0, plot_suffix, plot_title):
     chi2_dict = from_json(os.path.join(output_dir, chi2_results_file))
@@ -127,10 +211,37 @@ def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix, ax=None,
             )
         ]
     )
+    # The p-values for the asimov data were inverted
+    asimov_sens_pval_at_null = 1.0 - np.array(fc_scan_results["results"][0]["pval"])
+    print("Using Asimov sensitivity at injected truth point:")
+    print(fc_scan_results["results"][0]["scan_point"])
+
+    # First, calculate all confidence intervals given the p-values from the actual data
     p_68_lower, p_68_upper = compute_confidence_interval(p_values, scan_points, 0.68)
     p_90_lower, p_90_upper = compute_confidence_interval(p_values, scan_points, 0.90)
     p_95_lower, p_95_upper = compute_confidence_interval(p_values, scan_points, 0.95)
     p_99_lower, p_99_upper = compute_confidence_interval(p_values, scan_points, 0.99)
+    p_1sig_lower, p_1sig_upper = compute_confidence_interval(p_values, scan_points, 0.6827)
+    p_2sig_lower, p_2sig_upper = compute_confidence_interval(p_values, scan_points, 0.9545)
+    # Now we also calculate them using the Asimov sensitivity scan
+    p_68_lower_sens, p_68_upper_sens = compute_confidence_interval(
+        asimov_sens_pval_at_null, scan_points, 0.68
+    )
+    p_90_lower_sens, p_90_upper_sens = compute_confidence_interval(
+        asimov_sens_pval_at_null, scan_points, 0.90
+    )
+    p_95_lower_sens, p_95_upper_sens = compute_confidence_interval(
+        asimov_sens_pval_at_null, scan_points, 0.95
+    )
+    p_99_lower_sens, p_99_upper_sens = compute_confidence_interval(
+        asimov_sens_pval_at_null, scan_points, 0.99
+    )
+    p_1sig_lower_sens, p_1sig_upper_sens = compute_confidence_interval(
+        asimov_sens_pval_at_null, scan_points, 0.6827
+    )
+    p_2sig_lower_sens, p_2sig_upper_sens = compute_confidence_interval(
+        asimov_sens_pval_at_null, scan_points, 0.9545
+    )
 
     if ax is None:
         fig, ax1 = plt.subplots()
@@ -210,9 +321,28 @@ def plot_confidence_intervals(output_dir, fc_scan_results, plot_suffix, ax=None,
         "p_95_upper": p_95_upper,
         "p_99_lower": p_99_lower,
         "p_99_upper": p_99_upper,
+        "p_1sig_lower": p_1sig_lower,
+        "p_1sig_upper": p_1sig_upper,
+        "p_2sig_lower": p_2sig_lower,
+        "p_2sig_upper": p_2sig_upper,
+        # Also store Asimov sensitivities
+        "p_68_lower_sens": p_68_lower_sens,
+        "p_68_upper_sens": p_68_upper_sens,
+        "p_90_lower_sens": p_90_lower_sens,
+        "p_90_upper_sens": p_90_upper_sens,
+        "p_95_lower_sens": p_95_lower_sens,
+        "p_95_upper_sens": p_95_upper_sens,
+        "p_99_lower_sens": p_99_lower_sens,
+        "p_99_upper_sens": p_99_upper_sens,
+        "p_1sig_lower_sens": p_1sig_lower_sens,
+        "p_1sig_upper_sens": p_1sig_upper_sens,
+        "p_2sig_lower_sens": p_2sig_lower_sens,
+        "p_2sig_upper_sens": p_2sig_upper_sens,
     }
     print("Storing confidence interval information to JSON...")
     to_json(os.path.join(output_dir, f"confidence_intervals_{plot_suffix}.json"), confidence_intervals_dict)
+
+    return confidence_intervals_dict
 
 
 def plot_confidence_interval_diagnostic(fc_scan_results):
