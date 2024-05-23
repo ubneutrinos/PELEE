@@ -40,6 +40,18 @@ analysis = MultibandAnalysis.from_toml(
 )
 
 # %%
+# Set channel titles to non-jargon titles for publication
+override_channel_titles = {
+    "NPBDT": "1eNp0$\\pi$ $\\nu_e$ selection",
+    "ZPBDT": "1e0p0$\\pi$ $\\nu_e$ selection",
+    "NUMUCRTNP0PI": "1$\\mu$Np0$\\pi$ $\\nu_\\mu$ selection",
+    "NUMUCRT0P0PI": "1$\\mu$0p0$\\pi$ $\\nu_\\mu$ selection",
+    "TWOSHR": "NC $\\pi^0$ selection",
+    "NUMUCRT": "inclusive $\\nu_\\mu$ selection"
+}
+
+hist_plot_figsize = (5.1, 5)
+# %%
 def run_unblinding(signal_channels, constraint_channels, plot_suffix, plot_title, with_fc=True):
     chi2_results_file = f"chi2_distribution_{plot_suffix}.json"
     two_hypo_results_file = f"two_hypo_result_{plot_suffix}.json"
@@ -61,7 +73,8 @@ def run_unblinding(signal_channels, constraint_channels, plot_suffix, plot_title
         save_path=save_path,
         show_chi_square=True,
         show_data_mc_ratio=True,
-        figsize=(6, 6),
+        figsize=hist_plot_figsize,
+        override_channel_titles=override_channel_titles,
     )
 
     best_fit_chi2, best_fit_parameters = analysis.fit_to_data(disp=True)  # type: ignore
@@ -134,7 +147,8 @@ def run_unblinding(signal_channels, constraint_channels, plot_suffix, plot_title
         show_data_mc_ratio=True,
         separate_signal=False,
         extra_text=extra_text,
-        figsize=(6, 6),
+        figsize=hist_plot_figsize,
+        override_channel_titles=override_channel_titles,
     )
 
     signal_counts_dict = get_signal_count_channels(analysis, signal_channels)
@@ -249,7 +263,8 @@ analysis.plot_signals(
     save_path=os.path.join(output_dir, "pre_fit"),
     show_chi_square=True,
     show_data_mc_ratio=True,
-    figsize=(6, 6),
+    figsize=hist_plot_figsize,
+    override_channel_titles=override_channel_titles,
 )
 analysis.signal_channels = ["NPBDT", "ZPBDT"]
 
