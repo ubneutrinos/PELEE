@@ -341,14 +341,26 @@ run_unblinding(
     with_fc=True,
 )
 # %%
-analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E", "NPBDT_SHR_COSTHETA", "ZPBDT_SHR_COSTHETA"]
-analysis.parameters["signal_strength"].value = 1.0
+analysis.signal_channels = ["NPBDT_SHR_E", "ZPBDT_SHR_E"]
+analysis.parameters["signal_strength"].value = 0.0
 os.makedirs(os.path.join(output_dir, "interaction"), exist_ok=True)
 analysis.plot_signals(
     category_column="interaction",
     add_precomputed_detsys=True,
     separate_figures=True,
     save_path=os.path.join(output_dir, "interaction"),
+    figsize=hist_plot_figsize,
+    override_channel_titles=override_channel_titles,
+)
+
+analysis.signal_channels = ["NPBDT_SHR_COSTHETA", "ZPBDT_SHR_COSTHETA"]
+analysis.plot_signals(
+    category_column="interaction",
+    add_precomputed_detsys=True,
+    separate_figures=True,
+    save_path=os.path.join(output_dir, "interaction"),
+    figsize=hist_plot_figsize,
+    override_channel_titles=override_channel_titles,
 )
 
 # %%
