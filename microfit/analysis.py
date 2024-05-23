@@ -584,6 +584,7 @@ class MultibandAnalysis(object):
         save_path=None,
         filename_format="analysis_{}.pdf",
         extra_text=None,
+        override_channel_titles={},
         **kwargs,
     ):
         if plot_signals:
@@ -607,12 +608,16 @@ class MultibandAnalysis(object):
                 else:
                     default_kwargs = kwargs.copy()
                 show_data = default_kwargs.pop("show_data", not self._get_channel_is_blinded(channel))
+                title = None
+                if channel in override_channel_titles:
+                    title = override_channel_titles[channel]
                 ax, _ = RunHistPlotter(self).plot(
                     category_column=category_column,
                     channel=channel,
                     data_pot=self._get_pot_for_channel(channel),
                     show_data=show_data,
                     extra_text=extra_text,
+                    title=title,
                     **default_kwargs,
                 )
                 if save_path is not None:
