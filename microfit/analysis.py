@@ -609,6 +609,7 @@ class MultibandAnalysis(object):
                     default_kwargs = kwargs.copy()
                 show_data = default_kwargs.pop("show_data", not self._get_channel_is_blinded(channel))
                 title = None
+                print(f"plotting channel: {channel}")
                 if channel in override_channel_titles:
                     title = override_channel_titles[channel]
                 ax, _ = RunHistPlotter(self).plot(
