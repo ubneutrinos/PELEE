@@ -43,31 +43,6 @@ class RunHistPlotter:
             pot_in_sci_notation = "{:.2e}".format(scale_to_pot)
             base, exponent = pot_in_sci_notation.split("e")
             return f"MC scaled to ${base} \\times 10^{{{int(exponent)}}}$ POT"
-    
-    def add_pot_label(self, ax, data_pot, position="right", ypos=0.85):
-        pot_text = self.get_pot_label(None, data_pot=data_pot)
-        if position == "right":
-            ax.text(
-                0.97,
-                ypos,
-                f"MicroBooNE, {pot_text}",
-                ha="right",
-                va="top",
-                transform=ax.transAxes,
-                fontsize=9,
-            )
-        elif position == "left":
-            ax.text(
-                0.05,
-                ypos,
-                f"MicroBooNE, {pot_text}",
-                ha="left",
-                va="top",
-                transform=ax.transAxes,
-                fontsize=9,
-            )
-        else:
-            raise ValueError(f"unknown position '{position}'")
 
     def plot(
         self,
@@ -99,6 +74,7 @@ class RunHistPlotter:
         extra_text=None,
         figsize=(6, 4),
         mb_label_location="right",
+        mb_preliminary=True,
         **kwargs,
     ):
         gen = self.run_hist_generator
@@ -128,7 +104,7 @@ class RunHistPlotter:
         )
         assert isinstance(ext_hist, Histogram)
         if ext_hist is not None:
-            ext_hist.tex_string = "EXT"
+            ext_hist.tex_string = "Cosmics"
             ext_hist = flatten(ext_hist)
 
         mc_hists = gen.get_mc_hists(
@@ -149,7 +125,7 @@ class RunHistPlotter:
                 warnings.warn("No signal category found in the MC hists. Not separating signal.")
         background_hists = list(mc_hists.values())
         if ext_hist is not None:
-            background_hists.append(ext_hist)
+            background_hists.insert(0, ext_hist)
         background_hists = [flatten(hist) for hist in background_hists]
         extra_query = no_signal_query if separate_signal else None
         total_mc_hist = gen.get_mc_hist(
@@ -163,9 +139,9 @@ class RunHistPlotter:
         total_pred_hist.tex_string = "Total (MC)"
         if ext_hist is not None:
             total_pred_hist += ext_hist
-            total_pred_hist.tex_string = "Total (MC + EXT)"
+            total_pred_hist.tex_string = "Total Predicted"
         if use_sideband:
-            total_pred_hist.tex_string += "\nconstrained"
+            total_pred_hist.tex_string += ",\nconstrained"
         # This should not be the method to blind the analysis! The only purpose of this
         # flag is to hide the data in plots where all the data bin counts have been set to
         # zero. This happens inside a multi-band analysis, where not all bands might be
@@ -228,6 +204,7 @@ class RunHistPlotter:
             extra_text=extra_text,
             figsize=figsize,
             mb_label_location=mb_label_location,
+            mb_preliminary=mb_preliminary,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -290,6 +267,7 @@ class RunHistPlotter:
         extra_text=None,
         figsize=(6, 4),
         mb_label_location="right",
+        mb_preliminary=True,
         **kwargs,
     ):
         if not include_empty_hists:
@@ -316,7 +294,7 @@ class RunHistPlotter:
                     where="post",
                     color="red",
                     linestyle="--",
-                    lw=1.5,
+                    lw=2,
                 )
                 # Add vertical lines to "cap off" the signal at the ends and connect it
                 # to the background
@@ -326,7 +304,7 @@ class RunHistPlotter:
                     y_bkg[0] + y_sig[0],
                     color="red",
                     linestyle="--",
-                    lw=1.5,
+                    lw=2,
                 )
                 ax.vlines(
                     signal_hist.binning.bin_edges[-1],
@@ -334,7 +312,7 @@ class RunHistPlotter:
                     y_bkg[-1] + y_sig[-1],
                     color="red",
                     linestyle="--",
-                    lw=1.5,
+                    lw=2,
                 )
         else:
             for background_hist in background_hists:
@@ -353,7 +331,7 @@ class RunHistPlotter:
                 uncertainty_color=uncertainty_color,
                 uncertainty_label=uncertainty_label,
                 color="k",
-                lw=1.0,
+                lw=1.2,
             )
         assert ax is not None
         if scale_to_pot is None:
@@ -369,44 +347,118 @@ class RunHistPlotter:
                     label=data_label,
                     color="black",
                     as_errorbars=True,
+                    lw=1.50,
                     **kwargs,
                 )
+        chi2_text = None
         if chi_square is not None:
             n_bins = total_pred_hist.binning.n_bins
             # calculate the p-value corresponding to the observed chi-square
             # and dof using scipy
             p_value = 1 - chi2.cdf(chi_square, n_bins)
             chi2_label = rf"$\chi^2$ = {chi_square:.1f}, p={p_value*100:.1f}%"
-            ax.text(
+            chi2_text = ax.text(
                 0.05,
-                0.97,
+                0.92,
                 chi2_label,
                 ha="left",
-                va="top",
+                va="baseline",
                 transform=ax.transAxes,
-                fontsize=10,
+                fontsize=9,
             )
         if run_title is not None:
             if title is not None:
                 title = f"{run_title}, {title}"
             else:
                 title = run_title
-        if extra_text is not None:
-            if title is not None:
-                title += "\n" + extra_text
-            else:
-                title = extra_text
+        pot_label = self.get_pot_label(scale_to_pot, data_pot=data_pot)
+        mb_label = "MicroBooNE"
+        if mb_preliminary:
+            mb_label += " Preliminary"
+        if pot_label is not None:
+            mb_label += f", {pot_label}"
+        # if title is not None:
+        #     title += "\n" + mb_label
+        # else:
+        #     title = mb_label
+        
         title_text = None
         if title is not None:
             title_text = ax.text(
                 0.97,
-                0.97,
+                0.92,
                 title,
                 ha="right",
-                va="top",
+                va="baseline",
                 transform=ax.transAxes,
-                fontsize=10,
+                fontsize=9,
             )
+        if extra_text is not None:
+            if title_text is not None:
+                # Write the extra text as an annotation below the
+                # existing text. We set the "title_text" to the newly
+                # created text, so that the MB label will be annotated
+                # underneath.
+                title_text = ax.annotate(
+                    extra_text,
+                    xy=(1, 0),
+                    xycoords=title_text,
+                    xytext=(0, -2),
+                    textcoords="offset points",
+                    ha="right",
+                    # Using top alignment here, because this text could
+                    # have more than one line.
+                    va="top",
+                    fontsize=9,
+                )
+            else:
+                title_text = ax.text(
+                    0.97,
+                    0.92,
+                    extra_text,
+                    ha="right",
+                    va="baseline",
+                    transform=ax.transAxes,
+                    fontsize=9,
+                )
+        if title_text is not None:
+            # Place the microboone and POT label right below this text
+            # using annotate
+            if mb_label_location == "right":
+                mb_label_text = ax.annotate(
+                    mb_label,
+                    xy=(1, 0),
+                    xycoords=title_text,
+                    xytext=(0, -10),
+                    textcoords="offset points",
+                    ha="right",
+                    va="baseline",
+                    fontsize=8,
+                )
+            elif mb_label_location == "left":
+                if chi2_text is not None:
+                    # place below chi2 text, left aligned
+                    mb_label_text = ax.annotate(
+                        mb_label,
+                        xy=(0, 0),
+                        xycoords=chi2_text,
+                        xytext=(0, -10),
+                        textcoords="offset points",
+                        ha="left",
+                        va="baseline",
+                        fontsize=8,
+                    )
+                else:
+                    # place where the chi2 text would have been
+                    mb_label_text = ax.text(
+                        0.05,
+                        0.92,
+                        mb_label,
+                        ha="left",
+                        va="baseline",
+                        transform=ax.transAxes,
+                        fontsize=8,
+                    )
         ax.set_ylabel("Events")
         # Get existing legend handles and labels
         handles, labels = ax.get_legend_handles_labels()
@@ -417,7 +469,7 @@ class RunHistPlotter:
                 edgecolor="red",
                 facecolor="none",
                 linestyle="--",
-                lw=1.5,
+                lw=2,
                 label=f"{signal_hist.tex_string}: {signal_hist.sum():.1f}",
             )
             # Append new handle and label
@@ -444,17 +496,6 @@ class RunHistPlotter:
             ax.legend(**legend_kwargs)
         ax.set_ylim(0, ax.get_ylim()[1] * 1.15)
 
-        fig = ax.get_figure()
-        fig.canvas.draw()
-        if title_text is not None and data_pot is not None:
-            # Get the bounding box of the title text in display coordinates
-            bbox_display = title_text.get_window_extent()
-            # Transform the bounding box to axes coordinates
-            bbox_axes = bbox_display.transformed(ax.transAxes.inverted())
-            title_ypos_in_axes = bbox_axes.y0
-            # Add the label
-            self.add_pot_label(ax, data_pot, position=mb_label_location, ypos=title_ypos_in_axes)
-        # ax.grid(axis="y")
         return ax
 
     def plot_hist(
@@ -477,6 +518,12 @@ class RunHistPlotter:
         bin_edges = hist.binning.bin_edges
         label = kwargs.pop("label", hist.tex_string)
         color = kwargs.pop("color", hist.color)
+        if "linewidth" in kwargs:
+            linewidth = kwargs.pop("linewidth", 1.0)
+        elif "lw" in kwargs:
+            linewidth = kwargs.pop("lw", 1.0)
+        else:
+            linewidth = 1.0
         if as_errorbars:
             bin_widths = np.diff(bin_edges)
             ax.errorbar(
@@ -488,7 +535,7 @@ class RunHistPlotter:
                 marker=".",
                 label=label,
                 color=color,
-                linewidth=1.0,
+                linewidth=linewidth,
                 **kwargs,
             )
             return ax
@@ -503,6 +550,7 @@ class RunHistPlotter:
             label=label,
             color=color,
             linestyle=linestyle,
+            linewidth=linewidth,
             **kwargs,
         )
         if not show_errorband:
@@ -523,6 +571,7 @@ class RunHistPlotter:
             alpha=0.5,
             step="post",
             label=uncertainty_label,
+            linewidth=1.0,
             **kwargs,
         )
 
