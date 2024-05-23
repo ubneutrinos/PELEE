@@ -275,7 +275,7 @@ class RunHistGenerator:
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
         data_hist.color = "k"
-        data_hist.hatch = {"data": None, "ext": "///"}[type]
+        data_hist.hatch = {"data": None, "ext": "////"}[type]
         return data_hist
 
     def get_mc_hists(
