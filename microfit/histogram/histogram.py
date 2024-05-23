@@ -1321,7 +1321,7 @@ class MultiChannelHistogram(Histogram):
         return ax
 
     def draw_covariance_matrix(
-        self, ax=None, as_correlation=True, as_fractional=False, colorbar_kwargs=None, **plot_kwargs
+        self, ax=None, as_correlation=True, as_fractional=False, colorbar_kwargs=None, override_selection_tex={}, labels_on_axes=["x", "y"], label_rotations={"x": 45, "y": 45}, use_variable_label=True, **plot_kwargs
     ):
         ax = self.get_unrolled_histogram().draw_covariance_matrix(
             ax, as_correlation, as_fractional, colorbar_kwargs, **plot_kwargs
@@ -1329,11 +1329,17 @@ class MultiChannelHistogram(Histogram):
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
 
         def channel_label(binning):
-            if binning.selection_tex_short is None:
-                return binning.label
-            if binning.variable_tex_short is None:
-                return binning.selection_tex_short
-            return f"{binning.selection_tex_short}, {binning.variable_tex_short}"
+            channel = binning.label
+            if channel in override_selection_tex:
+                label = override_selection_tex[channel]
+            elif binning.selection_tex_short is not None:
+                label = binning.selection_tex_short
+            else:
+                label = channel
+            variable_label = binning.variable_tex_short
+            if variable_label is None or not use_variable_label:
+                return label
+            return f"{label}, {variable_label}"
 
         channel_labels = [channel_label(b) for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
@@ -1351,21 +1357,24 @@ class MultiChannelHistogram(Histogram):
         ax.set_ylabel("")
         # Add text boxes for each channel label
         for i, label in enumerate(channel_labels):
-            ax.text(
-                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
-                -0.5,
-                label,
-                ha="center",
-                va="top",
-            )
-            ax.text(
-                -0.5,
-                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
-                label,
-                ha="right",
-                va="center",
-                rotation=90,
-            )
+            if "x" in labels_on_axes:
+                ax.text(
+                    (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                    -0.5,
+                    label,
+                    ha="center",
+                    va="top",
+                    rotation=label_rotations["x"],
+                )
+            if "y" in labels_on_axes:
+                ax.text(
+                    -0.5,
+                    (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                    label,
+                    ha="right",
+                    va="center",
+                    rotation=label_rotations["y"],
+                )
 
         return ax
 
