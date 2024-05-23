@@ -37,6 +37,50 @@ analysis = MultibandAnalysis.from_toml(
     output_dir=output_dir,
 )
 
+# %%
+# Set channel titles to non-jargon titles for publication
+override_channel_titles = {
+    "NPBDT_SHR_E": "1eNp0$\\pi$ $\\nu_e$ selection",
+    "ZPBDT_SHR_E": "1e0p0$\\pi$ $\\nu_e$ selection",
+    "NPBDT_SHR_COSTH": "1eNp0$\\pi$ $\\nu_e$ selection",
+    "ZPBDT_SHR_COSTH": "1e0p0$\\pi$ $\\nu_e$ selection",
+    "NUMUCRTNP0PI": "1$\\mu$Np0$\\pi$ $\\nu_\\mu$ selection",
+    "NUMUCRT0P0PI": "1$\\mu$0p0$\\pi$ $\\nu_\\mu$ selection",
+    "TWOSHR": "NC $\\pi^0$ selection"
+}
+
+hist_plot_figsize = (5.1, 5)
+# %%
+h1_params = ParameterSet([Parameter("signal_strength", 1.0)])
+analysis.set_parameters(h1_params)
+save_path = os.path.join(output_dir, "pre_fit")
+analysis.plot_signals(
+    include_multisim_errors=True,
+    use_sideband=True,
+    separate_figures=True,
+    add_precomputed_detsys=True,
+    save_path=save_path,
+    show_chi_square=True,
+    show_data_mc_ratio=True,
+    figsize=hist_plot_figsize,
+    mb_label_location="right",
+    mb_preliminary=True,
+    override_channel_titles=override_channel_titles,
+)
+
+# %%
+analysis.plot_sidebands(
+    include_multisim_errors=True,
+    separate_figures=True,
+    add_precomputed_detsys=True,
+    save_path=os.path.join(output_dir, "pre_fit"),
+    show_chi_square=True,
+    show_data_mc_ratio=True,
+    figsize=hist_plot_figsize,
+    mb_label_location="right",
+    mb_preliminary=True,
+    override_channel_titles=override_channel_titles,
+)
 
 # %%
 def run_unblinding(signal_channels, constraint_channels, control_channels, plot_suffix, plot_title, with_fc=True):
@@ -60,7 +104,8 @@ def run_unblinding(signal_channels, constraint_channels, control_channels, plot_
         save_path=save_path,
         show_chi_square=True,
         show_data_mc_ratio=True,
-        figsize=(6, 6),
+        figsize=hist_plot_figsize,
+        override_channel_titles=override_channel_titles,
     )
 
     best_fit_chi2, best_fit_parameters = analysis.fit_to_data(disp=True)  # type: ignore
@@ -133,7 +178,8 @@ def run_unblinding(signal_channels, constraint_channels, control_channels, plot_
         show_data_mc_ratio=True,
         separate_signal=False,
         extra_text=extra_text,
-        figsize=(6, 6),
+        figsize=hist_plot_figsize,
+        override_channel_titles=override_channel_titles,
     )
 
     signal_counts_dict = get_signal_count_channels(analysis, signal_channels)
@@ -207,7 +253,7 @@ def run_unblinding(signal_channels, constraint_channels, control_channels, plot_
         show_chi_square=True,
         show_data_mc_ratio=True,
         separate_signal=False,
-        figsize=(6, 6),
+        figsize=hist_plot_figsize,
     )
     extra_text = f"Best fit signal strength: {best_fit_parameters['signal_strength'].m:.3f}"
     extra_text += "\n" + f"Measured {plot_title} included in constraints."
@@ -221,7 +267,7 @@ def run_unblinding(signal_channels, constraint_channels, control_channels, plot_
         show_data_mc_ratio=True,
         separate_signal=False,
         extra_text=extra_text,
-        figsize=(6, 6),
+        figsize=hist_plot_figsize,
     )
     fig, ax = analysis.plot_correlation(
         figsize=(15, 14),
