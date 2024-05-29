@@ -1,6 +1,6 @@
 """Module to plot histograms for runs of data and simulation."""
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from matplotlib.patches import Patch
 from matplotlib.transforms import blended_transform_factory
 import numpy as np
@@ -75,8 +75,9 @@ class RunHistPlotter:
         figsize=(6, 4),
         mb_label_location="right",
         mb_preliminary=True,
+        signal_label=None,
         **kwargs,
-    ):
+    ) -> Tuple[plt.Axes, Optional[plt.Axes]]:
         gen = self.run_hist_generator
 
         def flatten(hist) -> Histogram:
@@ -125,7 +126,7 @@ class RunHistPlotter:
                 warnings.warn("No signal category found in the MC hists. Not separating signal.")
         background_hists = list(mc_hists.values())
         if ext_hist is not None:
-            background_hists.insert(0, ext_hist)
+            background_hists.append(ext_hist)
         background_hists = [flatten(hist) for hist in background_hists]
         extra_query = no_signal_query if separate_signal else None
         total_mc_hist = gen.get_mc_hist(
@@ -205,6 +206,7 @@ class RunHistPlotter:
             figsize=figsize,
             mb_label_location=mb_label_location,
             mb_preliminary=mb_preliminary,
+            signal_label=signal_label,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -268,6 +270,7 @@ class RunHistPlotter:
         figsize=(6, 4),
         mb_label_location="right",
         mb_preliminary=True,
+        signal_label=None,
         **kwargs,
     ):
         if not include_empty_hists:
@@ -465,19 +468,21 @@ class RunHistPlotter:
 
         if signal_hist is not None and signal_hist.sum() > 0:
             # Create a Patch object for the new legend entry
+            if signal_label is None:
+                signal_label = signal_hist.tex_string
             red_patch = Patch(
                 edgecolor="red",
                 facecolor="none",
                 linestyle="--",
                 lw=2,
-                label=f"{signal_hist.tex_string}: {signal_hist.sum():.1f}",
+                label=f"{signal_label}: {signal_hist.sum():.1f}",
             )
             # Append new handle and label
             handles.append(red_patch)
             if sums_in_legend:
-                labels.append(f"{signal_hist.tex_string}: {signal_hist.sum():.1f}")
+                labels.append(f"{signal_label}: {signal_hist.sum():.1f}")
             else:
-                labels.append(signal_hist.tex_string)
+                labels.append(signal_label)
 
         default_legend_kwargs = dict(
             loc="lower left",
@@ -495,6 +500,9 @@ class RunHistPlotter:
         if draw_legend:
             ax.legend(**legend_kwargs)
         ax.set_ylim(0, ax.get_ylim()[1] * 1.15)
+        # Set x-limits to the outermost bin edges
+        bin_edges = total_pred_hist.binning.bin_edges
+        ax.set_xlim((bin_edges[0], bin_edges[-1]))
 
         return ax
 

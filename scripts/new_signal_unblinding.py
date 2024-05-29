@@ -40,12 +40,12 @@ analysis = MultibandAnalysis.from_toml(
 # %%
 # Set channel titles to non-jargon titles for publication
 override_channel_titles = {
-    "NPBDT_SHR_E": "1eNp0$\\pi$ $\\nu_e$ selection",
-    "ZPBDT_SHR_E": "1e0p0$\\pi$ $\\nu_e$ selection",
-    "NPBDT_SHR_COSTH": "1eNp0$\\pi$ $\\nu_e$ selection",
-    "ZPBDT_SHR_COSTH": "1e0p0$\\pi$ $\\nu_e$ selection",
-    "NUMUCRTNP0PI": "1$\\mu$Np0$\\pi$ $\\nu_\\mu$ selection",
-    "NUMUCRT0P0PI": "1$\\mu$0p0$\\pi$ $\\nu_\\mu$ selection",
+    "NPBDT_SHR_E": "1eNp0$\\pi$ selection",
+    "ZPBDT_SHR_E": "1e0p0$\\pi$ selection",
+    "NPBDT_SHR_COSTH": "1eNp0$\\pi$ selection",
+    "ZPBDT_SHR_COSTH": "1e0p0$\\pi$ selection",
+    "NUMUCRTNP0PI": "1$\\mu$Np0$\\pi$ selection",
+    "NUMUCRT0P0PI": "1$\\mu$0p0$\\pi$ selection",
     "TWOSHR": "NC $\\pi^0$ selection"
 }
 

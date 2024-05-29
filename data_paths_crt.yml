@@ -212,7 +212,7 @@ runs:
       trig: 3.69E+06
     bnb: 
       file: Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana
-      pot: 5.01E+19
+      pot: 4.93E+19
       trig: 11391193
     ext:
       file: Run4d_bnb_beamOff_PeLee_ntuples_run4d_ana_ana 
@@ -235,7 +235,7 @@ runs:
       trig: 1.16E+07
     bnb: 
       file: run5_bnb_beamon_PeLEE_ntuples_run5_ana
-      pot: 1.55E+20  
+      pot: 1.48E+20  
       trig: 37159286
     nuwro_fd:
       file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run5_pelee 

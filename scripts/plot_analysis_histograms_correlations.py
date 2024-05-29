@@ -209,7 +209,7 @@ def plot_correlations(analysis: MultibandAnalysis, plot_dir: str):
 
 
 def plot_constraint_update(
-    analysis: MultibandAnalysis, plot_dir: str, print_tables: bool = False, figsize=(5, 4)
+    analysis: MultibandAnalysis, plot_dir: str, print_tables: bool = False, figsize=(5, 4), override_channel_titles={}
 ):
     analysis.parameters["signal_strength"].value = 0.0
     h0_hist_unconstrained = analysis.generate_multiband_histogram(
@@ -236,7 +236,10 @@ def plot_constraint_update(
             h0_hist_constrained[channel].draw(ax=ax, label="Constrained")
             binning = h0_hist_unconstrained[channel].binning
             ax.legend(title="Total (MC + EXT)")
-            ax.set_title(f"Selection: {binning.selection_tex}")
+            if channel in override_channel_titles:
+                ax.set_title(override_channel_titles[channel])
+            else:
+                ax.set_title(f"Selection: {binning.selection_tex}")
             fig.savefig(os.path.join(plot_dir, f"h0_constrained_vs_unconstrained_{channel}.pdf"))
     else:
         fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
