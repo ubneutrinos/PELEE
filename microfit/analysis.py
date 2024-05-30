@@ -73,6 +73,9 @@ class MultibandAnalysis(object):
             assert ch in self.channels, f"Constraint channel {ch} not found in analysis channels"
         # Adding the data_pot property just for compatibility with the RunHistPlotter
         self.data_pot = None
+        # The following is a flag that needs to be set in the analysis such that it 
+        # "knows" that we are trying to plot the sidebands now. It will then provide
+        # histograms for the sidebands as if they were signal.
         self.plot_sideband = False
         assert isinstance(self.parameters, ParameterSet)
         assert len(self.signal_channels) > 0, "No signal channels given"
@@ -310,6 +313,8 @@ class MultibandAnalysis(object):
     ) -> MultiChannelHistogram:
         """Generate the combined MC histogram from all channels."""
 
+        if use_sideband and include_non_signal_channels:
+            raise ValueError("Cannot set both `use_sideband` and `include_non_signal_channels` to `True` at the same time, because constraint channels will be lost after the constraint is applied.")
         mc_hist_generators = [g.mc_hist_generator for g in self._run_hist_generators]
 
         # Try adding detvars in here
@@ -381,7 +386,7 @@ class MultibandAnalysis(object):
             use_sideband=use_sideband,
             scale_to_pot=scale_to_pot,
             include_ext=False,
-            include_non_signal_channels=True,
+            include_non_signal_channels=self.plot_sideband,
             add_precomputed_detsys=add_precomputed_detsys,
             smooth_detsys_variations=smooth_detsys_variations,
             extra_query=extra_query,
@@ -579,6 +584,7 @@ class MultibandAnalysis(object):
         save_path=None,
         filename_format="analysis_{}.pdf",
         extra_text=None,
+        override_channel_titles={},
         **kwargs,
     ):
         if plot_signals:
@@ -602,12 +608,17 @@ class MultibandAnalysis(object):
                 else:
                     default_kwargs = kwargs.copy()
                 show_data = default_kwargs.pop("show_data", not self._get_channel_is_blinded(channel))
+                title = None
+                print(f"plotting channel: {channel}")
+                if channel in override_channel_titles:
+                    title = override_channel_titles[channel]
                 ax, _ = RunHistPlotter(self).plot(
                     category_column=category_column,
                     channel=channel,
                     data_pot=self._get_pot_for_channel(channel),
                     show_data=show_data,
                     extra_text=extra_text,
+                    title=title,
                     **default_kwargs,
                 )
                 if save_path is not None:
@@ -790,6 +801,7 @@ class MultibandAnalysis(object):
         n_trials: int = 1000,
         add_precomputed_detsys: bool = True,
         scale_to_pot: Optional[float] = None,
+        sens_only_dict: Optional[dict] = None
     ):
         """Perform a two hypothesis test between two parameter sets.
 
@@ -832,6 +844,9 @@ class MultibandAnalysis(object):
             If given, scale the histograms to this POT value before generating
             the pseudo-experiments. Only a sensitivity can be produced in this
             case.
+        sens_only_dict : dict
+            A dictionary with pre-existing sensitivity data. If given, the trials
+            are not regenerated.
 
         Returns
         -------
@@ -876,22 +891,29 @@ class MultibandAnalysis(object):
 
             return chi2_h0 - chi2_h1
 
-        rng = np.random.default_rng(0)
-        for i in tqdm(range(n_trials), desc="Generating pseudo-experiments"):
-            pseudo_data_h0 = h0_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
-            pseudo_data_h1 = h1_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
+        if sens_only_dict is None:
+            rng = np.random.default_rng(0)
+            for i in tqdm(range(n_trials), desc="Generating pseudo-experiments"):
+                pseudo_data_h0 = h0_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
+                pseudo_data_h1 = h1_hist.fluctuate(rng=rng).fluctuate_poisson(rng=rng)
 
-            test_stat_h0.append(test_statistic(pseudo_data_h0))
-            test_stat_h1.append(test_statistic(pseudo_data_h1))
+                test_stat_h0.append(test_statistic(pseudo_data_h0))
+                test_stat_h1.append(test_statistic(pseudo_data_h1))
 
-        test_stat_h0 = np.array(test_stat_h0)
-        test_stat_h1 = np.array(test_stat_h1)
+            test_stat_h0 = np.array(test_stat_h0)
+            test_stat_h1 = np.array(test_stat_h1)
 
-        results = dict()
-        results["ts_median_h1"] = np.median(test_stat_h1)
-        results["median_pval"] = np.sum(test_stat_h0 > results["ts_median_h1"]) / n_trials
-        results["samples_h0"] = test_stat_h0
-        results["samples_h1"] = test_stat_h1
+            results = dict()
+            results["ts_median_h1"] = np.median(test_stat_h1)
+            results["median_pval"] = np.sum(test_stat_h0 > results["ts_median_h1"]) / n_trials
+            results["samples_h0"] = test_stat_h0
+            results["samples_h1"] = test_stat_h1
+        else:
+            results = dict()
+            for key in ["ts_median_h1", "median_pval", "samples_h0", "samples_h1"]:
+                results[key] = sens_only_dict[key]
+            test_stat_h0 = results["samples_h0"]
+            test_stat_h1 = results["samples_h1"]
 
         data_hist = self.generate_multiband_data_histogram()
         if data_hist is None or sensitivity_only:
@@ -903,17 +925,18 @@ class MultibandAnalysis(object):
             results["pval_h1"] = None
 
             return results
+        data_hist = data_hist[self.signal_channels]
         # calculate the p-value of the observed data under H0
         real_data_ts = test_statistic(data_hist)
         results["chi2_h0"] = chi_square(
             data_hist.bin_counts, h0_hist.bin_counts, h0_hist.covariance_matrix
         )
-        results["pval_h0"] = np.sum(test_stat_h0 > real_data_ts) / n_trials
+        results["pval_h0"] = np.sum(test_stat_h0 > real_data_ts) / len(test_stat_h0)  # type: ignore
         # calculate the p-value of the observed data under H1
         results["chi2_h1"] = chi_square(
             data_hist.bin_counts, h1_hist.bin_counts, h1_hist.covariance_matrix
         )
-        results["pval_h1"] = np.sum(test_stat_h1 > real_data_ts) / n_trials
+        results["pval_h1"] = np.sum(test_stat_h1 > real_data_ts) / len(test_stat_h1)  # type: ignore
 
         return results
 

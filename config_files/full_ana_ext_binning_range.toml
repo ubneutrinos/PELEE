@@ -1,5 +1,5 @@
 [persistence]
-output_dir = "./full_ana_with_run3a_output/"
+output_dir = "./full_ana_ext_binning_range_output/"
 
 [plotting]
 [plotting.NPBDT_SHR_E]
@@ -174,8 +174,8 @@ bounds = [0.0, 10.0]
 
 [[generator.channel]]
 variable = "shr_energy_tot_cali"
-n_bins = 14
-limits = [0.05, 1.55]
+n_bins = 17
+limits = [0.01, 2.39]
 selection = "NPBDT"
 preselection = "NP"
 label = "NPBDT_SHR_E"
@@ -184,8 +184,8 @@ variable_tex_short = "$E_{\\mathrm{shr}}$"
 
 [[generator.channel]]
 variable = "shr_energy_tot_cali"
-n_bins = 14
-limits = [0.05, 1.55]
+n_bins = 17
+limits = [0.01, 2.39]
 # Adding CRT cuts to the ZP channel
 selection = "ZPBDT_CRT"
 preselection = "ZP"
