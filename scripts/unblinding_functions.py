@@ -121,11 +121,14 @@ def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suf
     maximum = max(maximum, np.max(two_hypo_results["samples_h1"]))
 
     n_trials = len(two_hypo_results["samples_h0"])
-    bin_edges = np.linspace(minimum, maximum, int(np.sqrt(n_trials)))
+    bin_edges = np.linspace(minimum, maximum, int(np.sqrt(n_trials) / 2))
 
     # Compute the p-value of the observed delta chi2
     samples_h0 = two_hypo_results["samples_h0"]
-    p_val = (samples_h0 > delta_chi2).sum() / len(samples_h0)
+    samples_h1 = two_hypo_results["samples_h1"]
+    p_val_h0 = (samples_h0 < delta_chi2).sum() / len(samples_h0)
+    p_val_h1 = (samples_h1 < delta_chi2).sum() / len(samples_h0)
+    cls = p_val_h1 / p_val_h0
 
     fig, ax = plt.subplots(figsize=(5, 4), constrained_layout=True)
     n_h0, *_ = ax.hist(
@@ -154,7 +157,7 @@ def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suf
             x=delta_chi2,
             color="k",
             linestyle="-",
-            label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH0 p-val: {p_val*100:0.3g}%\nBF: {bayes_factor_str}",
+            label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH0 p-val: {p_val_h0*100:0.3g}%\nH1 p-val: {p_val_h1*100:0.3g}%\nCL$_s$: {cls*100:.2g}%\nBF: {bayes_factor_str}",
         )
     ax.legend()
     ax.set_xlabel(r"$\Delta \chi^2$")

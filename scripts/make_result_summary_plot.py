@@ -59,7 +59,7 @@ def get_limits_from_data(data, conf="68"):
     upper = f"p_{conf}_upper"
     return data[lower], data[upper]
 # %%
-fig, ax = plt.subplots(constrained_layout=True, figsize=(5.8, 4.5))
+fig, ax = plt.subplots(constrained_layout=True, figsize=(5.5, 4.5))
 
 # As the x-value, make groups of three, one group per variable and one
 # group element per channel.
@@ -169,7 +169,7 @@ ax.plot(x, central_values, "D", label="Best Fit Point", color="k")
 
 ax.set_xticks(x)
 ax.set_xticklabels(labels, rotation=45)
-ax.grid(axis="y")
+# ax.grid(axis="y")
 ax.set_ylabel("Signal Strength")
 ax.legend(ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.1), frameon=False)
 ax.set_xlim(left=plot_lower_xlim, right=plot_upper_xlim)
@@ -177,7 +177,7 @@ ax.set_xlim(left=plot_lower_xlim, right=plot_upper_xlim)
 # in the center of each group, write the variable label at some y-position
 max_y = 4.1  # this is the y-value where you're adding text
 for i, mid in enumerate(group_centers):
-    ax.text(mid, max_y, variable_labels[i], ha="center", va="top", color="k", fontsize=9)
+    ax.text(mid, max_y, variable_labels_short[i], ha="center", va="top", color="k", fontsize=9)
 
 # get current y-limits
 ymin, ymax = ax.get_ylim()
@@ -260,7 +260,7 @@ ax.axhline(y=1, color="k", linestyle="--", lw=1)
 ax.set_xticks(x)
 ax.set_xticklabels(labels, rotation=0)
 ax.set_xlim((-0.5, 2.5))
-ax.grid(axis="y")
+# ax.grid(axis="y")
 ax.set_ylabel("Signal Strength")
 ax.legend(ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.2), frameon=False)
 fig.savefig("summary_plot_combined_channels.pdf", bbox_inches="tight")

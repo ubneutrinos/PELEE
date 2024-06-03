@@ -130,7 +130,8 @@ def run_unblinding(signal_channels, constraint_channels, control_channels, plot_
             h0_params=h0_params,
             h1_params=h1_params,
             sensitivity_only=False,
-            n_trials=100000,
+            # increased trials to get a better estimate of the p-value
+            n_trials=1000000,
         )
         to_json(os.path.join(output_dir, two_hypo_results_file), two_hypo_dict)
     else:
@@ -141,7 +142,8 @@ def run_unblinding(signal_channels, constraint_channels, control_channels, plot_
                 h0_params=h0_params,
                 h1_params=h1_params,
                 sensitivity_only=False,
-                n_trials=100000,
+                # increased trials to get a better estimate of the p-value
+                n_trials=1000000,
                 sens_only_dict=two_hypo_dict,
             )
             to_json(os.path.join(output_dir, two_hypo_results_file), two_hypo_dict)
