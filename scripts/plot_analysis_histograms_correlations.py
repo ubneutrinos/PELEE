@@ -235,11 +235,11 @@ def plot_constraint_update(
             h0_hist_unconstrained[channel].draw(ax=ax, label="Unconstrained")
             h0_hist_constrained[channel].draw(ax=ax, label="Constrained")
             binning = h0_hist_unconstrained[channel].binning
-            ax.legend(title="Total (MC + EXT)")
             if channel in override_channel_titles:
-                ax.set_title(override_channel_titles[channel])
+                title = override_channel_titles[channel]
             else:
-                ax.set_title(f"Selection: {binning.selection_tex}")
+                title = binning.selection_tex
+            ax.legend(title=f"{title}\nTotal prediction")
             fig.savefig(os.path.join(plot_dir, f"h0_constrained_vs_unconstrained_{channel}.pdf"))
     else:
         fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)

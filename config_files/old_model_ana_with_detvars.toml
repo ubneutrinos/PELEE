@@ -67,7 +67,7 @@ n_bins = 14
 limits = [0.15, 1.55]
 selection = "NUMUCRTNP0PI"
 preselection = "NUMUCRT"
-variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
 
 [[generator.channel]]
@@ -76,7 +76,7 @@ n_bins = 14
 limits = [0.15, 1.55]
 selection = "NUMUCRT0P0PI"
 preselection = "NUMUCRT"
-variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
 
 # Adding the inclusive $\nu_\mu$ selection channel even though
@@ -90,7 +90,7 @@ n_bins = 14
 limits = [0.15, 1.55]
 selection = "NUMUCRT"
 preselection = "NUMUCRT"
-variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
 
 # ------ Two-shower Sideband Generator ----- 
@@ -121,7 +121,7 @@ limits = [0.15, 1.0]
 selection = "ZPLOOSESELTWOSHR"
 preselection = "ZPTwoShrCRT"
 label = "TWOSHR"
-variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
 selection_tex = "NC $\\pi^0$ sel."
 selection_tex_short = "NC $\\pi^0$"
@@ -171,7 +171,7 @@ n_bins = 10
 limits = [0.15, 1.55]
 selection = "NPBDT"
 preselection = "NP"
-variable_tex = "Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
 
 [[generator.channel]]
@@ -182,7 +182,7 @@ limits = [0.15, 1.55]
 selection = "ZPBDT_CRT"
 preselection = "ZP"
 label = "ZPBDT"
-variable_tex = "Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
 
 [[generator.channel]]
@@ -192,5 +192,5 @@ limits = [0.15, 1.55]
 selection = "ZPBDT"
 preselection = "ZP"
 label = "ZPBDT_NOCRT"
-variable_tex = "Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
