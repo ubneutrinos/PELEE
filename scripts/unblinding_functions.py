@@ -130,12 +130,12 @@ def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suf
     p_val_h1 = (samples_h1 < delta_chi2).sum() / len(samples_h0)
     cls = p_val_h1 / p_val_h0
 
-    fig, ax = plt.subplots(figsize=(5, 4), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(4.5, 3.5), constrained_layout=True)
     n_h0, *_ = ax.hist(
-        two_hypo_results["samples_h0"], bins=bin_edges, histtype="step", density=False, label="H0"
+        two_hypo_results["samples_h0"], bins=bin_edges, histtype="stepfilled", density=True, label="H$_0$", alpha=0.4, edgecolor="C0", linewidth=1
     )
     n_h1, *_ = ax.hist(
-        two_hypo_results["samples_h1"], bins=bin_edges, histtype="step", density=False, label="H1"
+        two_hypo_results["samples_h1"], bins=bin_edges, histtype="stepfilled", density=True, label="H$_1$", alpha=0.4, edgecolor="C1", linewidth=1
     )
     # Identify which bin the observed delta_chi2 falls into. Note that
     # digitize returns 1 if the value falls into the first bin, so we
@@ -150,19 +150,20 @@ def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suf
         x=two_hypo_results["ts_median_h1"],
         color="k",
         linestyle="--",
-        label=f"Median H1\np-val: {two_hypo_results['median_pval']*100:0.3g}%",
+        label=f"Median H$_1$\np-val: {two_hypo_results['median_pval']*100:0.3g}%",
     )
     if not sensitivity_only:
         ax.axvline(
             x=delta_chi2,
             color="k",
             linestyle="-",
-            label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH0 p-val: {p_val_h0*100:0.3g}%\nH1 p-val: {p_val_h1*100:0.3g}%\nCL$_s$: {cls*100:.2g}%\nBF: {bayes_factor_str}",
+            label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH$_0$ p-val: {p_val_h0*100:0.3g}%\nH$_1$ p-val: {p_val_h1*100:0.3g}%\nCL$_s$: {cls*100:.2g}%\nBF: {bayes_factor_str}",
         )
-    ax.legend()
+    ax.legend(title=plot_title)
     ax.set_xlabel(r"$\Delta \chi^2$")
-    ax.set_ylabel("Samples")
-    ax.set_title(f"Two-Hypo. Test, {plot_title}")
+    ax.set_ylabel("Probability density")
+    # Extend the xlim to the right
+    ax.set_xlim(left=minimum, right=maximum + 0.4 * (maximum - minimum))
     fig.savefig(os.path.join(output_dir, f"two_hypo_result_{plot_suffix}.pdf"))
 
 
