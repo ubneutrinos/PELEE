@@ -101,7 +101,7 @@ def plot_signal_model(
     fig.tight_layout()
     return fig, ax
 
-
+# %%
 def plot_sidebands(analysis):
     if analysis is None:
         raise ValueError("Analysis object must be provided.")
@@ -109,10 +109,9 @@ def plot_sidebands(analysis):
     analysis.plot_sideband = True
 
     fig, ax = plt.subplots(
-        3, 1, sharex=True, constrained_layout=False, figsize=(5, 7.2)
+        3, 1, sharex=True, constrained_layout=False, figsize=(5, 7.2),
     )
-    plt.subplots_adjust(hspace=0.1)
-
+    plt.subplots_adjust(hspace=0)
     plotter = RunHistPlotter(analysis)
     plot_kwargs = dict(
         category_column="category",
@@ -142,7 +141,7 @@ def plot_sidebands(analysis):
     analysis.plot_sideband = False
     for a in ax:
         a.set_xlim((min_xlim, max_xlim))
-    fig.tight_layout()
+    # fig.tight_layout()
     return fig
 
 # ------ Old Model Analysis --------
@@ -172,7 +171,7 @@ analysis.plot_signals(
     filename_format="old_model_{}_with_data.pdf",
     figsize=(4.3, 3.6),
     override_channel_titles=override_channel_titles,
-    signal_label="LEE Signal\nModel 1",
+    signal_label="LEE signal\nmodel 1",
     sums_in_legend=False,
 )
 # %%
@@ -187,7 +186,7 @@ analysis.plot_signals(
     filename_format="old_model_{}_with_data_and_ratio.pdf",
     figsize=(4.3, 4.5),
     override_channel_titles=override_channel_titles,
-    signal_label="LEE Signal\nModel 1",
+    signal_label="LEE signal\nmodel 1",
     sums_in_legend=False,
 )
 # %%
@@ -196,7 +195,7 @@ fig, ax = plot_signal_model(
     signal_channels=["NPBDT", "ZPBDT"],
     show_data=True,
     show_chi_square=False,
-    signal_label="LEE Signal\nModel 1"
+    signal_label="LEE signal\nmodel 1"
 )
 fig.savefig("paper_histograms/old_signal_model_paper_histograms.pdf")
 fig.savefig("paper_histograms/old_signal_model_paper_histograms.png", dpi=200)
@@ -235,8 +234,8 @@ fig.savefig("paper_histograms/old_signal_model_paper_histograms_no_data.pdf")
 fig.savefig("paper_histograms/old_signal_model_paper_histograms_no_data.png", dpi=200)
 # %%
 fig = plot_sidebands(analysis=analysis)
-fig.savefig("paper_histograms/sidebands_paper_histograms.pdf")
-fig.savefig("paper_histograms/sidebands_paper_histograms.png", dpi=200)
+fig.savefig("paper_histograms/sidebands_paper_histograms.pdf", bbox_inches="tight")
+fig.savefig("paper_histograms/sidebands_paper_histograms.png", dpi=200, bbox_inches="tight")
 
 # %%
 fig, ax = analysis.plot_correlation(
@@ -271,7 +270,7 @@ fig, _ = plot_signal_model(
     signal_channels=["NPBDT_SHR_E", "ZPBDT_SHR_E"],
     show_data=True,
     show_chi_square=False,
-    signal_label="LEE Signal\nModel 2"
+    signal_label="LEE signal\nmodel 2"
 )
 fig.savefig("paper_histograms/new_signal_model_shr_e_paper_histograms.pdf")
 fig.savefig("paper_histograms/new_signal_model_shr_e_paper_histograms.png", dpi=200)
@@ -281,7 +280,7 @@ fig, _ = plot_signal_model(
     signal_channels=["NPBDT_SHR_E", "ZPBDT_SHR_E"],
     show_data=False,
     show_chi_square=False,
-    signal_label="LEE Signal\nModel 2"
+    signal_label="LEE signal\nmodel 2"
 )
 fig.savefig("paper_histograms/new_signal_model_shr_e_paper_histograms_no_data.pdf")
 fig.savefig("paper_histograms/new_signal_model_shr_e_paper_histograms_no_data.png", dpi=200)
@@ -293,7 +292,7 @@ fig, _ = plot_signal_model(
     show_data=True,
     show_chi_square=False,
     mb_label_location="left",
-    signal_label="LEE Signal\nModel 2"
+    signal_label="LEE signal\nmodel 2"
 )
 fig.savefig("paper_histograms/new_signal_model_shr_costheta_paper_histograms.pdf")
 fig.savefig("paper_histograms/new_signal_model_shr_costheta_paper_histograms.png", dpi=200)
@@ -304,7 +303,7 @@ fig, _ = plot_signal_model(
     show_data=False,
     show_chi_square=False,
     mb_label_location="left",
-    signal_label="LEE Signal\nModel 2"
+    signal_label="LEE signal\nmodel 2"
 )
 fig.savefig("paper_histograms/new_signal_model_shr_costheta_paper_histograms_no_data.pdf")
 fig.savefig("paper_histograms/new_signal_model_shr_costheta_paper_histograms_no_data.png", dpi=200)
@@ -321,7 +320,7 @@ new_analysis.plot_signals(
     filename_format="new_model_{}_with_data.pdf",
     figsize=(4.3, 3.6),
     override_channel_titles=override_channel_titles,
-    signal_label="LEE Signal\nModel 2",
+    signal_label="LEE signal\nmodel 2",
     sums_in_legend=False,
 )
 new_analysis.plot_signals(
@@ -335,7 +334,7 @@ new_analysis.plot_signals(
     filename_format="new_model_{}_with_data_and_ratio.pdf",
     figsize=(4.3, 4.5),
     override_channel_titles=override_channel_titles,
-    signal_label="LEE Signal\nModel 2",
+    signal_label="LEE signal\nmodel 2",
     sums_in_legend=False,
 )
 # %%
@@ -350,7 +349,7 @@ new_analysis.plot_signals(
     filename_format="new_model_{}_with_data.pdf",
     figsize=(4.3, 3.6),
     override_channel_titles=override_channel_titles,
-    signal_label="LEE Signal\nModel 2",
+    signal_label="LEE signal\nmodel 2",
     sums_in_legend=False,
 )
 new_analysis.plot_signals(
@@ -364,7 +363,7 @@ new_analysis.plot_signals(
     filename_format="new_model_{}_with_data_and_ratio.pdf",
     figsize=(4.3, 4.5),
     override_channel_titles=override_channel_titles,
-    signal_label="LEE Signal\nModel 2",
+    signal_label="LEE signal\nmodel 2",
     sums_in_legend=False,
 )
 # %%

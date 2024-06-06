@@ -290,7 +290,7 @@ run_unblinding(
     constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
     control_channels=["NPBDT_SHR_E", "ZPBDT_SHR_E"],
     plot_suffix="shr_costheta",
-    plot_title="Shr. $\\cos(\\theta)$",
+    plot_title="Shower $\\cos(\\theta)$,\ncombined channels",
 )
 # %%
 # Run the analysis for shower energy
@@ -299,7 +299,7 @@ run_unblinding(
     constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
     control_channels=["NPBDT_SHR_COSTHETA", "ZPBDT_SHR_COSTHETA"],
     plot_suffix="shr_e",
-    plot_title="Shr. Energy",
+    plot_title="Shower energy,\ncombined channels",
 )
 
 # %%
@@ -309,7 +309,7 @@ run_unblinding(
     constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
     control_channels=["ZPBDT_SHR_COSTHETA"],
     plot_suffix="shr_e_zpbdt",
-    plot_title="Shr. Energy, $1e0p0\\pi$",
+    plot_title="Shower energy,\n$1e0p0\\pi$",
     with_fc=True,
 )
 
@@ -319,7 +319,7 @@ run_unblinding(
     constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
     control_channels=["ZPBDT_SHR_E"],
     plot_suffix="shr_costheta_zpbdt",
-    plot_title="Shr. $\\cos(\\theta)$, $1e0p0\\pi$",
+    plot_title="Shower $\\cos(\\theta)$,\n$1e0p0\\pi$",
     with_fc=True,
 )
 # %%
@@ -329,7 +329,7 @@ run_unblinding(
     constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
     control_channels=["NPBDT_SHR_COSTHETA"],
     plot_suffix="shr_e_npbdt",
-    plot_title="Shr. Energy, $1eNp0\\pi$",
+    plot_title="Shower energy,\n$1eNp0\\pi$",
     with_fc=True,
 )
 
@@ -339,7 +339,7 @@ run_unblinding(
     constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
     control_channels=["NPBDT_SHR_E"],
     plot_suffix="shr_costheta_npbdt",
-    plot_title="Shr. $\\cos(\\theta)$, $1eNp0\\pi$",
+    plot_title="Shower $\\cos(\\theta)$,\n$1eNp0\\pi$",
     with_fc=True,
 )
 # %%
