@@ -377,7 +377,7 @@ class RunHistPlotter:
         pot_label = self.get_pot_label(scale_to_pot, data_pot=data_pot)
         mb_label = "MicroBooNE"
         if mb_preliminary:
-            mb_label += " Preliminary"
+            mb_label += " preliminary"
         if pot_label is not None:
             mb_label += f", {pot_label}"
         # if title is not None:

@@ -72,7 +72,7 @@ n_bins = 14
 limits = [0.15, 1.55]
 selection = "NUMUCRTNP0PI"
 preselection = "NUMUCRT"
-variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
 
 [[generator.channel]]
@@ -81,7 +81,7 @@ n_bins = 14
 limits = [0.15, 1.55]
 selection = "NUMUCRT0P0PI"
 preselection = "NUMUCRT"
-variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\nu,\\mathrm{reco}}$"
 
 # Adding the inclusive $\nu_\mu$ selection channel even though
@@ -95,7 +95,7 @@ n_bins = 14
 limits = [0.15, 1.55]
 selection = "NUMUCRT"
 preselection = "NUMUCRT"
-variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 
 # ------ Two-shower Sideband Generator ----- 
 [[generator]]
@@ -128,7 +128,7 @@ limits = [0.15, 1.0]
 selection = "ZPLOOSESELTWOSHR"
 preselection = "ZPTwoShrCRT"
 label = "TWOSHR"
-variable_tex = "Neutrino Reconstructed Energy (GeV)"
+variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"
 selection_tex = "NC $\\pi^0$ sel."
 selection_tex_short = "NC $\\pi^0$"
@@ -179,7 +179,7 @@ limits = [0.05, 1.55]
 selection = "NPBDT"
 preselection = "NP"
 label = "NPBDT_SHR_E"
-variable_tex = "Reconstructed Shower Energy (GeV)"
+variable_tex = "Reconstructed shower energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{shr}}$"
 
 [[generator.channel]]
@@ -190,7 +190,7 @@ limits = [0.05, 1.55]
 selection = "ZPBDT_CRT"
 preselection = "ZP"
 label = "ZPBDT_SHR_E"
-variable_tex = "Reconstructed Shower Energy (GeV)"
+variable_tex = "Reconstructed shower energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{shr}}$"
 
 # Add shower angle channels to the analysis, even though
@@ -205,7 +205,7 @@ bin_edges = [-1.0, -0.5,  0.0,  0.25,  0.375,  0.5,  0.625, 0.75, 0.875, 1.0]
 selection = "NPBDT"
 preselection = "NP"
 label = "NPBDT_SHR_COSTHETA"
-variable_tex = "Reconstructed Shower $\\cos(\\theta)$"
+variable_tex = "Reconstructed shower $\\cos(\\theta)$"
 variable_tex_short = "$\\cos(\\theta_\\mathrm{shr})$"
 
 [[generator.channel]]
@@ -217,5 +217,5 @@ bin_edges = [-1.0, -0.5,  0.0,  0.25,  0.375,  0.5,  0.625, 0.75, 0.875, 1.0]
 selection = "ZPBDT_CRT"
 preselection = "ZP"
 label = "ZPBDT_SHR_COSTHETA"
-variable_tex = "Reconstructed Shower $\\cos(\\theta)$"
+variable_tex = "Reconstructed shower $\\cos(\\theta)$"
 variable_tex_short = "$\\cos(\\theta_\\mathrm{shr})$"
