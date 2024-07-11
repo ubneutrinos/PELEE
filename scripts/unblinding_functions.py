@@ -4,6 +4,7 @@ import numpy as np
 import logging
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
+from scipy.stats import norm
 from microfit.fileio import from_json, to_json
 import matplotlib.pyplot as plt
 from microfit.parameters import ParameterSet, Parameter
@@ -99,12 +100,16 @@ def plot_chi2_distribution(output_dir, chi2_results_file, chi2_at_h0, plot_suffi
     chi2_h0 = chi2_h0[chi2_h0 < np.percentile(chi2_h0, 99.9)]
     # Get p-value of the observed chi2
     chi2_h0_pval = (chi2_h0 > chi2_at_h0).sum() / len(chi2_h0)
+    # Get the equivalent significance in units of sigma on a normal
+    # distribution
+    chi2_h0_sigma = norm.ppf(1 - chi2_h0_pval)
+
     fig, ax = plt.subplots(figsize=(5, 4), constrained_layout=True)
     ax.hist(chi2_h0, bins=100, histtype="step")
     ax.axvline(
         x=chi2_at_h0,
         color="k",
-        label=f"Obs. $\\chi^2$ at H0: {chi2_at_h0:.3f}\np-val: {chi2_h0_pval*100:0.3f}%",
+        label=f"Obs. $\\chi^2$ at H0: {chi2_at_h0:.2g}\np-val: {chi2_h0_pval*100:0.2g}% $\\approx${chi2_h0_sigma:.2g}$\\sigma$",
     )
     ax.legend()
     ax.set_xlabel(r"$\chi^2$")

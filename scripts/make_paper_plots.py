@@ -20,6 +20,8 @@ logging.basicConfig(level=logging.INFO)
 # %%
 from plot_analysis_histograms_correlations import plot_constraint_update
 
+# Set to False since we are now making plots for the paper
+PRELIMINARY = False
 
 override_channel_titles = {
     "NPBDT_SHR_E": "1eNp0$\\pi$ selection",
@@ -61,9 +63,13 @@ def plot_signal_model(
     analysis.signal_channels = signal_channels
 
     fig, ax = plt.subplots(
-        len(signal_channels), 1, sharex=True, constrained_layout=False, figsize=figsize
+        len(signal_channels),
+        1,
+        sharex=True,
+        constrained_layout=False,
+        figsize=figsize,
+        gridspec_kw={"hspace": 0}
     )
-    plt.subplots_adjust(hspace=0.1)
 
     plotter = RunHistPlotter(analysis)
     default_plot_kwargs = dict(
@@ -87,6 +93,7 @@ def plot_signal_model(
                 title=override_channel_titles.get(channel, None),
                 data_pot=analysis._get_pot_for_channel(channel),
                 mb_label_location=mb_label_location,
+                mb_preliminary=PRELIMINARY,
                 **plot_kwargs,  # type: ignore
             )
             # Get the x-limits of the axis last plotted and update the 
@@ -98,6 +105,27 @@ def plot_signal_model(
     else:
         plotter.plot(channel=signal_channels[0], ax=ax, **plot_kwargs)  # type: ignore
 
+    if len(signal_channels) > 1:
+        for a in ax[1:]:
+            # Since we are removing the vertical space, it is possible that 
+            # the highest y-tick label overlaps with the zero label of the 
+            # previous plot. We adjust the y-limits slightly if the highest
+            # y-tick label is close to the top of the plot.
+            yticks = a.get_yticks()
+            ylim_max = a.get_ylim()[1]
+            # It appears that the last y-tick may actually be above 
+            # the y-limit, so we take the highest one that is actually
+            # within the y-limit
+            top_tick = yticks[yticks <= ylim_max][-1]
+            # If the highest tick is less than half a tick distance from the
+            # top of the plot, we adjust the y-limit so that it will be
+            # half a tick distance above the highest tick
+            half_tick_distance = (yticks[1] - yticks[0]) / 2
+            if top_tick > ylim_max - half_tick_distance:
+                a.set_ylim((0, top_tick + half_tick_distance))
+            # Manually set the yticks now so that the y-tick labels are not
+            # changed from having made this adjustment
+            a.set_yticks(yticks[yticks <= ylim_max])
     fig.tight_layout()
     return fig, ax
 
@@ -131,6 +159,7 @@ def plot_sidebands(analysis):
             draw_legend=(i == 0),
             title=override_channel_titles.get(channel, None),
             data_pot=analysis._get_pot_for_channel(channel),
+            mb_preliminary=PRELIMINARY,
             **plot_kwargs,  # type: ignore
         )
         min_xlim = min(min_xlim, ax[i].get_xlim()[0])
@@ -141,6 +170,26 @@ def plot_sidebands(analysis):
     analysis.plot_sideband = False
     for a in ax:
         a.set_xlim((min_xlim, max_xlim))
+    for a in ax[1:]:
+        # Since we are removing the vertical space, it is possible that 
+        # the highest y-tick label overlaps with the zero label of the 
+        # previous plot. We adjust the y-limits slightly if the highest
+        # y-tick label is close to the top of the plot.
+        yticks = a.get_yticks()
+        ylim_max = a.get_ylim()[1]
+        # It appears that the last y-tick may actually be above 
+        # the y-limit, so we take the highest one that is actually
+        # within the y-limit
+        top_tick = yticks[yticks <= ylim_max][-1]
+        # If the highest tick is less than half a tick distance from the
+        # top of the plot, we adjust the y-limit so that it will be
+        # half a tick distance above the highest tick
+        half_tick_distance = (yticks[1] - yticks[0]) / 2
+        if top_tick > ylim_max - half_tick_distance:
+            a.set_ylim((0, top_tick + half_tick_distance))
+        # Manually set the yticks now so that the y-tick labels are not
+        # changed from having made this adjustment
+        a.set_yticks(yticks[yticks <= ylim_max])
     # fig.tight_layout()
     return fig
 
@@ -173,6 +222,19 @@ analysis.plot_signals(
     override_channel_titles=override_channel_titles,
     signal_label="LEE signal\nmodel 1",
     sums_in_legend=False,
+    mb_preliminary=PRELIMINARY,
+)
+analysis.plot_sidebands(
+    include_multisim_errors=True,
+    add_precomputed_detsys=True,
+    separate_figures=True,
+    show_chi_square=False,
+    save_path="paper_histograms",
+    filename_format="old_model_{}_with_data.pdf",
+    figsize=(4.3, 3.6),
+    override_channel_titles=override_channel_titles,
+    sums_in_legend=False,
+    mb_preliminary=PRELIMINARY,
 )
 # %%
 analysis.plot_signals(
@@ -188,6 +250,7 @@ analysis.plot_signals(
     override_channel_titles=override_channel_titles,
     signal_label="LEE signal\nmodel 1",
     sums_in_legend=False,
+    mb_preliminary=PRELIMINARY,
 )
 # %%
 fig, ax = plot_signal_model(
@@ -214,7 +277,7 @@ for a in ax:
     a.text(
         0.18,
         0.92,
-        "Signal Region",
+        "Signal region",
         ha="left",
         va="baseline",
         transform=transform,
