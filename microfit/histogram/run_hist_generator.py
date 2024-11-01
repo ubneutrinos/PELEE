@@ -274,8 +274,8 @@ class RunHistGenerator:
             data_hist.add_covariance(np.diag(prior_errors))
         data_hist *= scale_factor
         data_hist.label = {"data": "Data", "ext": "EXT"}[type]
-        data_hist.color = "k"
-        data_hist.hatch = {"data": None, "ext": "////"}[type]
+        data_hist.color = {"data": "k", "ext": "gray"}[type]
+        data_hist.hatch = {"data": None, "ext": None}[type]
         return data_hist
 
     def get_mc_hists(
