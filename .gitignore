@@ -4,6 +4,7 @@ root_files
 *.root
 plots
 *.pdf
+*.png
 !technote/**/*.pdf
 Sidebands/**/*.png
 .ipynb_checkpoints/
@@ -21,6 +22,7 @@ cached_dataframes
 plot_output/*
 ana_output*
 *_output
+*_output_*
 # Ignore files from memory profiler
 mprofile_*.dat
 
