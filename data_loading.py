@@ -508,19 +508,19 @@ def add_paper_numu_category(df, key):
     df.loc[:, "paper_category_numu"] = 0
     if key in ["data", "nu"]:
         return
-    df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 2
-    df.loc[(df["ccnc"] == 1), "paper_category_numu"] = 3
+    df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 2  # cc
+    df.loc[(df["ccnc"] == 1), "paper_category_numu"] = 3  # nc
     if key == "nue":
-        df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 11
+        df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 11  # nue cc
         return
     if key == "lee":
-        df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 111
+        df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 111  # lee
         return
     if key == "dirt":
         df["paper_category"] = 5
         df["paper_category_numu"] = 5
         return
-
+    df.loc[(df["npi0"] > 0), "paper_category_numu"] = 31  # nu NC with pi0
 
 def add_paper_categories(df, key):
     add_paper_category(df, key)
@@ -2085,6 +2085,7 @@ def load_sample(
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
 
+    print(f"Loading data from: {data_path}")
     with uproot.open(data_path) as up_file:
         up = up_file[fold][tree]
 
