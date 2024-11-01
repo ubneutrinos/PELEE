@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 # %%
 from plot_analysis_histograms_correlations import plot_constraint_update
 
+# %%
 # Set to False since we are now making plots for the paper
 PRELIMINARY = False
 
@@ -30,9 +31,11 @@ override_channel_titles = {
     "ZPBDT_SHR_COSTHETA": "1e0p0$\\pi$ selection",
     "NUMUCRTNP0PI": "1$\\mu$Np0$\\pi$ selection",
     "NUMUCRT0P0PI": "1$\\mu$0p0$\\pi$ selection",
+    "NUMUCRT": "$\\nu_\\mu$ selection",
     "TWOSHR": "NC $\\pi^0$ selection",
     "NPBDT": "1eNp0$\\pi$ selection",
     "ZPBDT": "1e0p0$\\pi$ selection",
+    "ZPBDT_NOCRT": "1e0p0$\\pi$ selection",
 }
 
 override_channel_titles_short = {
@@ -42,9 +45,11 @@ override_channel_titles_short = {
     "ZPBDT_SHR_COSTHETA": "1e0p0$\\pi$",
     "NUMUCRTNP0PI": "1$\\mu$Np0$\\pi$",
     "NUMUCRT0P0PI": "1$\\mu$0p0$\\pi$",
+    "NUMUCRT": "$\\nu_\\mu$",
     "TWOSHR": "NC $\\pi^0$",
     "NPBDT": "1eNp0$\\pi$",
     "ZPBDT": "1e0p0$\\pi$",
+    "ZPBDT_NOCRT": "1e0p0$\\pi$",
 }
 
 # %%
@@ -80,6 +85,24 @@ def plot_signal_model(
         show_data=show_data,
     )
     plot_kwargs = {**default_plot_kwargs, **plot_kwargs}
+    empirical_p_values = {
+        # These are calculated by the unblinding scripts and transferred
+        # here by hand. Look, I cannot be asked to automate this.
+        "NPBDT": 0.184,
+        "ZPBDT": 0.561,
+        "NPBDT_SHR_E": 0.104,
+        "ZPBDT_SHR_E": 0.625,
+        "NPBDT_SHR_COSTHETA": 0.153,
+        "ZPBDT_SHR_COSTHETA": 0.776,
+    }
+    chi2_values = {
+        "NPBDT": 15.0,
+        "ZPBDT": 9.9,
+        "NPBDT_SHR_E": 23.3,
+        "ZPBDT_SHR_E": 13.3,
+        "NPBDT_SHR_COSTHETA": 14.4,
+        "ZPBDT_SHR_COSTHETA": 6.2,
+    }
     # After looping through all histograms, we want to set the x-limits
     # to the widest out of all the histograms we have shown. 
     min_xlim = np.inf
@@ -95,6 +118,19 @@ def plot_signal_model(
                 mb_label_location=mb_label_location,
                 mb_preliminary=PRELIMINARY,
                 **plot_kwargs,  # type: ignore
+            )
+            pval_text = f"$\\chi^2={chi2_values[channel]}$, $p$-value: {empirical_p_values[channel] * 100:.0f}%"
+            # If the MB label is on the left, we need to move this text
+            # down a bit so that it does not overlap with the MB label
+            text_location = 0.91 if mb_label_location == "right" else 0.82
+            ax[i].text(
+                0.03,
+                text_location,
+                pval_text,
+                ha="left",
+                va="baseline",
+                transform=ax[i].transAxes,
+                fontsize=9,
             )
             # Get the x-limits of the axis last plotted and update the 
             # min and max
@@ -142,17 +178,32 @@ def plot_sidebands(analysis):
     plt.subplots_adjust(hspace=0)
     plotter = RunHistPlotter(analysis)
     plot_kwargs = dict(
-        category_column="category",
+        category_column="paper_category_numu",
         show_chi_square=False,
         sums_in_legend=False,
         add_precomputed_detsys=True,
         use_sideband=False,
+        show_total_unconstrained=False,
+        total_linestyle="-",
     )
 
     min_xlim = np.inf
     max_xlim = -np.inf
     channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
+    empirical_p_values = {
+        # These are calculated by the unblinding scripts and transferred
+        # here by hand. Look, I cannot be asked to automate this.
+        "NUMUCRT0P0PI": 0.21,
+        "NUMUCRTNP0PI": 0.10,
+        "TWOSHR": 0.09,
+    }
+    chi2_values = {
+        "NUMUCRT0P0PI": 18.0,
+        "NUMUCRTNP0PI": 21.1,
+        "TWOSHR": 16.8,
+    }
     for i, channel in enumerate(channels):
+        pval_text = f"$\\chi^2={chi2_values[channel]}$, $p$-value: {empirical_p_values[channel] * 100:.0f}%"
         plotter.plot(
             channel=channel,
             ax=ax[i],
@@ -161,6 +212,15 @@ def plot_sidebands(analysis):
             data_pot=analysis._get_pot_for_channel(channel),
             mb_preliminary=PRELIMINARY,
             **plot_kwargs,  # type: ignore
+        )
+        ax[i].text(
+            0.03,
+            0.91,
+            pval_text,
+            ha="left",
+            va="baseline",
+            transform=ax[i].transAxes,
+            fontsize=9,
         )
         min_xlim = min(min_xlim, ax[i].get_xlim()[0])
         max_xlim = max(max_xlim, ax[i].get_xlim()[1])
@@ -224,17 +284,37 @@ analysis.plot_signals(
     sums_in_legend=False,
     mb_preliminary=PRELIMINARY,
 )
+# %%
 analysis.plot_sidebands(
+    category_column="paper_category_numu",
     include_multisim_errors=True,
     add_precomputed_detsys=True,
     separate_figures=True,
     show_chi_square=False,
+    show_total_unconstrained=False,
     save_path="paper_histograms",
     filename_format="old_model_{}_with_data.pdf",
     figsize=(4.3, 3.6),
     override_channel_titles=override_channel_titles,
     sums_in_legend=False,
     mb_preliminary=PRELIMINARY,
+    total_linestyle="-",
+)
+# %%
+analysis.plot_sidebands(
+    category_column="paper_category_numu",
+    include_multisim_errors=True,
+    add_precomputed_detsys=True,
+    separate_figures=True,
+    show_chi_square=False,
+    show_data_mc_ratio=True,
+    save_path="paper_histograms",
+    filename_format="old_model_{}_with_data_and_ratio.pdf",
+    figsize=(4.3, 3.6),
+    override_channel_titles=override_channel_titles,
+    sums_in_legend=False,
+    mb_preliminary=PRELIMINARY,
+    total_linestyle="-",
 )
 # %%
 analysis.plot_signals(
@@ -314,6 +394,44 @@ fig.savefig("paper_histograms/correlation_matrix_paper_histograms.png", dpi=200)
 
 # %%
 plot_constraint_update(analysis, "paper_histograms", override_channel_titles=override_channel_titles, figsize=(4, 3.5))
+
+# %%
+# Plot old constraints
+previous_constraint_channels = analysis.constraint_channels
+previous_signal_channels = analysis.signal_channels
+analysis.constraint_channels = ["NUMUCRT"]
+analysis.signal_channels = ["NPBDT", "ZPBDT_NOCRT"]
+
+fig, ax = analysis.plot_correlation(
+    override_selection_tex=override_channel_titles_short,
+    labels_on_axes=["x", "y"],
+    figsize=(5.5, 4.5),
+    colorbar_kwargs={"shrink": 1.0},
+    use_variable_label=False
+)
+ax.set_title("")
+fig.savefig("paper_histograms/correlation_matrix_paper_histograms_old_constraints.pdf")
+fig.savefig("paper_histograms/correlation_matrix_paper_histograms_old_constraints.png", dpi=200)
+
+# Plot the sideband channel
+analysis.plot_sidebands(
+    include_multisim_errors=True,
+    add_precomputed_detsys=True,
+    separate_figures=True,
+    show_chi_square=False,
+    save_path="paper_histograms",
+    filename_format="old_constraints_{}_with_data.pdf",
+    figsize=(4.3, 3.6),
+    override_channel_titles=override_channel_titles,
+    sums_in_legend=False,
+    mb_preliminary=PRELIMINARY,
+)
+
+plot_constraint_update(analysis, "paper_histograms/old_constraints", override_channel_titles=override_channel_titles, figsize=(4.5, 3))
+analysis.constraint_channels = previous_constraint_channels
+analysis.signal_channels = previous_signal_channels
+
+
 # %%
 # ---------- New Model Analysis ----------
 config_file = "../config_files/full_ana_with_detvars.toml"
@@ -326,6 +444,8 @@ new_analysis = MultibandAnalysis.from_toml(
     overwrite_cached_df_detvars=False,
     output_dir=output_dir,
 )
+# %%
+signal_color = "darkblue"
 
 # %%
 fig, _ = plot_signal_model(
@@ -333,7 +453,8 @@ fig, _ = plot_signal_model(
     signal_channels=["NPBDT_SHR_E", "ZPBDT_SHR_E"],
     show_data=True,
     show_chi_square=False,
-    signal_label="LEE signal\nmodel 2"
+    signal_label="LEE signal\nmodel 2",
+    signal_color=signal_color
 )
 fig.savefig("paper_histograms/new_signal_model_shr_e_paper_histograms.pdf")
 fig.savefig("paper_histograms/new_signal_model_shr_e_paper_histograms.png", dpi=200)
@@ -343,7 +464,8 @@ fig, _ = plot_signal_model(
     signal_channels=["NPBDT_SHR_E", "ZPBDT_SHR_E"],
     show_data=False,
     show_chi_square=False,
-    signal_label="LEE signal\nmodel 2"
+    signal_label="LEE signal\nmodel 2",
+    signal_color=signal_color
 )
 fig.savefig("paper_histograms/new_signal_model_shr_e_paper_histograms_no_data.pdf")
 fig.savefig("paper_histograms/new_signal_model_shr_e_paper_histograms_no_data.png", dpi=200)
@@ -355,7 +477,8 @@ fig, _ = plot_signal_model(
     show_data=True,
     show_chi_square=False,
     mb_label_location="left",
-    signal_label="LEE signal\nmodel 2"
+    signal_label="LEE signal\nmodel 2",
+    signal_color=signal_color
 )
 fig.savefig("paper_histograms/new_signal_model_shr_costheta_paper_histograms.pdf")
 fig.savefig("paper_histograms/new_signal_model_shr_costheta_paper_histograms.png", dpi=200)
@@ -366,7 +489,8 @@ fig, _ = plot_signal_model(
     show_data=False,
     show_chi_square=False,
     mb_label_location="left",
-    signal_label="LEE signal\nmodel 2"
+    signal_label="LEE signal\nmodel 2",
+    signal_color=signal_color
 )
 fig.savefig("paper_histograms/new_signal_model_shr_costheta_paper_histograms_no_data.pdf")
 fig.savefig("paper_histograms/new_signal_model_shr_costheta_paper_histograms_no_data.png", dpi=200)
@@ -385,6 +509,7 @@ new_analysis.plot_signals(
     override_channel_titles=override_channel_titles,
     signal_label="LEE signal\nmodel 2",
     sums_in_legend=False,
+    signal_color=signal_color
 )
 new_analysis.plot_signals(
     include_multisim_errors=True,
@@ -399,6 +524,7 @@ new_analysis.plot_signals(
     override_channel_titles=override_channel_titles,
     signal_label="LEE signal\nmodel 2",
     sums_in_legend=False,
+    signal_color=signal_color
 )
 # %%
 new_analysis.signal_channels = ["NPBDT_SHR_COSTHETA", "ZPBDT_SHR_COSTHETA"]
@@ -414,6 +540,7 @@ new_analysis.plot_signals(
     override_channel_titles=override_channel_titles,
     signal_label="LEE signal\nmodel 2",
     sums_in_legend=False,
+    signal_color=signal_color
 )
 new_analysis.plot_signals(
     include_multisim_errors=True,
@@ -428,6 +555,7 @@ new_analysis.plot_signals(
     override_channel_titles=override_channel_titles,
     signal_label="LEE signal\nmodel 2",
     sums_in_legend=False,
+    signal_color=signal_color
 )
 # %%
 print(new_analysis.channels)

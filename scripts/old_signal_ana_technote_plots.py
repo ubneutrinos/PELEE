@@ -15,11 +15,27 @@ import sys
 logging.basicConfig(level=logging.INFO)
 
 # %%
+override_channel_titles_short = {
+    "NPBDT_SHR_E": "1eNp0$\\pi$",
+    "ZPBDT_SHR_E": "1e0p0$\\pi$",
+    "NPBDT_SHR_COSTHETA": "1eNp0$\\pi$",
+    "ZPBDT_SHR_COSTHETA": "1e0p0$\\pi$",
+    "NUMUCRTNP0PI": "1$\\mu$Np0$\\pi$",
+    "NUMUCRT0P0PI": "1$\\mu$0p0$\\pi$",
+    "NUMUCRT": "$\\nu_\\mu$",
+    "TWOSHR": "NC $\\pi^0$",
+    "NPBDT": "1eNp0$\\pi$",
+    "ZPBDT": "1e0p0$\\pi$",
+    "ZPBDT_NOCRT": "1e0p0$\\pi$",
+}
+# %%
 from microfit.analysis import MultibandAnalysis
 import logging
 
-config_file = "../config_files/old_model_ana_with_detvars.toml"
-output_dir = "../old_model_ana_output_with_3a/"
+# config_file = "../config_files/old_model_ana_with_detvars.toml"
+# output_dir = "../old_model_ana_output_with_3a/"
+config_file = "../config_files/old_model_ana_ext_bin_range.toml"
+output_dir = "../old_model_ana_ext_bin_range_output/"
 
 analysis = MultibandAnalysis.from_toml(
     config_file,
@@ -93,6 +109,8 @@ fig, ax = analysis.plot_correlation(
     channels=analysis.signal_channels,
     smooth_detsys_variations=False,
     as_correlation=True,
+    override_selection_tex=override_channel_titles_short,
+    use_variable_label=False
 )
 ax.set_title("Correlations of unsmoothed detector systematics")
 fig.savefig(os.path.join(output_dir, "correlation_plot_signal_channels_detvar.pdf"))
@@ -104,10 +122,39 @@ fig, ax = analysis.plot_correlation(
     channels=analysis.signal_channels,
     smooth_detsys_variations=True,
     as_correlation=True,
+    override_selection_tex=override_channel_titles_short,
+    use_variable_label=False
 )
 ax.set_title("Correlations of smoothed detector systematics")
 fig.savefig(os.path.join(output_dir, "correlation_plot_signal_channels_smooth_detvar.pdf"))
 
+# %%
+analysis.parameters["signal_strength"].value = 0.0
+fig, ax = analysis.plot_correlation(
+    figsize=(5, 4),
+    ms_columns=[],
+    add_precomputed_detsys=True,
+    channels=analysis.signal_channels + analysis.constraint_channels,
+    smooth_detsys_variations=False,
+    as_correlation=True,
+    override_selection_tex=override_channel_titles_short,
+    use_variable_label=False
+)
+ax.set_title("Correlations of unsmoothed detector systematics")
+fig.savefig(os.path.join(output_dir, "correlation_plot_signal_channels_detvar_all_channels.pdf"))
+
+fig, ax = analysis.plot_correlation(
+    figsize=(5, 4),
+    ms_columns=[],
+    add_precomputed_detsys=True,
+    channels=analysis.signal_channels + analysis.constraint_channels,
+    smooth_detsys_variations=True,
+    as_correlation=True,
+    override_selection_tex=override_channel_titles_short,
+    use_variable_label=False
+)
+ax.set_title("Correlations of smoothed detector systematics")
+fig.savefig(os.path.join(output_dir, "correlation_plot_signal_channels_smooth_detvar_all_channels.pdf"))
 # %%
 analysis.parameters["signal_strength"].value = 0.0
 analysis.constraint_channels = ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]
