@@ -246,7 +246,7 @@ runs:
       trig: 107466402 
     mc:
       file: run5_bnb_nu_overlay_ntuple_v08_00_00_67_run5_ana 
-      pot: 8.72E+20
+      pot: 1.02685e+21
     nue:
       file: run5_bnb_intrinsic_nue_overlay_pandora_unified_reco2_reco2_ana
       pot: 1.59E+23
@@ -494,7 +494,7 @@ numupresel:
       trig: 115079907   
     mc:
       file: run5_bnb_nu_overlay_ntuple_v08_00_00_67_run5_ana 
-      pot: 8.72E+20
+      pot: 1.02685e+21
     nue:
       file: run5_bnb_intrinsic_nue_overlay_pandora_unified_reco2_reco2_ana
       pot: 1.59E+23
