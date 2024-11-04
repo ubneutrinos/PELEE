@@ -6,5 +6,8 @@
         "microfit/**"
     ],
     "stubPath": "./stubs/stubs",
+    "python": {
+        "version": 3.7
+    }
 }
   
