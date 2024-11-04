@@ -1,6 +1,7 @@
 {
     "typeCheckingMode": "standard",
     "reportIncompatibleMethodOverride": "warning",
+    "reportOverlappingOverloads": "error",
     "include":[
         "microfit/**"
     ],

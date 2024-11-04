@@ -1168,20 +1168,20 @@ class MultibandAnalysis(object):
     @overload
     def _fit_to_data_migrad(
         self,
-        data: Optional[MultiChannelHistogram] = None,
-        return_migrad: Literal[False] = False,
-        reset_cache: bool = True,
-        disp: bool = False,
+        data: Optional[MultiChannelHistogram] = ...,
+        return_migrad: Literal[False] = ...,
+        reset_cache: bool = ...,
+        disp: bool = ...,
     ) -> Tuple[float, ParameterSet]:
         ...
 
     @overload
     def _fit_to_data_migrad(
         self,
-        data: Optional[MultiChannelHistogram] = None,
-        return_migrad: Literal[True] = True,
-        reset_cache: bool = True,
-        disp: bool = False,
+        data: Optional[MultiChannelHistogram] = ...,
+        return_migrad: Literal[True] = ...,
+        reset_cache: bool = ...,
+        disp: bool = ...,
     ) -> Tuple[float, ParameterSet, Minuit]:
         ...
 
