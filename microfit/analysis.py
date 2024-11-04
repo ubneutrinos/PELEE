@@ -4,7 +4,11 @@ import os
 import logging
 import sys
 from typing import Any, List, Optional, Tuple, Union, Dict, overload
-from typing_extensions import Literal
+# Import Literal for Python <= 3.7
+try:
+    from typing import Literal  # type: ignore
+except ImportError:
+    from typing_extensions import Literal
 from iminuit import Minuit
 from matplotlib import pyplot as plt, ticker
 from matplotlib.axes import Axes
