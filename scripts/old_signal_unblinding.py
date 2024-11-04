@@ -271,4 +271,99 @@ analysis.plot_signals(
 analysis.signal_channels = ["NPBDT", "ZPBDT"]
 
 
-# # %%
+# %%
+# Calculate the empirical p-value for each sideband channel. We can do this 
+# by setting the channel as the only signal channel without constraint channels,
+# and then letting the analysis class produce the chi-square distribution.
+
+for channel in ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]:
+    analysis.signal_channels = [channel]
+    analysis.constraint_channels = []
+    chi2_results_file = f"chi2_distribution_{channel}.json"
+    save_path = os.path.join(output_dir, "pre_fit")
+    h0_params = ParameterSet([Parameter("signal_strength", 0.0)])
+
+    if not os.path.exists(os.path.join(output_dir, chi2_results_file)):
+        chi2_dict = analysis.get_chi_square_distribution(
+            h0_params=h0_params, n_trials=100000, run_fit=False
+        )
+        to_json(os.path.join(output_dir, chi2_results_file), chi2_dict)
+    else:
+        chi2_dict = from_json(
+            os.path.join(output_dir, chi2_results_file)
+        )
+    chi2_trials = chi2_dict["chi2_h0"]
+    chi2_at_data = analysis.get_chi2_at_hypothesis(h0_params)
+    pval_data = (chi2_trials > chi2_at_data).sum() / len(chi2_trials)
+    print(f"Empirical p-value for channel {channel}: {pval_data}")
+    plot_chi2_distribution(output_dir, chi2_results_file, chi2_at_data, channel, channel)
+# %%
+def negative_signal_strength_fit(signal_channels, constraint_channels, plot_suffix):
+    analysis.parameters["signal_strength"].bounds = (-10, 10)
+    h0_params = ParameterSet([Parameter("signal_strength", 0.0)])
+    analysis.signal_channels = signal_channels
+    analysis.constraint_channels = constraint_channels
+    analysis.set_parameters(h0_params)
+    analysis.fit_to_data()
+    save_path = os.path.join(output_dir, f"post_fit_{plot_suffix}")
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    print(analysis.parameters)
+    analysis.plot_signals(
+        include_multisim_errors=True,
+        use_sideband=True,
+        separate_figures=True,
+        add_precomputed_detsys=True,
+        save_path=save_path,
+        show_chi_square=False,
+        show_data_mc_ratio=True,
+        figsize=hist_plot_figsize,
+        override_channel_titles=override_channel_titles,
+        show_signal_in_ratio=True
+    )
+
+# %%
+negative_signal_strength_fit(
+    signal_channels=["NPBDT", "ZPBDT"],
+    constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
+    plot_suffix="npbdt_zpbdt_negative",
+)
+
+# %%
+negative_signal_strength_fit(
+    signal_channels=["NPBDT"],
+    constraint_channels=["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"],
+    plot_suffix="npbdt_negative",
+)
+# %%
+from scipy.stats import chi2
+# compute total goodness-of-fit for the combined signal and sideband channels
+analysis.signal_channels = [
+    "NPBDT",
+    "ZPBDT",
+    "NUMUCRTNP0PI",
+    "NUMUCRT0P0PI",
+    # "TWOSHR",
+]
+analysis.constraint_channels = []
+h0_params = ParameterSet([Parameter("signal_strength", 0.0)])
+total_chi2 = analysis.get_chi2_at_hypothesis(h0_params)
+print("Total chi-square: ", total_chi2)
+joint_mc_hist = analysis.get_mc_hist()
+joint_ext_hist = analysis.get_data_hist(type="ext")
+joint_total_prediction = joint_mc_hist + joint_ext_hist
+joint_data_hist = analysis.get_data_hist()
+assert joint_data_hist is not None
+
+n_bins = joint_data_hist.n_bins
+print(f"Number of bins: {n_bins}")
+print(f"Chi-square p-value: {chi2.sf(total_chi2, n_bins) * 100}")
+
+fig, ax = plt.subplots()
+joint_total_prediction.draw(ax=ax, label="Total prediction", show_channel_labels=False)
+joint_data_hist.draw(ax=ax, label="Data", as_errorbars=True, color="k", show_channel_labels=False)
+ax.legend()
+ax.set_ylim(bottom=0.1)
+ax.set_yscale("log")
+plt.show()
+# %%

@@ -1,3 +1,4 @@
+from copy import deepcopy
 import hashlib
 import logging
 from typing import Any, AnyStr, Dict, List, Optional, Sequence, Tuple, Union, cast, overload
@@ -1178,7 +1179,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         assert isinstance(self.detvar_data, dict)
 
         variation_hist_data = cast(
-            Dict[str, Dict[str, Histogram]], self.detvar_data["variation_hist_data"]
+            Dict[str, Dict[str, Histogram]], deepcopy(self.detvar_data["variation_hist_data"])
         )
         cov_mat = np.zeros((self.binning.n_bins, self.binning.n_bins), dtype=float)
 
@@ -1193,19 +1194,26 @@ class HistogramGenerator(SmoothHistogramMixin):
             arr_filtered = np.convolve(arr_padded, filter, mode="valid")
             return arr_filtered
         
+        def extract_channels(hist):
+            # Extract the channels that are relevant for this histogram generator.
+            # This step also ensures that the order of the channels is correct.
+            if isinstance(hist, MultiChannelHistogram):
+                return hist[self.binning.channels]
+            return hist
+        
         def filter_hist(hist):
             if not smooth_variations:
-                return hist
+                return extract_channels(hist)
 
             if isinstance(hist, MultiChannelHistogram):
                 # We have to apply the filter separately for each channel, otherwise we would
                 # have unphysical correlations between the bins of adjacent channels.
-                return MultiChannelHistogram.from_histograms(
+                return extract_channels(MultiChannelHistogram.from_histograms(
                     [filter_hist(h) for h in  hist]
-                )
+                ))
             else:
                 hist.bin_counts = smooth_bin_counts(hist.bin_counts, filter)
-            return hist
+            return extract_channels(hist)
 
         # Get the CV variation hist
         variation_cv_hist = np.zeros(self.binning.n_bins)

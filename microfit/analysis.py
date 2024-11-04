@@ -4,7 +4,11 @@ import os
 import logging
 import sys
 from typing import Any, List, Optional, Tuple, Union, Dict, overload
-from typing_extensions import Literal
+# Import Literal for Python <= 3.7
+try:
+    from typing import Literal  # type: ignore
+except ImportError:
+    from typing_extensions import Literal
 from iminuit import Minuit
 from matplotlib import pyplot as plt, ticker
 from matplotlib.axes import Axes
@@ -524,9 +528,9 @@ class MultibandAnalysis(object):
         ext_hist = HistogramGenerator.generate_joint_histogram(
             ext_hist_generators, include_multisim_errors=False
         )
-        ext_hist.color = "k"
+        ext_hist.color = "gray"
         ext_hist.tex_string = "EXT"
-        ext_hist.hatch = "///"
+        ext_hist.hatch = None
         return ext_hist
 
     @lru_cache(maxsize=1)

@@ -24,22 +24,22 @@ old_signal_output_dir = "../old_model_ana_output_with_3a"
 import matplotlib.pyplot as plt
 # %%
 variables = [
+    "rec_nu_energy",
     "shr_e",
     "shr_costheta",
-    "rec_nu_energy"
 ]
 variable_labels = [
+    "Neutrino Energy,\nneutrino energy\nunfolded signal model",
     "Shower Energy,\nelectron kinematics\nunfolded\nsignal model",
     "Shower $\\cos(\\theta)$,\nelectron kinematics\nunfolded\nsignal model", 
-    "Neutrino Energy,\nneutrino energy\nunfolded signal model"
 ]
 variable_labels_short = [
-    "Shower\nEnergy",
-    "Shower\n$\\cos(\\theta)$",
-    "Neutrino\nEnergy"
+    "Neutrino energy",
+    "Shower energy",
+    "Shower $\\cos(\\theta)$",
 ]
-channel_suf = ["", "_zpbdt", "_npbdt"]
-channel_labels = ["combined", "$1e0p0\\pi$", "$1eNp0\\pi$"]
+channel_suf = ["_zpbdt", "_npbdt", ""]
+channel_labels = ["$1e0p0\\pi$", "$1eNp0\\pi$", "combined"]
 
 # %%
 def get_data(variable, channel_suffix):
@@ -171,13 +171,16 @@ ax.set_xticks(x)
 ax.set_xticklabels(labels, rotation=45)
 # ax.grid(axis="y")
 ax.set_ylabel("Signal Strength")
-ax.legend(ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.1), frameon=False)
+ax.legend(ncol=4, loc='upper center', bbox_to_anchor=(0.5, 1.1), frameon=False, columnspacing=0.9)
 ax.set_xlim(left=plot_lower_xlim, right=plot_upper_xlim)
 
 # in the center of each group, write the variable label at some y-position
-max_y = 4.1  # this is the y-value where you're adding text
+max_y = 3.8  # this is the y-value where you're adding text
 for i, mid in enumerate(group_centers):
     ax.text(mid, max_y, variable_labels_short[i], ha="center", va="top", color="k", fontsize=9)
+
+# Add the MicroBooNE and POT label
+ax.text(group_centers[1], max_y - 0.25, "MicroBooNE, $1.1\\times10^{21}$ POT", ha="center", va="top", color="k", fontsize=8)
 
 # get current y-limits
 ymin, ymax = ax.get_ylim()

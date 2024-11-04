@@ -1,6 +1,9 @@
 """Module to plot histograms for runs of data and simulation."""
 
 from typing import List, Optional, Tuple
+import matplotlib as mpl
+mpl.rc('hatch', linewidth=0.5)
+from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from matplotlib.transforms import blended_transform_factory
 import numpy as np
@@ -72,10 +75,13 @@ class RunHistPlotter:
         draw_legend=True,
         sums_in_legend=True,
         extra_text=None,
+        extra_text_location="left",
         figsize=(6, 4),
         mb_label_location="right",
         mb_preliminary=True,
         signal_label=None,
+        show_signal_in_ratio=False,
+        signal_color="red",
         **kwargs,
     ) -> Tuple[plt.Axes, Optional[plt.Axes]]:
         gen = self.run_hist_generator
@@ -203,10 +209,12 @@ class RunHistPlotter:
             draw_legend=draw_legend,
             sums_in_legend=sums_in_legend,
             extra_text=extra_text,
+            extra_text_location=extra_text_location,
             figsize=figsize,
             mb_label_location=mb_label_location,
             mb_preliminary=mb_preliminary,
             signal_label=signal_label,
+            signal_color=signal_color,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -238,8 +246,23 @@ class RunHistPlotter:
             as_errorbars=True,
             color="k",
         )
+        if show_signal_in_ratio and signal_hist is not None:
+            y_bkg = total_pred_hist.bin_counts
+            y_sig = signal_hist.bin_counts
+            y_sig_ratio = (y_sig + y_bkg) / y_bkg
+            
+            y_sig_ratio = np.append(y_sig_ratio, y_sig_ratio[-1])
 
-        ax_ratio.set_ylabel("Data/MC")
+            ax_ratio.step(
+                signal_hist.binning.bin_edges,
+                y_sig_ratio,
+                where="post",
+                color=signal_color,
+                linestyle="--",
+                lw=2,
+            )
+
+        ax_ratio.set_ylabel("Ratio w.r.t. MC")
         ax_ratio.set_xlabel(total_pred_hist.binning.variable_tex)
 
         return ax, ax_ratio
@@ -258,6 +281,8 @@ class RunHistPlotter:
         chi_square=None,
         stacked=True,
         show_total=True,
+        total_linestyle="--",
+        show_total_unconstrained=True,
         data_pot=None,
         signal_hist: Optional[Histogram] = None,
         run_title=None,
@@ -267,10 +292,12 @@ class RunHistPlotter:
         draw_legend=True,
         sums_in_legend=True,
         extra_text=None,
+        extra_text_location="left",
         figsize=(6, 4),
         mb_label_location="right",
         mb_preliminary=True,
         signal_label=None,
+        signal_color="red",
         **kwargs,
     ):
         if not include_empty_hists:
@@ -282,9 +309,11 @@ class RunHistPlotter:
                 show_errorband=False,
                 figsize=figsize,
                 show_counts=sums_in_legend,
+                show_total=show_total_unconstrained,
+                total_label="Total predicted,\nunconstrained",
                 **kwargs,
             )
-            if signal_hist is not None and signal_hist.sum() > 0:
+            if signal_hist is not None and signal_hist.sum() != 0:
                 # Plot signal on top of total prediction (incl. constraints)
                 y_bkg = total_pred_hist.bin_counts
                 y_sig = signal_hist.bin_counts
@@ -295,7 +324,7 @@ class RunHistPlotter:
                     signal_hist.binning.bin_edges,
                     y_bkg + y_sig,
                     where="post",
-                    color="red",
+                    color=signal_color,
                     linestyle="--",
                     lw=2,
                 )
@@ -305,7 +334,7 @@ class RunHistPlotter:
                     signal_hist.binning.bin_edges[0],
                     y_bkg[0],
                     y_bkg[0] + y_sig[0],
-                    color="red",
+                    color=signal_color,
                     linestyle="--",
                     lw=2,
                 )
@@ -313,7 +342,7 @@ class RunHistPlotter:
                     signal_hist.binning.bin_edges[-1],
                     y_bkg[-1],
                     y_bkg[-1] + y_sig[-1],
-                    color="red",
+                    color=signal_color,
                     linestyle="--",
                     lw=2,
                 )
@@ -333,8 +362,9 @@ class RunHistPlotter:
                 show_errorband=show_errorband,
                 uncertainty_color=uncertainty_color,
                 uncertainty_label=uncertainty_label,
+                linestyle=total_linestyle,
                 color="k",
-                lw=1.2,
+                lw=2,
             )
         assert ax is not None
         if scale_to_pot is None:
@@ -361,7 +391,7 @@ class RunHistPlotter:
             p_value = 1 - chi2.cdf(chi_square, n_bins)
             chi2_label = rf"$\chi^2$ = {chi_square:.1f}, p={p_value*100:.1f}%"
             chi2_text = ax.text(
-                0.05,
+                0.03,
                 0.92,
                 chi2_label,
                 ha="left",
@@ -454,7 +484,7 @@ class RunHistPlotter:
                 else:
                     # place where the chi2 text would have been
                     mb_label_text = ax.text(
-                        0.05,
+                        0.03,
                         0.92,
                         mb_label,
                         ha="left",
@@ -466,19 +496,20 @@ class RunHistPlotter:
         # Get existing legend handles and labels
         handles, labels = ax.get_legend_handles_labels()
 
-        if signal_hist is not None and signal_hist.sum() > 0:
-            # Create a Patch object for the new legend entry
+        if signal_hist is not None and signal_hist.sum() != 0:
+            # Create a Line2D object for the new legend entry
             if signal_label is None:
                 signal_label = signal_hist.tex_string
-            red_patch = Patch(
-                edgecolor="red",
-                facecolor="none",
+            red_line = Line2D(
+                [],
+                [],
+                color=signal_color,
                 linestyle="--",
-                lw=2,
+                linewidth=2,
                 label=f"{signal_label}: {signal_hist.sum():.1f}",
             )
             # Append new handle and label
-            handles.append(red_patch)
+            handles.append(red_line)
             if sums_in_legend:
                 labels.append(f"{signal_label}: {signal_hist.sum():.1f}")
             else:
@@ -576,11 +607,14 @@ class RunHistPlotter:
             bin_edges,
             np.clip(bin_counts - uncertainties, 0, None),
             bin_counts + uncertainties,
-            alpha=0.5,
+            alpha=1.0,
             step="post",
             label=uncertainty_label,
-            linewidth=1.0,
-            **kwargs,
+            linewidth=0.0,
+            hatch="///////",
+            facecolor="none",
+            edgecolor=(0.1, 0.1, 0.1),
+            # **kwargs,
         )
 
         return ax
@@ -593,6 +627,8 @@ class RunHistPlotter:
         uncertainty_color=None,
         uncertainty_label=None,
         show_counts=True,
+        show_total=True,
+        total_label="Total",
         figsize=(6, 4),
         **kwargs,
     ):
@@ -628,7 +664,7 @@ class RunHistPlotter:
             hatches=hatches,
             **kwargs,
         )
-        if not show_errorband:
+        if not show_total:
             return ax
         # plot uncertainties as a shaded region, but only for the sum of all hists
         summed_hist = sum(hists)
@@ -639,8 +675,12 @@ class RunHistPlotter:
             repeated_nom_values(summed_hist),
             where="post",
             color="k",
-            lw=0.5,
+            linestyle="-",
+            lw=1.5,
+            label=total_label,
         )
+        if not show_errorband:
+            return ax
         # show uncertainty as shaded region
         uncertainties = summed_hist.std_devs
         uncertainties = np.append(uncertainties, uncertainties[-1])
@@ -776,6 +816,7 @@ def stackplot(axes, x, *args, labels=(), colors=None, hatches=None, **kwargs):
                 edgecolor=edgecolor,
                 hatch=hatch,
                 label=next(labels, None),
+                linewidth=0,
                 **kwargs,
             )
         )

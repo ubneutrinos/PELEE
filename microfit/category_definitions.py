@@ -57,7 +57,8 @@ paper_labels_numu = {
     23: r"$\nu_{\mu}$ CC 1p",
     24: r"$\nu_{\mu}$ CC 2p",
     25: r"$\nu_{\mu}$ CC 3+p",
-    3: r"NC $\nu$",
+    3: r"$\nu$ NC",
+    31: r"$\nu$ NC $\pi^{0}$",
     5: r"Dirt",  # (Outside TPC)
     111: r"MiniBooNE LEE",
 }
@@ -65,7 +66,7 @@ paper_labels_numu = {
 paper_labels = {
     11: r"$\nu_e$ CC",
     2: r"$\nu$ other",
-    31: r"$\nu$ with $\pi^{0}$",
+    31: r"$\nu$ NC $\pi^{0}$",
     5: r"Dirt",  # (Outside TPC)
     111: r"MiniBooNE LEE",
 }

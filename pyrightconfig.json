@@ -1,9 +1,13 @@
 {
     "typeCheckingMode": "standard",
     "reportIncompatibleMethodOverride": "warning",
+    "reportOverlappingOverloads": "error",
     "include":[
         "microfit/**"
     ],
     "stubPath": "./stubs/stubs",
+    "python": {
+        "version": 3.7
+    }
 }
   
