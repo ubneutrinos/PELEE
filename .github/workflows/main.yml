@@ -42,7 +42,8 @@ jobs:
         # Install Node.js and npm (if not already installed)
         conda install -c conda-forge nodejs
         # Install Pyright using npm
-        npm install -g pyright
+        # npm install -g pyright
+        pip install pyright
     - name: Create localSettings module
       shell: bash -l {0}
       run: |
