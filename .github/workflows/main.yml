@@ -56,7 +56,7 @@ jobs:
       run: |
         conda activate python3LEE
         # Run Pyright type checking
-        pyright microfit
+        pyright --verbose microfit
     - name: Run tests
       shell: bash -l {0}
       run: |
