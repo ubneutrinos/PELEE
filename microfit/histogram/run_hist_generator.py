@@ -316,7 +316,11 @@ class RunHistGenerator:
         mc_hists = {}  # type: Dict[str | int, Histogram]
         other_categories = []
         for i, category in enumerate(self.mc_hist_generator.dataframe[category_column].unique()):
-            extra_query = f"{category_column} == '{category}'"
+            # extra_query = f"{category_column} == '{category}'"
+            if isinstance(category, str):
+                extra_query = f"{category_column} == '{category}'"
+            else:
+                extra_query = f"{category_column} == {category}"
             hist = self.get_mc_hist(
                 include_multisim_errors=include_multisim_errors,
                 add_precomputed_detsys=add_precomputed_detsys,

@@ -199,7 +199,8 @@ def get_variables():
 
     VARDICT["WEIGHTSLEE"] = WEIGHTSLEE
 
-    SYSTVARS = ["weightsGenie", "weightsFlux", "weightsReint"]
+    # SYSTVARS = ["weightsGenie", "weightsFlux", "weightsReint"]
+    SYSTVARS = ["weightsGenie"] # This is temporary for ntuples missing weightsFlux and weightsReint
 
     VARDICT["SYSTVARS"] = SYSTVARS
 
@@ -552,7 +553,7 @@ def load_data_run(
     raise NotImplementedError("Full data run loading not implemented yet")
 
 def get_elm_from_vec_idx(
-    myvec: ak.JaggedArray, idx: Union[List[int], NDArray[Any]], fillval=np.nan
+    myvec: ak.Array, idx: Union[List[int], NDArray[Any]], fillval=np.nan
 ) -> NDArray[np.float64]:
     """Returns the element of a vector at position idx, where idx is a vector of indices. If idx is out of bounds, returns a filler value"""
 
@@ -564,7 +565,7 @@ def get_idx_from_vec_sort(argidx: int, vecsort: NDArray[np.float64], mask: NDArr
     vid = vecsort[mask]
     sizecheck = argidx if argidx >= 0 else abs(argidx) - 1
     # find the position in the array after masking
-    mskd_pos = [v.argsort()[argidx] if len(v) > sizecheck else -1 for v in vid]
+    mskd_pos = [ak.argsort(v)[argidx] if len(v) > sizecheck else -1 for v in vid]
     # go back to the corresponding position in the origin array before masking
     result = [[i for i, n in enumerate(m) if n == 1][p] if (p) >= 0 else -1 for m, p in zip(mask, mskd_pos)]
     return result
@@ -661,6 +662,8 @@ def all_comb_mgg(
     """
     res = []
     for i, j in combs:
+        i = int(i)
+        j = int(j)
         res.append(np.nan_to_num(mgg(ev[i], ev[j], pxv[i], pxv[j], pyv[i], pyv[j], pzv[i], pzv[j])))
     return res
 
@@ -677,7 +680,7 @@ def sum_elements_from_mask(vector: np.ndarray, mask: np.ndarray) -> float:
         float: The sum of the elements of the input array that correspond to the mask.
     """
     vid = vector[mask]
-    result = vid.sum()
+    result = ak.sum(vid, axis=1)
     return result
 
 
@@ -709,12 +712,12 @@ def process_uproot_shower_variables(up, df):
 
     # this subtraction of one is needed because an ID number of 1 corresponds to the first element 
     # in an associated vector variable, but in python this is denoted by 0, hence the -1 requirement.
-    trk_id = up.array("trk_id") - 1
-    shr_id = up.array("shr_id") - 1
+    trk_id = up.arrays(["trk_id"], library="np")["trk_id"] - 1
+    shr_id = up.arrays(["shr_id"], library="np")["shr_id"] - 1
 
-    trk_llr_pid_v = up.array("trk_llr_pid_score_v")
-    trk_calo_energy_y_v = up.array("trk_calo_energy_y_v")
-    trk_energy_proton_v = up.array("trk_energy_proton_v")
+    trk_llr_pid_v = up.arrays(["trk_llr_pid_score_v"])["trk_llr_pid_score_v"]
+    trk_calo_energy_y_v = up.arrays(["trk_calo_energy_y_v"])["trk_calo_energy_y_v"]
+    trk_energy_proton_v = up.arrays(["trk_energy_proton_v"])["trk_energy_proton_v"]
 
     trk_llr_pid_v_sel = get_elm_from_vec_idx(trk_llr_pid_v, trk_id)
     trk_calo_energy_y_sel = get_elm_from_vec_idx(trk_calo_energy_y_v, trk_id)
@@ -722,12 +725,12 @@ def process_uproot_shower_variables(up, df):
     df["trkpid"] = trk_llr_pid_v_sel
     df["trackcaloenergy"] = trk_calo_energy_y_sel
     df["protonenergy"] = trk_energy_proton_sel
-    trk_sce_start_x_v = up.array("trk_sce_start_x_v")
-    trk_sce_start_y_v = up.array("trk_sce_start_y_v")
-    trk_sce_start_z_v = up.array("trk_sce_start_z_v")
-    trk_sce_end_x_v = up.array("trk_sce_end_x_v")
-    trk_sce_end_y_v = up.array("trk_sce_end_y_v")
-    trk_sce_end_z_v = up.array("trk_sce_end_z_v")
+    trk_sce_start_x_v = up.arrays(["trk_sce_start_x_v"])["trk_sce_start_x_v"]
+    trk_sce_start_y_v = up.arrays(["trk_sce_start_y_v"])["trk_sce_start_y_v"]
+    trk_sce_start_z_v = up.arrays(["trk_sce_start_z_v"])["trk_sce_start_z_v"]
+    trk_sce_end_x_v = up.arrays(["trk_sce_end_x_v"])["trk_sce_end_x_v"]
+    trk_sce_end_y_v = up.arrays(["trk_sce_end_y_v"])["trk_sce_end_y_v"]
+    trk_sce_end_z_v = up.arrays(["trk_sce_end_z_v"])["trk_sce_end_z_v"]
     df["shr_trk_sce_start_x"] = get_elm_from_vec_idx(trk_sce_start_x_v, shr_id)
     df["shr_trk_sce_start_y"] = get_elm_from_vec_idx(trk_sce_start_y_v, shr_id)
     df["shr_trk_sce_start_z"] = get_elm_from_vec_idx(trk_sce_start_z_v, shr_id)
@@ -744,28 +747,28 @@ def process_uproot_shower_variables(up, df):
     )
     df["mevcm"] = 1000 * df["shr_energy_tot_cali"] / df["shr_trk_len"]
     #
-    df["slclnhits"] = up.array("pfnhits").sum()
-    #df["slclnunhits"] = up.array("pfnunhits").sum()
+    df["slclnhits"] = ak.sum(up.arrays(["pfnhits"])["pfnhits"], axis=1)
+    #df["slclnunhits"] = ak.sum(up.arrays(["pfnunhits"])["pfnunhits"], axis=1)
     #
-    pfp_pdg_v = up.array("backtracked_pdg")
+    pfp_pdg_v = up.arrays(["backtracked_pdg"])["backtracked_pdg"]
     trk_pdg = get_elm_from_vec_idx(pfp_pdg_v, trk_id)
     df["trk_pdg"] = trk_pdg
-    pfp_pur_v = up.array("backtracked_purity")
+    pfp_pur_v = up.arrays(["backtracked_purity"])["backtracked_purity"]
     trk_pur = get_elm_from_vec_idx(pfp_pur_v, trk_id)
     df["trk_pur"] = trk_pur
-    pfp_cmp_v = up.array("backtracked_completeness")
+    pfp_cmp_v = up.arrays(["backtracked_completeness"])["backtracked_completeness"]
     trk_cmp = get_elm_from_vec_idx(pfp_cmp_v, trk_id)
     df["trk_cmp"] = trk_cmp
     #
     # fix elec_pz for positrons
-    nu_pdg = up.array("nu_pdg")
-    ccnc = up.array("ccnc")
-    mc_pdg = up.array("mc_pdg")
-    mc_E = up.array("mc_E")
-    mc_px = up.array("mc_px")
-    mc_py = up.array("mc_py")
-    mc_pz = up.array("mc_pz")
-    elec_pz = up.array("elec_pz")
+    nu_pdg = up.arrays(["nu_pdg"], library="np")["nu_pdg"]
+    ccnc = up.arrays(["ccnc"], library="np")["ccnc"]
+    mc_pdg = up.arrays(["mc_pdg"])["mc_pdg"]
+    mc_E = up.arrays(["mc_E"])["mc_E"]
+    mc_px = up.arrays(["mc_px"])["mc_px"]
+    mc_py = up.arrays(["mc_py"])["mc_py"]
+    mc_pz = up.arrays(["mc_pz"])["mc_pz"]
+    elec_pz = up.arrays(["elec_pz"], library="np")["elec_pz"]
     positr_mask = mc_pdg == -11
     mostEpositrIdx = get_idx_from_vec_sort(-1, mc_E, positr_mask)
     mc_E_posi = get_elm_from_vec_idx(mc_E, mostEpositrIdx)
@@ -791,12 +794,12 @@ def process_uproot_shower_variables(up, df):
     df["proton_pz"] = np.where((mc_E_prot > 0), mc_pz_prot / mc_p_prot, np.nan)
     #
     # true proton length (assuming straight line)
-    mc_vx = up.array("mc_vx")
-    mc_vy = up.array("mc_vy")
-    mc_vz = up.array("mc_vz")
-    mc_endx = up.array("mc_endx")
-    mc_endy = up.array("mc_endy")
-    mc_endz = up.array("mc_endz")
+    mc_vx = up.arrays(["mc_vx"])["mc_vx"]
+    mc_vy = up.arrays(["mc_vy"])["mc_vy"]
+    mc_vz = up.arrays(["mc_vz"])["mc_vz"]
+    mc_endx = up.arrays(["mc_endx"])["mc_endx"]
+    mc_endy = up.arrays(["mc_endy"])["mc_endy"]
+    mc_endz = up.arrays(["mc_endz"])["mc_endz"]
     p_vx = get_elm_from_vec_idx(mc_vx, mostEprotIdx)
     p_vy = get_elm_from_vec_idx(mc_vy, mostEprotIdx)
     p_vz = get_elm_from_vec_idx(mc_vz, mostEprotIdx)
@@ -807,36 +810,36 @@ def process_uproot_shower_variables(up, df):
         (p_endx - p_vx) * (p_endx - p_vx) + (p_endy - p_vy) * (p_endy - p_vy) + (p_endz - p_vz) * (p_endz - p_vz)
     )
     #
-    trk_score_v = up.array("trk_score_v")
+    trk_score_v = up.arrays(["trk_score_v"])["trk_score_v"]
     shr_mask = trk_score_v < 0.5
     trk_mask = trk_score_v > 0.5
-    df["n_tracks_tot"] = trk_mask.sum()
-    df["n_showers_tot"] = shr_mask.sum()
-    trk_len_v = up.array("trk_len_v")
-    df["n_trks_gt10cm"] = (trk_len_v[trk_mask >= 0.5] > 10).sum()
-    df["n_trks_gt25cm"] = (trk_len_v[trk_mask >= 0.5] > 25).sum()
-    trk_distance_v = up.array("trk_distance_v")
-    df["n_tracks_attach"] = (trk_distance_v[trk_mask >= 0.5] < 3).sum()
-    df["n_protons_attach"] = ((trk_distance_v[trk_mask >= 0.5] < 3) & (trk_llr_pid_v[trk_mask >= 0.5] < 0.02)).sum()
+    df["n_tracks_tot"] = ak.sum(trk_mask, axis=1)
+    df["n_showers_tot"] = ak.sum(shr_mask, axis=1)
+    trk_len_v = up.arrays(["trk_len_v"])["trk_len_v"]
+    df["n_trks_gt10cm"] = ak.sum((trk_len_v[trk_mask >= 0.5] > 10), axis=1)
+    df["n_trks_gt25cm"] = ak.sum((trk_len_v[trk_mask >= 0.5] > 25), axis=1)
+    trk_distance_v = up.arrays(["trk_distance_v"])["trk_distance_v"]
+    df["n_tracks_attach"] = ak.sum((trk_distance_v[trk_mask >= 0.5] < 3), axis=1)
+    df["n_protons_attach"] = ak.sum(((trk_distance_v[trk_mask >= 0.5] < 3) & (trk_llr_pid_v[trk_mask >= 0.5] < 0.02)), axis=1)
     #
-    pfnhits_v = up.array("pfnhits")
+    pfnhits_v = up.arrays(["pfnhits"])["pfnhits"]
     trk_id_all = get_idx_from_vec_sort(-1, pfnhits_v, trk_mask)  # this includes also uncontained tracks
     #
-    shr_start_x_v = up.array("shr_start_x_v")
-    shr_start_y_v = up.array("shr_start_y_v")
-    shr_start_z_v = up.array("shr_start_z_v")
+    shr_start_x_v = up.arrays(["shr_start_x_v"])["shr_start_x_v"]
+    shr_start_y_v = up.arrays(["shr_start_y_v"])["shr_start_y_v"]
+    shr_start_z_v = up.arrays(["shr_start_z_v"])["shr_start_z_v"]
     df["shr_start_x"] = get_elm_from_vec_idx(shr_start_x_v, shr_id)
     df["shr_start_y"] = get_elm_from_vec_idx(shr_start_y_v, shr_id)
     df["shr_start_z"] = get_elm_from_vec_idx(shr_start_z_v, shr_id)
-    trk_start_x_v = up.array("trk_start_x_v")
-    trk_start_y_v = up.array("trk_start_y_v")
-    trk_start_z_v = up.array("trk_start_z_v")
+    trk_start_x_v = up.arrays(["trk_start_x_v"])["trk_start_x_v"]
+    trk_start_y_v = up.arrays(["trk_start_y_v"])["trk_start_y_v"]
+    trk_start_z_v = up.arrays(["trk_start_z_v"])["trk_start_z_v"]
     df["trk1_start_x_alltk"] = get_elm_from_vec_idx(trk_start_x_v, trk_id_all)
     df["trk1_start_y_alltk"] = get_elm_from_vec_idx(trk_start_y_v, trk_id_all)
     df["trk1_start_z_alltk"] = get_elm_from_vec_idx(trk_start_z_v, trk_id_all)
-    trk_dir_x_v = up.array("trk_dir_x_v")
-    trk_dir_y_v = up.array("trk_dir_y_v")
-    trk_dir_z_v = up.array("trk_dir_z_v")
+    trk_dir_x_v = up.arrays(["trk_dir_x_v"])["trk_dir_x_v"]
+    trk_dir_y_v = up.arrays(["trk_dir_y_v"])["trk_dir_y_v"]
+    trk_dir_z_v = up.arrays(["trk_dir_z_v"])["trk_dir_z_v"]
     df["trk1_dir_x_alltk"] = get_elm_from_vec_idx(trk_dir_x_v, trk_id_all)
     df["trk1_dir_y_alltk"] = get_elm_from_vec_idx(trk_dir_y_v, trk_id_all)
     df["trk1_dir_z_alltk"] = get_elm_from_vec_idx(trk_dir_z_v, trk_id_all)
@@ -881,16 +884,16 @@ def process_uproot_shower_variables(up, df):
     # fix the 'subcluster' bug (in case of more than one shower, it comes from the one with least hits, not the one with most)
     # so we overwrite the dataframe column taking the correct value from the corrsponding vector branches
     #
-    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
-    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
-    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
+    pfpplanesubclusters_U_v = up.arrays(["pfpplanesubclusters_U"])["pfpplanesubclusters_U"]
+    pfpplanesubclusters_V_v = up.arrays(["pfpplanesubclusters_V"])["pfpplanesubclusters_V"]
+    pfpplanesubclusters_Y_v = up.arrays(["pfpplanesubclusters_Y"])["pfpplanesubclusters_Y"]
     df["shrsubclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, shr_id, 0)
     df["shrsubclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, shr_id, 0)
     df["shrsubclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, shr_id, 0)
     #
     # do the best we can to get the right shr2_id
     #
-    shr2_id_corr = up.array("shr2_id") - 1  # I think we need this -1 to get the right result
+    shr2_id_corr = up.arrays(["shr2_id"], library="np")["shr2_id"] - 1  # I think we need this -1 to get the right result
     shr2_id_appr = get_idx_from_vec_sort(-2, pfnhits_v, shr_mask)
     shr2_id = np.where((shr2_id_corr >= 0) & (shr2_id_corr < df["n_showers_tot"]), shr2_id_corr, shr2_id_appr)
     #
@@ -920,7 +923,7 @@ def process_uproot_shower_variables(up, df):
 
     df["shr2pid"] = get_elm_from_vec_idx(trk_llr_pid_v, shr2_id)
     df["shr2_score"] = get_elm_from_vec_idx(trk_score_v, shr2_id)
-    shr_moliere_avg_v = up.array("shr_moliere_avg_v")
+    shr_moliere_avg_v = up.arrays(["shr_moliere_avg_v"])["shr_moliere_avg_v"]
     df["shr2_moliereavg"] = get_elm_from_vec_idx(shr_moliere_avg_v, shr2_id)
 
     return
@@ -1033,11 +1036,11 @@ def post_process_shower_vars(up, df):
 
 
 def process_uproot_ccncpi0vars(up, df):
-    mc_pdg = up.array("mc_pdg")
-    mc_E = up.array("mc_E")
-    mc_px = up.array("mc_px")
-    mc_py = up.array("mc_py")
-    mc_pz = up.array("mc_pz")
+    mc_pdg = up.arrays(["mc_pdg"])["mc_pdg"]
+    mc_E = up.arrays(["mc_E"])["mc_E"]
+    mc_px = up.arrays(["mc_px"])["mc_px"]
+    mc_py = up.arrays(["mc_py"])["mc_py"]
+    mc_pz = up.arrays(["mc_pz"])["mc_pz"]
 
     proton_mask = mc_pdg == 2212
     pi0_mask = mc_pdg == 111
@@ -1086,7 +1089,7 @@ def process_uproot_ccncpi0vars(up, df):
     )
     df["mc_W_ppi0"] = mc_M_ppi0
     # compute momentum transfer
-    nu_e = up.array("nu_e")
+    nu_e = up.arrays(["nu_e"], library="np")["nu_e"]
     lepton_mask = (
         (mc_pdg == 11)
         | (mc_pdg == -11)
@@ -1114,20 +1117,20 @@ def process_uproot_ccncpi0vars(up, df):
     #
     #
     protonidcut = 0.5  # fimxe (original was 0)
-    trk_dir_x_v = up.array("trk_dir_x_v")
-    trk_dir_y_v = up.array("trk_dir_y_v")
-    trk_dir_z_v = up.array("trk_dir_z_v")
-    trk_energy_proton_v = up.array("trk_energy_proton_v")
-    trk_llr_pid_score_v = up.array("trk_llr_pid_score_v")
-    trk_score_v = up.array("trk_score_v")
-    pi0_energy1_Y = 0.001 * up.array("pi0_energy1_Y") / 0.83
-    pi0_dir1_x = up.array("pi0_dir1_x")
-    pi0_dir1_y = up.array("pi0_dir1_y")
-    pi0_dir1_z = up.array("pi0_dir1_z")
-    pi0_energy2_Y = 0.001 * up.array("pi0_energy2_Y") / 0.83
-    pi0_dir2_x = up.array("pi0_dir2_x")
-    pi0_dir2_y = up.array("pi0_dir2_y")
-    pi0_dir2_z = up.array("pi0_dir2_z")
+    trk_dir_x_v = up.arrays(["trk_dir_x_v"])["trk_dir_x_v"]
+    trk_dir_y_v = up.arrays(["trk_dir_y_v"])["trk_dir_y_v"]
+    trk_dir_z_v = up.arrays(["trk_dir_z_v"])["trk_dir_z_v"]
+    trk_energy_proton_v = up.arrays(["trk_energy_proton_v"])["trk_energy_proton_v"]
+    trk_llr_pid_score_v = up.arrays(["trk_llr_pid_score_v"])["trk_llr_pid_score_v"]
+    trk_score_v = up.arrays(["trk_score_v"])["trk_score_v"]
+    pi0_energy1_Y = 0.001 * up.arrays(["pi0_energy1_Y"], library="np")["pi0_energy1_Y"] / 0.83
+    pi0_dir1_x = up.arrays(["pi0_dir1_x"], library="np")["pi0_dir1_x"]
+    pi0_dir1_y = up.arrays(["pi0_dir1_y"], library="np")["pi0_dir1_y"]
+    pi0_dir1_z = up.arrays(["pi0_dir1_z"], library="np")["pi0_dir1_z"]
+    pi0_energy2_Y = 0.001 * up.arrays(["pi0_energy2_Y"], library="np")["pi0_energy2_Y"] / 0.83
+    pi0_dir2_x = up.arrays(["pi0_dir2_x"], library="np")["pi0_dir2_x"]
+    pi0_dir2_y = up.arrays(["pi0_dir2_y"], library="np")["pi0_dir2_y"]
+    pi0_dir2_z = up.arrays(["pi0_dir2_z"], library="np")["pi0_dir2_z"]
     proton_mask = (trk_llr_pid_score_v < protonidcut) & (trk_score_v > 0.5)
     leadProtonIdx = get_idx_from_vec_sort(-1, trk_energy_proton_v, proton_mask)
     leadP_KE = get_elm_from_vec_idx(trk_energy_proton_v, leadProtonIdx)
@@ -1149,33 +1152,33 @@ def process_uproot_ccncpi0vars(up, df):
     df["reco_W"] = reco_M_had
     # multiplicities
     mip_mask = (trk_llr_pid_score_v >= protonidcut) & (trk_score_v > 0.5)
-    df["n_reco_protons"] = proton_mask.sum()
-    df["n_reco_mip"] = mip_mask.sum()
+    df["n_reco_protons"] = ak.sum(proton_mask, axis=1)
+    df["n_reco_mip"] = ak.sum(mip_mask, axis=1)
     #
     # multiple pi0 combinatorics
     #
-    shr_energy_y_v = up.array("shr_energy_y_v")
-    shr_dist_v = up.array("shr_dist_v")
-    shr_px_v = up.array("shr_px_v")
-    shr_py_v = up.array("shr_py_v")
-    shr_pz_v = up.array("shr_pz_v")
-    trk_score_v = up.array("trk_score_v")
+    shr_energy_y_v = up.arrays(["shr_energy_y_v"])["shr_energy_y_v"]
+    shr_dist_v = up.arrays(["shr_dist_v"])["shr_dist_v"]
+    shr_px_v = up.arrays(["shr_px_v"])["shr_px_v"]
+    shr_py_v = up.arrays(["shr_py_v"])["shr_py_v"]
+    shr_pz_v = up.arrays(["shr_pz_v"])["shr_pz_v"]
+    trk_score_v = up.arrays(["trk_score_v"])["trk_score_v"]
     shr_mask = trk_score_v < 0.5
-    shr_mask_args = [np.argwhere(mask).flatten().tolist() for mask in shr_mask]
-    gg_combs = ak.fromiter([combs(args) for args in shr_mask_args])
-    mggs = ak.fromiter(
+    shr_mask_args = [np.argwhere(mask.to_numpy()).flatten().tolist() for mask in shr_mask]
+    gg_combs = ak.from_iter([combs(args) for args in shr_mask_args])
+    mggs = ak.from_iter(
         [
             all_comb_mgg(ev, pxv, pyv, pzv, combs)
             for ev, pxv, pyv, pzv, combs in zip(shr_energy_y_v, shr_px_v, shr_py_v, shr_pz_v, gg_combs)
         ]
     )
-    mdiffs = ak.fromiter([[np.abs(m - 134.98) for m in ms] for ms in mggs])
-    gg_combs_argsort = ak.fromiter([np.argsort(d) for d in mdiffs])
-    gg_unique_combs = ak.fromiter([unique_combs(c, a) for c, a in zip(gg_combs, gg_combs_argsort)])
-    npi0s_delta20 = (mdiffs[gg_unique_combs] < 20).sum()
-    npi0s_delta30 = (mdiffs[gg_unique_combs] < 30).sum()
-    npi0s_delta40 = (mdiffs[gg_unique_combs] < 40).sum()
-    npi0s_delta50 = (mdiffs[gg_unique_combs] < 50).sum()
+    mdiffs = ak.from_iter([[np.abs(m - 134.98) for m in ms] for ms in mggs])
+    gg_combs_argsort = ak.from_iter([np.argsort(d) for d in mdiffs])
+    gg_unique_combs = ak.from_iter([unique_combs(c, a) for c, a in zip(gg_combs, gg_combs_argsort)])
+    npi0s_delta20 = ak.sum((mdiffs[gg_unique_combs] < 20), axis=1)
+    npi0s_delta30 = ak.sum((mdiffs[gg_unique_combs] < 30), axis=1)
+    npi0s_delta40 = ak.sum((mdiffs[gg_unique_combs] < 40), axis=1)
+    npi0s_delta50 = ak.sum((mdiffs[gg_unique_combs] < 50), axis=1)
     df["npi0s_delta20"] = npi0s_delta20
     df["npi0s_delta30"] = npi0s_delta30
     df["npi0s_delta40"] = npi0s_delta40
@@ -1184,9 +1187,9 @@ def process_uproot_ccncpi0vars(up, df):
     shr_mask_025 = (trk_score_v < 0.5) & (shr_energy_y_v > 25.0)
     shr_mask_050 = (trk_score_v < 0.5) & (shr_energy_y_v > 50.0)
     shr_mask_100 = (trk_score_v < 0.5) & (shr_energy_y_v > 100.0)
-    df["n_showers_025_tot2"] = shr_mask_025.sum()
-    df["n_showers_050_tot2"] = shr_mask_050.sum()
-    df["n_showers_100_tot2"] = shr_mask_100.sum()
+    df["n_showers_025_tot2"] = ak.sum(shr_mask_025, axis=1)
+    df["n_showers_050_tot2"] = ak.sum(shr_mask_050, axis=1)
+    df["n_showers_100_tot2"] = ak.sum(shr_mask_100, axis=1)
     #
     # leading pi0 mc truth kinematics
     leadPi0Idx = get_idx_from_vec_sort(-1, mc_E, pi0_mask)
@@ -1235,19 +1238,19 @@ def process_uproot_recoveryvars(up, df):
     #
     # data events where recovery matters should have shr2_id and trk2_id properly set
     #
-    trk_id = up.array("trk_id") - 1  # I think we need this -1 to get the right result
-    shr_id = up.array("shr_id") - 1  # I think we need this -1 to get the right result
-    trk2_id = up.array("trk2_id") - 1  # I think we need this -1 to get the right result
-    shr2_id = up.array("shr2_id") - 1  # I think we need this -1 to get the right result
+    trk_id = up.arrays(["trk_id"], library="np")["trk_id"] - 1  # I think we need this -1 to get the right result
+    shr_id = up.arrays(["shr_id"], library="np")["shr_id"] - 1  # I think we need this -1 to get the right result
+    trk2_id = up.arrays(["trk2_id"], library="np")["trk2_id"] - 1  # I think we need this -1 to get the right result
+    shr2_id = up.arrays(["shr2_id"], library="np")["shr2_id"] - 1  # I think we need this -1 to get the right result
     #
-    shr_energy_y_v = up.array("shr_energy_y_v")
+    shr_energy_y_v = up.arrays(["shr_energy_y_v"])["shr_energy_y_v"]
     df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
     df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
 
     #
-    shr_start_x_v = up.array("shr_start_x_v")
-    shr_start_y_v = up.array("shr_start_y_v")
-    shr_start_z_v = up.array("shr_start_z_v")
+    shr_start_x_v = up.arrays(["shr_start_x_v"])["shr_start_x_v"]
+    shr_start_y_v = up.arrays(["shr_start_y_v"])["shr_start_y_v"]
+    shr_start_z_v = up.arrays(["shr_start_z_v"])["shr_start_z_v"]
     df["shr1_start_x"] = get_elm_from_vec_idx(shr_start_x_v, shr_id)
     df["shr2_start_x"] = get_elm_from_vec_idx(shr_start_x_v, shr2_id)
     df["shr1_start_y"] = get_elm_from_vec_idx(shr_start_y_v, shr_id)
@@ -1267,27 +1270,27 @@ def process_uproot_recoveryvars(up, df):
         ),
     )
     #
-    trk_len_v = up.array("trk_len_v")
+    trk_len_v = up.arrays(["trk_len_v"])["trk_len_v"]
     df["trk1_len"] = get_elm_from_vec_idx(trk_len_v, trk_id)
     df["trk2_len"] = get_elm_from_vec_idx(trk_len_v, trk2_id)
     #
-    trk_distance_v = up.array("trk_distance_v")
+    trk_distance_v = up.arrays(["trk_distance_v"])["trk_distance_v"]
     df["trk1_distance"] = get_elm_from_vec_idx(trk_distance_v, trk_id)
     df["trk2_distance"] = get_elm_from_vec_idx(trk_distance_v, trk2_id)
     #
-    trk_llr_pid_v = up.array("trk_llr_pid_score_v")
+    trk_llr_pid_v = up.arrays(["trk_llr_pid_score_v"])["trk_llr_pid_score_v"]
     df["trk1_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v, trk_id)
     df["trk2_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v, trk2_id)
     #
-    pfnhits_v = up.array("pfnhits")
+    pfnhits_v = up.arrays(["pfnhits"])["pfnhits"]
     df["trk1_nhits"] = get_elm_from_vec_idx(pfnhits_v, trk_id)
     df["trk2_nhits"] = get_elm_from_vec_idx(pfnhits_v, trk2_id)
     df["shr1_nhits"] = get_elm_from_vec_idx(pfnhits_v, shr_id)
     df["shr2_nhits"] = get_elm_from_vec_idx(pfnhits_v, shr2_id)
     #
-    trk_start_x_v = up.array("trk_start_x_v")
-    trk_start_y_v = up.array("trk_start_y_v")
-    trk_start_z_v = up.array("trk_start_z_v")
+    trk_start_x_v = up.arrays(["trk_start_x_v"])["trk_start_x_v"]
+    trk_start_y_v = up.arrays(["trk_start_y_v"])["trk_start_y_v"]
+    trk_start_z_v = up.arrays(["trk_start_z_v"])["trk_start_z_v"]
     df["trk1_start_x"] = get_elm_from_vec_idx(trk_start_x_v, trk_id)
     df["trk2_start_x"] = get_elm_from_vec_idx(trk_start_x_v, trk2_id)
     df["trk1_start_y"] = get_elm_from_vec_idx(trk_start_y_v, trk_id)
@@ -1331,9 +1334,9 @@ def process_uproot_recoveryvars(up, df):
         np.nan,
     )
     #
-    trk_dir_x_v = up.array("trk_dir_x_v")
-    trk_dir_y_v = up.array("trk_dir_y_v")
-    trk_dir_z_v = up.array("trk_dir_z_v")
+    trk_dir_x_v = up.arrays(["trk_dir_x_v"])["trk_dir_x_v"]
+    trk_dir_y_v = up.arrays(["trk_dir_y_v"])["trk_dir_y_v"]
+    trk_dir_z_v = up.arrays(["trk_dir_z_v"])["trk_dir_z_v"]
     df["trk1_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v, trk_id)
     df["trk2_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v, trk2_id)
     df["trk1_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v, trk_id)
@@ -1383,9 +1386,9 @@ def process_uproot_recoveryvars(up, df):
     df.loc[
         shr2splt, "n_showers_contained"
     ] = 1  # assume this happens to nues only! previously: = df["n_showers_contained"]-1
-    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
-    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
-    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
+    pfpplanesubclusters_U_v = up.arrays(["pfpplanesubclusters_U"])["pfpplanesubclusters_U"]
+    pfpplanesubclusters_V_v = up.arrays(["pfpplanesubclusters_V"])["pfpplanesubclusters_V"]
+    pfpplanesubclusters_Y_v = up.arrays(["pfpplanesubclusters_Y"])["pfpplanesubclusters_Y"]
     df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v, shr2_id, 0)
     df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v, shr2_id, 0)
     df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v, shr2_id, 0)
@@ -1409,13 +1412,13 @@ def process_uproot_recoveryvars(up, df):
     df.loc[trk1bad, "hits_ratio"] = df["shr_hits_tot"] / (df["shr_hits_tot"] + df["trk_hits_tot"] - df["trk1_nhits"])
     df.loc[trk1bad, "trk_len"] = df["trk2_len"]
     df.loc[trk1bad, "trk_distance"] = df["trk2_distance"]
-    trk_score_v = up.array("trk_score_v")
+    trk_score_v = up.arrays(["trk_score_v"])["trk_score_v"]
     df["trk2_score"] = get_elm_from_vec_idx(trk_score_v, trk2_id)
-    trk_energy_proton_v = up.array("trk_energy_proton_v")
+    trk_energy_proton_v = up.arrays(["trk_energy_proton_v"])["trk_energy_proton_v"]
     df["trk2_protonenergy"] = get_elm_from_vec_idx(trk_energy_proton_v, trk2_id)
-    trk_theta_v = up.array("trk_theta_v")
+    trk_theta_v = up.arrays(["trk_theta_v"])["trk_theta_v"]
     df["trk2_theta"] = get_elm_from_vec_idx(trk_theta_v, trk2_id)
-    trk_phi_v = up.array("trk_phi_v")
+    trk_phi_v = up.arrays(["trk_phi_v"])["trk_phi_v"]
     df["trk2_phi"] = get_elm_from_vec_idx(trk_phi_v, trk2_id)
     df.loc[trk1bad, "trk_score"] = df["trk2_score"]
     df.loc[trk1bad, "protonenergy"] = df["trk2_protonenergy"]
@@ -1441,12 +1444,12 @@ def process_uproot_recoveryvars(up, df):
     )
     df.loc[trk2srtshr, "is_trk2srtshr"] = 1
     #
-    shr_tkfit_dedx_u_v = up.array("shr_tkfit_dedx_u_v")
-    shr_tkfit_dedx_v_v = up.array("shr_tkfit_dedx_v_v")
-    shr_tkfit_dedx_y_v = up.array("shr_tkfit_dedx_y_v")
-    shr_tkfit_nhits_u_v = up.array("shr_tkfit_dedx_nhits_u_v")
-    shr_tkfit_nhits_v_v = up.array("shr_tkfit_dedx_nhits_v_v")
-    shr_tkfit_nhits_y_v = up.array("shr_tkfit_dedx_nhits_y_v")
+    shr_tkfit_dedx_u_v = up.arrays(["shr_tkfit_dedx_u_v"])["shr_tkfit_dedx_u_v"]
+    shr_tkfit_dedx_v_v = up.arrays(["shr_tkfit_dedx_v_v"])["shr_tkfit_dedx_v_v"]
+    shr_tkfit_dedx_y_v = up.arrays(["shr_tkfit_dedx_y_v"])["shr_tkfit_dedx_y_v"]
+    shr_tkfit_nhits_u_v = up.arrays(["shr_tkfit_dedx_nhits_u_v"])["shr_tkfit_dedx_nhits_u_v"]
+    shr_tkfit_nhits_v_v = up.arrays(["shr_tkfit_dedx_nhits_v_v"])["shr_tkfit_dedx_nhits_v_v"]
+    shr_tkfit_nhits_y_v = up.arrays(["shr_tkfit_dedx_nhits_y_v"])["shr_tkfit_dedx_nhits_y_v"]
     df["trk2_tkfit_dedx_u"] = get_elm_from_vec_idx(shr_tkfit_dedx_u_v, trk2_id)
     df["trk2_tkfit_dedx_v"] = get_elm_from_vec_idx(shr_tkfit_dedx_v_v, trk2_id)
     df["trk2_tkfit_dedx_y"] = get_elm_from_vec_idx(shr_tkfit_dedx_y_v, trk2_id)
@@ -1567,15 +1570,15 @@ def process_uproot_recoveryvars_old(up, df):
     trk2_id = up.array('trk2_id')-1 # I think we need this -1 to get the right result
     shr2_id = up.array('shr2_id')-1 # I think we need this -1 to get the right result
     #
-    shr_energy_y_v = up.array("shr_energy_y_v")
+    shr_energy_y_v = up.arrays(["shr_energy_y_v"])["shr_energy_y_v"]
 
     df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,trk2_id,-9999.)
     df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v,shr2_id,-9999.)
 
     #
-    shr_start_x_v   = up.array("shr_start_x_v")
-    shr_start_y_v   = up.array("shr_start_y_v")
-    shr_start_z_v   = up.array("shr_start_z_v")
+    shr_start_x_v   = up.arrays(["shr_start_x_v"])["shr_start_x_v"]
+    shr_start_y_v   = up.arrays(["shr_start_y_v"])["shr_start_y_v"]
+    shr_start_z_v   = up.arrays(["shr_start_z_v"])["shr_start_z_v"]
     df["shr1_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr_id,-9999.)
     df["shr2_start_x"] = get_elm_from_vec_idx(shr_start_x_v,shr2_id,-9999.)
     df["shr1_start_y"] = get_elm_from_vec_idx(shr_start_y_v,shr_id,-9999.)
@@ -1591,11 +1594,11 @@ def process_uproot_recoveryvars_old(up, df):
                                    cos_angle_two_vecs(df["shr12_start_dx"],df["shr12_start_dy"],df["shr12_start_dz"],\
                                                    df["shr_px"],        df["shr_py"],        df["shr_pz"]))
     #
-    trk_len_v = up.array("trk_len_v")
+    trk_len_v = up.arrays(["trk_len_v"])["trk_len_v"]
     df["trk1_len"] = get_elm_from_vec_idx(trk_len_v,trk_id,-9999.)
     df["trk2_len"] = get_elm_from_vec_idx(trk_len_v,trk2_id,-9999.)
     #
-    trk_distance_v = up.array("trk_distance_v")
+    trk_distance_v = up.arrays(["trk_distance_v"])["trk_distance_v"]
     df["trk1_distance"] = get_elm_from_vec_idx(trk_distance_v,trk_id,-9999.)
     df["trk2_distance"] = get_elm_from_vec_idx(trk_distance_v,trk2_id,-9999.)
     #
@@ -1603,15 +1606,15 @@ def process_uproot_recoveryvars_old(up, df):
     df["trk1_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk_id,np.nan)
     df["trk2_llr_pid"] = get_elm_from_vec_idx(trk_llr_pid_v,trk2_id,np.nan)
     #
-    pfnhits_v = up.array("pfnhits")
+    pfnhits_v = up.arrays(["pfnhits"])["pfnhits"]
     df["trk1_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk_id,-9999.)
     df["trk2_nhits"] = get_elm_from_vec_idx(pfnhits_v,trk2_id,-9999.)
     df["shr1_nhits"] = get_elm_from_vec_idx(pfnhits_v,shr_id,-9999.)
     df["shr2_nhits"] = get_elm_from_vec_idx(pfnhits_v,shr2_id,-9999.)
     #
-    trk_start_x_v   = up.array("trk_start_x_v")
-    trk_start_y_v   = up.array("trk_start_y_v")
-    trk_start_z_v   = up.array("trk_start_z_v")
+    trk_start_x_v   = up.arrays(["trk_start_x_v"])["trk_start_x_v"]
+    trk_start_y_v   = up.arrays(["trk_start_y_v"])["trk_start_y_v"]
+    trk_start_z_v   = up.arrays(["trk_start_z_v"])["trk_start_z_v"]
     df["trk1_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk_id,-9999.)
     df["trk2_start_x"] = get_elm_from_vec_idx(trk_start_x_v,trk2_id,-9999.)
     df["trk1_start_y"] = get_elm_from_vec_idx(trk_start_y_v,trk_id,-9999.)
@@ -1631,9 +1634,9 @@ def process_uproot_recoveryvars_old(up, df):
                                      df['trk2_start_x'],df['trk2_start_y'],df['trk2_start_z']),\
                                      9999.)
     #
-    trk_dir_x_v = up.array("trk_dir_x_v")
-    trk_dir_y_v = up.array("trk_dir_y_v")
-    trk_dir_z_v = up.array("trk_dir_z_v")
+    trk_dir_x_v = up.arrays(["trk_dir_x_v"])["trk_dir_x_v"]
+    trk_dir_y_v = up.arrays(["trk_dir_y_v"])["trk_dir_y_v"]
+    trk_dir_z_v = up.arrays(["trk_dir_z_v"])["trk_dir_z_v"]
     df["trk1_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v,trk_id,-9999.)
     df["trk2_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v,trk2_id,-9999.)
     df["trk1_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v,trk_id,-9999.)
@@ -1664,9 +1667,9 @@ def process_uproot_recoveryvars_old(up, df):
                 (df['shr_score']<0.1) & ((df["shrsubclusters0"]+df["shrsubclusters1"]+df["shrsubclusters2"])>3))
     df.loc[shr2splt, 'is_shr2splt' ] = 1
     df.loc[shr2splt, 'n_showers_contained' ] = 1 #assume this happens to nues only! previously: = df["n_showers_contained"]-1
-    pfpplanesubclusters_U_v = up.array("pfpplanesubclusters_U")
-    pfpplanesubclusters_V_v = up.array("pfpplanesubclusters_V")
-    pfpplanesubclusters_Y_v = up.array("pfpplanesubclusters_Y")
+    pfpplanesubclusters_U_v = up.arrays(["pfpplanesubclusters_U"])["pfpplanesubclusters_U"]
+    pfpplanesubclusters_V_v = up.arrays(["pfpplanesubclusters_V"])["pfpplanesubclusters_V"]
+    pfpplanesubclusters_Y_v = up.arrays(["pfpplanesubclusters_Y"])["pfpplanesubclusters_Y"]
     df["shr2subclusters0"] = get_elm_from_vec_idx(pfpplanesubclusters_U_v,shr2_id,0)
     df["shr2subclusters1"] = get_elm_from_vec_idx(pfpplanesubclusters_V_v,shr2_id,0)
     df["shr2subclusters2"] = get_elm_from_vec_idx(pfpplanesubclusters_Y_v,shr2_id,0)
@@ -1688,13 +1691,13 @@ def process_uproot_recoveryvars_old(up, df):
     df.loc[trk1bad, 'hits_ratio' ] = df["shr_hits_tot"]/(df["shr_hits_tot"]+df["trk_hits_tot"]-df["trk1_nhits"])
     df.loc[trk1bad, 'trk_len' ] = df["trk2_len"]
     df.loc[trk1bad, 'trk_distance' ] = df["trk2_distance"]
-    trk_score_v = up.array("trk_score_v")
+    trk_score_v = up.arrays(["trk_score_v"])["trk_score_v"]
     df["trk2_score"] = get_elm_from_vec_idx(trk_score_v,trk2_id,-9999.)
     trk_energy_proton_v = up.array('trk_energy_proton_v')
     df["trk2_protonenergy"] = get_elm_from_vec_idx(trk_energy_proton_v,trk2_id,-9999.)
-    trk_theta_v = up.array("trk_theta_v")
+    trk_theta_v = up.arrays(["trk_theta_v"])["trk_theta_v"]
     df["trk2_theta"] = get_elm_from_vec_idx(trk_theta_v,trk2_id,-9999.)
-    trk_phi_v = up.array("trk_phi_v")
+    trk_phi_v = up.arrays(["trk_phi_v"])["trk_phi_v"]
     df["trk2_phi"] = get_elm_from_vec_idx(trk_phi_v,trk2_id,-9999.)
     df.loc[trk1bad, 'trk_score' ] = df["trk2_score"]
     df.loc[trk1bad, 'protonenergy' ] = df["trk2_protonenergy"]
@@ -1716,12 +1719,12 @@ def process_uproot_recoveryvars_old(up, df):
                   (df['shr_score']<0.1) & (df["is_shr2splt"]==0) & (df["is_trk1bad"]==0))
     df.loc[trk2srtshr, 'is_trk2srtshr' ] = 1
     #
-    shr_tkfit_dedx_u_v = up.array("shr_tkfit_dedx_u_v")
-    shr_tkfit_dedx_v_v = up.array("shr_tkfit_dedx_v_v")
-    shr_tkfit_dedx_y_v = up.array("shr_tkfit_dedx_y_v")
-    shr_tkfit_nhits_u_v = up.array("shr_tkfit_dedx_nhits_u_v")
-    shr_tkfit_nhits_v_v = up.array("shr_tkfit_dedx_nhits_v_v")
-    shr_tkfit_nhits_y_v = up.array("shr_tkfit_dedx_nhits_y_v")
+    shr_tkfit_dedx_u_v = up.arrays(["shr_tkfit_dedx_u_v"])["shr_tkfit_dedx_u_v"]
+    shr_tkfit_dedx_v_v = up.arrays(["shr_tkfit_dedx_v_v"])["shr_tkfit_dedx_v_v"]
+    shr_tkfit_dedx_y_v = up.arrays(["shr_tkfit_dedx_y_v"])["shr_tkfit_dedx_y_v"]
+    shr_tkfit_nhits_u_v = up.arrays(["shr_tkfit_dedx_nhits_u_v"])["shr_tkfit_dedx_nhits_u_v"]
+    shr_tkfit_nhits_v_v = up.arrays(["shr_tkfit_dedx_nhits_v_v"])["shr_tkfit_dedx_nhits_v_v"]
+    shr_tkfit_nhits_y_v = up.arrays(["shr_tkfit_dedx_nhits_y_v"])["shr_tkfit_dedx_nhits_y_v"]
     df["trk2_tkfit_dedx_u"] = get_elm_from_vec_idx(shr_tkfit_dedx_u_v,trk2_id,-9999.)
     df["trk2_tkfit_dedx_v"] = get_elm_from_vec_idx(shr_tkfit_dedx_v_v,trk2_id,-9999.)
     df["trk2_tkfit_dedx_y"] = get_elm_from_vec_idx(shr_tkfit_dedx_y_v,trk2_id,-9999.)
@@ -1745,7 +1748,7 @@ def process_uproot_recoveryvars_old(up, df):
     #
     df.loc[trk2srtshr, 'shr_tkfit_npointsvalid' ] = df["shr_tkfit_npointsvalid"] + df["trk2_nhits"] #patched!
     # other option... taking the track fit npoints for both (results do not change)
-    #shr_tkfit_nhits_v = up.array("shr_tkfit_nhits_v")
+    #shr_tkfit_nhits_v = up.arrays(["shr_tkfit_nhits_v"])["shr_tkfit_nhits_v"]
     #df["trk2_tkfit_npointsvalid"] = get_elm_from_vec_idx(shr_tkfit_nhits_v,trk2_id,-9999.)
     #df.loc[trk2srtshr, 'shr_tkfit_npointsvalid' ] = df["shr_tkfit_npointsvalid"] + df["trk2_tkfit_npointsvalid"]
     #df.loc[trk2srtshr, 'shr_tkfit_npoints' ] = df["shr_tkfit_npoints"] + df["trk2_nhits"]
@@ -1821,27 +1824,27 @@ def process_uproot_recoveryvars_old(up, df):
 
 def process_uproot_numu(up, df):
     #
-    trk_llr_pid_v = up.array("trk_llr_pid_score_v")
-    trk_score_v = up.array("trk_score_v")
-    trk_len_v = up.array("trk_len_v")
-    trk_end_x_v = up.array("trk_sce_end_x_v")
-    trk_end_y_v = up.array("trk_sce_end_y_v")
-    trk_end_z_v = up.array("trk_sce_end_z_v")
-    trk_start_x_v = up.array("trk_sce_start_x_v")
-    trk_start_y_v = up.array("trk_sce_start_y_v")
-    trk_start_z_v = up.array("trk_sce_start_z_v")
+    trk_llr_pid_v = up.arrays(["trk_llr_pid_score_v"])["trk_llr_pid_score_v"]
+    trk_score_v = up.arrays(["trk_score_v"])["trk_score_v"]
+    trk_len_v = up.arrays(["trk_len_v"])["trk_len_v"]
+    trk_end_x_v = up.arrays(["trk_sce_end_x_v"])["trk_sce_end_x_v"]
+    trk_end_y_v = up.arrays(["trk_sce_end_y_v"])["trk_sce_end_y_v"]
+    trk_end_z_v = up.arrays(["trk_sce_end_z_v"])["trk_sce_end_z_v"]
+    trk_start_x_v = up.arrays(["trk_sce_start_x_v"])["trk_sce_start_x_v"]
+    trk_start_y_v = up.arrays(["trk_sce_start_y_v"])["trk_sce_start_y_v"]
+    trk_start_z_v = up.arrays(["trk_sce_start_z_v"])["trk_sce_start_z_v"]
    
 
-    trk_energy_proton_v = up.array("trk_energy_proton_v")  # range-based proton kinetic energy
-    trk_range_muon_mom_v = up.array("trk_range_muon_mom_v")  # range-based muon momentum
-    trk_mcs_muon_mom_v = up.array("trk_mcs_muon_mom_v")
-    trk_theta_v = up.array("trk_theta_v")
-    trk_phi_v = up.array("trk_phi_v")
-    pfp_generation_v = up.array("pfp_generation_v")
-    trk_distance_v = up.array("trk_distance_v")
-    trk_calo_energy_y_v = up.array("trk_calo_energy_y_v")
-    trk_pfp_id_v = up.array("trk_pfp_id_v")
-    pfp_pdg_v = up.array("backtracked_pdg")
+    trk_energy_proton_v = up.arrays(["trk_energy_proton_v"])["trk_energy_proton_v"]  # range-based proton kinetic energy
+    trk_range_muon_mom_v = up.arrays(["trk_range_muon_mom_v"])["trk_range_muon_mom_v"]  # range-based muon momentum
+    trk_mcs_muon_mom_v = up.arrays(["trk_mcs_muon_mom_v"])["trk_mcs_muon_mom_v"]
+    trk_theta_v = up.arrays(["trk_theta_v"])["trk_theta_v"]
+    trk_phi_v = up.arrays(["trk_phi_v"])["trk_phi_v"]
+    pfp_generation_v = up.arrays(["pfp_generation_v"])["pfp_generation_v"]
+    trk_distance_v = up.arrays(["trk_distance_v"])["trk_distance_v"]
+    trk_calo_energy_y_v = up.arrays(["trk_calo_energy_y_v"])["trk_calo_energy_y_v"]
+    trk_pfp_id_v = up.arrays(["trk_pfp_id_v"])["trk_pfp_id_v"]
+    pfp_pdg_v = up.arrays(["backtracked_pdg"])["backtracked_pdg"]
 
     # CT: Adding track starts to the dataframe
     # df["trk_sce_start_x_v"] = trk_start_x_v
@@ -1862,15 +1865,15 @@ def process_uproot_numu(up, df):
     trk_mask = trk_score_v > 0.0
     proton_mask = (trk_score_v > 0.5) & (trk_llr_pid_v < 0.0)
 
-    df["proton_range_energy"] = ak.fromiter(
+    df["proton_range_energy"] = ak.from_iter(
         [
-            vec[vid.argsort()[-1]] if len(vid) > 0 else 0.0
+            vec[ak.argsort(vid)[-1]] if len(vid) > 0 else 0.0
             for vec, vid in zip(trk_energy_proton_v[proton_mask], trk_len_v[proton_mask])
         ]
     )
 
     # get element-wise reconstructed neutrino energy (for each index the value will be the neutrino energy assuming the track at that index is the muon)
-    df["trk_energy_tot"] = trk_energy_proton_v.sum()
+    df["trk_energy_tot"] = ak.sum(trk_energy_proton_v, axis=1)
     muon_energy_correction_v = np.sqrt(trk_range_muon_mom_v**2 + 0.105**2) - trk_energy_proton_v
     # get element-wise MCS consistency
     muon_mcs_consistency_v = (trk_mcs_muon_mom_v - trk_range_muon_mom_v) / trk_range_muon_mom_v
@@ -1883,7 +1886,7 @@ def process_uproot_numu(up, df):
     muon_candidate_idx = get_idx_from_vec_sort(-1, trk_len_v, trk_mask)
 
     # apply numu selection as defined by Ryan
-    trk_score_v = up.array("trk_score_v")
+    trk_score_v = up.arrays(["trk_score_v"])["trk_score_v"]
     #'''
     muon_mask = (
         (trk_score_v > 0.8)
@@ -1919,12 +1922,12 @@ def process_uproot_numu(up, df):
     df["neutrino_energy"] = df["trk_energy_tot"] + get_elm_from_vec_idx(muon_energy_correction_v, muon_idx)
     df["muon_mcs_consistency"] = get_elm_from_vec_idx(muon_mcs_consistency_v, muon_idx)
 
-    trk_score_v = up.array("trk_score_v")
-    df["n_muons_tot"] = muon_mask.sum()
-    df["n_tracks_tot"] = trk_mask.sum()
-    # df['n_tracks_contained'] = contained_track_mask.sum()
-    df["n_protons_tot"] = proton_mask.sum()
-    df["n_showers_tot"] = shr_mask.sum()
+    trk_score_v = up.arrays(["trk_score_v"])["trk_score_v"]
+    df["n_muons_tot"] = ak.sum(muon_mask, axis=1)
+    df["n_tracks_tot"] = ak.sum(trk_mask, axis=1)
+    # df['n_tracks_contained'] = ak.sum(contained_track_mask, axis=1)
+    df["n_protons_tot"] = ak.sum(proton_mask, axis=1)
+    df["n_showers_tot"] = ak.sum(shr_mask, axis=1)
 
     return
 
@@ -2104,7 +2107,18 @@ def load_sample(
             load_crt_vars=load_crt_vars,
         )
 
-        df = up.pandas.df(variables, flatten=False)
+        df = up.arrays(variables, library="pd")
+
+        SYSTVARS = ["weightsGenie", "weightsFlux", "weightsReint"]
+        if dataset not in ["ext", "bnb"]: # adding multi-universe weights as column of arrays in simulation dataframes
+            for column in SYSTVARS:
+                if column not in variables: # for empty multi-universe branches, filling default value 1000
+                    df[column] = 1000
+            columns_to_list = SYSTVARS
+            columns_present = df.columns
+            agg_dict = {col: 'first' for col in columns_present if col not in columns_to_list}
+            agg_dict.update({col: list for col in columns_to_list if col in columns_present})
+            df = df.groupby('entry').agg(agg_dict)
 
         df["bnbdata"] = dataset in datasets 
         df["extdata"] = dataset == "ext"
