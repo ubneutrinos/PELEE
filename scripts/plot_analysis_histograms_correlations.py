@@ -209,18 +209,20 @@ def plot_correlations(analysis: MultibandAnalysis, plot_dir: str):
 
 
 def plot_constraint_update(
-    analysis: MultibandAnalysis, plot_dir: str, print_tables: bool = False, figsize=(5, 4), override_channel_titles={}
+    analysis: MultibandAnalysis, plot_dir: str, print_tables: bool = False, figsize=(5, 4), override_channel_titles={}, detsys_only_diagonal=False
 ):
     analysis.parameters["signal_strength"].value = 0.0
     h0_hist_unconstrained = analysis.generate_multiband_histogram(
         include_multisim_errors=True,
         use_sideband=False,
         add_precomputed_detsys=True,
+        detsys_only_diagonal=detsys_only_diagonal,
     )
     h0_hist_constrained = analysis.generate_multiband_histogram(
         include_multisim_errors=True,
         use_sideband=True,
         add_precomputed_detsys=True,
+        detsys_only_diagonal=detsys_only_diagonal,
     )
     if print_tables:
         print_error_budget_tables(analysis, os.path.join(plot_dir, "error_budget.tex"))

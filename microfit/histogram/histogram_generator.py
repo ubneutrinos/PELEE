@@ -348,6 +348,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         add_precomputed_detsys: bool = False,
         smooth_detsys_variations: bool = True,
         include_detsys_variations: Optional[List[str]] = None,
+        detsys_only_diagonal: bool = False,
         use_kde_smoothing: bool = False,
         options: Dict[str, Any] = {},
     ) -> Union[Histogram, MultiChannelHistogram]:
@@ -422,6 +423,8 @@ class HistogramGenerator(SmoothHistogramMixin):
             use_kde_smoothing,
             options,
             smooth_detsys_variations,
+            include_detsys_variations,
+            detsys_only_diagonal,
         )
         hist = None
         if self.enable_cache:
@@ -513,6 +516,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 smooth_variations=smooth_detsys_variations,
                 extra_query=extra_query,
                 include_variations=include_detsys_variations,
+                only_diagonal=detsys_only_diagonal,
             )
             if det_cov is not None:
                 hist.add_covariance(det_cov)
@@ -534,6 +538,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         include_stat_errors=True,
         extra_query=None,
         add_precomputed_detsys=False,
+        detsys_only_diagonal=False,
         smooth_detsys_variations=True,
         include_detsys_variations=detector_variations,
     ):
@@ -584,6 +589,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 smooth_variations=smooth_detsys_variations,
                 include_variations=include_detsys_variations,
                 extra_queries=[extra_query] * len(hist_generators),
+                only_diagonal=detsys_only_diagonal,
             )
 
         histogram.add_covariance(covariance_matrix)
@@ -737,6 +743,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         smooth_variations=True,
         include_variations=detector_variations,
         extra_queries=None,
+        only_diagonal=False,
     ):
         """Calculate the covariance matrix for multiple histograms.
 
@@ -765,6 +772,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 smooth_variations=smooth_variations,
                 include_variations=include_variations,
                 extra_query=extra_query,
+                only_diagonal=only_diagonal,
             )
             if detvar_output is None:
                 cov_mat = np.zeros((hg.binning.n_bins, hg.binning.n_bins))
@@ -795,6 +803,12 @@ class HistogramGenerator(SmoothHistogramMixin):
             )
 
         summed_cov_mat += np.diag(extra_background_variances)
+
+        # We have to do this here again, because the original covariance matrix from the 
+        # output of the function call earlier is ignored and instead this function uses only
+        # the variations.
+        if only_diagonal:
+            summed_cov_mat = np.diag(np.diag(summed_cov_mat))
 
         return summed_cov_mat
 

@@ -314,6 +314,7 @@ class MultibandAnalysis(object):
         include_stat_errors=True,
         add_precomputed_detsys=False,
         smooth_detsys_variations=True,
+        detsys_only_diagonal=False,
     ) -> MultiChannelHistogram:
         """Generate the combined MC histogram from all channels."""
 
@@ -332,6 +333,7 @@ class MultibandAnalysis(object):
             include_stat_errors=include_stat_errors,
             add_precomputed_detsys=add_precomputed_detsys,
             smooth_detsys_variations=smooth_detsys_variations,
+            detsys_only_diagonal=detsys_only_diagonal,
         )
 
         ext_hist_generators = [g.ext_hist_generator for g in self._run_hist_generators]
@@ -377,6 +379,7 @@ class MultibandAnalysis(object):
         use_sideband: bool = False,
         add_precomputed_detsys: bool = True,
         smooth_detsys_variations: bool = True,
+        detsys_only_diagonal: bool = False,
     ) -> Union[Histogram, MultiChannelHistogram]:
         """Get the MC histogram. This function is solely for plotting purposes.
 
@@ -394,6 +397,7 @@ class MultibandAnalysis(object):
             add_precomputed_detsys=add_precomputed_detsys,
             smooth_detsys_variations=smooth_detsys_variations,
             extra_query=extra_query,
+            detsys_only_diagonal=detsys_only_diagonal,
         )
         channels = self.constraint_channels if self.plot_sideband else self.signal_channels
         return output[channels]
@@ -708,6 +712,7 @@ class MultibandAnalysis(object):
         smooth_detsys_variations=True,
         figsize=(10, 8),
         include_detsys_variations=detector_variations,
+        detsys_only_diagonal=False,
         **draw_kwargs,
     ):
         hist_generators = []
@@ -720,6 +725,7 @@ class MultibandAnalysis(object):
             add_precomputed_detsys=add_precomputed_detsys,
             smooth_detsys_variations=smooth_detsys_variations,
             include_detsys_variations=include_detsys_variations,
+            detsys_only_diagonal=detsys_only_diagonal,
         )
         all_channels = self.signal_channels + self.constraint_channels
         channels = channels or all_channels

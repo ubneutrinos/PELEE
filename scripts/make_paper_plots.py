@@ -393,7 +393,23 @@ fig.savefig("paper_histograms/correlation_matrix_paper_histograms.pdf")
 fig.savefig("paper_histograms/correlation_matrix_paper_histograms.png", dpi=200)
 
 # %%
+fig, ax = analysis.plot_correlation(
+    override_selection_tex=override_channel_titles_short,
+    labels_on_axes=["x", "y"],
+    figsize=(5.5, 4.5),
+    colorbar_kwargs={"shrink": 1.0},
+    use_variable_label=False,
+    detsys_only_diagonal=True
+)
+ax.set_title("")
+fig.savefig("paper_histograms/correlation_matrix_paper_histograms_diagonal_detsys.pdf")
+fig.savefig("paper_histograms/correlation_matrix_paper_histograms_diagonal_detsys.png", dpi=200)
+
+# %%
 plot_constraint_update(analysis, "paper_histograms", override_channel_titles=override_channel_titles, figsize=(4, 3.5))
+
+# %%
+plot_constraint_update(analysis, "paper_histograms", override_channel_titles=override_channel_titles, figsize=(4.5, 3), detsys_only_diagonal=True)
 
 # %%
 # Plot old constraints
@@ -445,7 +461,7 @@ new_analysis = MultibandAnalysis.from_toml(
     output_dir=output_dir,
 )
 # %%
-signal_color = "darkblue"
+signal_color = "blue"
 
 # %%
 fig, _ = plot_signal_model(

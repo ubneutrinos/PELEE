@@ -619,8 +619,8 @@ class Histogram:
             return self.__class__.from_dict(state)
         elif isinstance(other, Histogram):
             assert (
-                self.binning == other.binning
-            ), "Cannot multiply histograms with different binning."
+                self.binning.is_compatible(other.binning)
+            ), "Cannot multiply histograms with incompatible binning."
             new_bin_counts, new_cov_matrix = error_propagation_multiplication(
                 self.bin_counts,
                 other.bin_counts,
