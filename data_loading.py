@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import uproot
 import yaml
-from typing import List
+from typing import List, Optional
 import numpy as np
 import awkward as ak
 from typing import List, Tuple, Any, Union
@@ -1974,7 +1974,8 @@ def drop_vector_columns(df):
 # TODO: Use this function in the appropriate place in the code.
 def apply_bdt_truth_filters(df):
     import localSettings as ls
-    dfcsv = pd.read_csv(ls.ntuple_path + ls.RUN3 + "ccpi0nontrainevents.csv")
+    # ignoring type here because local settings might not exist
+    dfcsv = pd.read_csv(ls.ntuple_path + ls.RUN3 + "ccpi0nontrainevents.csv")  # type: ignore
     dfcsv["identifier"] = dfcsv["run"] * 100000 + dfcsv["evt"]
     df["identifier"] = df["run"] * 100000 + df["evt"]
     Npre = float(df.shape[0])
@@ -2279,7 +2280,7 @@ def _load_run(
     # We get the number of expected multisim universes from the first mc set.
     # Then, we can check that every truth-filtered mc set has the same number of universes.
     # Also, we can fix the issue where multisim universes are missing for the drt sample.
-    expected_multisim_universes = {"weightsGenie": None, "weightsFlux": None, "weightsReint": None}
+    expected_multisim_universes: dict[str, Optional[int]] = {"weightsGenie": None, "weightsFlux": None, "weightsReint": None}
     for mc_set in mc_sets:
         if mc_set == "lee":
             mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
@@ -2332,7 +2333,9 @@ def _load_run(
                     # For missing multisim universes, we replace them with a list of ones (stored as integer 1000) of the
                     # correct length
                     print(f"WARNING: {mc_set} has no {ms_column} universes, replacing with ones")
-                    mc_df[ms_column] = [[1000] * expected_multisim_universes[ms_column]] * len(mc_df)
+                    num_universes = expected_multisim_universes[ms_column]
+                    assert num_universes is not None
+                    mc_df[ms_column] = [[1000] * num_universes] * len(mc_df)
                 else:
                     raise ValueError(
                         f"Multisim weights for {mc_set} have inconsistent or missing multisim universes for {ms_column}"
