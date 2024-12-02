@@ -10,6 +10,20 @@ import os
 import localSettings as ls
 from microfit.histogram import MultiChannelHistogram
 
+# A dictionary with nicer labels for the variations
+# ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
+VARIATION_LABELS = dict(
+    cv="CV",
+    lydown="LY Down",
+    lyatt="LY Attenuation",
+    lyrayleigh="LY Rayleigh",
+    sce="Space Charge",
+    recomb2="Recombination",
+    wiremodx="Wire res. $x$",
+    wiremodyz="Wire res. $yz$",
+    wiremodthetaxz="Wire res. $\\theta_{xz}$",
+    wiremodthetayz="Wire res. $\\theta_{yz}$",
+)
 
 def make_variation_histograms(
     run: List[str],
@@ -64,8 +78,10 @@ def make_detvar_plots(detvar_data, output_dir, plotname, show_plots=True, channe
         for name, hist in hist_dict.items():
             if name == "cv":
                 continue
-            get_channel(hist, channel).draw(ax=ax, label=name, show_errors=False)  # type: ignore
-        ax.legend(ncol=2)
+            get_channel(hist, channel).draw(ax=ax, label=VARIATION_LABELS[name], show_errors=False)  # type: ignore
+        ax.legend(ncol=1)
+        # extend range to the right to accommodate the legend
+        # ax.set_xlim(ax.get_xlim()[0], ax.get_xlim()[1] * 1.2)
         binning = get_channel(detvar_data["binning"], channel)
         if isinstance(binning, MultiChannelBinning):
             ax.set_title(f"Dataset: {truth_filter}, all channels")  # type: ignore
@@ -88,8 +104,10 @@ def make_detvar_plots(detvar_data, output_dir, plotname, show_plots=True, channe
     for name, hist in summed_variations.items():
         if name == "cv":
             continue
-        get_channel(hist, channel).draw(ax=ax, label=name, show_errors=False)  # type: ignore
-    ax.legend(ncol=2)
+        get_channel(hist, channel).draw(ax=ax, label=VARIATION_LABELS[name], show_errors=False)  # type: ignore
+    ax.legend(ncol=1)
+    # extend range to the right to accommodate the legend
+    # ax.set_xlim(ax.get_xlim()[0], ax.get_xlim()[1] * 1.2)
     binning = get_channel(detvar_data["binning"], channel)
     if isinstance(binning, MultiChannelBinning):
         ax.set_title(f"Detector Systematics: all channels")
@@ -133,8 +151,10 @@ def make_detvar_plots(detvar_data, output_dir, plotname, show_plots=True, channe
     for name, hist in summed_variations.items():
         if name == "cv":
             continue
-        filter_hist(get_channel(hist, channel)).draw(ax=ax, label=name, show_errors=False)  # type: ignore
-    ax.legend(ncol=2)
+        filter_hist(get_channel(hist, channel)).draw(ax=ax, label=VARIATION_LABELS[name], show_errors=False)  # type: ignore
+    ax.legend(ncol=1)
+    # extend range to the right to accommodate the legend
+    # ax.set_xlim(ax.get_xlim()[0], ax.get_xlim()[1] * 1.2)
     binning = get_channel(detvar_data["binning"], channel)
     if isinstance(binning, MultiChannelBinning):
         ax.set_title(f"Detector Systematics: all channels, Smoothed")
