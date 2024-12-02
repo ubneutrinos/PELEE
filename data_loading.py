@@ -2118,17 +2118,7 @@ def load_sample(
             df["crthitpe"] = 0
             df["_closestNuCosmicDist"] = 10.0
 
-        # We also add some "one-hot" variables for the run number
-        # TODO: Do we need this?
-        df["run1"] = True if run_number == 1 else False
-        df["run2"] = True if run_number == 2 else False
-        df["run3"] = True if run_number == 3 else False
-        df["run30"] = True if run_number == 3 else False
-        df["run12"] = True if run_number in [1, 2] else False
-        # TODO: In the old code, the 'run2' flag was set to True for all runs for
-        # certain event types. Why??
-        if dataset in ["drt", "nc_pi0", "cc_pi0", "cc_nopi", "cc_cpi", "nc_nopi", "nc_cpi"]:
-            df["run2"] = True
+        df["run_number"] = run_number
 
         if dataset in ["nue", "drt", "lee", "nu", "ext"]:
             df["pot_scale"] = 1.0
