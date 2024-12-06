@@ -61,6 +61,7 @@ class MultibandAnalysis(object):
         # The analysis may use several signal bands, but only one sideband.
         # For every signal band and the sideband, we are going to create a
         # RunHistGenerator object that can create histograms from the data.
+        self._run_hist_generators = []  # type: List[RunHistGenerator]
         if configuration is None:
             assert run_hist_generators is not None
             self._init_from_generators(

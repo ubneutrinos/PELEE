@@ -162,7 +162,7 @@ def plot_two_hypo_result(output_dir, two_hypo_results_file, delta_chi2, plot_suf
             x=delta_chi2,
             color="k",
             linestyle="-",
-            label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH$_0$ p-val: {p_val_h0*100:0.3g}%\nH$_1$ p-val: {p_val_h1*100:0.3g}%\nCL$_s$: {cls*100:.2g}%\nBF: {bayes_factor_str}",
+            label=f"Obs. $\\Delta \\chi^2$= {delta_chi2:.1f}\nH$_0$ p-val: {p_val_h0*100:0.3g}%\nH$_1$ p-val: {p_val_h1*100:0.3g}%\n1-CL$_s$: {cls*100:.2g}%\nBF: {bayes_factor_str}",
         )
     ax.legend(title=plot_title)
     ax.set_xlabel(r"$\Delta \chi^2$")
