@@ -371,7 +371,7 @@ class RunHistPlotter:
             if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
                 if sums_in_legend:
-                    data_label = f"Data: {data_hist.sum():.1f}"
+                    data_label = f"Data: {data_hist.sum():.0f}"
                 else:
                     data_label = "Data"
                 ax = self.plot_hist(

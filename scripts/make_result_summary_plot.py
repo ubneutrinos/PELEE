@@ -45,6 +45,9 @@ channel_labels = ["$1e0p0\\pi$", "$1eNp0\\pi$", "combined"]
 def get_data(variable, channel_suffix):
     if variable == "rec_nu_energy":
         output_dir = old_signal_output_dir
+        if channel_suffix == "":
+            channel_suffix = "_npbdt_zpbdt"
+        return from_json(os.path.join(output_dir, f"confidence_intervals{channel_suffix}.json"))
     else:
         output_dir = new_signal_output_dir
     return from_json(os.path.join(output_dir, f"confidence_intervals_{variable}{channel_suffix}.json"))
