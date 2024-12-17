@@ -255,7 +255,15 @@ def plot_sidebands(analysis):
     # fig.tight_layout()
     return fig
 
-def plot_error_contributions(analysis: MultibandAnalysis, figsize=(5, 5), save_location=None, divide_by_total=False, show_data_errors=False):
+def plot_error_contributions(
+        analysis: MultibandAnalysis,
+        figsize=(5, 5),
+        save_location=None,
+        divide_by_total=False,
+        show_data_errors=False,
+        show_constrained=True,
+        show_contributions=True,
+):
     from microfit.statistics import get_cnp_covariance
 
     ext_hist = analysis.get_data_hist(type="ext")
@@ -360,14 +368,15 @@ def plot_error_contributions(analysis: MultibandAnalysis, figsize=(5, 5), save_l
         # Plot the error from each source
         errors = [mc_stat_error + ext_errors, mc_xsec_error + mc_reint_error, mc_flux_error, mc_detsys_error]
         error_source_labels = ["Pred. stat.", "XSec.", "Flux", "Det. sys."]
-        for i, (errs, label) in enumerate(zip(errors, error_source_labels)):
-            ax.step(
-                bin_edges,
-                repeat_last(errs),
-                where="post",
-                linewidth=1,
-                label=label,
-            )
+        if show_contributions:
+            for i, (errs, label) in enumerate(zip(errors, error_source_labels)):
+                ax.step(
+                    bin_edges,
+                    repeat_last(errs),
+                    where="post",
+                    linewidth=1,
+                    label=label,
+                )
         ax.step(
             bin_edges,
             repeat_last(total_error_unconstrained),
@@ -376,15 +385,16 @@ def plot_error_contributions(analysis: MultibandAnalysis, figsize=(5, 5), save_l
             label="Total (unconstrained)",
             color="k",
         )
-        ax.step(
-            bin_edges,
-            repeat_last(total_error_constrained),
-            where="post",
-            linewidth=2,
-            linestyle="--",
-            label="Total (constrained)",
-            color="k",
-        )
+        if show_constrained:
+            ax.step(
+                bin_edges,
+                repeat_last(total_error_constrained),
+                where="post",
+                linewidth=2,
+                linestyle="--",
+                label="Total (constrained)",
+                color="k",
+            )
         if show_data_errors:
             ax.step(
                 bin_edges,
@@ -454,6 +464,14 @@ analysis.parameters["signal_strength"].value = 0.0
 save_location = "paper_histograms/error_contributions_old_model"
 os.makedirs(save_location, exist_ok=True)
 plot_error_contributions(analysis, figsize=(4.5, 3), save_location=save_location, divide_by_total=True)
+# Make versions without the individual contributions in sub-directory
+save_location_no_contributions = os.path.join(save_location, "no_contributions")
+os.makedirs(save_location_no_contributions, exist_ok=True)
+plot_error_contributions(analysis, figsize=(4.5, 3), save_location=save_location_no_contributions, divide_by_total=True, show_contributions=False)
+# Make versions without the constrained total in sub-directory
+save_location_no_constrained = os.path.join(save_location, "no_constrained")
+os.makedirs(save_location_no_constrained, exist_ok=True)
+plot_error_contributions(analysis, figsize=(4.5, 3), save_location=save_location_no_constrained, divide_by_total=True, show_constrained=False)
 # %%
 analysis.parameters["signal_strength"].value = 1.0
 analysis.plot_signals(
@@ -469,6 +487,23 @@ analysis.plot_signals(
     signal_label="LEE signal\nmodel 1",
     sums_in_legend=False,
     mb_preliminary=PRELIMINARY,
+)
+# %%
+analysis.parameters["signal_strength"].value = 1.0
+analysis.plot_signals(
+    include_multisim_errors=True,
+    add_precomputed_detsys=True,
+    use_sideband=True,
+    separate_figures=True,
+    show_chi_square=False,
+    save_path="paper_histograms",
+    filename_format="old_model_{}_no_data.pdf",
+    figsize=(4.3, 3.6),
+    override_channel_titles=override_channel_titles,
+    signal_label="LEE signal\nmodel 1",
+    sums_in_legend=True,
+    mb_preliminary=PRELIMINARY,
+    show_data=False,
 )
 # %%
 analysis.plot_sidebands(
