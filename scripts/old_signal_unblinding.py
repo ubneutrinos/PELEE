@@ -288,7 +288,7 @@ for channel in ["NUMUCRTNP0PI", "NUMUCRT0P0PI", "TWOSHR"]:
             h0_params=h0_params, n_trials=100000, run_fit=False
         )
         to_json(os.path.join(output_dir, chi2_results_file), chi2_dict)
-    else:
+    else:                                                                                                   
         chi2_dict = from_json(
             os.path.join(output_dir, chi2_results_file)
         )

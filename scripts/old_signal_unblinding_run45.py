@@ -22,8 +22,8 @@ logging.basicConfig(level=logging.INFO)
 # %%
 MAKE_DIAGNOSTIC_PLOTS = True
 # %%
-config_file = "../config_files/old_model_ana_with_detvars_run45.toml"
-output_dir = "../old_model_ana_remerged_crt_run45_output/"
+config_file = "../config_files/old_model_ana_with_detvars_run123.toml"
+output_dir = "../old_model_ana_run123_output/"
 
 analysis = MultibandAnalysis.from_toml(
     config_file,
@@ -43,6 +43,8 @@ analysis.plot_signals(
     save_path=os.path.join(output_dir, "pre_fit"),
     show_chi_square=True,
     show_data_mc_ratio=True,
-    figsize=(6, 6),
+    figsize=(5.1, 5),
 )
 
+
+# %%

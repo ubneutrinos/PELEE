@@ -648,7 +648,7 @@ class RunHistPlotter:
         y = np.array([repeated_nom_values(hist) for hist in hists])
         labels = [hist.tex_string for hist in hists]
         if show_counts:
-            labels = [f"{label}: {hist.sum():.0f}" for label, hist in zip(labels, hists)]
+            labels = [f"{label}: {hist.sum():.1f}" for label, hist in zip(labels, hists)]
         colors = None
         colors = [hist.color for hist in hists]
         # Hatches may be None
