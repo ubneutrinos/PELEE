@@ -5,13 +5,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import sys
 sys.path.append("../../")
-from microfit import run_plotter as rp
-from microfit import histogram as hist
+# from microfit import run_plotter as rp
+# from microfit import histogram as hist
 
-from microfit import variable_definitions as vdef
-from microfit import selections
-
-data_pot = 1.0862e+21
+# from microfit import variable_definitions as vdef
+# from microfit import selections
 
 rundata = {
     'data': None,
@@ -33,12 +31,12 @@ for key, df in rundata.items():
         print(key)
         
         if key == 'ext':
-            rundata[key] = df.explode(['trk_llr_pid_score_v']).reset_index(drop=True)
+            rundata[key] = df.explode(['trk_llr_pid_score_v','shr_llr_pid_score_v']).reset_index(drop=True)
             rundata[key]['backtracked_pdg'] = 0
         else:
-            rundata[key] = df.explode(['trk_llr_pid_score_v', 'backtracked_pdg']).reset_index(drop=True)
+            rundata[key] = df.explode(['trk_llr_pid_score_v', 'backtracked_pdg','shr_llr_pid_score_v']).reset_index(drop=True)
         
         rundata[key].to_pickle(f'/exp/uboone/data/users/mmoudgal/PELEE/{key}_exploded.pkl')
         rundata[key].to_csv(f'/exp/uboone/data/users/mmoudgal/PELEE/{key}_exploded.csv')
         
-print('Done.')
+print('Done exploding the dataframes.')

@@ -1,4 +1,5 @@
 # run this script using python3LEE environment
+# make sure to adjust the data_pot and output file name as required
 
 import numpy as np
 import pandas as pd
@@ -12,7 +13,10 @@ from microfit import variable_definitions as vdef
 from microfit import selections
 
 
-data_pot = 1.0862e+21
+data_pot = 1.0862e+21 # Runs 1-5 nue
+#data_pot = 1.1076e+21 # Runs 1-5 numu
+#data_pot = 6.848e+20 # Runs 1-3 nue & numu
+
 rundata = {
     'data': None,
     'ext': None,
@@ -26,9 +30,9 @@ for key, df in rundata.items():
         df = pd.read_csv(f'/exp/uboone/data/users/mmoudgal/PELEE/{key}_exploded.csv')
         #df["backtracked_pdg"] = df["backtracked_pdg"].abs()  
         rundata[key] = df
-        
-selection = None
-preselection = None
+
+selection = "OnePL_new"
+preselection = "OneP_new"
 
 for binning_def in vdef.variables_1e1p:
     # some binning definitions have more than 4 elements,
@@ -51,6 +55,6 @@ for binning_def in vdef.variables_1e1p:
         add_ext_error_floor=False,
 #        show_data_mc_ratio=True,
     )
-    plt.savefig('plots/llrpid_Run12345.pdf', bbox_inches='tight')
+    plt.savefig(f'plots/investigation/{binning_def[0]}_Run12345_nue_{preselection}_{selection}.pdf', bbox_inches='tight')
     
 print('Done making LLR PID plot.')

@@ -89,7 +89,7 @@ def pass_numu_CC_selection(topological_score,pfp_generation_v,track_start_sce_x_
     
     if topological_score > TOPO_SCORE_CUT: return False
        
-    sel_pfp_starts_in_PCV = True;
+    sel_pfp_starts_in_PCV = True
     
     for i in range(0,len(pfp_generation_v)):
         if pfp_generation_v[i] != 2: continue         

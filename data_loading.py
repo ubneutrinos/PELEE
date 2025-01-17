@@ -20,7 +20,7 @@ from numu_tki import selection_1muNp
 from numu_tki import signal_1muNp 
 from numu_tki import tki_calculators
 from numu_tki import signal_1e1p
-from numu_tki import process_1e1p  
+from numu_tki import selection_1e1p  
 
 from microfit.selections import extract_variables_from_query
 
@@ -103,7 +103,7 @@ def get_variables():
         # "mc_E",
         #############
         "slpdg",
-        "backtracked_pdg",
+        # "backtracked_pdg",
         # "trk_score_v",
         "category",
         "ccnc",
@@ -118,7 +118,8 @@ def get_variables():
         # "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
         #"flash_pe",
         # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
-        "trk_llr_pid_score_v",  # trk-PID score
+        #"trk_llr_pid_score_v",  # trk-PID score
+        # "shr_llr_pid_score_v",
         "_opfilter_pe_beam",
         "_opfilter_pe_veto",  # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x",
@@ -395,6 +396,8 @@ def get_variables():
     PI0VARS = [
         "pi0_radlen1",
         "pi0_radlen2",
+        "pi0_tkfit_dedx1_max",
+        "pi0_tkfit_dedx2_max",
         "pi0_dot1",
         "pi0_dot2",
         "pi0_energy1_Y",
@@ -439,6 +442,68 @@ def get_variables():
 
     return VARDICT
 
+def assign_category(up, df):
+    # Define the topological categories directly using the truth variables
+
+    # Load the branches required
+    df["nmuon"] = up.array("nmuon")
+
+    # Define category constants
+    k_nu_e_other = 1
+    k_nu_e_cc0pi0p = 10
+    k_nu_e_cc0pinp = 11
+    k_nu_mu_other = 2
+    k_nu_mu_pi0 = 21
+    k_nc = 3
+    k_nc_pi0 = 31
+    k_cosmic = 4
+    k_outfv = 5
+
+    # Initialize the category column
+    df["category_fixed"] = 6
+
+    # Loop over each row to assign categories
+    for idx, row in df.iterrows():
+        # No "data" category, we focus on simulated data
+        there_is_true_proton = row["nproton"] > 0
+        there_is_true_pi = row["npion"] > 0
+        there_is_true_mu = row["nmuon"] > 0
+        there_is_true_pi0 = row["npi0"] > 0
+        there_is_true_electron = row["nelec"] > 0
+
+        if not row["isVtxInFiducial"]:
+            df.at[idx, "category_fixed"] = k_outfv
+
+        elif abs(row["nu_pdg"]) == 12:  # electron neutrino
+            if there_is_true_electron:
+                if not there_is_true_pi and there_is_true_proton and not there_is_true_pi0:
+                    df.at[idx, "category_fixed"] = k_nu_e_cc0pinp
+                elif not there_is_true_pi and not there_is_true_proton and not there_is_true_pi0:
+                    df.at[idx, "category_fixed"] = k_nu_e_cc0pi0p
+                else:
+                    df.at[idx, "category_fixed"] = k_nu_e_other
+            else:
+                if not there_is_true_pi0:
+                    df.at[idx, "category_fixed"] = k_nc
+                else:
+                    df.at[idx, "category_fixed"] = k_nc_pi0
+
+        elif abs(row["nu_pdg"]) == 14:  # muon neutrino
+            if there_is_true_mu:
+                if there_is_true_pi0:
+                    df.at[idx, "category_fixed"] = k_nu_mu_pi0
+                else:
+                    df.at[idx, "category_fixed"] = k_nu_mu_other
+            else:
+                if not there_is_true_pi0:
+                    df.at[idx, "category_fixed"] = k_nc
+                else:
+                    df.at[idx, "category_fixed"] = k_nc_pi0
+
+        else:
+            df.at[idx, "category_fixed"] = k_cosmic
+
+    #df.loc[df["category_fixed"] == -1, "category_fixed"] = 6
 
 def add_paper_category(df, key):
     df.loc[:, "paper_category"] = df["category"]
@@ -462,18 +527,13 @@ def add_paper_category(df, key):
 
 
 def add_paper_category_1e1p(df, key):
-    df.loc[:, "category_1e1p"] = df["category"]  # makes a new column called 'category_1e1p' in df which copies the 'category'
+    df.loc[:, "category_1e1p"] = df["category"]
     if key in ["data"]:
         return
-    df.loc[
-        (df["nproton"] == 1) 
-        and (df["nelec"] == 1) 
-        and (0.1 < df["mc_electron_p"] < 1.2)
-        and (df["npi0"] == 0)
-        and (df["mc_pion_p"] < 0.07), 
-        "category_1e1p"
-    ] = 12
-    df.loc[(df["nproton"] > 1) and df["mc_proton_p"] > 0.3, "category_1e1p"] = 13
+    nue_cc0pi1p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNElec"] == 1) & (df["TrueNProt"] == 1))
+    nue_cc0pi2p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNElec"] == 1) & (df["TrueNProt"] >= 2))
+    df.loc[df["category"].isin([11]) & nue_cc0pi1p, "category_1e1p"] = 12
+    df.loc[df["category"].isin([11]) & nue_cc0pi2p, "category_1e1p"] = 13
 
 def add_paper_xsec_category(df, key):
     df.loc[:, "paper_category_xsec"] = df["category"]
@@ -529,10 +589,10 @@ def add_paper_numu_category(df, key):
 
 
 def add_paper_categories(df, key):
+    #add_paper_category_fixed(df, key)
     add_paper_category(df, key)
     add_paper_xsec_category(df, key)
     add_paper_numu_category(df, key)
-    #add_paper_category_1e1p(df, key)
 
 
 def load_data_run(
@@ -2055,13 +2115,16 @@ def load_sample(
         # The path to the actual ROOT file
         if category != "detvar":
             rundict = get_rundict(run_number, category)
+            no_presel_path = rundict["path"][:-1] # deletes the last '/'
+            no_presel_path = no_presel_path.rstrip('nuepresel') # deletes the 'nuepresel' from path
             data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+            #data_path = os.path.join(ls.ntuple_path, no_presel_path, rundict[dataset]["file"] + append + ".root")
             
         else: 
             rundict = get_rundict(run_number, category)
             subdir = "numupresel" if loadnumuvariables else "nuepresel"
             data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
-       
+            #data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[variation][dataset]["file"] + append + ".root")
         if verbose: print("Loading ntuple file",data_path)
  
         # try returning an empty dataframe
@@ -2074,7 +2137,7 @@ def load_sample(
         if verbose: print("Loading file",full_path,"instead of using data_paths.yml")
         data_path = full_path 
     
-            
+    print(data_path)       
     if use_bdt:
         assert loadshowervariables, "BDT requires shower variables"
     
@@ -2210,7 +2273,10 @@ def load_sample(
             df = selection_1muNp.apply_selection_1muNp(up,df)
         if load_nue_tki:
             df = signal_1e1p.set_Signal1e1p(up,df)
-            process_1e1p.process_1e1p_tki(up, df)
+            #process_1e1p.process_1e1p_tki(up, df)
+            df = selection_1e1p.apply_selection_1e1p_tki(up,df)
+
+        assign_category(up, df) # assign the category variable ('category_fixed') directly using the truth variables
 
     if use_bdt:
         add_bdt_scores(df)
@@ -2234,6 +2300,13 @@ def load_sample(
 
     add_paper_categories(df, dataset)
 
+    if load_nue_tki:
+         # Add category_1e1p column
+        add_paper_category_1e1p(df, dataset)
+        # Add the boolean variable for the mc signal to be used later in Gardiner's unfolding code
+        df["mc_signal_1e1p"] = False
+        df.loc[df["category_1e1p"] == 12, "mc_signal_1e1p"] = True
+
     # CT: For some reason this only run over the EXT and data in the old code
     if dataset == "ext" or dataset == "bnb":
         df = remove_duplicates(df)
@@ -2242,7 +2315,7 @@ def load_sample(
         # We have to keep certain variables in order for everything to even function
         vardict = get_variables()
         minimum_columns = vardict["WEIGHTS"] + vardict["SYSTVARS"] + vardict["WEIGHTSLEE"]
-        minimum_columns += ["category", "paper_category", "paper_category_xsec", "category_1e1p_tki", "interaction"]
+        minimum_columns += ["category", "category_fixed", "paper_category", "paper_category_xsec", "category_1e1p", "interaction"]
         keep_columns = set(keep_columns) | set(minimum_columns)
         # drop all columns that are not in keep_columns in place
         df.drop(columns=set(df.columns) - set(keep_columns), inplace=True)
@@ -2466,7 +2539,7 @@ def _load_run_detvar(
     data_pot, _ = get_pot_trig(run_number, category, dataset)  # nu has no trigger number
 
     run_number_tmp = run_number
-    if run_number in ["4b","4c","4d"]: run_number_tmp = "4"
+    if run_number in ["4a","4b","4c","4d"]: run_number_tmp = "4"
     elif run_number in ["1","2"]: run_number_tmp = "1"
     elif run_number == "3": run_number_tmp = "3"
     elif run_number == "3_crt":

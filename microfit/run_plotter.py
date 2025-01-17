@@ -399,7 +399,7 @@ class RunHistPlotter:
             labels=labels,
         )
         ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
-        ax.grid(axis="y")
+        #ax.grid(axis="y")
         return ax
 
     def plot_hist(

@@ -1,7 +1,7 @@
 import numpy as np
 from numu_tki import tki_calculators
 
-# Functions for setting the signal definition and adding useful variables for the CC1e1P selection
+# Functions for setting the signal definition in truth variables and adding useful variables for the CC1e1P selection
 # (original framework in Root/C++ developed by S Gardiner, re-written into the python PeLEE framework by C Thorpe)
 # Author: M Moudgalya
 
@@ -26,7 +26,7 @@ def true_muon_idx(mc_pdg,mc_E):
 # Check there is a final state electron above threshold, and return its index
 
 elec_p_min = 0. #GeV
-elec_p_max = 5.0 #GeV
+elec_p_max = 1.2 #GeV
 elec_mass = 0.511e-3 #GeV
 elec_E_min = np.sqrt(elec_p_min**2 + elec_mass**2)
 elec_E_max = np.sqrt(elec_p_max**2 + elec_mass**2) # Upper limit currently unused
@@ -41,9 +41,29 @@ def true_elec_idx(mc_pdg,mc_E):
     return -1
 
 ################################################################################
+# Return indices of electrons above threshold
+
+def true_elec_indices(mc_pdg,mc_E):
+
+    idx = []
+    for i in range(0,len(mc_pdg)):
+        if abs(mc_pdg[i]) == 11 and mc_E[i] > elec_E_min:
+        #if abs(mc_pdg[i]) == 11 and elec_E_min < mc_E[i] < elec_E_max:
+            idx.append(i)
+
+    return idx
+
+################################################################################
+# Number of electrons above threshold
+
+def n_elec(TrueIdx_v):
+
+    return len(TrueIdx_v) 
+
+################################################################################
 # Final state has one proton above threshold
 
-proton_p_min = 0.300 #GeV
+proton_p_min = 0.3 #GeV #0.239
 proton_p_max = 3.0
 proton_mass = 0.939
 proton_E_min = np.sqrt(proton_p_min**2 + proton_mass**2)
@@ -202,6 +222,8 @@ def set_Signal1e1p(up,df):
     df["TrueFSPions"] = df.apply(lambda x: (n_fs_pion(x["mc_pdg"],x["mc_E"])),axis=1)
     df["TrueFSPi0"] = df.apply(lambda x: (n_fs_pi0(x["mc_pdg"],x["mc_E"])),axis=1)
     df["HasNoMesons"] = df.apply(lambda x: (has_no_mesons(x["mc_pdg"],x["mc_E"])),axis=1)
+    df["TrueElecIndices"] = df.apply(lambda x: (true_elec_indices(x["mc_pdg"],x["mc_E"])),axis=1)
+    df["TrueNElec"] = df.apply(lambda x: (n_elec(x["TrueElecIndices"])),axis=1)
 
     df["TrueElecE"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_E"])),axis=1)
     df["TrueElecMomX"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_px"])),axis=1)
@@ -229,36 +251,41 @@ def set_Signal1e1p(up,df):
     df.loc[nue_cc0pi1p, "Signal_1e1p"] = True
     df.loc[~nue_cc0pi1p, "Signal_1e1p"] = False
     
-    # Set the topological categories
+    # # Set the topological categories
     
-    nue_cc0pi0p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] == -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNProt"] == 0))
-    nue_cc0pi2p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNProt"] >= 2))
-    nue_cc = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["InFV"] == True) & (df["TrueFSPions"] > 0) & (df["TrueFSPi0"] > 0) & (df["TrueNProt"] >= 0))
-    nue_nc0pi0 = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] == -1) & (df["InFV"] == True) & (df["TrueFSPions"] == 0) & (df["TrueFSPi0"] == 0) & (df["TrueNProt"] == 0))
-    nue_ncNpi0 = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] == -1) & (df["InFV"] == True) & (df["TrueFSPions"] == 0) & (df["TrueFSPi0"] >= 1) & (df["TrueNProt"] == 0))
+    # nue_cc0pi0p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] == -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNProt"] == 0))
+    # nue_cc0pi2p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNProt"] >= 2))
+    # nue_cc = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["InFV"] == True) & (df["TrueFSPions"] > 0) & (df["TrueFSPi0"] > 0) & (df["TrueNProt"] >= 0))
+    # nue_nc0pi0 = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] == -1) & (df["InFV"] == True) & (df["TrueFSPions"] == 0) & (df["TrueFSPi0"] == 0) & (df["TrueNProt"] == 0))
+    # nue_ncNpi0 = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] == -1) & (df["InFV"] == True) & (df["TrueFSPions"] == 0) & (df["TrueFSPi0"] >= 1) & (df["TrueNProt"] == 0))
     
-    numu_ccNpi0 = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["InFV"] == True) & (df["TrueFSPions"] >= 0) & (df["TrueFSPi0"] >= 1) & (df["TrueNProt"] >= 0))
-    numu_cc0pi0 = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["InFV"] == True) & (df["TrueFSPions"] >= 0) & (df["TrueFSPi0"] == 1) & (df["TrueNProt"] >= 0))
-    numu_nc0pi0 = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] == -1) & (df["InFV"] == True) & (df["TrueFSPions"] == 0) & (df["TrueFSPi0"] == 0) & (df["TrueNProt"] == 0))
-    numu_ncNpi0 = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] == -1) & (df["InFV"] == True) & (df["TrueFSPions"] == 0) & (df["TrueFSPi0"] >= 1) & (df["TrueNProt"] == 0))
+    # numu_ccNpi0 = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["InFV"] == True) & (df["TrueFSPions"] >= 0) & (df["TrueFSPi0"] >= 1) & (df["TrueNProt"] >= 0))
+    # numu_cc0pi0 = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["InFV"] == True) & (df["TrueFSPions"] >= 0) & (df["TrueFSPi0"] == 1) & (df["TrueNProt"] >= 0))
+    # numu_nc0pi0 = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] == -1) & (df["InFV"] == True) & (df["TrueFSPions"] == 0) & (df["TrueFSPi0"] == 0) & (df["TrueNProt"] == 0))
+    # numu_ncNpi0 = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] == -1) & (df["InFV"] == True) & (df["TrueFSPions"] == 0) & (df["TrueFSPi0"] >= 1) & (df["TrueNProt"] == 0))
     
-    outFV = df["InFV"] == False
-    #cosmic = ((abs(df["nu_pdg"]) != 14) & (df["nu_pdg"] != 12) & (df["InFV"] == True))
-    cosmic = ((df["InFV"] == True) & ~nue_cc0piNp & ~nue_cc0pi1p & ~nue_cc0pi0p & ~nue_cc0pi2p & ~nue_cc & ~nue_nc0pi0 & ~nue_ncNpi0 & ~numu_ccNpi0 & ~numu_cc0pi0 & ~numu_nc0pi0 & ~numu_ncNpi0)
-    
-    df["category_1e1p_tki"] = 6  # 'other'
-    df.loc[nue_cc0pi0p, "category_1e1p_tki"] = 10
-    df.loc[nue_cc0pi1p, "category_1e1p_tki"] = 12  # 1e1p signal
-    df.loc[nue_cc0pi2p, "category_1e1p_tki"] = 13
-    df.loc[nue_cc, "category_1e1p_tki"] = 1
-    df.loc[nue_nc0pi0, "category_1e1p_tki"] = 3
-    df.loc[nue_ncNpi0, "category_1e1p_tki"] = 31
-    df.loc[numu_cc0pi0, "category_1e1p_tki"] = 2
-    df.loc[numu_ccNpi0, "category_1e1p_tki"] = 21
-    df.loc[numu_nc0pi0, "category_1e1p_tki"] = 3
-    df.loc[numu_ncNpi0, "category_1e1p_tki"] = 31
-    df.loc[outFV, "category_1e1p_tki"] = 5
-    df.loc[cosmic, "category_1e1p_tki"] = 4
+    # outFV = df["InFV"] == False
+    # # cosmic = ((abs(df["nu_pdg"]) != 14) & (df["nu_pdg"] != 12) & (df["InFV"] == True)) #logic used in PeLEE analyser (DefaultAnalysis_tool.cc)
+    # cosmic = ((abs(df["nu_pdg"]) != 14) & (df["nu_pdg"] != 12) & (df["InFV"] == True) & ~nue_cc0piNp & ~nue_cc0pi1p & ~nue_cc0pi0p & ~nue_cc0pi2p & ~nue_cc & ~nue_nc0pi0 & ~nue_ncNpi0 & ~numu_ccNpi0 & ~numu_cc0pi0 & ~numu_nc0pi0 & ~numu_ncNpi0)
+
+    # # cosmic_old = ((df["InFV"] == True) & ~nue_cc0piNp & ~nue_cc0pi1p & ~nue_cc0pi0p & ~nue_cc0pi2p & ~nue_cc & ~nue_nc0pi0 & ~nue_ncNpi0 & ~numu_ccNpi0 & ~numu_cc0pi0 & ~numu_nc0pi0 & ~numu_ncNpi0)
+    # # cosmic_new = ((df["InFV"] == True) & (df["category"] == 4) & ~nue_cc0piNp & ~nue_cc0pi1p & ~nue_cc0pi0p & ~nue_cc0pi2p & ~nue_cc & ~nue_nc0pi0 & ~nue_ncNpi0 & ~numu_ccNpi0 & ~numu_cc0pi0 & ~numu_nc0pi0 & ~numu_ncNpi0)
+    # # cosmic_newest = ((df["InFV"] == True) & (df["category"] == 4))
+
+    # df["category_1e1p_tki"] = 6  # 'other'
+    # #df.loc[cosmic_newest, "category_1e1p_tki"] = 4
+    # df.loc[nue_cc0pi0p, "category_1e1p_tki"] = 10
+    # df.loc[nue_cc0pi1p, "category_1e1p_tki"] = 12  # 1e1p signal
+    # df.loc[nue_cc0pi2p, "category_1e1p_tki"] = 13
+    # df.loc[nue_cc, "category_1e1p_tki"] = 1
+    # df.loc[nue_nc0pi0, "category_1e1p_tki"] = 3
+    # df.loc[nue_ncNpi0, "category_1e1p_tki"] = 31
+    # df.loc[numu_cc0pi0, "category_1e1p_tki"] = 2
+    # df.loc[numu_ccNpi0, "category_1e1p_tki"] = 21
+    # df.loc[numu_nc0pi0, "category_1e1p_tki"] = 3
+    # df.loc[numu_ncNpi0, "category_1e1p_tki"] = 31
+    # df.loc[outFV, "category_1e1p_tki"] = 5
+    # df.loc[cosmic, "category_1e1p_tki"] = 4
 
     # Calculate the TKI variables for 1e1p using the leading proton
 
@@ -268,10 +295,16 @@ def set_Signal1e1p(up,df):
     #df["TrueDeltaPhiT"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
     df["TrueDeltaAlphaT"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
     df['TrueDeltaAlphaT'] = np.degrees(df['TrueDeltaAlphaT'])
+
+    print("Calc true GKI variables for leading proton only")
+    df["TruePN"] = df.apply(lambda x: (tki_calculators.pn(x["TrueElecE"],x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonE"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
+    df["TrueAlpha3D"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["TrueElecE"],x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonE"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
+    df["TrueAlpha3D"] = np.degrees(df["TrueAlpha3D"])
+    #df["TruePhi3D"] = df.apply(lambda x: (tki_calculators.phi_3D(x["TrueElecE"],x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonE"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
     
     
     # Drop temporary data from dataframes
-    df.drop("mc_pdg", inplace=True, axis=1)
+    #df.drop("mc_pdg", inplace=True, axis=1)
     df.drop("mc_E", inplace=True, axis=1)
     df.drop("mc_px", inplace=True, axis=1)
     df.drop("mc_py", inplace=True, axis=1)

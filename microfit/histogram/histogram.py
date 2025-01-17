@@ -116,7 +116,7 @@ class Histogram:
         if ax is None:
             ax = plt.gca()
         ax.set_title(f"{'Correlation' if as_correlation else 'Covariance'} matrix")
-        X, Y = np.meshgrid(self.binning.bin_centers, self.binning.bin_centers)
+        X, Y = np.meshgrid(self.binning.bin_edges, self.binning.bin_edges) #(self.binning.bin_centers, self.binning.bin_centers)
         colormap = plot_kwargs.pop("cmap", "RdBu_r")
         label = None
         if as_correlation:
