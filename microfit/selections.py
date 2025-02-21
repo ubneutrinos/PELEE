@@ -469,7 +469,7 @@ preselection_categories = {
     'NSLICE': {'query': 'nslice==1', 'title': r"SliceID selection", 'dir': 'NSLICE'},
     'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ pre-selection w/ CRT", 'dir': 'NUMUCRT'},
-    'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'},
+    #'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'},
     'OneP_new': {'query': OnePPRESQ_new, 'title': '1e1p Presel. New', 'dir': 'OneP'}
 
 }

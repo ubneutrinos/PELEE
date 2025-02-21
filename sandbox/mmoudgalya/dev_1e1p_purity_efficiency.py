@@ -65,7 +65,8 @@ for run in RUN:
     run_combo += run
 
 from microfit import selections as sel
-selection = "None"
+#selection = "None"
+selection = "OnePBDT"
 preselection = "OneP_new"
 query = f"{sel.preselection_categories[preselection]['query']}" # and {sel.selection_categories[selection]['query']}"
 sel_title = f"{sel.selection_categories[selection]['title']}"
@@ -177,11 +178,11 @@ for binning_def in vdef.TKI_variables_1e1p:
     for x in x_plot:
         sig_above = np.sum(sel_mc.loc[is_sig & (sel_mc[binning_def[0]] > x), 'weights'])
         bkg_above = np.sum(sel_mc.loc[~is_sig & (sel_mc[binning_def[0]] > x), 'weights'])
-        tot_sig_above = np.sum(all_mc.loc[all_sig & (all_mc[binning_def[0]] > x), 'weights'])
+        #tot_sig_above = np.sum(all_mc.loc[all_sig & (all_mc[binning_def[0]] > x), 'weights'])
         
-        eff.append(sig_above/tot_sig_above)
+        eff.append(sig_above/tot_sig)
         pur.append(sig_above/(sig_above + bkg_above))
-        product.append((sig_above/tot_sig_above) * (sig_above/(sig_above + bkg_above)))
+        product.append((sig_above/tot_sig) * (sig_above/(sig_above + bkg_above)))
         
     plt.plot(x_plot, pur, label='signal purity')
     plt.plot(x_plot, eff, label='signal efficiency')

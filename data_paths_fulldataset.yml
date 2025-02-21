@@ -40,46 +40,12 @@ runs:
       file: run1_beamon_opentrigger_bnb_pandora_3v_a_reprocessing_v08_00_00_83_ntuple_ntuple_ana
       pot: 5.89E+19 
       trig: 15639842
-    nuwro_fd:
-      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
-      pot: 3.08E+20
-      trig: 0 
-    ext:
-      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
-      trig: 65744587 
-    mc:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_nu
-      pot: 1.28278E+21 
-    nue:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_nue
-      pot: 5.22325E+22
-      filter: abs(nu_pdg)==12 and ccnc == 0 
-    drt:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_dirt 
-      pot: 3.1606E+20
   - run_id: "1B_OT"
     path: run1_opentrigger/nuepresel/
     bnb:
       file: run1_beamon_opentrigger_bnb_pandora_3v_b_reprocessing_v08_00_00_83_beam_good_ntuple_ntuple_ana
       pot: 8.93E+19 
       trig: 19789737
-    nuwro_fd:
-      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
-      pot: 3.08E+20
-      trig: 0 
-    ext:
-      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
-      trig: 65744587 
-    mc:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_nu
-      pot: 1.28278E+21 
-    nue:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_nue
-      pot: 5.22325E+22
-      filter: abs(nu_pdg)==12 and ccnc == 0 
-    drt:
-      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_dirt 
-      pot: 3.1606E+20
   - run_id: "2"
     path: run2/nuepresel/
     bnb:
@@ -191,6 +157,10 @@ runs:
       file: Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana
       pot: 4.50E+19
       trig: 9897624
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_nuwro_overlay_run4_pelee
+      pot: 3.48E+20
+      trig: 0
     ext:
       file: Run4a_bnb_beamOff_PeLee_ntuples_run4a_ana 
       trig: 27596585 
@@ -876,7 +846,7 @@ detvar:
         pot: 5.0552e+21 
         filter: mcf_pass_ncpi0 == 1
   - run_id: "4"
-    path: run4_detvar/ 
+    path: run4/detvar/
     cv: 
       nue:
         file: run4_bnb_intrinsic_nue_detvar_cv_pandora_unified_reco2_reco2_ana 
@@ -998,7 +968,7 @@ detvar:
         pot: 5.0552e+21 
         filter: mcf_pass_ncpi0 == 1
   - run_id: "5"
-    path: run5_detvar/ 
+    path: run5/detvar/ 
     cv: 
       nue:
         file: run5_bnb_intrinsic_nue_detvar_cv_pandora_unified_reco2_reco2_ana

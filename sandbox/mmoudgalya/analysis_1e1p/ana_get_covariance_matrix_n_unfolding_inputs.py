@@ -1,4 +1,4 @@
-# Make sure the local settings ntuple path points to the filtered ntuples
+# Make sure the local settings ntuple path points to the unfiltered ntuples and adjust data_loading.py
 
 import sys
 import numpy as np
@@ -16,6 +16,14 @@ from microfit import variable_definitions as vdef
 from microfit import selections
 
 from microfit import detsys
+from microfit import xsec_covariances as xs
+from microfit.xsec_signal_generator import XsecCovarHistGenerator
+
+def repeated_nom_values(hist):
+    # repeat the last bin count
+    y = hist.bin_counts
+    y = np.append(y, y[-1])
+    return y
 
 keep_vars = [
     "Signal_1e1p", "mc_signal_1e1p", "nu_pdg", "TrueElecIdx", "TrueLeadProtonIdx", "InFV", "HasNoMesons",
@@ -35,10 +43,10 @@ keep_vars = [
     "ccnc",
 ]
 
-#RUN = ["5"]
+#RUN = ["3"]
 #RUN = ["1","2","3_nocrt","3_crt","4a","4b","4c","4d","5"] # use this if using CRT
-RUN = ["1","2","3","4a","4b","4c","4d","5"] # for detvars with bnb or for closure test
-#RUN = ["1","2","3","4c","5"] # for nuwro_fd, no run 4b and 4d available
+RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"] # for detvars with bnb or for closure test
+#RUN = ["1","2","3","4a","4c","5"] # for nuwro_fd, no run 4b and 4d available
 blinded = True
 #data="nuwro_fd"
 data="bnb"
@@ -105,6 +113,7 @@ for binning_def in vdef.TKI_variables_1e1p:
     #################################################################################
     # Getting the covariance matrix
     
+    plot_cov = None
     if data == "nuwro_fd":
         # Getting only xsec cov matrix and stats matrix for NuWro fakedata studies
         
@@ -120,39 +129,38 @@ for binning_def in vdef.TKI_variables_1e1p:
             sideband_generator=None,
             uncertainty_defaults=None,
             detvar_data=None,
+            mc_hist_generator_cls = XsecCovarHistGenerator,
+            true_var_name=None, 
+            signal_query="category_1e1p == 12", 
+            uncut_signal_df=rundata["nue"],
             normalization_uncertainty=None
         )
     
         total_prediction = signal_generator.get_total_prediction(include_multisim_errors=False, add_precomputed_detsys=False, smooth_detsys_variations=False)
         flux_norm_total_prediction_stat = total_prediction #/ IntegratedFlux
-        stat_cov = flux_norm_total_prediction_stat.covariance_matrix
-        #stat_error = np.sqrt(np.diagonal(stat_cov)) / bin_counts
+        pred_stat_cov = flux_norm_total_prediction_stat.covariance_matrix
         
-        # GENIE cov
-        
-        mc_hist_generator = signal_generator.mc_hist_generator
-    
-        # GENIE multisim
-        genie_cov = (mc_hist_generator.calculate_multisim_uncertainties(multisim_weight_column="weightsGenie")) #/ IntegratedFlux**2
-        #genie_error = np.sqrt(np.diagonal(genie_cov)) / bin_counts
-        #print('genie error:', genie_error)
-        #print()
+        # Data stat cov
+        data_hist = signal_generator.get_data_hist()
+        data_counts = data_hist.bin_counts
+        data_stat_cov = np.diag(data_counts)
 
-        # GENIE Unisim
-        genie_unisim_cov = (mc_hist_generator.calculate_unisim_uncertainties()) #/ IntegratedFlux**2
-        #genie_unisim_error = np.sqrt(np.diagonal(genie_unisim_cov)) / bin_counts
-        #print('genie unisim error:', genie_unisim_error)
-        #print()
+        # GENIE multisim and unisim covs
+        mc_hist_generator = signal_generator.mc_hist_generator
+        genie_multisim_cov = (mc_hist_generator.calculate_multisim_uncertainties(multisim_weight_column="weightsGenie"))
+        genie_unisim_cov = (mc_hist_generator.calculate_unisim_uncertainties())
+    
         
-        cov = genie_cov + genie_unisim_cov + stat_cov
-        
+        cov = genie_multisim_cov + genie_unisim_cov + pred_stat_cov + data_stat_cov
+        plot_cov = genie_multisim_cov + genie_unisim_cov # error band on reco distr. plot should include only GENIE error
+
         # Plotting the cov matrix 
         
-        if binning_def[1] == None:
+        if binning_def[1] is None:
             edges = binning.bin_edges
         else:
             edges = binning.bin_centers
-        
+            
         X, Y = np.meshgrid(edges,edges)
         max_val = np.max(np.abs(cov))
         plt.pcolormesh(X, Y, cov, cmap="RdBu_r", vmin=-max_val, vmax=max_val, shading='flat') #, norm=LogNorm())
@@ -160,8 +168,8 @@ for binning_def in vdef.TKI_variables_1e1p:
         plt.xlabel(f'{binning.variable_tex}')
         plt.ylabel(f'{binning.variable_tex}')
         plt.title(f"Covariance Matrix")
-        
-        
+            
+            
         plt.savefig(f'analysis_plots/unfolding_inputs/covariance_matrix_{data}_{run_combo}_{label}_{binning_def[1]}bins.pdf', bbox_inches='tight')
         plt.savefig(f'analysis_plots/unfolding_inputs/covariance_matrix_{data}_{run_combo}_{label}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
@@ -176,28 +184,13 @@ for binning_def in vdef.TKI_variables_1e1p:
         binning=binning.copy(),
         selection=selection,
         preselection=preselection,
-        use_kde_smoothing=True,
+        use_kde_smoothing=False,
         make_plots=False,
         plot_output_dir= "/exp/uboone/app/users/mmoudgal/PELEE/sandbox/mmoudgalya/analysis_1e1p/analysis_plots/detsys/",
         enable_detvar_cache=True,
         detvar_cache_dir="/exp/uboone/data/users/mmoudgal/PELEE/detvar_cached_dataframes/",
         extra_selection_query=None,
         show_plots=True,
-        #variations=detector_variations,
-        #**dl_kwargs,
-        loadpi0variables=False,
-        loadshowervariables=True,
-        loadrecoveryvars=False,
-        loadsystematics=True,
-        numupresel=False,
-        loadnumuvariables=False,
-        use_bdt=True,
-        load_lee=False,
-        load_nue_tki=True,
-        keep_columns=keep_vars,
-        blinded=blinded,
-        load_crt_vars=False,
-        enable_cache=True,
         )
 
         # Total error
@@ -210,12 +203,20 @@ for binning_def in vdef.TKI_variables_1e1p:
             sideband_generator=None,
             uncertainty_defaults=None,
             detvar_data=detvar_data,
+            mc_hist_generator_cls = XsecCovarHistGenerator,
+            true_var_name=None, 
+            signal_query="category_1e1p == 12", 
+            uncut_signal_df=rundata["nue"],
             normalization_uncertainty=[0.01,0.02]
         )
         total_prediction = signal_generator.get_total_prediction(include_multisim_errors=True, add_precomputed_detsys=True, smooth_detsys_variations=True)
-
-        print(f"binning_def[0] bin counts:", total_prediction.bin_counts)
-        print()
+        cov = total_prediction.covariance_matrix
+    
+        if blinded == False:
+            data_hist = signal_generator.get_data_hist()
+            data_counts = data_hist.bin_counts
+            data_stat_cov = np.diag(data_counts)
+            cov += data_stat_cov
 
         flux_norm_total_prediction = total_prediction / IntegratedFlux
         fig, ax = plt.subplots()
@@ -225,7 +226,12 @@ for binning_def in vdef.TKI_variables_1e1p:
         plt.show()
         plt.clf()
 
-        cov = total_prediction.covariance_matrix
+        fig2, ax2 = plt.subplots()
+        flux_norm_total_prediction.draw_covariance_matrix(ax=ax2, as_correlation=False, as_fractional=True)
+        plt.savefig(f'analysis_plots/unfolding_inputs/frac_covariance_matrix_{data}_{run_combo}_{label}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/frac_covariance_matrix_{data}_{run_combo}_{label}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
         
     print('Covariance matrix for', binning_def[0], ':', cov)
     print()
@@ -253,19 +259,31 @@ for binning_def in vdef.TKI_variables_1e1p:
             sideband_generator=None,
             uncertainty_defaults=None,
             detvar_data=None,
+            mc_hist_generator_cls = XsecCovarHistGenerator,
+            true_var_name=None, 
+            signal_query="category_1e1p == 12", 
+            uncut_signal_df=rundata["nue"],
             normalization_uncertainty=None
         )
     
             total_prediction = signal_generator_stat.get_total_prediction(include_multisim_errors=False, add_precomputed_detsys=False, smooth_detsys_variations=False)
+            flux_norm_total_prediction = total_prediction / IntegratedFlux
+            fig, ax = plt.subplots()
+            flux_norm_total_prediction.draw_covariance_matrix(ax=ax, as_correlation=False)
+            plt.savefig(f'analysis_plots/unfolding_inputs/predstatcovariance_matrix_{data}_{run_combo}_{label}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+            plt.savefig(f'analysis_plots/unfolding_inputs/predstatcovariance_matrix_{data}_{run_combo}_{label}_{binning_def[1]}bins.png', bbox_inches='tight')
+            plt.show()
+            plt.clf()
+            
             flux_norm_total_prediction_stat = total_prediction #/ IntegratedFlux
-            stat_cov = flux_norm_total_prediction_stat.covariance_matrix
+            pred_stat_cov = flux_norm_total_prediction_stat.covariance_matrix
         
             # writing these to a file
             cov_str = "{"
-            for i in range(stat_cov.shape[0]):
-                for j in range(stat_cov.shape[1]):
+            for i in range(pred_stat_cov.shape[0]):
+                for j in range(pred_stat_cov.shape[1]):
                     #print(cov[i][j])
-                    cov_str += f"{stat_cov[i][j]},"
+                    cov_str += f"{pred_stat_cov[i][j]},"
             cov_str = cov_str[:-1] # to remove the last comma
             cov_str += "};"
             # print(cov_str)
@@ -288,6 +306,8 @@ for binning_def in vdef.TKI_variables_1e1p:
         include_multisim_errors = False
         add_precomputed_detsys = False
         show_errorband = False
+        uncertainties = np.sqrt(np.diagonal(plot_cov))
+        uncertainties = np.append(uncertainties, uncertainties[-1])
     else:
         include_multisim_errors = True
         add_precomputed_detsys = True
@@ -296,6 +316,7 @@ for binning_def in vdef.TKI_variables_1e1p:
     plotter = rp.RunHistPlotter(signal_generator)
     axes = plotter.plot(
         category_column="category_1e1p",
+        signal_category_num=12,
         include_multisim_errors=include_multisim_errors,
         add_ext_error_floor=False,
         show_data_mc_ratio=show_data_mc_ratio,
@@ -303,6 +324,19 @@ for binning_def in vdef.TKI_variables_1e1p:
         add_precomputed_detsys=add_precomputed_detsys,
         show_errorband=show_errorband,
     )
+
+    if data == "nuwro_fd":
+        ax = axes[0]
+        ax.fill_between(
+            binning.bin_edges,
+            np.clip(repeated_nom_values(total_prediction) - uncertainties, 0, None),
+            repeated_nom_values(total_prediction) + uncertainties,
+            alpha=0.5,
+            step="post",
+            label="My uncertainty",
+            color="gray",
+        )
+        ax.set_ylim(0, ax.get_ylim()[1] * 1.5)
     
     plt.savefig(f'analysis_plots/unfolding_inputs/topo_{preselection}_{selection}_{binning_def[0]}_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
     plt.savefig(f'analysis_plots/unfolding_inputs/topo_{preselection}_{selection}_{binning_def[0]}_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
@@ -318,6 +352,19 @@ for binning_def in vdef.TKI_variables_1e1p:
         add_precomputed_detsys=add_precomputed_detsys,
         show_errorband=show_errorband,
     )
+
+    if data == "nuwro_fd":
+        ax = axes2[0]
+        ax.fill_between(
+            binning.bin_edges,
+            np.clip(repeated_nom_values(total_prediction) - uncertainties, 0, None),
+            repeated_nom_values(total_prediction) + uncertainties,
+            alpha=0.5,
+            step="post",
+            label="My uncertainty",
+            color="gray",
+        )
+        ax.set_ylim(0, ax.get_ylim()[1] * 1.5)
 
     plt.savefig(f'analysis_plots/unfolding_inputs/int_{preselection}_{selection}_{binning_def[0]}_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
     plt.savefig(f'analysis_plots/unfolding_inputs/int_{preselection}_{selection}_{binning_def[0]}_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')

@@ -147,7 +147,9 @@ def n_reco_showers(reco_showers_v):
 elec_p_min = 0. #GeV
 elec_p_max = 1.2 #GeV
 elec_mass = 0.511e-3 #GeV
-elec_E_min = np.sqrt(elec_p_min**2 + elec_mass**2)
+elec_KE_min = 0.03051 #GeV - minimum electron KE required to be visible inside the detector
+elec_E_min = elec_KE_min + elec_mass
+#elec_E_min = np.sqrt(elec_p_min**2 + elec_mass**2)
 elec_E_max = np.sqrt(elec_p_max**2 + elec_mass**2) # Upper limit currently unused
 
 def reco_elec_candidate_idx(reco_showers_v, shr_energy_cali):

@@ -30,15 +30,16 @@ keep_vars = [
     "pi0_radlen1", "pi0_radlen2", "pi0_score", "nonpi0_score", "bkg_score",
     "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
     "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
+    "ccnc",
 ]
 
-#RUN = ["5"]
+#RUN = ["3"]
 #RUN = ["1","2","3_nocrt","3_crt","4a","4b","4c","4d","5"] # use this if using CRT
-RUN = ["1","2","3","4a","4b","4c","4d","5"] # for detvars with bnb or for closure test
-#RUN = ["1","2","3","4c","5"] # for nuwro_fd, no run 4b and 4d available
-blinded = False
-data="nuwro_fd"
-#data="bnb"
+RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"] # for detvars with bnb or for closure test
+#RUN = ["1","2","3","4a","4c","5"] # for nuwro_fd, no run 4b and 4d available
+blinded = True
+#data="nuwro_fd"
+data="bnb"
 
 rundata, mc_weights, data_pot = dl.load_runs(
     RUN,
@@ -55,7 +56,7 @@ rundata, mc_weights, data_pot = dl.load_runs(
     keep_columns=keep_vars,
     blinded=blinded,
     load_crt_vars=False,
-    enable_cache=False,
+    enable_cache=True,
 )
 
 print('Loaded data')
@@ -74,7 +75,9 @@ from microfit import selections as sel
 query = f"{sel.preselection_categories[preselection]['query']} and {sel.selection_categories[selection]['query']}"
 
 all_mc = pd.concat([df for k, df in rundata.items() if k!='data'])
-sel_sig = all_mc.query(query, engine='python')
+is_sig = all_mc['category_1e1p'] == 12
+all_sig = all_mc.loc[is_sig]
+sel_sig = all_sig.query(query, engine='python')
 
 variables = {
 # #    '': {'reco': , 'truth': , 'nbins': , 'bounds': },
@@ -104,7 +107,7 @@ for k, var in variables.items():
     bin_edges = variables[k]['bin_edges']
     bin_edges_1d = variables[k]['bin_edges_1d']
     
-    truth_hist, truth_edges = np.histogram(sel_sig[truth], bins=bin_edges_1d, weights=sel_sig["weights"], range=bounds)
+    truth_hist, truth_edges = np.histogram(all_sig[truth], bins=bin_edges_1d, weights=all_sig["weights"], range=bounds)
     H, xedges, yedges = np.histogram2d(sel_sig[truth], sel_sig[reco], bins=bin_edges, weights=sel_sig["weights"], range=bounds)
     
     resp = H.T / truth_hist

@@ -30,11 +30,12 @@ keep_vars = [
     "pi0_radlen1", "pi0_radlen2", "pi0_score", "nonpi0_score", "bkg_score",
     "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
     "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
+    "ccnc",
 ]
 
 #RUN = ["1","2","3"]
 #RUN = ["1","2","3_nocrt","3_crt","4b","4c","4d","5"]
-RUN = ["1","2","3","4a","4b","4c","4d","5"]
+RUN = RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"]
 
 rundata, mc_weights, data_pot = dl.load_runs(
     RUN,
@@ -48,7 +49,7 @@ rundata, mc_weights, data_pot = dl.load_runs(
     use_bdt=True,
     load_lee=False,
     load_nue_tki=True,
-    keep_columns=keep_vars,
+    #keep_columns=keep_vars,
     blinded=True,
     load_crt_vars=False,
     enable_cache=True,

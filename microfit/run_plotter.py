@@ -46,6 +46,7 @@ class RunHistPlotter:
     def plot(
         self,
         category_column="dataset_name",
+        signal_category_num=None,
         include_multisim_errors=None,
         show_chi_square=False,
         add_ext_error_floor=None,
@@ -106,6 +107,11 @@ class RunHistPlotter:
             include_multisim_errors=False,
             scale_to_pot=scale_to_pot,
         )
+        # If you want to plot the signal hist at the bottom of the stack
+        if signal_category_num is not None:
+            value = mc_hists.pop(signal_category_num)
+            mc_hists = {signal_category_num: value, **mc_hists}
+
         signal_hist = None
         no_signal_query = None
         if separate_signal:

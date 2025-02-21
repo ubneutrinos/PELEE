@@ -12,6 +12,7 @@ from microfit import histogram as hist
 
 from microfit import variable_definitions as vdef
 from microfit import selections
+from microfit.xsec_signal_generator import XsecCovarHistGenerator
 
 print('Loaded packages')
 
@@ -30,12 +31,13 @@ keep_vars = [
     "pi0_radlen1", "pi0_radlen2", "pi0_score", "nonpi0_score", "bkg_score",
     "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
     "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
+    "ccnc",
 ]
 
 #RUN = ["5"]
 #RUN = ["1","2","3_nocrt","3_crt","4a","4b","4c","4d","5"]
 #RUN = ["1","2","3","4c","5"] # for nuwro_fd, no run 4b and 4d available
-RUN = ["1","2","3","4a","4b","4c","4d","5"]
+RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"]
 #RUN = ["3","4a","4b","4c","4d","5"]
 blinded = True
 
@@ -51,10 +53,10 @@ rundata, mc_weights, data_pot = dl.load_runs(
     use_bdt=True,
     load_lee=False,
     load_nue_tki=True,
-    #keep_columns=keep_vars,
+    keep_columns=keep_vars,
     blinded=True,
     load_crt_vars=False,
-    enable_cache=False,
+    enable_cache=True,
 )
 
 print('Loaded dataframes')
@@ -70,7 +72,7 @@ preselection = "OneP_new"
 all_mc = pd.concat([df for k, df in rundata.items() if k!='data'])
 all_sig = all_mc.query("category_1e1p == 12", engine='python')
 
-for binning_def in vdef.TKI_variables_1e1p:
+for binning_def in vdef.variables_1e1p:
     # some binning definitions have more than 4 elements,
     # we ignore the last ones for now
     #binning = hist.Binning.from_config(*binning_def[:4])
@@ -88,7 +90,8 @@ for binning_def in vdef.TKI_variables_1e1p:
     plotter = rp.RunHistPlotter(signal_generator)
     axes = plotter.plot(
         category_column="category_1e1p",
-        include_multisim_errors=True,
+        signal_category_num=12,
+        include_multisim_errors=False,
         add_ext_error_floor=False,
         show_data_mc_ratio=False,
         show_chi_square=False,
@@ -100,7 +103,7 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     axes2 = plotter.plot(
         category_column="interaction",
-        include_multisim_errors=True,
+        include_multisim_errors=False,
         add_ext_error_floor=False,
         show_data_mc_ratio=False,
         show_chi_square=False,

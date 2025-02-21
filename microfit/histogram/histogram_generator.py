@@ -1087,7 +1087,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 for universe in range(n_universes):
                     # get the weight column for this universe
                     weight_column_knob = (
-                        f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
+                        f"{knob}dn" if n_universes == 2 and universe == 1 else f"{knob}up"
                     )
                     bincounts = self._histogram_multi_channel(
                         dataframe,

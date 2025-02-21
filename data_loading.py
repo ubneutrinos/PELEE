@@ -2053,7 +2053,7 @@ def get_rundict(run_number, category):
     thisfile_path = os.path.dirname(os.path.realpath(__file__))
 
     # New ntuple paths!
-    with open(os.path.join(thisfile_path, "data_paths_crt.yml"), "r") as f:
+    with open(os.path.join(thisfile_path, "data_paths_fulldataset.yml"), "r") as f:
         pathdefs = yaml.safe_load(f)
 
     runpaths = pathdefs[category]
@@ -2062,7 +2062,7 @@ def get_rundict(run_number, category):
     # Search for the dictionary where 'run_id' matches the run_number
     rundict = next((d for d in runpaths if d["run_id"] == str(run_number)), None)
     if rundict is None:
-        raise ValueError(f"Run {run_number} not found in data_paths.yml for category {category}")
+        raise ValueError(f"Run {run_number} not found in data_paths_fulldataset.yml for category {category}")
 
     return rundict
 
@@ -2105,7 +2105,7 @@ def load_sample(
     # Load the file from data_path.yml
     if full_path == "":
 
-        if verbose: print("Using data_paths.yml to locate ntuple file")
+        if verbose: print("Using data_paths_fulldataset.yml to locate ntuple file")
 
         """Load one sample of one run for a particular kind of events."""
         
@@ -2117,14 +2117,17 @@ def load_sample(
             rundict = get_rundict(run_number, category)
             no_presel_path = rundict["path"][:-1] # deletes the last '/'
             no_presel_path = no_presel_path.rstrip('nuepresel') # deletes the 'nuepresel' from path
-            data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
-            #data_path = os.path.join(ls.ntuple_path, no_presel_path, rundict[dataset]["file"] + append + ".root")
+            #data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[dataset]["file"] + append + ".root")
+            data_path = os.path.join(ls.ntuple_path, no_presel_path, rundict[dataset]["file"] + append + ".root")
             
         else: 
             rundict = get_rundict(run_number, category)
             subdir = "numupresel" if loadnumuvariables else "nuepresel"
-            data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
-            #data_path = os.path.join(ls.ntuple_path, rundict["path"], rundict[variation][dataset]["file"] + append + ".root")
+            no_presel_path = rundict["path"][:-1] # deletes the last '/'
+            no_presel_path = no_presel_path.rstrip('/detvar') # deletes the '/detvar' from path
+            no_presel_path += "_detvar"
+            #data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
+            data_path = os.path.join(ls.ntuple_path, no_presel_path, rundict[variation][dataset]["file"] + append + ".root")
         if verbose: print("Loading ntuple file",data_path)
  
         # try returning an empty dataframe
@@ -2134,7 +2137,7 @@ def load_sample(
 
     # Load the data from its full path
     else: 
-        if verbose: print("Loading file",full_path,"instead of using data_paths.yml")
+        if verbose: print("Loading file",full_path,"instead of using data_paths_fulldataset.yml")
         data_path = full_path 
     
     print(data_path)       
@@ -2336,7 +2339,9 @@ def _load_run(
 
     category = "numupresel" if numupresel else "runs"
     # As a preparation step, we find out which variables we will need in order to do the truth-filtering
-    rundict = get_rundict(run_number, category)
+    run_number_tmp = run_number
+    if run_number in ["1A_OT","1B_OT"]: run_number_tmp = "1"
+    rundict = get_rundict(run_number_tmp, category)
     filter_vars = set()
     for truth_set in truth_filtered_sets:
         if truth_set == "drt":
@@ -2358,8 +2363,8 @@ def _load_run(
     data_pot, data_trig = get_pot_trig(run_number, category, data)
     weights["data"] = 1.0
     output["data"] = data_df
-    ext_df = load_sample(run_number, category, "ext", **load_sample_kwargs)
-    _, ext_trigger = get_pot_trig(run_number, category, "ext")  # ext has no POT
+    ext_df = load_sample(run_number_tmp, category, "ext", **load_sample_kwargs)
+    _, ext_trigger = get_pot_trig(run_number_tmp, category, "ext")  # ext has no POT
     ext_df["weights"] = data_trig / ext_trigger
     weights["ext"] = data_trig / ext_trigger
     output["ext"] = ext_df
@@ -2374,11 +2379,11 @@ def _load_run(
     expected_multisim_universes = {"weightsGenie": None, "weightsFlux": None, "weightsReint": None}
     for mc_set in mc_sets:
         if mc_set == "lee":
-            mc_df = load_sample(run_number, category, "nue", **load_sample_kwargs, use_lee_weights=True)
-            mc_pot, _ = get_pot_trig(run_number, category, "nue")  # nu has no trigger number
+            mc_df = load_sample(run_number_tmp, category, "nue", **load_sample_kwargs, use_lee_weights=True)
+            mc_pot, _ = get_pot_trig(run_number_tmp, category, "nue")  # nu has no trigger number
         else:
-            mc_df = load_sample(run_number, category, mc_set, **load_sample_kwargs)
-            mc_pot, _ = get_pot_trig(run_number, category, mc_set)  # nu has no trigger number
+            mc_df = load_sample(run_number_tmp, category, mc_set, **load_sample_kwargs)
+            mc_pot, _ = get_pot_trig(run_number_tmp, category, mc_set)  # nu has no trigger number
         mc_df["dataset"] = mc_set
         # For better performance, we want to convert the "dataset" column into a categorical column
         # where the categories are all the entries in mc_sets
@@ -2438,7 +2443,7 @@ def _load_run(
             continue
         else:
             # The filters are all the same, so we just take them from run 1 here
-            rundict = get_rundict(run_number, category)
+            rundict = get_rundict(run_number_tmp, category)
             df_temp = output["mc"].query(rundict[truth_set]["filter"], engine="python")
             output["mc"].drop(index=df_temp.index, inplace=True)
 
@@ -2540,7 +2545,7 @@ def _load_run_detvar(
 
     run_number_tmp = run_number
     if run_number in ["4a","4b","4c","4d"]: run_number_tmp = "4"
-    elif run_number in ["1","2"]: run_number_tmp = "1"
+    elif run_number in ["1","2","1A_OT","1B_OT"]: run_number_tmp = "1"
     elif run_number == "3": run_number_tmp = "3"
     elif run_number == "3_crt":
         run_number_tmp = "4"
