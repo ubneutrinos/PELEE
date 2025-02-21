@@ -1,5 +1,5 @@
 [persistence]
-output_dir = "../old_model_ana_output_with_3a/"
+output_dir = "../old_model_ana_ext_bin_range/"
 
 [plotting]
 [plotting.NPBDT]
@@ -116,8 +116,13 @@ truth_filtered_sets = ["nue","nc_pi0"]
 
 [[generator.channel]]
 variable = "reco_e"
-n_bins = 10
-limits = [0.15, 1.0]
+# n_bins = 10
+# limits = [0.15, 1.0]
+# Bin range extended to match other sideband channels. The oddly specific
+# numbers come from matching the bin edges of the previous binning up to
+# 1.0 GeV, and then extending the range to 1.595 GeV.
+n_bins = 17
+limits = [0.15, 1.595]
 selection = "ZPLOOSESELTWOSHR"
 preselection = "ZPTwoShrCRT"
 label = "TWOSHR"
@@ -167,8 +172,8 @@ bounds = [0.0, 10.0]
 
 [[generator.channel]]
 variable = "reco_e"
-n_bins = 10
-limits = [0.15, 1.55]
+n_bins = 17
+limits = [0.01, 2.39]
 selection = "NPBDT"
 preselection = "NP"
 variable_tex = "Reconstructed neutrino energy (GeV)"
@@ -176,8 +181,8 @@ variable_tex_short = "$E_{\\mathrm{reco}}$"
 
 [[generator.channel]]
 variable = "reco_e"
-n_bins = 10
-limits = [0.15, 1.55]
+n_bins = 17
+limits = [0.01, 2.39]
 # Adding CRT cuts to the ZP channel
 selection = "ZPBDT_CRT"
 preselection = "ZP"
@@ -187,8 +192,8 @@ variable_tex_short = "$E_{\\mathrm{reco}}$"
 
 [[generator.channel]]
 variable = "reco_e"
-n_bins = 10
-limits = [0.15, 1.55]
+n_bins = 17
+limits = [0.01, 2.39]
 selection = "ZPBDT"
 preselection = "ZP"
 label = "ZPBDT_NOCRT"

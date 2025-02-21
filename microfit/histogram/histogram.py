@@ -156,6 +156,7 @@ class Histogram:
         as_errorbars: bool = False,
         show_errors: bool = True,
         with_ylabel: bool = True,
+        allow_negative: bool = False,
         **plot_kwargs,
     ) -> Axes:
         """Draw the histogram on a matplotlib axis.
@@ -214,7 +215,7 @@ class Histogram:
 
         ax.fill_between(
             bin_edges,
-            np.clip(bin_counts - uncertainties, 0, None),
+            np.clip(bin_counts - uncertainties, -np.inf if allow_negative else 0, None),
             bin_counts + uncertainties,
             alpha=errband_alpha,
             step="post",
@@ -404,6 +405,13 @@ class Histogram:
 
     def sum(self):
         return np.sum(self.bin_counts)
+    
+    def sum_std(self):
+        """Return the standard deviation of the sum of the bin counts. This takes the correlation
+        between the bin counts into account."""
+        a = np.ones(self.n_bins)
+        cov = self.covariance_matrix
+        return np.sqrt(np.dot(a, np.dot(cov, a)))
 
     def add_covariance(self, cov_mat, fractional=False):
         """Add a covariance matrix to the uncertainties of the histogram.
@@ -986,6 +994,7 @@ class MultiChannelHistogram(Histogram):
         self,
         measurement: Union[Histogram, "MultiChannelHistogram"],
         central_value: Optional[Union[np.ndarray, Histogram]] = None,
+        sideband_cnp_covariance: Optional[np.ndarray] = None,
     ) -> "MultiChannelHistogram":
         """Perform the Bayesian update of the histogram given a measurement of one channel.
 
@@ -1000,6 +1009,9 @@ class MultiChannelHistogram(Histogram):
             Central value of the sideband. If provided, this overrides the expectation value
             of the sideband that is stored in the histogram. We might use this if, for instance,
             the expectation value of the sideband is the sum of MC and EXT data.
+        sideband_cnp_covariance : np.ndarray, optional
+            CNP covariance of the sideband. If provided, this overrides the CNP covariance
+            that is computed by default from the sideband expectation and the measurement.
 
         Returns
         -------
@@ -1040,9 +1052,10 @@ class MultiChannelHistogram(Histogram):
         else:
             raise ValueError("central_value must be a Histogram or an ndarray.")
         concat_covariance_matrix = rearranged_hist.covariance_matrix
-        sideband_cnp_covariance = get_cnp_covariance(
-            sideband_2d_central_value, measurement._bin_counts
-        )
+        if sideband_cnp_covariance is None:
+            sideband_cnp_covariance = get_cnp_covariance(
+                sideband_2d_central_value, measurement._bin_counts
+            )
         assert sideband_cnp_covariance.ndim == 2, "CNP covariance must be 2-dimensional."
         # When we compute the constraint correction, then we only want to use the diagonal
         # elements of the measurement and the expectation. The off-diagonal element only
@@ -1277,13 +1290,15 @@ class MultiChannelHistogram(Histogram):
         as_errorbars=False,
         show_errors=True,
         with_ylabel=True,
+        allow_negative=False,
         show_channel_labels=True,
+        show_channel_dividers=True,
         **plot_kwargs,
     ):
         # call the draw method of the unrolled histogram
         unrolled_hist = self.get_unrolled_histogram()
         ax = unrolled_hist.draw(
-            ax, as_errorbars, show_errors, with_ylabel=with_ylabel, **plot_kwargs
+            ax, as_errorbars, show_errors, with_ylabel=with_ylabel, allow_negative=allow_negative, **plot_kwargs
         )
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
 
@@ -1295,8 +1310,9 @@ class MultiChannelHistogram(Histogram):
             return f"{binning.selection_tex_short}, {binning.variable_tex_short}"
 
         channel_labels = [channel_label(b) for b in self.binning]
-        for n_bins in channel_n_bins[1:-1]:
-            ax.axvline(n_bins, color="k", linestyle="--")
+        if show_channel_dividers:
+            for n_bins in channel_n_bins[1:-1]:
+                ax.axvline(n_bins, color="k", linestyle="--")
 
         # Add text boxes for each channel label
         if show_channel_labels:
@@ -1314,19 +1330,48 @@ class MultiChannelHistogram(Histogram):
         return ax
 
     def draw_covariance_matrix(
-        self, ax=None, as_correlation=True, as_fractional=False, colorbar_kwargs=None, **plot_kwargs
+        self, ax=None, as_correlation=True, as_fractional=False, colorbar_kwargs=None, override_selection_tex={}, labels_on_axes=["x", "y"], label_rotations={"x": 45, "y": 45}, use_variable_label=True, **plot_kwargs
     ):
+        """Draw the covariance matrix of the histogram.
+        
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to draw the covariance matrix on. If None, a new figure is created.
+        as_correlation : bool, optional
+            If True, draw the correlation matrix instead of the covariance matrix.
+        as_fractional : bool, optional
+            If True, draw the fractional covariance matrix instead of the covariance matrix.
+        colorbar_kwargs : dict, optional
+            Keyword arguments passed to the colorbar.
+        override_selection_tex : dict, optional
+            Dictionary mapping channel labels to custom tex strings.
+        labels_on_axes : list, optional
+            List of axes to draw channel labels on. Can be "x" or "y".
+        label_rotations : dict, optional
+            Dictionary mapping axes to rotation angles for the labels.
+        use_variable_label : bool, optional
+            If True, include the variable label in the channel labels.
+        plot_kwargs
+            Additional keyword arguments passed to the pcolormesh function.
+        """
         ax = self.get_unrolled_histogram().draw_covariance_matrix(
             ax, as_correlation, as_fractional, colorbar_kwargs, **plot_kwargs
         )
         channel_n_bins = np.cumsum([0] + [len(b) for b in self.binning])
 
         def channel_label(binning):
-            if binning.selection_tex_short is None:
-                return binning.label
-            if binning.variable_tex_short is None:
-                return binning.selection_tex_short
-            return f"{binning.selection_tex_short}, {binning.variable_tex_short}"
+            channel = binning.label
+            if channel in override_selection_tex:
+                label = override_selection_tex[channel]
+            elif binning.selection_tex_short is not None:
+                label = binning.selection_tex_short
+            else:
+                label = channel
+            variable_label = binning.variable_tex_short
+            if variable_label is None or not use_variable_label:
+                return label
+            return f"{label}, {variable_label}"
 
         channel_labels = [channel_label(b) for b in self.binning]
         for n_bins in channel_n_bins[1:-1]:
@@ -1344,21 +1389,24 @@ class MultiChannelHistogram(Histogram):
         ax.set_ylabel("")
         # Add text boxes for each channel label
         for i, label in enumerate(channel_labels):
-            ax.text(
-                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
-                -0.5,
-                label,
-                ha="center",
-                va="top",
-            )
-            ax.text(
-                -0.5,
-                (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
-                label,
-                ha="right",
-                va="center",
-                rotation=90,
-            )
+            if "x" in labels_on_axes:
+                ax.text(
+                    (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                    -0.5,
+                    label,
+                    ha="center",
+                    va="top",
+                    rotation=label_rotations["x"],
+                )
+            if "y" in labels_on_axes:
+                ax.text(
+                    -0.5,
+                    (channel_n_bins[i] + channel_n_bins[i + 1]) / 2,
+                    label,
+                    ha="right",
+                    va="center",
+                    rotation=label_rotations["y"],
+                )
 
         return ax
 

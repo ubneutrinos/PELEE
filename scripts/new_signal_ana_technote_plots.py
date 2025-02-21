@@ -19,7 +19,7 @@ from microfit.analysis import MultibandAnalysis
 import logging
 
 config_file = "../config_files/full_ana_with_detvars.toml"
-output_dir = "../full_ana_remerged_crt_output/"
+output_dir = "../full_ana_with_run3a_output/"
 
 analysis = MultibandAnalysis.from_toml(
     config_file,
@@ -66,6 +66,7 @@ analysis.plot_signals(
     separate_figures=True,
     add_precomputed_detsys=True,
     save_path=output_dir,
+    show_data=False
 )
 
 # %%
@@ -79,6 +80,7 @@ analysis.plot_signals(
     separate_figures=True,
     add_precomputed_detsys=True,
     save_path=output_dir,
+    show_data=False,
 )
 
 # %%
@@ -343,7 +345,7 @@ def plot_two_hypo_result(results_path, plot_path, title):
 # %%
 plot_two_hypo_result(
     os.path.join(output_dir, "two_hypo_result_shr_e.json"),
-    os.path.join(output_dir, "two_hypo_result_shr_e.pdf"),
+    os.path.join(output_dir, "two_hypo_sensitivity_shr_e.pdf"),
     "Sensitivity, Runs 1-5, Reco. Shower Energy",
 )
 # %%
@@ -369,7 +371,7 @@ to_json(
 # %%
 plot_two_hypo_result(
     os.path.join(output_dir, "two_hypo_result_shr_costheta.json"),
-    os.path.join(output_dir, "two_hypo_result_shr_costheta.pdf"),
+    os.path.join(output_dir, "two_hypo_sensitivity_shr_costheta.pdf"),
     "Sensitivity, Runs 1-5, Reco. $\\cos(\\theta)$",
 )
 

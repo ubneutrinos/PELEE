@@ -1,7 +1,11 @@
 """Module to plot histograms for runs of data and simulation."""
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
+import matplotlib as mpl
+mpl.rc('hatch', linewidth=0.5)
+from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.transforms import blended_transform_factory
 import numpy as np
 from scipy.stats import chi2
 import itertools
@@ -35,11 +39,11 @@ class RunHistPlotter:
         if data_pot is None:
             return None
         if scale_to_pot is None:
-            pot_in_sci_notation = "{:.1e}".format(data_pot)
+            pot_in_sci_notation = "{:.2e}".format(data_pot)
             base, exponent = pot_in_sci_notation.split("e")
             return f"${base} \\times 10^{{{int(exponent)}}}$ POT"
         else:
-            pot_in_sci_notation = "{:.1e}".format(scale_to_pot)
+            pot_in_sci_notation = "{:.2e}".format(scale_to_pot)
             base, exponent = pot_in_sci_notation.split("e")
             return f"MC scaled to ${base} \\times 10^{{{int(exponent)}}}$ POT"
 
@@ -68,10 +72,19 @@ class RunHistPlotter:
         separate_signal=True,
         run_title=None,
         legend_cols=3,
+        legend_kwargs=None,
+        draw_legend=True,
+        sums_in_legend=True,
         extra_text=None,
+        extra_text_location="left",
         figsize=(6, 4),
+        mb_label_location="right",
+        mb_preliminary=True,
+        signal_label=None,
+        show_signal_in_ratio=False,
+        signal_color="red",
         **kwargs,
-    ):
+    ) -> Tuple[plt.Axes, Optional[plt.Axes]]:
         gen = self.run_hist_generator
 
         def flatten(hist) -> Histogram:
@@ -99,7 +112,7 @@ class RunHistPlotter:
         )
         assert isinstance(ext_hist, Histogram)
         if ext_hist is not None:
-            ext_hist.tex_string = "EXT"
+            ext_hist.tex_string = "Cosmics"
             ext_hist = flatten(ext_hist)
 
         mc_hists = gen.get_mc_hists(
@@ -136,12 +149,12 @@ class RunHistPlotter:
             extra_query=extra_query,
         )
         total_pred_hist = flatten(total_mc_hist)
-        total_pred_hist.tex_string = "Total Pred. (MC)"
+        total_pred_hist.tex_string = "Total (MC)"
         if ext_hist is not None:
             total_pred_hist += ext_hist
-            total_pred_hist.tex_string = "Total Pred. (MC + EXT)"
+            total_pred_hist.tex_string = "Total predicted"
         if use_sideband:
-            total_pred_hist.tex_string += "\nconstrained"
+            total_pred_hist.tex_string += ",\nconstrained"
         # This should not be the method to blind the analysis! The only purpose of this
         # flag is to hide the data in plots where all the data bin counts have been set to
         # zero. This happens inside a multi-band analysis, where not all bands might be
@@ -198,8 +211,16 @@ class RunHistPlotter:
             signal_hist=signal_hist,
             run_title=run_title,
             legend_cols=legend_cols,
+            legend_kwargs=legend_kwargs,
+            draw_legend=draw_legend,
+            sums_in_legend=sums_in_legend,
             extra_text=extra_text,
+            extra_text_location=extra_text_location,
             figsize=figsize,
+            mb_label_location=mb_label_location,
+            mb_preliminary=mb_preliminary,
+            signal_label=signal_label,
+            signal_color=signal_color,
             **kwargs,
         )
         if not show_data_mc_ratio:
@@ -231,8 +252,23 @@ class RunHistPlotter:
             as_errorbars=True,
             color="k",
         )
+        if show_signal_in_ratio and signal_hist is not None:
+            y_bkg = total_pred_hist.bin_counts
+            y_sig = signal_hist.bin_counts
+            y_sig_ratio = (y_sig + y_bkg) / y_bkg
+            
+            y_sig_ratio = np.append(y_sig_ratio, y_sig_ratio[-1])
 
-        ax_ratio.set_ylabel("Data/MC")
+            ax_ratio.step(
+                signal_hist.binning.bin_edges,
+                y_sig_ratio,
+                where="post",
+                color=signal_color,
+                linestyle="--",
+                lw=2,
+            )
+
+        ax_ratio.set_ylabel("Ratio w.r.t. MC")
         ax_ratio.set_xlabel(total_pred_hist.binning.variable_tex)
 
         return ax, ax_ratio
@@ -251,13 +287,23 @@ class RunHistPlotter:
         chi_square=None,
         stacked=True,
         show_total=True,
+        total_linestyle="--",
+        show_total_unconstrained=True,
         data_pot=None,
         signal_hist: Optional[Histogram] = None,
         run_title=None,
         include_empty_hists=False,
         legend_cols=3,
+        legend_kwargs=None,
+        draw_legend=True,
+        sums_in_legend=True,
         extra_text=None,
+        extra_text_location="left",
         figsize=(6, 4),
+        mb_label_location="right",
+        mb_preliminary=True,
+        signal_label=None,
+        signal_color="red",
         **kwargs,
     ):
         if not include_empty_hists:
@@ -268,12 +314,14 @@ class RunHistPlotter:
                 ax=ax,
                 show_errorband=False,
                 figsize=figsize,
+                show_counts=sums_in_legend,
+                show_total=show_total_unconstrained,
+                total_label="Total predicted,\nunconstrained",
                 **kwargs,
             )
-            if signal_hist is not None and signal_hist.sum() > 0:
-                background_sum = sum(background_hists, Histogram.empty_like(background_hists[0]))
-                # Plot the signal on top of the background
-                y_bkg = background_sum.bin_counts
+            if signal_hist is not None and signal_hist.sum() != 0:
+                # Plot signal on top of total prediction (incl. constraints)
+                y_bkg = total_pred_hist.bin_counts
                 y_sig = signal_hist.bin_counts
                 # Repeat the last element so that we can make a step plot
                 y_bkg = np.append(y_bkg, y_bkg[-1])
@@ -282,9 +330,9 @@ class RunHistPlotter:
                     signal_hist.binning.bin_edges,
                     y_bkg + y_sig,
                     where="post",
-                    color="red",
+                    color=signal_color,
                     linestyle="--",
-                    lw=1.5,
+                    lw=2,
                 )
                 # Add vertical lines to "cap off" the signal at the ends and connect it
                 # to the background
@@ -292,17 +340,17 @@ class RunHistPlotter:
                     signal_hist.binning.bin_edges[0],
                     y_bkg[0],
                     y_bkg[0] + y_sig[0],
-                    color="red",
+                    color=signal_color,
                     linestyle="--",
-                    lw=1.5,
+                    lw=2,
                 )
                 ax.vlines(
                     signal_hist.binning.bin_edges[-1],
                     y_bkg[-1],
                     y_bkg[-1] + y_sig[-1],
-                    color="red",
+                    color=signal_color,
                     linestyle="--",
-                    lw=1.5,
+                    lw=2,
                 )
         else:
             for background_hist in background_hists:
@@ -310,6 +358,7 @@ class RunHistPlotter:
                     background_hist,
                     ax=ax,
                     show_errorband=False,
+                    sums_in_legend=sums_in_legend,
                     **kwargs,
                 )
         if show_total:
@@ -319,80 +368,160 @@ class RunHistPlotter:
                 show_errorband=show_errorband,
                 uncertainty_color=uncertainty_color,
                 uncertainty_label=uncertainty_label,
+                linestyle=total_linestyle,
                 color="k",
-                lw=1.0,
+                lw=2,
             )
         assert ax is not None
         if scale_to_pot is None:
             if data_hist is not None:  # skip if no data (as is the case for blind analysis)
                 # rescaling data to a different POT doesn't make sense
-                data_label = f"Data: {data_hist.sum():.1f}"
+                if sums_in_legend:
+                    data_label = f"Data: {data_hist.sum():.0f}"
+                else:
+                    data_label = "Data"
                 ax = self.plot_hist(
                     data_hist,
                     ax=ax,
                     label=data_label,
                     color="black",
                     as_errorbars=True,
+                    lw=1.50,
                     **kwargs,
                 )
+        chi2_text = None
         if chi_square is not None:
             n_bins = total_pred_hist.binning.n_bins
             # calculate the p-value corresponding to the observed chi-square
             # and dof using scipy
             p_value = 1 - chi2.cdf(chi_square, n_bins)
             chi2_label = rf"$\chi^2$ = {chi_square:.1f}, p={p_value*100:.1f}%"
-            ax.text(
-                0.05,
-                0.97,
+            chi2_text = ax.text(
+                0.03,
+                0.92,
                 chi2_label,
                 ha="left",
-                va="top",
+                va="baseline",
                 transform=ax.transAxes,
-                fontsize=10,
-                bbox=dict(facecolor="white", edgecolor="none", alpha=0.8),
+                fontsize=9,
             )
-        pot_label = self.get_pot_label(
-            scale_to_pot, has_data=data_hist is not None, data_pot=data_pot
-        )
-        if title is not None and pot_label is not None:
-            title += ", " + pot_label
-        elif title is None:
-            title = pot_label
         if run_title is not None:
             if title is not None:
                 title = f"{run_title}, {title}"
             else:
                 title = run_title
-        if extra_text is not None:
-            title += "\n" + extra_text
+        pot_label = self.get_pot_label(scale_to_pot, data_pot=data_pot)
+        mb_label = "MicroBooNE"
+        if mb_preliminary:
+            mb_label += " preliminary"
+        if pot_label is not None:
+            mb_label += f", {pot_label}"
+        # if title is not None:
+        #     title += "\n" + mb_label
+        # else:
+        #     title = mb_label
+        
+        title_text = None
         if title is not None:
-            ax.text(
+            title_text = ax.text(
                 0.97,
-                0.97,
+                0.92,
                 title,
                 ha="right",
-                va="top",
+                va="baseline",
                 transform=ax.transAxes,
-                fontsize=10,
+                fontsize=9,
             )
+        if extra_text is not None:
+            if title_text is not None:
+                # Write the extra text as an annotation below the
+                # existing text. We set the "title_text" to the newly
+                # created text, so that the MB label will be annotated
+                # underneath.
+                title_text = ax.annotate(
+                    extra_text,
+                    xy=(1, 0),
+                    xycoords=title_text,
+                    xytext=(0, -2),
+                    textcoords="offset points",
+                    ha="right",
+                    # Using top alignment here, because this text could
+                    # have more than one line.
+                    va="top",
+                    fontsize=9,
+                )
+            else:
+                title_text = ax.text(
+                    0.97,
+                    0.92,
+                    extra_text,
+                    ha="right",
+                    va="baseline",
+                    transform=ax.transAxes,
+                    fontsize=9,
+                )
+        if title_text is not None:
+            # Place the microboone and POT label right below this text
+            # using annotate
+            if mb_label_location == "right":
+                mb_label_text = ax.annotate(
+                    mb_label,
+                    xy=(1, 0),
+                    xycoords=title_text,
+                    xytext=(0, -10),
+                    textcoords="offset points",
+                    ha="right",
+                    va="baseline",
+                    fontsize=8,
+                )
+            elif mb_label_location == "left":
+                if chi2_text is not None:
+                    # place below chi2 text, left aligned
+                    mb_label_text = ax.annotate(
+                        mb_label,
+                        xy=(0, 0),
+                        xycoords=chi2_text,
+                        xytext=(0, -10),
+                        textcoords="offset points",
+                        ha="left",
+                        va="baseline",
+                        fontsize=8,
+                    )
+                else:
+                    # place where the chi2 text would have been
+                    mb_label_text = ax.text(
+                        0.03,
+                        0.92,
+                        mb_label,
+                        ha="left",
+                        va="baseline",
+                        transform=ax.transAxes,
+                        fontsize=8,
+                    )
         ax.set_ylabel("Events")
         # Get existing legend handles and labels
         handles, labels = ax.get_legend_handles_labels()
 
-        if signal_hist is not None and signal_hist.sum() > 0:
-            # Create a Patch object for the new legend entry
-            red_patch = Patch(
-                edgecolor="red",
-                facecolor="none",
+        if signal_hist is not None and signal_hist.sum() != 0:
+            # Create a Line2D object for the new legend entry
+            if signal_label is None:
+                signal_label = signal_hist.tex_string
+            red_line = Line2D(
+                [],
+                [],
+                color=signal_color,
                 linestyle="--",
-                lw=1.5,
-                label=f"{signal_hist.tex_string}: {signal_hist.sum():.1f}",
+                linewidth=2,
+                label=f"{signal_label}: {signal_hist.sum():.1f}",
             )
             # Append new handle and label
-            handles.append(red_patch)
-            labels.append(f"{signal_hist.tex_string}: {signal_hist.sum():.1f}")
+            handles.append(red_line)
+            if sums_in_legend:
+                labels.append(f"{signal_label}: {signal_hist.sum():.1f}")
+            else:
+                labels.append(signal_label)
 
-        ax.legend(
+        default_legend_kwargs = dict(
             loc="lower left",
             bbox_to_anchor=(0.0, 1.02, 1.0, 0.102),
             ncol=legend_cols,
@@ -401,11 +530,17 @@ class RunHistPlotter:
             bbox_transform=ax.transAxes,
             fontsize="small",
             frameon=False,
-            handles=handles,
-            labels=labels,
         )
-        ax.set_ylim(0, ax.get_ylim()[1] * 1.1)
-        #ax.grid(axis="y")
+        if legend_kwargs is None:
+            legend_kwargs = default_legend_kwargs
+        legend_kwargs.update(handles=handles, labels=labels)
+        if draw_legend:
+            ax.legend(**legend_kwargs)
+        ax.set_ylim(0, ax.get_ylim()[1] * 1.15)
+        # Set x-limits to the outermost bin edges
+        bin_edges = total_pred_hist.binning.bin_edges
+        ax.set_xlim((bin_edges[0], bin_edges[-1]))
+
         return ax
 
     def plot_hist(
@@ -428,6 +563,12 @@ class RunHistPlotter:
         bin_edges = hist.binning.bin_edges
         label = kwargs.pop("label", hist.tex_string)
         color = kwargs.pop("color", hist.color)
+        if "linewidth" in kwargs:
+            linewidth = kwargs.pop("linewidth", 1.0)
+        elif "lw" in kwargs:
+            linewidth = kwargs.pop("lw", 1.0)
+        else:
+            linewidth = 1.0
         if as_errorbars:
             bin_widths = np.diff(bin_edges)
             ax.errorbar(
@@ -439,7 +580,7 @@ class RunHistPlotter:
                 marker=".",
                 label=label,
                 color=color,
-                linewidth=1.0,
+                linewidth=linewidth,
                 **kwargs,
             )
             return ax
@@ -454,6 +595,7 @@ class RunHistPlotter:
             label=label,
             color=color,
             linestyle=linestyle,
+            linewidth=linewidth,
             **kwargs,
         )
         if not show_errorband:
@@ -471,10 +613,14 @@ class RunHistPlotter:
             bin_edges,
             np.clip(bin_counts - uncertainties, 0, None),
             bin_counts + uncertainties,
-            alpha=0.5,
+            alpha=1.0,
             step="post",
             label=uncertainty_label,
-            **kwargs,
+            linewidth=0.0,
+            hatch="///////",
+            facecolor="none",
+            edgecolor=(0.1, 0.1, 0.1),
+            # **kwargs,
         )
 
         return ax
@@ -487,6 +633,8 @@ class RunHistPlotter:
         uncertainty_color=None,
         uncertainty_label=None,
         show_counts=True,
+        show_total=True,
+        total_label="Total",
         figsize=(6, 4),
         **kwargs,
     ):
@@ -522,7 +670,7 @@ class RunHistPlotter:
             hatches=hatches,
             **kwargs,
         )
-        if not show_errorband:
+        if not show_total:
             return ax
         # plot uncertainties as a shaded region, but only for the sum of all hists
         summed_hist = sum(hists)
@@ -533,8 +681,12 @@ class RunHistPlotter:
             repeated_nom_values(summed_hist),
             where="post",
             color="k",
-            lw=0.5,
+            linestyle="-",
+            lw=1.5,
+            label=total_label,
         )
+        if not show_errorband:
+            return ax
         # show uncertainty as shaded region
         uncertainties = summed_hist.std_devs
         uncertainties = np.append(uncertainties, uncertainties[-1])
@@ -670,6 +822,7 @@ def stackplot(axes, x, *args, labels=(), colors=None, hatches=None, **kwargs):
                 edgecolor=edgecolor,
                 hatch=hatch,
                 label=next(labels, None),
+                linewidth=0,
                 **kwargs,
             )
         )

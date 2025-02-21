@@ -574,19 +574,19 @@ def add_paper_numu_category(df, key):
     df.loc[:, "paper_category_numu"] = 0
     if key in ["data", "nu"]:
         return
-    df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 2
-    df.loc[(df["ccnc"] == 1), "paper_category_numu"] = 3
+    df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 2  # cc
+    df.loc[(df["ccnc"] == 1), "paper_category_numu"] = 3  # nc
     if key == "nue":
-        df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 11
+        df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 11  # nue cc
         return
     if key == "lee":
-        df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 111
+        df.loc[(df["ccnc"] == 0), "paper_category_numu"] = 111  # lee
         return
     if key == "dirt":
         df["paper_category"] = 5
         df["paper_category_numu"] = 5
         return
-
+    df.loc[(df["npi0"] > 0), "paper_category_numu"] = 31  # nu NC with pi0
 
 def add_paper_categories(df, key):
     #add_paper_category_fixed(df, key)
@@ -2151,13 +2151,14 @@ def load_sample(
     # dummy CRT variables into the dataframes that ensure that they have no effect when the CRT cuts 
     # are applied, i.e., the CRT condition is always True.
     if load_crt_vars:
-        if int(run_number[0]) < 3:
-            print("CRT variables are not available for runs < 3. Variables will be added to data frame with values "
+        if run_number in ["1", "2", "3_nocrt"]:
+            print("CRT variables are not available for runs 1, 2 and 3a ('3_nocrt'). Variables will be added to data frame with values "
                   "that ensure that the CRT condition is always True.")
 
     fold = "nuselection"
     tree = "NeutrinoSelectionFilter"
 
+    print(f"Loading data from: {data_path}")
     with uproot.open(data_path) as up_file:
         up = up_file[fold][tree]
 
@@ -2182,10 +2183,10 @@ def load_sample(
         df["extdata"] = dataset == "ext"
 
         # trk_energy_tot agrees here
-        # For runs before 3, we put values into the CRT variables that ensure that the CRT condition is always True
+        # For runs 1, 2 and 3a ('3_nocrt'), we put values into the CRT variables that ensure that the CRT condition is always True
         # The CRT condition is: 
         #    (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.0
-        if int(run_number[0]) < 3:
+        if run_number in ["1", "2", "3_nocrt"]:
             df["crtveto"] = 0
             df["crthitpe"] = 0
             df["_closestNuCosmicDist"] = 10.0
@@ -2547,11 +2548,9 @@ def _load_run_detvar(
     if run_number in ["4a","4b","4c","4d"]: run_number_tmp = "4"
     elif run_number in ["1","2","1A_OT","1B_OT"]: run_number_tmp = "1"
     elif run_number == "3": run_number_tmp = "3"
-    elif run_number == "3_crt":
-        run_number_tmp = "4"
-        print("Using run 4 to compute detvars for run 3_crt! Please fix missing CRT variables in run 3!")
+    elif run_number == "3_crt" or run_number == "3" or run_number == "3_nocrt": run_number_tmp = "3"
     elif run_number == "5": run_number_tmp = "5"
-    else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,3_crt,4b,4c,4d,5")
+    else: raise ValueError("Detector uncertainties only supported for runs 1,2,3,3_crt,3_nocrt,4b,4c,4d,5")
 
     rundict = get_rundict(run_number_tmp, "detvar")
     weights = dict()
@@ -2666,8 +2665,8 @@ def load_run_detvar(
 def load_runs(run_numbers, **load_run_kwargs):
 
     # Can't use run 3 and run 3_crt at the same time - they're the same data!
-    if "3" in run_numbers and "3_crt" in run_numbers:
-        raise ValueError("You cannot use run 3 and run 3_crt at the same time. They contain overlapping data.")
+    if "3" in run_numbers and ("3_crt" in run_numbers or "3_nocrt" in run_numbers):
+        raise ValueError("You cannot use run 3 and run 3_crt or 3_nocrt at the same time. They contain overlapping data.")
 
     runsdata = {}  # dictionary containing each run dictionary
     weights = {}  # dictionary containing each weights dictionary

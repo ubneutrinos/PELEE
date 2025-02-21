@@ -3,7 +3,12 @@ as a signal generator when defining an analysis in a toml file.
 """
 
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, overload
+# Import Literal for Python <= 3.7
+try:
+    from typing import Literal  # type: ignore
+except ImportError:
+    from typing_extensions import Literal
 import numpy as np
 from copy import deepcopy
 
@@ -11,6 +16,7 @@ import pandas as pd
 from microfit.histogram import (
     Binning,
     HistogramGenerator,
+    Histogram,
     RunHistGenerator,
     MultiChannelBinning,
     MultiChannelHistogram,
@@ -126,11 +132,66 @@ class SignalOverBackgroundGenerator(HistogramGenerator):
     def _resync_parameters(self):
         self.parameters.synchronize(self.hist_generator.parameters)
 
+    # Sub-classes have to redefine all of the overloads
+    @overload
     def calculate_multisim_uncertainties(
-        self, *args, **kwargs
+        self,
+        multisim_weight_column: str,
+        weight_rescale: float = ...,
+        weight_column: Optional[str] = ...,
+        central_value_hist: Optional[Union[Histogram, MultiChannelHistogram]] = ...,
+        extra_query: Optional[str] = ...,
+        return_histograms: Literal[False] = ...,
+    ) -> np.ndarray:
+        ...
+
+    @overload
+    def calculate_multisim_uncertainties(
+        self,
+        multisim_weight_column: str,
+        weight_rescale: float = ...,
+        weight_column: Optional[str] = ...,
+        central_value_hist: Optional[Union[Histogram, MultiChannelHistogram]] = ...,
+        extra_query: Optional[str] = ...,
+        return_histograms: Literal[True] = ...,
+    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        ...
+
+    def calculate_multisim_uncertainties(
+        self,
+        multisim_weight_column: str,
+        weight_rescale: float = 1 / 1000,
+        weight_column: Optional[str] = None,
+        central_value_hist: Optional[Union[Histogram, MultiChannelHistogram]] = None,
+        extra_query: Optional[str] = None,
+        return_histograms: bool = False,
     ) -> Union[np.ndarray, Tuple[np.ndarray, Optional[np.ndarray]]]:
-        return_histograms = kwargs.get("return_histograms", False)
-        result = self.hist_generator.calculate_multisim_uncertainties(*args, **kwargs)
+        # This looks overly verbose, but is necessary for the type checker to understand
+        # which overload is being used. If we were to just forward the return_histograms
+        # argument to the underlying hist_generator, the type checker would produce 
+        # an error because it would try to assign the bool variable to a Literal[True] or
+        # Literal[False] type, which is not possible. That's why we need to explicitly 
+        # write two branches here.
+        if return_histograms:
+            # Type checker now knows this branch uses the Literal[True] overload
+            result = self.hist_generator.calculate_multisim_uncertainties(
+                multisim_weight_column,
+                weight_rescale=weight_rescale,
+                weight_column=weight_column,
+                central_value_hist=central_value_hist,
+                extra_query=extra_query,
+                return_histograms=True,  # Literal True instead of bool variable
+            )
+        else:
+            # Type checker knows this branch uses the Literal[False] overload
+            result = self.hist_generator.calculate_multisim_uncertainties(
+                multisim_weight_column,
+                weight_rescale=weight_rescale,
+                weight_column=weight_column,
+                central_value_hist=central_value_hist,
+                extra_query=extra_query,
+                return_histograms=False,  # Literal False instead of bool variable
+            )
         summed_cov = None
         if not return_histograms:
             assert isinstance(result, np.ndarray), "Result must be a numpy array"

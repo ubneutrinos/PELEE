@@ -165,9 +165,10 @@ name = "signal_strength"
 value = 1.0
 bounds = [0.0, 10.0]
 
+# To test just the normalization, we use a binning with just one bin.
 [[generator.channel]]
 variable = "reco_e"
-n_bins = 10
+n_bins = 1
 limits = [0.15, 1.55]
 selection = "NPBDT"
 preselection = "NP"
@@ -176,21 +177,11 @@ variable_tex_short = "$E_{\\mathrm{reco}}$"
 
 [[generator.channel]]
 variable = "reco_e"
-n_bins = 10
+n_bins = 1
 limits = [0.15, 1.55]
 # Adding CRT cuts to the ZP channel
 selection = "ZPBDT_CRT"
 preselection = "ZP"
 label = "ZPBDT"
-variable_tex = "Reconstructed neutrino energy (GeV)"
-variable_tex_short = "$E_{\\mathrm{reco}}$"
-
-[[generator.channel]]
-variable = "reco_e"
-n_bins = 10
-limits = [0.15, 1.55]
-selection = "ZPBDT"
-preselection = "ZP"
-label = "ZPBDT_NOCRT"
 variable_tex = "Reconstructed neutrino energy (GeV)"
 variable_tex_short = "$E_{\\mathrm{reco}}$"

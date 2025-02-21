@@ -41,8 +41,6 @@ jobs:
         pip install pandas-stubs
         # Install Node.js and npm (if not already installed)
         conda install -c conda-forge nodejs
-        # Install Pyright using npm
-        npm install -g pyright
     - name: Create localSettings module
       shell: bash -l {0}
       run: |
@@ -50,12 +48,15 @@ jobs:
         echo "detvar_cache_path = None" > localSettings.py
         echo "ntuple_path = None" >> localSettings.py
         echo "dataframe_cache_path = None" >> localSettings.py
+    - name: Install Pyright
+      run: |
+          npm install -g pyright@1.1.350
     - name: Run Pyright
       shell: bash -l {0}
       run: |
         conda activate python3LEE
         # Run Pyright type checking
-        pyright microfit
+        pyright --verbose microfit
     - name: Run tests
       shell: bash -l {0}
       run: |
