@@ -67,6 +67,18 @@ def run_unblinding(signal_channels, constraint_channels, plot_suffix, plot_title
         figsize=hist_plot_figsize,
         override_channel_titles=override_channel_titles,
     )
+    analysis.set_parameters(h0_params)
+    data_hist = analysis.get_data_hist()
+    assert data_hist is not None
+    total_mc_hist = analysis.get_mc_hist(
+        include_multisim_errors=True, use_sideband=True, add_precomputed_detsys=True
+    )
+    print("Data histogram")
+    print(data_hist.bin_counts)
+    print(data_hist.std_devs)
+    print("Total MC histogram")
+    print(total_mc_hist.bin_counts)
+    print(total_mc_hist.std_devs)
 
     chi2_at_h0 = analysis.get_chi2_at_hypothesis(h0_params)
 
