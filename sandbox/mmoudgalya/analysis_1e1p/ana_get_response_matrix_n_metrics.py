@@ -16,30 +16,48 @@ from microfit import variable_definitions as vdef
 from microfit import selections
 
 keep_vars = [
-    "Signal_1e1p", "mc_signal_1e1p", "nu_pdg", "TrueElecIdx", "TrueLeadProtonIdx", "InFV", "HasNoMesons",
-    "TrueNElec", "TrueNProt", "TrueDeltaPT", "TrueDeltaAlphaT", "TruePN", "TrueAlpha3D",
-    "nproton", "npion", "npi0", "nelec", "nmuon", "isVtxInFiducial",
+    "Signal_1e1p", "mc_signal_1e1p", "nu_pdg", "TrueElecIdx", "TrueLeadProtonIdx", "InFV", "HasNoMesons", "TrueNElec", "TrueNProt", 
+    "TrueDeltaPT", "TrueDeltaAlphaT", "TruePN", "TrueAlpha3D",
+    "TrueLeadProtonKE", "TrueLeadProtonModMom", "TrueLeadProtonE", "TrueLeadProtonMomX", "TrueLeadProtonMomY", "TrueLeadProtonMomZ",
+    "TrueElecKE", "TrueElecModMom", "TrueElecE", "TrueElecMomX", "TrueElecMomY", "TrueElecMomZ",
+
     "Sel_1e1p", "sel_1e1p_w_cuts", "RecoElectronCandidateIdx", "RecoLeadProtonCandidateIdx", "InFV_reco",
     "RecoElecPassMomCut", "RecoLeadProtonPassMomCut", "n_reco_tracks", "n_reco_showers",
     "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D", "RecoECal", "Reco_mag_q", "RecoPL",
+    "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
+    "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
+
+    "RecoLeadProton_trk_len", "RecoLeadProton_trk_trunk_dEdx_y", "RecoLeadProton_dEdx_y_per_trklen",
+    "RecoLeadProtonCandidate_trk_pid", "RecoElectronCandidate_shr_pid", "RecoElectron_conversion_dist",
+
+    "nproton", "npion", "npi0", "nelec", "nmuon", "isVtxInFiducial",
+
     "nslice", "selected", "shr_energy_tot_cali", "_opfilter_pe_beam", "_opfilter_pe_veto", "bnbdata", "extdata",
     "CosmicIPAll3D", "hits_ratio", "shrmoliereavg", "subcluster", "trkfit", "trkshrhitdist2", "tksh_distance",
     "shr_tkfit_nhits_tot", "shr_tkfit_dedx_max", "tksh_angle", "shr_trk_len", "reco_e",
-    "RecoLeadProton_trk_len", "RecoLeadProton_trk_trunk_dEdx_y", "RecoLeadProton_dEdx_y_per_trklen",
-    "RecoLeadProtonCandidate_trk_pid", "RecoElectronCandidate_shr_pid", "RecoElectron_conversion_dist",
+    "trkpid", "trk_len", "n_showers_contained", "protonenergy_corr", "n_tracks_contained",
     "pi0_radlen1", "pi0_radlen2", "pi0_score", "nonpi0_score", "bkg_score",
-    "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
-    "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
-    "ccnc",
+
+    "InFV_1muNp", "TrueMuonIdx_1muNp", "TrueLeadProtonIdx_1muNp", "TrueNProt_1muNp", "TrueFSPions_1muNp", "Signal_1mu1p", 
+    "TrueDeltaPT_1mu1p", "TrueDeltaAlphaT_1mu1p", "TruePN_1mu1p", "TrueAlpha3D_1mu1p",
+    "TrueLeadProtonE_1muNp", "TrueLeadProtonMomX_1muNp", "TrueLeadProtonMomY_1muNp", "TrueLeadProtonMomZ_1muNp",
+    "TrueMuonE_1muNp", "TrueMuonMomX_1muNp", "TrueMuonMomY_1muNp", "TrueMuonMomZ_1muNp",
+
+    "sel_CC1p0pi", "InFV_reco_1muNp", "MuonCandidateIdx_1muNp", "LeadProtonIdx_1muNp", "LeadProtonPassMomentumCut_1muNp", "PFPStartsInPCV_1muNp", "PassTopoScoreCut_1muNp",
+    "PassNuMuCCSelection_1muNp", "NoRecoShowers_1muNp", "MuonContained_1muNp", "PassMuonMomentumCut_1muNp", "PassMuonQualCut_1muNp",
+    "LeadProtonPassMomentumCut_1muNp", "NProtons_1muNp",
+    "RecoDeltaPT_1mu1p", "RecoDeltaAlphaT_1mu1p", "RecoPN_1mu1p", "RecoAlpha3D_1mu1p", "RecoECal_1mu1p", "RecoPL_1mu1p",
+    "RecoLeadProtonE_1muNp", "RecoLeadProtonMomentum_1muNp", "RecoLeadProtonMomX_1muNp", "RecoLeadProtonMomY_1muNp", "RecoLeadProtonMomZ_1muNp", 
+    "RecoMuonE_1muNp", "RecoMuonMomentum_1muNp", "RecoMuonMomX_1muNp", "RecoMuonMomY_1muNp", "RecoMuonMomZ_1muNp",
 ]
 
 #RUN = ["3"]
 #RUN = ["1","2","3_nocrt","3_crt","4a","4b","4c","4d","5"] # use this if using CRT
-RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"] # for detvars with bnb or for closure test
-#RUN = ["1","2","3","4a","4c","5"] # for nuwro_fd, no run 4b and 4d available
-blinded = True
-#data="nuwro_fd"
-data="bnb"
+#RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"] # for detvars with bnb or for closure test
+RUN = ["1","2","3","4a","4c","5"] # for nuwro_fd, no run 4b and 4d available
+blinded = False
+data="nuwro_fd"
+#data="bnb"
 
 rundata, mc_weights, data_pot = dl.load_runs(
     RUN,
@@ -52,6 +70,7 @@ rundata, mc_weights, data_pot = dl.load_runs(
     loadnumuvariables=False,
     use_bdt=True,
     load_lee=False,
+    load_numu_tki=True,
     load_nue_tki=True,
     keep_columns=keep_vars,
     blinded=blinded,
@@ -74,7 +93,7 @@ preselection = "OneP_new"
 from microfit import selections as sel
 query = f"{sel.preselection_categories[preselection]['query']} and {sel.selection_categories[selection]['query']}"
 
-all_mc = pd.concat([df for k, df in rundata.items() if k!='data'])
+all_mc = pd.concat([df for k, df in rundata.items() if k!='data' or k!='ext'])
 is_sig = all_mc['category_1e1p'] == 12
 all_sig = all_mc.loc[is_sig]
 sel_sig = all_sig.query(query, engine='python')
@@ -145,7 +164,7 @@ print('Finished calculating response matrices.')
 print("Calculating metrics:")
 print()
 
-all_mc = pd.concat([df for k, df in rundata.items() if k!='data'])
+all_mc = pd.concat([df for k, df in rundata.items() if k!='data' or k!='ext'])
 
 all_sig = all_mc['category_1e1p'] == 12
 tot_all_sig = np.sum(all_mc.loc[all_sig, 'weights'])

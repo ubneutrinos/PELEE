@@ -16,6 +16,8 @@ def get_category_label(category_column, category):
         return paper_labels_xsec.get(category, "Other")
     elif category_column == "category_1e1p":
         return category_labels_1e1p.get(category, "Other")
+    elif category_column == "category_1e1p_1mu1p":
+        return category_labels_1e1p.get(category, "Other")
     elif category_column == "category_1e1p_tki":
         return category_labels_1e1p.get(category, "Other")
     elif category_column == "interaction":
@@ -40,6 +42,8 @@ def get_categories(category_column):
     elif category_column == "paper_category_xsec":
         return list(paper_labels_xsec.keys())
     elif category_column == "category_1e1p":
+        return list(category_labels_1e1p.keys())
+    elif category_column == "category_1e1p_1mu1p":
         return list(category_labels_1e1p.keys())
     elif category_column == "category_1e1p_tki":
         return list(category_labels_1e1p.keys())
@@ -132,12 +136,12 @@ category_labels_1e1p = {
     12: r"$\nu_e$ CC0$\pi$1p",
     13: r"$\nu_e$ CC0$\pi$2+p",
     111: r"MiniBooNE LEE",
-    2: r"$\nu_{\mu}$ CC",
+    2: r"$\nu_{\mu}$ CC Np",
     222: r"$\nu_{\mu}$ CC w/ Michel",
     21: r"$\nu_{\mu}$ CC $\pi^{0}$",
     22: r"$\nu_{\mu}$ CC 0p",
     23: r"$\nu_{\mu}$ CC 1p",
-    24: r"$\nu_{\mu}$ CC 2p",
+    24: r"$\nu_{\mu}$ CC 2+p",
     25: r"$\nu_{\mu}$ CC 3+p",
     3: r"$\nu$ NC",
     31: r"$\nu$ NC $\pi^{0}$",

@@ -35,31 +35,53 @@ def plot_cov_matrix(cov, binning_def, binning):
     plt.title(f"Covariance Matrix")
 
 keep_vars = [
-    "Signal_1e1p", "mc_signal_1e1p", "nu_pdg", "TrueElecIdx", "TrueLeadProtonIdx", "InFV", "HasNoMesons",
-    "TrueNElec", "TrueNProt", "TrueDeltaPT", "TrueDeltaAlphaT", "TruePN", "TrueAlpha3D",
-    "nproton", "npion", "npi0", "nelec", "nmuon", "isVtxInFiducial",
+    "Signal_1e1p", "mc_signal_1e1p", "nu_pdg", "TrueElecIdx", "TrueLeadProtonIdx", "InFV", "HasNoMesons", "TrueNElec", "TrueNProt", 
+    "TrueDeltaPT", "TrueDeltaAlphaT", "TruePN", "TrueAlpha3D",
+    "TrueLeadProtonKE", "TrueLeadProtonModMom", "TrueLeadProtonE", "TrueLeadProtonMomX", "TrueLeadProtonMomY", "TrueLeadProtonMomZ",
+    "TrueElecKE", "TrueElecModMom", "TrueElecE", "TrueElecMomX", "TrueElecMomY", "TrueElecMomZ",
+
     "Sel_1e1p", "sel_1e1p_w_cuts", "RecoElectronCandidateIdx", "RecoLeadProtonCandidateIdx", "InFV_reco",
     "RecoElecPassMomCut", "RecoLeadProtonPassMomCut", "n_reco_tracks", "n_reco_showers",
     "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D", "RecoECal", "Reco_mag_q", "RecoPL",
+    "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
+    "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
+
+    "RecoLeadProton_trk_len", "RecoLeadProton_trk_trunk_dEdx_y", "RecoLeadProton_dEdx_y_per_trklen",
+    "RecoLeadProtonCandidate_trk_pid", "RecoElectronCandidate_shr_pid", "RecoElectron_conversion_dist",
+
+    "nproton", "npion", "npi0", "nelec", "nmuon", "isVtxInFiducial", 
+
     "nslice", "selected", "shr_energy_tot_cali", "_opfilter_pe_beam", "_opfilter_pe_veto", "bnbdata", "extdata",
     "CosmicIPAll3D", "hits_ratio", "shrmoliereavg", "subcluster", "trkfit", "trkshrhitdist2", "tksh_distance",
     "shr_tkfit_nhits_tot", "shr_tkfit_dedx_max", "tksh_angle", "shr_trk_len", "reco_e",
-    "RecoLeadProton_trk_len", "RecoLeadProton_trk_trunk_dEdx_y", "RecoLeadProton_dEdx_y_per_trklen",
-    "RecoLeadProtonCandidate_trk_pid", "RecoElectronCandidate_shr_pid", "RecoElectron_conversion_dist",
+    "trkpid", "trk_len", "n_showers_contained", "protonenergy_corr", "n_tracks_contained",
     "pi0_radlen1", "pi0_radlen2", "pi0_score", "nonpi0_score", "bkg_score",
-    "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
-    "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
-    "ccnc",
+
+    "InFV_1muNp", "TrueMuonIdx_1muNp", "TrueLeadProtonIdx_1muNp", "TrueNProt_1muNp", "TrueFSPions_1muNp", "Signal_1mu1p", 
+    "TrueDeltaPT_1mu1p", "TrueDeltaAlphaT_1mu1p", "TruePN_1mu1p", "TrueAlpha3D_1mu1p",
+    "TrueLeadProtonE_1muNp", "TrueLeadProtonMomX_1muNp", "TrueLeadProtonMomY_1muNp", "TrueLeadProtonMomZ_1muNp",
+    "TrueMuonE_1muNp", "TrueMuonMomX_1muNp", "TrueMuonMomY_1muNp", "TrueMuonMomZ_1muNp",
+
+    "sel_CC1p0pi", "InFV_reco_1muNp", "MuonCandidateIdx_1muNp", "LeadProtonIdx_1muNp", "LeadProtonPassMomentumCut_1muNp", "PFPStartsInPCV_1muNp", "PassTopoScoreCut_1muNp",
+    "PassNuMuCCSelection_1muNp", "NoRecoShowers_1muNp", "MuonContained_1muNp", "PassMuonMomentumCut_1muNp", "PassMuonQualCut_1muNp",
+    "LeadProtonPassMomentumCut_1muNp", "NProtons_1muNp",
+    "RecoDeltaPT_1mu1p", "RecoDeltaAlphaT_1mu1p", "RecoPN_1mu1p", "RecoAlpha3D_1mu1p", "RecoECal_1mu1p", "RecoPL_1mu1p",
+    "RecoLeadProtonE_1muNp", "RecoLeadProtonMomentum_1muNp", "RecoLeadProtonMomX_1muNp", "RecoLeadProtonMomY_1muNp", "RecoLeadProtonMomZ_1muNp", 
+    "RecoMuonE_1muNp", "RecoMuonMomentum_1muNp", "RecoMuonMomX_1muNp", "RecoMuonMomY_1muNp", "RecoMuonMomZ_1muNp",
 ]
+
+keep_vars_detsys = keep_vars + ["ccnc", "nu_pdg",]
 
 #RUN = ["3"]
 #RUN = ["1","2","3_nocrt","3_crt","4a","4b","4c","4d","5"] # use this if using CRT
+#RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"] # for detvars with bnb or for closure test
 RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"] # for detvars with bnb or for closure test
 #RUN = ["1","2","3","4a","4c","5"] # for nuwro_fd, no run 4b and 4d available
 blinded = True
 #data="nuwro_fd"
 data="bnb"
 closure_test = True
+plot_cov = False
 
 rundata, mc_weights, data_pot = dl.load_runs(
     RUN,
@@ -72,6 +94,7 @@ rundata, mc_weights, data_pot = dl.load_runs(
     loadnumuvariables=False,
     use_bdt=True,
     load_lee=False,
+    load_numu_tki=True,
     load_nue_tki=True,
     keep_columns=keep_vars,
     blinded=blinded,
@@ -120,11 +143,25 @@ for binning_def in vdef.TKI_variables_1e1p:
     preselection=preselection,
     use_kde_smoothing=False,
     make_plots=True,
-    plot_output_dir= "/exp/uboone/app/users/mmoudgal/PELEE/sandbox/mmoudgalya/analysis_1e1p/analysis_plots/detsys/investigate/",
+    plot_output_dir= "/exp/uboone/app/users/mmoudgal/PELEE/sandbox/mmoudgalya/analysis_1e1p/analysis_plots/detsys/",
     enable_detvar_cache=True,
     detvar_cache_dir="/exp/uboone/data/users/mmoudgal/PELEE/detvar_cached_dataframes/",
     extra_selection_query=None,
-    show_plots=True,
+    show_plots=False,
+    loadpi0variables=False,
+    loadshowervariables=True,
+    loadrecoveryvars=False,
+    loadsystematics=True,
+    numupresel=False,
+    loadnumuvariables=False,
+    use_bdt=True,
+    load_lee=False,
+    load_numu_tki=True,
+    load_nue_tki=True,
+    keep_columns=keep_vars_detsys,
+    blinded=blinded,
+    load_crt_vars=False,
+    enable_cache=True,
     )
     
     #plt.clf()
@@ -163,7 +200,8 @@ for binning_def in vdef.TKI_variables_1e1p:
     plt.show()
     plt.clf()
 
-    flux_norm_total_prediction.draw_covariance_matrix(ax=ax, as_correlation=False, as_fractional=True)
+    fig2, ax2 = plt.subplots()
+    flux_norm_total_prediction.draw_covariance_matrix(ax=ax2, as_correlation=False, as_fractional=True)
     plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_frac_total_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
     plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_frac_total_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
     plt.show()
@@ -195,11 +233,12 @@ for binning_def in vdef.TKI_variables_1e1p:
     print('stat error:', stat_error)
     print()
 
-    plot_cov_matrix(stat_cov, binning_def, binning)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_stat_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_stat_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
-    plt.show()
-    plt.clf()
+    if plot_cov:
+        plot_cov_matrix(stat_cov, binning_def, binning)
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_stat_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_stat_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
     
     # Ntargets error
     signal_generator_Ntargets = hist.RunHistGenerator(
@@ -225,11 +264,12 @@ for binning_def in vdef.TKI_variables_1e1p:
     print('Ntargets error:', Ntargets_error)
     print()
 
-    plot_cov_matrix(Ntargets_cov, binning_def, binning)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_Ntargets_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_Ntargets_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
-    plt.show()
-    plt.clf()
+    if plot_cov:
+        plot_cov_matrix(Ntargets_cov, binning_def, binning)
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_Ntargets_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_Ntargets_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
     
     # POT error
     signal_generator_POT = hist.RunHistGenerator(
@@ -255,11 +295,12 @@ for binning_def in vdef.TKI_variables_1e1p:
     print('POT error:', POT_error)
     print()
 
-    plot_cov_matrix(POT_cov, binning_def, binning)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_POT_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_POT_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
-    plt.show()
-    plt.clf()
+    if plot_cov:
+        plot_cov_matrix(POT_cov, binning_def, binning)
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_POT_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_POT_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
     
     # detsys error
     signal_generator_detsys = hist.RunHistGenerator(
@@ -285,11 +326,12 @@ for binning_def in vdef.TKI_variables_1e1p:
     print('detsys error:', detsys_error)
     print()
 
-    plot_cov_matrix(detsys_cov, binning_def, binning)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_detsys_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_detsys_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
-    plt.show()
-    plt.clf()
+    if plot_cov:
+        plot_cov_matrix(detsys_cov, binning_def, binning)
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_detsys_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_detsys_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
     
     # Multisim errors:
     signal_generator_multisim = hist.RunHistGenerator(
@@ -316,11 +358,12 @@ for binning_def in vdef.TKI_variables_1e1p:
     print('genie error:', genie_multisim_error)
     print()
 
-    plot_cov_matrix(genie_multisim_cov, binning_def, binning)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_multisim_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_multisim_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
-    plt.show()
-    plt.clf()
+    if plot_cov:
+        plot_cov_matrix(genie_multisim_cov, binning_def, binning)
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_multisim_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_multisim_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
     
     # GENIE Unisim error
     genie_unisim_cov = (mc_hist_generator.calculate_unisim_uncertainties()) / IntegratedFlux**2
@@ -333,11 +376,12 @@ for binning_def in vdef.TKI_variables_1e1p:
     print('genie total error:', genie_total_error)
     print()
 
-    plot_cov_matrix(genie_unisim_cov, binning_def, binning)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_unisim_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_unisim_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
-    plt.show()
-    plt.clf()
+    if plot_cov:
+        plot_cov_matrix(genie_unisim_cov, binning_def, binning)
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_unisim_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_unisim_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
     
     # Flux error
     flux_cov = (mc_hist_generator.calculate_multisim_uncertainties(multisim_weight_column="weightsFlux")) / IntegratedFlux**2
@@ -345,11 +389,12 @@ for binning_def in vdef.TKI_variables_1e1p:
     print('flux error:', flux_error)
     print()
 
-    plot_cov_matrix(flux_cov, binning_def, binning)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_flux_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_flux_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
-    plt.show()
-    plt.clf()
+    if plot_cov:
+        plot_cov_matrix(flux_cov, binning_def, binning)
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_flux_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_flux_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
     
     # Reinteraction error
     reint_cov = (mc_hist_generator.calculate_multisim_uncertainties(multisim_weight_column="weightsReint")) / IntegratedFlux**2
@@ -357,11 +402,12 @@ for binning_def in vdef.TKI_variables_1e1p:
     print('reint error:', reint_error)
     print()
 
-    plot_cov_matrix(reint_cov, binning_def, binning)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_reint_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_reint_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
-    plt.show()
-    plt.clf()
+    if plot_cov:
+        plot_cov_matrix(reint_cov, binning_def, binning)
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_reint_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_reint_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.show()
+        plt.clf()
     
     # All errors except stats (total systematics error)
     only_syst_error = np.sqrt(np.diagonal(Ntargets_cov + POT_cov + detsys_cov + genie_multisim_cov + genie_unisim_cov + flux_cov + reint_cov)) / bin_counts
@@ -381,8 +427,8 @@ for binning_def in vdef.TKI_variables_1e1p:
     fig, ax2 = plt.subplots()
         
     ax2.stairs(genie_total_error, bin_edges, label='GENIE (multisim + unisim)', linestyle='dashdot')
-    ax2.stairs(genie_multisim_error, bin_edges, label='GENIE multisim', linestyle='dashdot')
-    ax2.stairs(genie_unisim_error, bin_edges, label='GENIE unisim', linestyle='dashdot')
+    # ax2.stairs(genie_multisim_error, bin_edges, label='GENIE multisim', linestyle='dashdot')
+    # ax2.stairs(genie_unisim_error, bin_edges, label='GENIE unisim', linestyle='dashdot')
     ax2.stairs(flux_error, bin_edges, label='Flux', linestyle='dashdot')
     ax2.stairs(reint_error, bin_edges, label='Reinteractions', linestyle='dashdot')
     ax2.stairs(detsys_error, bin_edges, label='DetSyst', linestyle='dashdot')
@@ -396,8 +442,8 @@ for binning_def in vdef.TKI_variables_1e1p:
     ax2.set_xlabel(binning.variable_tex)
     ax2.set_ylabel('Fractional uncertainty on total predicted events')
     ax2.legend(bbox_to_anchor=(0, 1.03, 1, 0.3), loc="lower left", mode="expand", ncol=2)
-    plt.savefig(f'analysis_plots/errors/investigate/total_errors_{data}_{run_combo}_{binning_def[0]}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/errors/investigate/total_errors_{data}_{run_combo}_{binning_def[0]}_{binning_def[1]}bins.png', bbox_inches='tight')
+    plt.savefig(f'analysis_plots/errors/total_errors_{data}_{run_combo}_{binning_def[0]}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+    plt.savefig(f'analysis_plots/errors/total_errors_{data}_{run_combo}_{binning_def[0]}_{binning_def[1]}bins.png', bbox_inches='tight')
     plt.show()
     plt.clf()
     

@@ -14,6 +14,12 @@ PRESQ += ' and selected == 1'
 PRESQ += ' and shr_energy_tot_cali > 0.07'
 PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
 
+# Lucile's 1eNp0pi selection
+
+LucileSEL = PRESQ
+LucileSEL += ' and CosmicIPAll3D > 10. and trkpid<(0.015*trk_len+0.02) and hits_ratio > 0.50 and shrmoliereavg < 9 and subcluster > 4 and trkfit < 0.65 and shr_trk_len < 300.'
+LucileSEL += ' and n_showers_contained == 1 and tksh_distance < 10.0 and tksh_angle > -0.9 and pi0_score > 0.50 and nonpi0_score > 0.50 and protonenergy_corr > 0.05'
+
 # 1e1p preselection - new
 OnePPRESQ_new = PRESQ
 OnePPRESQ_new += ' and Sel_1e1p == True'
@@ -36,6 +42,17 @@ OnePBDT += ' and pi0_score > 0.4 and bkg_score > 0.5'
 
 # 1e1p BDT + CRT selection
 OnePBDT_CRT = OnePBDT + ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
+
+# 1e1p BDT sidebands
+
+OnePBDTFarSB = OnePPRESQ_new
+OnePBDTFarSB += ' and pi0_score < 0.4 and bkg_score < 0.5'
+
+OnePBDTNearSBpi0 = OnePPRESQ_new
+OnePBDTNearSBpi0 += ' and pi0_score > 0.4 and bkg_score < 0.5'
+
+OnePBDTNearSB0p = OnePPRESQ_new
+OnePBDTNearSB0p += ' and pi0_score < 0.4 and bkg_score > 0.5'
 
 # xsec 1e1p selection
 OneP_xsec = OnePPRESQ_new
@@ -470,7 +487,7 @@ preselection_categories = {
     'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ pre-selection w/ CRT", 'dir': 'NUMUCRT'},
     #'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'},
-    'OneP_new': {'query': OnePPRESQ_new, 'title': '1e1p Presel. New', 'dir': 'OneP'}
+    'OneP_new': {'query': OnePPRESQ_new, 'title': '1e1p Presel.', 'dir': 'OneP'},
 
 }
 
@@ -532,6 +549,10 @@ selection_categories = {
     'OneP_xsec': {'query': OneP_xsec, 'title': '1e1p xsec cuts', 'dir': 'OneP_xsec'},
     'OnePBDT': {'query': OnePBDT, 'title': '1e1p BDT cuts', 'dir': 'OnePBDT'},
     'OnePBDT_CRT': {'query': OnePBDT_CRT, 'title': '1e1p BDT cuts w/ CRT', 'dir': 'OnePBDT_CRT'},
+    'OnePBDTFarSB': {'query': OnePBDTFarSB, 'title': '1e1p Far BDT Sideband', 'dir': 'OnePBDTFarSB'},
+    'OnePBDTNearSBpi0': {'query': OnePBDTNearSBpi0, 'title': '1e1p Near Sideband (high $\\pi^{0}$ BDT score)', 'dir': 'OnePBDTNearSBpi0'},
+    'OnePBDTNearSB0p': {'query': OnePBDTNearSB0p, 'title': '1e1p Near Sideband (high 1e0p BDT score)', 'dir': 'OnePBDTNearSB0p'},
+    'LucileSEL': {'query': LucileSEL, 'title': '1eNp xsec BDT sel. - No pi0 Scaling', 'dir': '1eNp'},
 
     # CT: Full selections with BDT cuts inverted
     'ZPBDT_INV': {'query': ZPBDTLOOSE_INV, 'title': 'Inverted 1e0p0$\\pi$ BDT sel.', 'dir': 'ZPBDT_INV'},

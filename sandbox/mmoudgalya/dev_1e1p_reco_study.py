@@ -17,29 +17,50 @@ from microfit.xsec_signal_generator import XsecCovarHistGenerator
 print('Loaded packages')
 
 keep_vars = [
-    "Signal_1e1p", "mc_signal_1e1p", "nu_pdg", "TrueElecIdx", "TrueLeadProtonIdx", "InFV", "HasNoMesons",
-    "TrueNElec", "TrueNProt", "TrueDeltaPT", "TrueDeltaAlphaT", "TruePN", "TrueAlpha3D",
-    "nproton", "npion", "npi0", "nelec", "nmuon", "isVtxInFiducial",
+    "Signal_1e1p", "mc_signal_1e1p", "nu_pdg", "TrueElecIdx", "TrueLeadProtonIdx", "InFV", "HasNoMesons", "TrueNElec", "TrueNProt", 
+    "TrueDeltaPT", "TrueDeltaAlphaT", "TruePN", "TrueAlpha3D",
+    "TrueLeadProtonKE", "TrueLeadProtonModMom", "TrueLeadProtonE", "TrueLeadProtonMomX", "TrueLeadProtonMomY", "TrueLeadProtonMomZ",
+    "TrueElecKE", "TrueElecModMom", "TrueElecE", "TrueElecMomX", "TrueElecMomY", "TrueElecMomZ",
+
     "Sel_1e1p", "sel_1e1p_w_cuts", "RecoElectronCandidateIdx", "RecoLeadProtonCandidateIdx", "InFV_reco",
     "RecoElecPassMomCut", "RecoLeadProtonPassMomCut", "n_reco_tracks", "n_reco_showers",
     "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D", "RecoECal", "Reco_mag_q", "RecoPL",
+    "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
+    "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
+
+    "RecoLeadProton_trk_len", "RecoLeadProton_trk_trunk_dEdx_y", "RecoLeadProton_dEdx_y_per_trklen",
+    "RecoLeadProtonCandidate_trk_pid", "RecoElectronCandidate_shr_pid", "RecoElectron_conversion_dist",
+
+    "nproton", "npion", "npi0", "nelec", "nmuon", "isVtxInFiducial", 
+
     "nslice", "selected", "shr_energy_tot_cali", "_opfilter_pe_beam", "_opfilter_pe_veto", "bnbdata", "extdata",
     "CosmicIPAll3D", "hits_ratio", "shrmoliereavg", "subcluster", "trkfit", "trkshrhitdist2", "tksh_distance",
     "shr_tkfit_nhits_tot", "shr_tkfit_dedx_max", "tksh_angle", "shr_trk_len", "reco_e",
-    "RecoLeadProton_trk_len", "RecoLeadProton_trk_trunk_dEdx_y", "RecoLeadProton_dEdx_y_per_trklen",
-    "RecoLeadProtonCandidate_trk_pid", "RecoElectronCandidate_shr_pid", "RecoElectron_conversion_dist",
+    "trkpid", "trk_len", "n_showers_contained", "protonenergy_corr", "n_tracks_contained",
     "pi0_radlen1", "pi0_radlen2", "pi0_score", "nonpi0_score", "bkg_score",
-    "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
-    "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
-    "ccnc",
+
+    "InFV_1muNp", "TrueMuonIdx_1muNp", "TrueLeadProtonIdx_1muNp", "TrueNProt_1muNp", "TrueFSPions_1muNp", "Signal_1mu1p", 
+    "TrueDeltaPT_1mu1p", "TrueDeltaAlphaT_1mu1p", "TruePN_1mu1p", "TrueAlpha3D_1mu1p",
+    "TrueLeadProtonE_1muNp", "TrueLeadProtonMomX_1muNp", "TrueLeadProtonMomY_1muNp", "TrueLeadProtonMomZ_1muNp",
+    "TrueMuonE_1muNp", "TrueMuonMomX_1muNp", "TrueMuonMomY_1muNp", "TrueMuonMomZ_1muNp",
+
+    "sel_CC1p0pi", "InFV_reco_1muNp", "MuonCandidateIdx_1muNp", "LeadProtonIdx_1muNp", "LeadProtonPassMomentumCut_1muNp", "PFPStartsInPCV_1muNp", "PassTopoScoreCut_1muNp",
+    "PassNuMuCCSelection_1muNp", "NoRecoShowers_1muNp", "MuonContained_1muNp", "PassMuonMomentumCut_1muNp", "PassMuonQualCut_1muNp",
+    "LeadProtonPassMomentumCut_1muNp", "NProtons_1muNp",
+    "RecoDeltaPT_1mu1p", "RecoDeltaAlphaT_1mu1p", "RecoPN_1mu1p", "RecoAlpha3D_1mu1p", "RecoECal_1mu1p", "RecoPL_1mu1p",
+    "RecoLeadProtonE_1muNp", "RecoLeadProtonMomentum_1muNp", "RecoLeadProtonMomX_1muNp", "RecoLeadProtonMomY_1muNp", "RecoLeadProtonMomZ_1muNp", 
+    "RecoMuonE_1muNp", "RecoMuonMomentum_1muNp", "RecoMuonMomX_1muNp", "RecoMuonMomY_1muNp", "RecoMuonMomZ_1muNp",
 ]
+
+keep_vars_detsys = keep_vars + ["ccnc", "nu_pdg",]
 
 #RUN = ["5"]
 #RUN = ["1","2","3_nocrt","3_crt","4a","4b","4c","4d","5"]
 #RUN = ["1","2","3","4c","5"] # for nuwro_fd, no run 4b and 4d available
-RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"]
-#RUN = ["3","4a","4b","4c","4d","5"]
+#RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"]
+RUN = ["1","2","4a","4b","4c","4d","5","1A_OT","1B_OT"]
 blinded = True
+use_detvar = False
 
 rundata, mc_weights, data_pot = dl.load_runs(
     RUN,
@@ -52,6 +73,7 @@ rundata, mc_weights, data_pot = dl.load_runs(
     loadnumuvariables=False,
     use_bdt=True,
     load_lee=False,
+    load_numu_tki=True,
     load_nue_tki=True,
     keep_columns=keep_vars,
     blinded=True,
@@ -65,92 +87,150 @@ run_combo = "Run"
 for run in RUN:
     run_combo += run
     
-selection = "OnePBDT"
-#selection = "None"
+# selections = ["LucileSEL"]
+#selections = ["OnePBDTFarSB", "OnePBDTNearSBpi0", "OnePBDTNearSB0p"]
+# selections = ["None"]
+# preselection = "NUE"
+
+selections = ["OnePBDT"]
 preselection = "OneP_new"
 
-all_mc = pd.concat([df for k, df in rundata.items() if k!='data'])
+all_mc = pd.concat([df for k, df in rundata.items() if k!='data' or k!='ext'])
 all_sig = all_mc.query("category_1e1p == 12", engine='python')
 
-for binning_def in vdef.variables_1e1p:
-    # some binning definitions have more than 4 elements,
-    # we ignore the last ones for now
-    #binning = hist.Binning.from_config(*binning_def[:4])
-    binning = hist.Binning.from_config(*binning_def)  # for variable bin sizes
-    print(binning_def)
-    signal_generator = hist.RunHistGenerator(
-        rundata,
-        binning,
-        data_pot=data_pot,
-        selection=selection,
-        preselection=preselection,
-        sideband_generator=None,
-        uncertainty_defaults=None,
-    )
-    plotter = rp.RunHistPlotter(signal_generator)
-    axes = plotter.plot(
-        category_column="category_1e1p",
-        signal_category_num=12,
-        include_multisim_errors=False,
-        add_ext_error_floor=False,
-        show_data_mc_ratio=False,
-        show_chi_square=False,
-    )
-    
-#     plt.yscale('log')
-    plt.savefig(f'plots/reco_study/bdt_scores/topo_{preselection}_{selection}_{binning_def[0]}_{run_combo}.pdf', bbox_inches='tight')
-    plt.savefig(f'plots/reco_study/bdt_scores/topo_{preselection}_{selection}_{binning_def[0]}_{run_combo}.png', bbox_inches='tight')
+for selection in selections:
+    for binning_def in vdef.TKI_variables_1e1p:
+        # some binning definitions have more than 4 elements,
+        # we ignore the last ones for now
+        # binning = hist.Binning.from_config(*binning_def[:4])
+        binning = hist.Binning.from_config(*binning_def)  # for variable bin sizes
+        print(binning_def)
 
-    axes2 = plotter.plot(
-        category_column="interaction",
-        include_multisim_errors=False,
-        add_ext_error_floor=False,
-        show_data_mc_ratio=False,
-        show_chi_square=False,
-    )
-    
-#     axes[0].set_ylim([0.1, 100000])
-#     axes[0].set_yscale('log')
-    plt.savefig(f'plots/reco_study/bdt_scores/int_{preselection}_{selection}_{binning_def[0]}_{run_combo}.pdf', bbox_inches='tight')
-    plt.savefig(f'plots/reco_study/bdt_scores/int_{preselection}_{selection}_{binning_def[0]}_{run_combo}.png', bbox_inches='tight')
-    plt.show()
-    
-    #################################################################################
-    # Getting bin counts
-    
-    label = binning_def[0].lstrip("Reco")
-    if binning_def[0] in [ "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D"]:
-        genieUBsig, _ = np.histogram(all_sig[binning_def[0]], bins=binning_def[-1], weights=all_sig["weights"])
-    
-    total_prediction = signal_generator.get_total_prediction(include_multisim_errors=True, add_precomputed_detsys=False)
-    total_pred_counts = total_prediction.bin_counts
-    
-    mc_hists = signal_generator.get_mc_hists(
-        category_column="category_1e1p",
-#         include_multisim_errors=True,
-#         add_precomputed_detsys=True,
-    )
-    mc_sig = mc_hists[12].bin_counts
-    
-    total_bkg = total_pred_counts - mc_sig
-    
-    bkg_mc_counts = {k: v.bin_counts for k, v in mc_hists.items() if k != 12}
-    bkg_mc_sum = [sum(items) for items in zip(*bkg_mc_counts.values())]
-    
-    ext = total_bkg - bkg_mc_sum
-    
-    with open(f'plots/reco_study/bdt_scores/bincounts_{preselection}_{selection}_{run_combo}.txt', 'a') as f:
-        f.write(f"\n{label}:\n")
-        if binning_def[0] in [ "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D"]:
-            f.writelines([f"genieUBsig = ", f"{genieUBsig} \n"])
-        for k, h in mc_hists.items():
-            f.writelines([f"{k}: ", f"{h.bin_counts} \n"])
+        if use_detvar:
+            detvar_data = detsys.make_variations(
+                run_numbers=RUN,
+                data="bnb",
+                binning=binning.copy(),
+                selection=selection,
+                preselection=preselection,
+                use_kde_smoothing=False,
+                make_plots=False,
+                plot_output_dir= "/exp/uboone/app/users/mmoudgal/PELEE/sandbox/mmoudgalya/analysis_1e1p/analysis_plots/detsys/",
+                enable_detvar_cache=True,
+                detvar_cache_dir="/exp/uboone/data/users/mmoudgal/PELEE/detvar_cached_dataframes/",
+                extra_selection_query=None,
+                show_plots=False,
+                loadpi0variables=False,
+                loadshowervariables=True,
+                loadrecoveryvars=False,
+                loadsystematics=True,
+                numupresel=False,
+                loadnumuvariables=False,
+                use_bdt=True,
+                load_lee=False,
+                #load_numu_tki=True,
+                load_nue_tki=True,
+                keep_columns=keep_vars_detsys,
+                blinded=True,
+                load_crt_vars=False,
+                enable_cache=True,
+                )
+        else:
+            detvar_data = None
+
+        # Total error
+        signal_generator = hist.RunHistGenerator(
+            rundata,
+            binning.copy(),
+            data_pot=data_pot,
+            selection=selection,
+            preselection=preselection,
+            sideband_generator=None,
+            uncertainty_defaults=None,
+            detvar_data=detvar_data,
+            # mc_hist_generator_cls = XsecCovarHistGenerator,
+            # true_var_name=None, 
+            # signal_query="category_1e1p == 12", 
+            # uncut_signal_df=rundata["nue"],
+            # normalization_uncertainty=[0.01,0.02]
+        )
+
+        plotter = rp.RunHistPlotter(signal_generator)
+        axes = plotter.plot(
+            category_column="category_fixed",
+            #signal_category_num=2,
+            include_multisim_errors=True,
+            add_ext_error_floor=False,
+            show_data_mc_ratio=False,
+            show_chi_square=False,
+            show_total_unconstrained=False,
+            add_precomputed_detsys=use_detvar,
+            show_errorband=True,
+        )
         
-        f.writelines([f"EXT", " = ", f"{ext} \n"])
-#         f.writelines([f"1e1p", " = ", f"{mc_sig} \n"])
-        f.writelines([f"total bkg", " = ", f"{total_bkg} \n"])
+    #     plt.yscale('log')
+        # ax = axes[0]
+        # ax.set_ylim(0.1, ax.get_ylim()[1] * 1.5)
+        # ax.set_yscale('log')
+        plt.savefig(f'plots/reco_study/bdt_scores/topo_category_{preselection}_{selection}_{binning_def[0]}_{run_combo}.pdf', bbox_inches='tight')
+        plt.savefig(f'plots/reco_study/bdt_scores/topo_category_{preselection}_{selection}_{binning_def[0]}_{run_combo}.png', bbox_inches='tight')
 
-f.close()
+        axes2 = plotter.plot(
+            category_column="category_1e1p",
+            signal_category_num=12,
+            include_multisim_errors=True,
+            add_ext_error_floor=False,
+            show_data_mc_ratio=False,
+            show_chi_square=False,
+            show_total_unconstrained=False,
+            add_precomputed_detsys=use_detvar,
+            show_errorband=True,
+        )
+        
+        # ax2 = axes2[0]
+        # ax2.set_ylim(0.1, ax2.get_ylim()[1] * 1.5)
+        # ax2.set_yscale('log')
+        plt.savefig(f'plots/reco_study/bdt_scores/topo_1e1p_{preselection}_{selection}_{binning_def[0]}_{run_combo}.pdf', bbox_inches='tight')
+        plt.savefig(f'plots/reco_study/bdt_scores/topo_1e1p_{preselection}_{selection}_{binning_def[0]}_{run_combo}.png', bbox_inches='tight')
+        plt.show()
+        
+    #     #################################################################################
+    #     # Getting bin counts
+        
+    #     label = binning_def[0].lstrip("Reco")
+    #     if binning_def[0] in [ "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D"]:
+    #         genieUBsig, _ = np.histogram(all_sig[binning_def[0]], bins=binning_def[-1], weights=all_sig["weights"])
+        
+    #     total_prediction = signal_generator.get_total_prediction(include_multisim_errors=True, add_precomputed_detsys=False)
+    #     total_pred_counts = total_prediction.bin_counts
+        
+    #     mc_hists = signal_generator.get_mc_hists(
+    #         category_column="category_1e1p",
+    # #         include_multisim_errors=True,
+    # #         add_precomputed_detsys=True,
+    #     )
+    #     mc_sig = mc_hists[12].bin_counts
+        
+    #     total_bkg = total_pred_counts - mc_sig
+        
+    #     bkg_mc_counts = {k: v.bin_counts for k, v in mc_hists.items() if k != 12}
+    #     bkg_mc_sum = [sum(items) for items in zip(*bkg_mc_counts.values())]
+        
+    #     ext = total_bkg - bkg_mc_sum
+        
+    #     with open(f'plots/reco_study/bdt_scores/bincounts_{preselection}_{selection}_{run_combo}.txt', 'a') as f:
+    #         f.write(f"\n{label}:\n")
+    #         if binning_def[0] in [ "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D"]:
+    #             f.writelines([f"genieUBsig = ", f"{genieUBsig} \n"])
+    #         for k, h in mc_hists.items():
+    #             f.writelines([f"{k}: ", f"{h.bin_counts} \n"])
+            
+    #         f.writelines([f"EXT", " = ", f"{ext} \n"])
+    # #         f.writelines([f"1e1p", " = ", f"{mc_sig} \n"])
+    #         f.writelines([f"total bkg", " = ", f"{total_bkg} \n"])
+
+    # f.close()
+
 print("Calculating metrics:")
 print()
 

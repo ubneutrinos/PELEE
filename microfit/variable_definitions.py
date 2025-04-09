@@ -49,10 +49,21 @@ at = np.append(pt,np.inf)
 TKI_variables_1e1p = [
     # ("mod_delta_pt", 20, (0, 2), "$\\delta p_T$ [GeV/c] \n (mod_delta_pt)"),
     # ("delta_alpha", 20, (0, 180), "$\\delta \\alpha_T$ [degrees] \n (delta_alpha)"),
-    ("RecoDeltaPT", None, None, "$\\delta p_T$ [GeV/c]", False, None, [0,0.3,1.7]),
+    # ("RecoDeltaPT", None, None, "$\\delta p_T$ [GeV/c]", False, None, [0,0.3,1.7]),
     # ("RecoDeltaAlphaT", None, None, "$\\delta \\alpha_T$ [degrees]", False, None, [0,80.,180.]),
     # ("RecoPN", None, None, "$p_n$ [GeV/c]", False, None, [0,0.3,1.7]),
     # ("RecoAlpha3D", None, None, "$\\alpha_{3D}$ [degrees]", False, None, [0,90.,180.]),
+    # ("RecoElecE", 16, (0, 4), "Reconstructed Electron Energy [GeV]"),
+    # ("RecoElecModMom", 20, (0, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c]"),
+    # ("RecoElecMomX", 12, (-1.5, 1.5), "x component of Reconstructed Electron Momentum [GeV/c]"),
+    # ("RecoElecMomY", 12, (-1.5, 1.5), "y component of Reconstructed Electron Momentum [GeV/c]"),
+    # #("RecoElecMomZ", 12, (-1, 5), "z component of Reconstructed Electron Momentum [GeV/c]"),
+    # ("RecoLeadProtonKE", 10, (0, 1), "Reconstructed Proton Kinetic Energy [GeV]"),
+    # #("RecoLeadProtonModMom", 20, (0, 1.5), "Modulus of the Reconstructed Proton Momentum [GeV/c]"),
+    # ("RecoLeadProtonMomX", 20, (-1, 1), "x component of Reconstructed Proton Momentum [GeV/c]"),
+    # #("RecoLeadProtonMomY", 20, (-1.5, 1.5), "y component of Reconstructed Proton Momentum [GeV/c]"),
+    # #("RecoLeadProtonMomZ", 20, (-1, 1.5), "z component of Reconstructed Proton Momentum [GeV/c]"),
+    ("RecoElecModMom", 20, (2, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c]"),
     # ("RecoDeltaPT", None, None, "$\\delta p_T$ [GeV/c]", False, None, pt),
     # ("RecoDeltaAlphaT", None, None, "$\\delta \\alpha_T$ [degrees]", False, None, at),
 #     ("RecoDeltaPT", 10, (0, 1.7), "$\\delta p_T$ [GeV/c]"),
@@ -63,11 +74,26 @@ TKI_variables_1e1p = [
 #     ("TrueDeltaAlphaT", 10, (0, 180), "$\\delta \\alpha_T$ [degrees]"),
 #     ("TruePN", 10, (0, 1.7), "$p_n$ [GeV/c]"),
 #     ("TrueAlpha3D", 10, (0, 180), "$\\alpha_{3D}$ [degrees]"),
-#     ("pi0_score", 20, (0, 1), "BDT $\\pi^{0}$ score"),
-#     ("nonpi0_score", 20, (0, 1), "BDT non-$\\pi^{0}$ score"),
-#     ("bkg_score", 20, (0, 1), "1e0p BDT score"),
+    # ("pi0_score", 20, (0, 1), "BDT $\\pi^{0}$ score"),
+    # ("nonpi0_score", 20, (0, 1), "BDT non-$\\pi^{0}$ score"),
+    # ("bkg_score", 20, (0, 1), "1e0p BDT score"),
+    # ("RecoDeltaPT_1mu1p", None, None, "$\\delta p_T$ [GeV/c]", False, None, [0,0.3,1.7]),
+    # ("RecoDeltaAlphaT_1mu1p", None, None, "$\\delta \\alpha_T$ [degrees]", False, None, [0,80.,180.]),
+    # ("RecoPN_1mu1p", None, None, "$p_n$ [GeV/c]", False, None, [0,0.3,1.7]),
+    # ("RecoAlpha3D_1mu1p", None, None, "$\\alpha_{3D}$ [degrees]", False, None, [0,90.,180.]),
     
-    
+]
+
+BDT_variables_1e1p = [
+    # ("pi0_score", 20, (0, 1), "BDT $\\pi^{0}$ score"),
+    # ("nonpi0_score", 20, (0, 1), "BDT non-$\\pi^{0}$ score"),
+    # ("bkg_score", 20, (0, 1), "1e0p BDT score"),
+    # ("pi0_score", 16, (0, 0.4), "BDT $\\pi^{0}$ score", "low"),
+    # ("pi0_score", 24, (0.4, 1), "BDT $\\pi^{0}$ score", "high"),
+    # ("bkg_score", 20, (0, 0.5), "1e0p BDT score", "low"),
+    # ("bkg_score", 20, (0.5, 1), "1e0p BDT score", "high"),
+    ("nproton", 5, (0, 5), "Number of true protons"),
+    ("n_tracks_contained", 5, (0, 5), "Number of contained tracks"),
 ]
 
 loosesel_variables_1e1p = [

@@ -112,7 +112,7 @@ class RunHistPlotter:
         )
         assert isinstance(ext_hist, Histogram)
         if ext_hist is not None:
-            ext_hist.tex_string = "Cosmics"
+            ext_hist.tex_string = "EXT" #"Cosmics"
             ext_hist = flatten(ext_hist)
 
         mc_hists = gen.get_mc_hists(

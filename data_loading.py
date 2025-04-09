@@ -527,13 +527,32 @@ def add_paper_category(df, key):
 
 
 def add_paper_category_1e1p(df, key):
-    df.loc[:, "category_1e1p"] = df["category"]
-    if key in ["data"]:
+    df.loc[:, "category_1e1p"] = df["category_fixed"]
+    if key in ["data", "ext"]:
         return
     nue_cc0pi1p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNElec"] == 1) & (df["TrueNProt"] == 1))
     nue_cc0pi2p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNElec"] == 1) & (df["TrueNProt"] >= 2))
-    df.loc[df["category"].isin([11]) & nue_cc0pi1p, "category_1e1p"] = 12
-    df.loc[df["category"].isin([11]) & nue_cc0pi2p, "category_1e1p"] = 13
+    df.loc[df["category_fixed"].isin([11]) & nue_cc0pi1p, "category_1e1p"] = 12
+    df.loc[df["category_fixed"].isin([11]) & nue_cc0pi2p, "category_1e1p"] = 13
+    # Now split numu CC (2) into 0p (22), 1p (23) and 2+p (24)
+    # numu_cc0pi0p = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True)  & (df["TrueNProt"] == 0))
+    # numu_cc0pi1p = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True)  & (df["TrueNProt"] == 1))
+    # numu_cc0pi2p = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True)  & (df["TrueNProt"] >= 2))
+    # df.loc[df["category_fixed"].isin([2]) & numu_cc0pi0p, "category_1e1p"] = 22
+    # df.loc[df["category_fixed"].isin([2]) & numu_cc0pi1p, "category_1e1p"] = 23
+    # df.loc[df["category_fixed"].isin([2]) & numu_cc0pi2p, "category_1e1p"] = 24
+
+def add_paper_category_1e1p_1mu1p(df, key):
+    df.loc[:, "category_1e1p_1mu1p"] = df["category_1e1p"]
+    if key in ["data", "ext"]:
+        return
+    # Now split numu CC (2) into 0p (22), 1p (23) and 2+p (24)
+    numu_cc0pi0p = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True)  & (df["TrueNProt"] == 0))
+    numu_cc0pi1p = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True)  & (df["TrueNProt"] == 1))
+    numu_cc0pi2p = ((abs(df["nu_pdg"]) == 14) & (df["TrueMuonIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True)  & (df["TrueNProt"] >= 2))
+    df.loc[df["category_fixed"].isin([2]) & numu_cc0pi0p, "category_1e1p_1mu1p"] = 22
+    df.loc[df["category_fixed"].isin([2]) & numu_cc0pi1p, "category_1e1p_1mu1p"] = 23
+    df.loc[df["category_fixed"].isin([2]) & numu_cc0pi2p, "category_1e1p_1mu1p"] = 24
 
 def add_paper_xsec_category(df, key):
     df.loc[:, "paper_category_xsec"] = df["category"]
@@ -2307,6 +2326,7 @@ def load_sample(
     if load_nue_tki:
          # Add category_1e1p column
         add_paper_category_1e1p(df, dataset)
+        add_paper_category_1e1p_1mu1p(df, dataset)
         # Add the boolean variable for the mc signal to be used later in Gardiner's unfolding code
         df["mc_signal_1e1p"] = False
         df.loc[df["category_1e1p"] == 12, "mc_signal_1e1p"] = True
@@ -2319,7 +2339,7 @@ def load_sample(
         # We have to keep certain variables in order for everything to even function
         vardict = get_variables()
         minimum_columns = vardict["WEIGHTS"] + vardict["SYSTVARS"] + vardict["WEIGHTSLEE"]
-        minimum_columns += ["category", "category_fixed", "paper_category", "paper_category_xsec", "category_1e1p", "interaction"]
+        minimum_columns += ["category", "category_fixed", "paper_category", "paper_category_xsec", "category_1e1p", "category_1e1p_1mu1p", "interaction"]
         keep_columns = set(keep_columns) | set(minimum_columns)
         # drop all columns that are not in keep_columns in place
         df.drop(columns=set(df.columns) - set(keep_columns), inplace=True)

@@ -233,7 +233,7 @@ def set_Signal1e1p(up,df):
     df["TrueElecMomZ"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_pz"])),axis=1)
 
     df["TrueElecKE"] = df["TrueElecE"] - elec_mass
-    df['TrueElecModMom'] = np.sqrt((df['TrueElecMomX'])**2 + (df['TrueElecMomY'])**2 + (df['TrueElecMomZ'])**2)
+    df["TrueElecModMom"] = np.sqrt((df['TrueElecMomX'])**2 + (df['TrueElecMomY'])**2 + (df['TrueElecMomZ'])**2)
 
     df["TrueLeadProtonE"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_E"])),axis=1)
     df["TrueLeadProtonMomX"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_px"])),axis=1)
@@ -241,7 +241,7 @@ def set_Signal1e1p(up,df):
     df["TrueLeadProtonMomZ"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_pz"])),axis=1)
 
     df["TrueLeadProtonKE"] = df["TrueLeadProtonE"] - proton_mass
-    df['TrueLeadProtonModMom'] = np.sqrt((df['TrueLeadProtonMomX'])**2 + (df['TrueLeadProtonMomY'])**2 + (df['TrueLeadProtonMomZ'])**2)
+    df["TrueLeadProtonModMom"] = np.sqrt((df['TrueLeadProtonMomX'])**2 + (df['TrueLeadProtonMomY'])**2 + (df['TrueLeadProtonMomZ'])**2)
     
     # Set the signal definition
     nue_cc0piNp = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True))
