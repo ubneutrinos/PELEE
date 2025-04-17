@@ -155,18 +155,16 @@ def closest_distance_between_lines(df):
     
     vec_1 = intersection_point1 - a1 #line1_point 
     #print("vec_1", vec_1)
-    unit_vec_1 = vec_1 / np.linalg.norm(vec_1)
+    #unit_vec_1 = vec_1 / np.linalg.norm(vec_1)
     #print("unit vec 1 :", unit_vec_1)
     vec_2 = intersection_point2 - a2 #line2_point
     #print("vec 2", vec_2)
-    unit_vec_2 = vec_2 / np.linalg.norm(vec_2)
+    #unit_vec_2 = vec_2 / np.linalg.norm(vec_2)
     #print("unit vec 2 : ", unit_vec_2)
-    shr_1_dir = [np.dot(unit_vec_1_, b1_)/ np.linalg.norm(b1_) for unit_vec_1_,b1_ in zip(unit_vec_1, b1) ] #np.dot(vec_1, line1_direction) #np.dot(unit_vec_1, line1_direction)/ np.linalg.norm(line1_direction)
-    shr_2_dir = [np.dot(unit_vec_2_, b2_)/ np.linalg.norm(b2_) for unit_vec_2_, b2_ in zip(unit_vec_2, b2)] #np.dot(vec_2, line2_direction) #np.dot(unit_vec_2, line2_direction)/ np.linalg.norm(line2_direction)
+    shr_1_dir = [np.dot(vec_1_, b1_)/(np.linalg.norm(vec_1_) * np.linalg.norm(b1_)) for vec_1_,b1_ in zip(vec_1, b1)] #[np.dot(unit_vec_1_, b1_)/ np.linalg.norm(b1_) for unit_vec_1_,b1_ in zip(unit_vec_1, b1) ] #np.dot(vec_1, line1_direction) #np.dot(unit_vec_1, line1_direction)/ np.linalg.norm(line1_direction)
+    shr_2_dir = [np.dot(vec_2_, b2_)/ (np.linalg.norm(vec_2_) * np.linalg.norm(b2_)) for vec_2_, b2_ in zip(vec_2, b2)] #np.dot(vec_2, line2_direction) #np.dot(unit_vec_2, line2_direction)/ np.linalg.norm(line2_direction)
     backwards = [(shr_1_dir_ <= 0 and shr_2_dir_ <= 0) for shr_1_dir_, shr_2_dir_ in zip(shr_1_dir, shr_2_dir) ]  #(t <= 0) or (t > 1) or (s <= 0) or (s > 1)
-    #print("shr 1 dir :", shr_1_dir)
-    #print("shr 2 dir :", shr_2_dir)
-    #print("backwards :", backwards)
+    
     
     
     #Calculate midpoint between two intersection points
@@ -185,18 +183,24 @@ def closest_distance_between_lines(df):
     #print("dis point shr 1 distance:", distance_to_line1)
     #print("dis point shr 2 distance:", distance_to_line2)
     
-    # Calculate the closest distance
-    #distance = np.linalg.norm(np.dot(R, cross_product)) / np.linalg.norm(cross_product)
+    # form the vector from start to midpoint
+    vec_mid1 = a1 - mid_point 
+    # compute dot product b1·vec_mid1 for each row
+    numerators = [np.dot(x,y) for x, y  in zip(b1,vec_mid1)] 
 
-    # Check if intersection point is in the backward direction
-    #is_backwards = (t <= 0) or (t > 1) or (s <= 0) or (s > 1)
-    is_backwards = [(t_ <= 0) or (t_ > 1) or (s_ <= 0) or (s_ > 1) for t_, s_ in zip(t,s)]
-    #return distance, intersection_point, is_backwards
+    # compute the norms
+    norm_b1     = [np.linalg.norm(C_) for C_  in b1] 
+    norm_midvec = [np.linalg.norm(C_) for C_  in vec_mid1] 
 
-    #print(norm_)
-    #return np.abs(dot_) / norm_
-    return distance, backwards, is_backwards, intersection_point1, intersection_point2, mid_point, distance_mid_p1, distance_mid_p2, distance_intersec_p1, distance_intersec_p2
-
+    numerators   = np.array(numerators)
+    norm_b1      = np.array(norm_b1)
+    norm_midvec  = np.array(norm_midvec)
+    
+    # 4. cosine of angle for each event
+    cos_theta1 = numerators / (norm_b1 * norm_midvec) 
+    
+    
+    return distance, backwards, intersection_point1, intersection_point2, mid_point, distance_mid_p1, distance_mid_p2, distance_intersec_p1, distance_intersec_p2, cos_theta1
 '''
 def closest_distance_between_lines(df, x1, y1, z1, x2, y2, z2, dx1, dy1, dz1, dx2, dy2, dz2):
     """
@@ -1203,7 +1207,7 @@ def process_uproot_ccncpi0vars(up,df):
     
     #df["closest_dist_pi0_candidate_shrs"], df["is_backwards"]  = closest_distance_between_lines(df, df["pi0_start_x_1"], df["pi0_start_y_1"], df["pi0_start_z_1"], df["pi0_start_x_2"], df["pi0_start_y_2"], df["pi0_start_z_2"], df["pi0_dir1_x"], df["pi0_dir1_y"], df["pi0_dir1_z"], df["pi0_dir2_x"], df["pi0_dir2_y"], df["pi0_dir2_z"])
     
-    df["shortest_dist_pi0_candidate_shrs"], df["backwards"], df["is_backwards"], df["intersection_point1"], df["intersection_point2"], df["mid_point"], df["distance_mid_p1"], df["distance_mid_p2"], df["distance_intersec_p1"], df["distance_intersec_p2"]  = closest_distance_between_lines(df)
+    df["shortest_dist_pi0_candidate_shrs"], df["backwards"], df["is_backwards"], df["intersection_point1"], df["intersection_point2"], df["mid_point"], df["distance_mid_p1"], df["distance_mid_p2"], df["distance_intersec_p1"], df["distance_intersec_p2"],df["pi0_angle1"]  = closest_distance_between_lines(df)
     
     df["shortest_dist_pi0_candidate_shrs"] = df["shortest_dist_pi0_candidate_shrs"].fillna(9999.)
     
