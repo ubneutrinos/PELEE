@@ -289,11 +289,11 @@ def get_cnp_covariance(expectation: np.ndarray, observation: np.ndarray) -> np.n
 
 
 def chi_square(
-    observation: np.ndarray, expectation: np.ndarray, systematic_covariance: np.ndarray
+    observation: np.ndarray, expectation: np.ndarray, systematic_covariance: np.ndarray, stat_variance_method: str = "cnp"
 ) -> float:
     """
     Calculate the chi-square value for a given observation, expectation, and systematic covariance.
-
+str
     Parameters:
     observation (np.ndarray): The observed data.
     expectation (np.ndarray): The expected data.
@@ -317,7 +317,12 @@ def chi_square(
     mu = mu[mask]
     n = n[mask]
 
-    stat_covar = get_cnp_covariance(mu, n)
+    if stat_variance_method == "cnp":
+        stat_covar = get_cnp_covariance(mu, n)
+    elif stat_variance_method == "data":
+        stat_covar = np.diag(n)
+    elif stat_variance_method == "expectation":
+        stat_covar = np.diag(n)
     total_covar = syst_covar + stat_covar
     covar_inv = np.linalg.inv(total_covar)
     chi2 = np.dot(n - mu, np.dot(covar_inv, n - mu))

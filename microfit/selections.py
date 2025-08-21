@@ -12,24 +12,58 @@ PREPI0Q += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata
 PRESQ = 'nslice == 1'
 PRESQ += ' and selected == 1'
 PRESQ += ' and shr_energy_tot_cali > 0.07'
-PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
+#PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
 
-# 1e1p preselection
-OnePPRESQ = PRESQ
-OnePPRESQ += ' and n_tracks_contained == 1 and n_showers_contained == 1'
+# Lucile's 1eNp0pi selection
 
-# 1e1p selection (loose box cuts, same as 1eNp0$\\pi$ loose box cuts)
-OnePLCUTQ = OnePPRESQ
-OnePLCUTQ += ' and CosmicIPAll3D > 10.'
-OnePLCUTQ += ' and trkpid < 0.02'
-OnePLCUTQ += ' and hits_ratio > 0.50'
-OnePLCUTQ += ' and shrmoliereavg < 9'
-OnePLCUTQ += ' and subcluster > 4'
-OnePLCUTQ += ' and trkfit < 0.65'
-OnePLCUTQ += ' and tksh_distance < 6.0'
-OnePLCUTQ += ' and (shr_tkfit_nhits_tot > 1 and shr_tkfit_dedx_max > 0.5 and shr_tkfit_dedx_max < 5.5)' 
-OnePLCUTQ += ' and tksh_angle > -0.9'
-OnePLCUTQ += ' and shr_trk_len < 300.'
+LucileSEL = PRESQ
+LucileSEL += ' and n_showers_contained > 0 and n_tracks_contained > 0'
+LucileSEL += ' and CosmicIPAll3D > 10. and trkpid<(0.015*trk_len+0.02) and hits_ratio > 0.50 and shrmoliereavg < 9 and subcluster > 4 and trkfit < 0.65 and shr_trk_len < 300.'
+LucileSEL += ' and n_showers_contained == 1 and tksh_distance < 10.0 and tksh_angle > -0.9 and pi0_score > 0.50 and nonpi0_score > 0.50 and protonenergy_corr > 0.05'
+
+# 1e1p by modifying Lucile's Np selection
+OneP_NPBDTXS = LucileSEL
+OneP_NPBDTXS += ' and n_tracks_contained == 1'
+
+# 1e1p preselection - new
+OnePPRESQ_new = PRESQ
+OnePPRESQ_new += ' and Sel_1e1p == True'
+
+# 1e1p selection (loose box cuts, same as 1eNp loose box cuts)
+OnePLCUTQ_new = OnePPRESQ_new
+OnePLCUTQ_new += ' and CosmicIPAll3D > 10.'
+OnePLCUTQ_new += ' and hits_ratio > 0.50'
+OnePLCUTQ_new += ' and shrmoliereavg < 9'
+OnePLCUTQ_new += ' and subcluster > 4'
+OnePLCUTQ_new += ' and trkfit < 0.65'
+OnePLCUTQ_new += ' and tksh_distance < 3.0'
+OnePLCUTQ_new += ' and (shr_tkfit_nhits_tot > 1 and 1 < shr_tkfit_dedx_max < 5.5 and RecoElectron_conversion_dist < 3)' 
+OnePLCUTQ_new += ' and tksh_angle > -0.9'
+OnePLCUTQ_new += ' and shr_trk_len < 300.'
+
+# 1e1p BDT selection
+OnePBDT = OnePPRESQ_new
+OnePBDT += ' and pi0_score > 0.4 and bkg_score > 0.5'
+
+# 1e1p BDT + CRT selection
+OnePBDT_CRT = OnePBDT + ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'
+
+# 1e1p BDT sidebands
+
+OnePBDTFarSB = OnePPRESQ_new
+OnePBDTFarSB += ' and pi0_score < 0.4 and bkg_score < 0.5'
+
+OnePBDTNearSBpi0 = OnePPRESQ_new
+OnePBDTNearSBpi0 += ' and pi0_score > 0.4 and bkg_score < 0.5'
+
+OnePBDTNearSB0p = OnePPRESQ_new
+OnePBDTNearSB0p += ' and pi0_score < 0.4 and bkg_score > 0.5'
+
+# xsec 1e1p selection
+OneP_xsec = OnePPRESQ_new
+OneP_xsec += ' and CosmicIPAll3D > 10.'
+#OneP_xsec += ' and trkpid<(0.015*trk_len+0.02)'  # --> this has already been coded into 'Sel_1e1p == True'
+OneP_xsec += ' and hits_ratio > 0.50'
 
 # 1eNp0$\\pi$ preselection
 NPPRESQ = PRESQ
@@ -457,7 +491,8 @@ preselection_categories = {
     'NSLICE': {'query': 'nslice==1', 'title': r"SliceID selection", 'dir': 'NSLICE'},
     'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ pre-selection w/ CRT", 'dir': 'NUMUCRT'},
-    'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'}
+    #'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'},
+    'OneP_new': {'query': OnePPRESQ_new, 'title': '1e1p Presel.', 'dir': 'OneP'},
 
 }
 
@@ -515,7 +550,15 @@ selection_categories = {
     'ZPXSBDT': {'query': ZPXSBDTQ, 'title': '1e0p0$\\pi$ xsec BDT sel.', 'dir': 'ZPXSBDT'},
     'ZPXSBDTAllShr': {'query': ZPXSBDTQ_all_showers, 'title': '1e0p0$\\pi$ xsec BDT sel., 0+ showers', 'dir': 'ZPXSBDTAllShr'},
     'XPXSBDT': {'query': XPXSBDTQ, 'title': '1eXp xsec BDT sel.', 'dir': 'XPXSBDT'},
-    'OnePL': {'query': OnePLCUTQ, 'title': '1e1p Loose cuts', 'dir': 'OnePL'},
+    'OnePL_new': {'query': OnePLCUTQ_new, 'title': '1e1p Loose cuts New', 'dir': 'OnePL'},
+    'OneP_xsec': {'query': OneP_xsec, 'title': '1e1p xsec cuts', 'dir': 'OneP_xsec'},
+    'OnePBDT': {'query': OnePBDT, 'title': '1e1p BDT cuts', 'dir': 'OnePBDT'},
+    'OnePBDT_CRT': {'query': OnePBDT_CRT, 'title': '1e1p BDT cuts w/ CRT', 'dir': 'OnePBDT_CRT'},
+    'OnePBDTFarSB': {'query': OnePBDTFarSB, 'title': '1e1p Far BDT Sideband', 'dir': 'OnePBDTFarSB'},
+    'OnePBDTNearSBpi0': {'query': OnePBDTNearSBpi0, 'title': '1e1p Near Sideband (high $\\pi^{0}$ BDT score)', 'dir': 'OnePBDTNearSBpi0'},
+    'OnePBDTNearSB0p': {'query': OnePBDTNearSB0p, 'title': '1e1p Near Sideband (high 1e0p BDT score)', 'dir': 'OnePBDTNearSB0p'},
+    'LucileSEL': {'query': LucileSEL, 'title': '1eNp xsec BDT sel. - No pi0 Scaling', 'dir': '1eNp'},
+    'OneP_NPBDTXS': {'query': OneP_NPBDTXS, 'title': '1e1p BDT cuts', 'dir': 'OneP_NPBDTXS'},
 
     # CT: Full selections with BDT cuts inverted
     'ZPBDT_INV': {'query': ZPBDTLOOSE_INV, 'title': 'Inverted 1e0p0$\\pi$ BDT sel.', 'dir': 'ZPBDT_INV'},

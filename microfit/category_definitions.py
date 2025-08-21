@@ -6,6 +6,8 @@ def get_category_label(category_column, category):
 
     if category_column == "category":
         return category_labels.get(category, "Other")
+    elif category_column == "category_fixed":
+        return category_labels.get(category, "Other")
     elif category_column == "paper_category":
         return paper_labels.get(category, "Other")
     elif category_column == "paper_category_numu":
@@ -14,8 +16,14 @@ def get_category_label(category_column, category):
         return paper_labels_xsec.get(category, "Other")
     elif category_column == "category_1e1p":
         return category_labels_1e1p.get(category, "Other")
+    elif category_column == "category_1e1p_1mu1p":
+        return category_labels_1e1p.get(category, "Other")
+    elif category_column == "category_1e1p_tki":
+        return category_labels_1e1p.get(category, "Other")
     elif category_column == "interaction":
         return int_labels.get(category, "Other")
+    elif category_column == "backtracked_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+        return pdg_labels.get(category, "Other")
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
@@ -25,6 +33,8 @@ def get_categories(category_column):
 
     if category_column == "category":
         return list(category_labels.keys())
+    elif category_column == "category_fixed":
+        return list(category_labels.keys())
     elif category_column == "paper_category":
         return list(paper_labels.keys())
     elif category_column == "paper_category_numu":
@@ -33,8 +43,14 @@ def get_categories(category_column):
         return list(paper_labels_xsec.keys())
     elif category_column == "category_1e1p":
         return list(category_labels_1e1p.keys())
+    elif category_column == "category_1e1p_1mu1p":
+        return list(category_labels_1e1p.keys())
+    elif category_column == "category_1e1p_tki":
+        return list(category_labels_1e1p.keys())
     elif category_column == "interaction":
         return list(int_labels.keys())
+    elif category_column == "backtracked_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+        return list(pdg_labels.keys())
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
@@ -44,6 +60,8 @@ def get_category_color(category_column, category):
 
     if category_column == "interaction":
         return int_colors[category]
+    elif category_column == "backtracked_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+        return pdg_colors[abs(category)]
     return category_colors[category]
 
 
@@ -114,16 +132,16 @@ category_labels = {
 category_labels_1e1p = {
     1: r"$\nu_e$ CC",
     10: r"$\nu_e$ CC0$\pi$0p",
-    # 11: r"$\nu_e$ CC0$\pi$Np",
+    11: r"$\nu_e$ CC0$\pi$Np",
     12: r"$\nu_e$ CC0$\pi$1p",
     13: r"$\nu_e$ CC0$\pi$2+p",
     111: r"MiniBooNE LEE",
-    2: r"$\nu_{\mu}$ CC",
+    2: r"$\nu_{\mu}$ CC Np",
     222: r"$\nu_{\mu}$ CC w/ Michel",
     21: r"$\nu_{\mu}$ CC $\pi^{0}$",
     22: r"$\nu_{\mu}$ CC 0p",
     23: r"$\nu_{\mu}$ CC 1p",
-    24: r"$\nu_{\mu}$ CC 2p",
+    24: r"$\nu_{\mu}$ CC 2+p",
     25: r"$\nu_{\mu}$ CC 3+p",
     3: r"$\nu$ NC",
     31: r"$\nu$ NC $\pi^{0}$",
@@ -170,18 +188,20 @@ flux_colors = {
 
 pdg_labels = {
     2212: r"$p$",
-    13: r"$\mu$",
-    11: r"$e$",
+    13: r"$\mu^-$",
+    11: r"$e^-$",
     111: r"$\pi^0$",
-    -13: r"$\mu$",
-    -11: r"$e$",
-    211: r"$\pi^{\pm}$",
-    -211: r"$\pi$",
+    -13: r"$\mu^+$",
+    -11: r"$e^+$",
+    211: r"$\pi^{+}$",
+    -211: r"$\pi^-$",
     2112: r"$n$",
     22: r"$\gamma$",
-    321: r"$K$",
-    -321: r"$K$",
+    321: r"$K^+$",
+    -321: r"$K^-$",
     0: "Cosmic",
+    3122: r"$\Lambda$",
+    -3122: r"$\Lambda$",
 }
 
 int_labels = {
@@ -239,8 +259,8 @@ category_colors = {
     1: "xkcd:green",
     10: "xkcd:mint green",
     11: "xkcd:lime green",
-    12: "xkcd:soft green",
-    13: "xkcd:bright lime",
+    12: "xkcd:jungle green",
+    13: "xkcd:soft green", #"xkcd:bright lime",
     111: "xkcd:goldenrod",
     6: "xkcd:grey",
     0: "xkcd:black",
@@ -255,13 +275,19 @@ category_colors = {
 }
 
 pdg_colors = {
-    2212: "#a6cee3",
-    22: "#1f78b4",
+    2212: "#1f78b4",
+    22: "#a6cee3",
     13: "#b2df8a",
+    -13: "#b2df8a",
     211: "#33a02c",
-    111: "#137e6d",
+    -211: "#33a02c",
+    111: "#20641c",
     0: "#e31a1c",
     11: "#ff7f00",
+    -11: "#ff7f00",
     321: "#fdbf6f",
+    -321: "#fdbf6f",
     2112: "#cab2d6",
+    3122: "#3c00c0",
+    -3122: "#3c00c0",
 }

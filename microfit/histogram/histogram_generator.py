@@ -2,6 +2,7 @@ from copy import deepcopy
 import hashlib
 import logging
 from typing import Any, AnyStr, Dict, List, Optional, Sequence, Tuple, Union, cast, overload
+from copy import deepcopy
 
 # Import Literal for Python <= 3.7
 try:
@@ -43,6 +44,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         cache_total_covariance: bool = True,
         extra_mc_covariance: Optional[np.ndarray] = None,
         extra_background_fractional_error: Optional[Dict[str, float]] = None,
+        normalization_uncertainty: Optional[List[float]] = None,
     ):
         """Create a histogram generator for a given dataframe.
 
@@ -86,6 +88,9 @@ class HistogramGenerator(SmoothHistogramMixin):
         extra_background_fractional_error: dict, optional
             Dictionary where keys are the selection strings for the background and values are the
             fractional error to be applied to that background.
+        normalization_uncertainty: list of floats, optional
+            List containing the fractional errors for systematic uncertainties that need to be added as a flat 
+            normalisation. E.g. for xsec analysis, 'POT counting' is 2% and 'Number of target nuclei' is 1%.
         """
         self.dataframe = dataframe
         self.parameters = parameters
@@ -110,6 +115,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                         f"Value for {k} in extra_background_fractional_error must be a number."
                     )
         self.extra_background_fractional_error = extra_background_fractional_error
+        self.normalization_uncertainty = normalization_uncertainty
         # in case a string was passed to detvar_data, we load it from the file
         if isinstance(self.detvar_data, str):
             self.detvar_data = from_json(self.detvar_data)
@@ -193,7 +199,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         histogram : Histogram or MultiChannelHistogram
             Histogram of the data.
         """
-
+        #import pdb; pdb.set_trace()
         binning = self.binning.copy()
         return_single_channel = False
         # If we were to check for "Binning", this would also return True for MultiChannelBinning
@@ -341,6 +347,8 @@ class HistogramGenerator(SmoothHistogramMixin):
         self,
         include_multisim_errors: bool = False,
         use_sideband: bool = False,
+        ms_columns: Optional[List[str]] = ["weightsGenie", "weightsFlux", "weightsReint"],
+        include_unisim_errors: bool = True,
         extra_query: Optional[str] = None,
         sideband_generator: Optional["HistogramGenerator"] = None,
         sideband_total_prediction: Optional[Histogram] = None,
@@ -466,7 +474,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 extended_cov = np.zeros((n_bins + sb_n_bins, n_bins + sb_n_bins))
 
             # calculate multisim histograms
-            for ms_column in ["weightsGenie", "weightsFlux", "weightsReint"]:
+            for ms_column in ms_columns:
                 cov_mat = self.calculate_multisim_uncertainties(
                     ms_column,
                     extra_query=extra_query,
@@ -482,11 +490,12 @@ class HistogramGenerator(SmoothHistogramMixin):
                     )
 
             # calculate unisim histograms
-            self.logger.debug("Calculating unisim uncertainties")
-            cov_mat_unisim = self.calculate_unisim_uncertainties(
-                central_value_hist=hist, extra_query=extra_query
-            )
-            hist.add_covariance(cov_mat_unisim)
+            if include_unisim_errors:
+                self.logger.debug("Calculating unisim uncertainties")
+                cov_mat_unisim = self.calculate_unisim_uncertainties(
+                    central_value_hist=hist, extra_query=extra_query
+                )
+                hist.add_covariance(cov_mat_unisim)
 
             if use_sideband:
                 # calculate constraint correction
@@ -509,16 +518,27 @@ class HistogramGenerator(SmoothHistogramMixin):
         if add_precomputed_detsys:
             if include_detsys_variations is None:
                 include_detsys_variations = detector_variations
+            print('smooth_detsys_variations:', smooth_detsys_variations)
+            print()
+            print('extra_query:', extra_query)
+            print()
+            print('include_detsys_variations:', include_detsys_variations)
+            print()
             det_cov = self.calculate_detector_covariance(
                 smooth_variations=smooth_detsys_variations,
                 extra_query=extra_query,
                 include_variations=include_detsys_variations,
             )
+            print(det_cov)
+            print()
             if det_cov is not None:
                 hist.add_covariance(det_cov)
 
         if self.extra_mc_covariance is not None:
             hist.add_covariance(self.extra_mc_covariance)
+
+        if self.normalization_uncertainty is not None:
+            hist.add_covariance(self.normalization_covariance())
 
         if self.enable_cache and self.cache_total_covariance:
             self.hist_cache[hash] = hist.copy()
@@ -536,6 +556,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         add_precomputed_detsys=False,
         smooth_detsys_variations=True,
         include_detsys_variations=detector_variations,
+        #normalization_uncertainty = None,
     ):
         """Generate a joint histogram from multiple histogram generators.
 
@@ -546,6 +567,7 @@ class HistogramGenerator(SmoothHistogramMixin):
         generate_kwargs = {
             "include_multisim_errors": False,
             "extra_query": extra_query,
+            #"normalization_uncertainty": normalization_uncertainty,
         }
         # We want these histograms to only contain the statistical covariance matrix (which may include correlations
         # in case of overlapping selections between channels).
@@ -1066,7 +1088,7 @@ class HistogramGenerator(SmoothHistogramMixin):
                 for universe in range(n_universes):
                     # get the weight column for this universe
                     weight_column_knob = (
-                        f"{knob}up" if n_universes == 2 and universe == 0 else f"{knob}dn"
+                        f"{knob}dn" if n_universes == 2 and universe == 1 else f"{knob}up"
                     )
                     bincounts = self._histogram_multi_channel(
                         dataframe,
@@ -1177,7 +1199,6 @@ class HistogramGenerator(SmoothHistogramMixin):
         # If we are at this point and somehow didn't get a dict, we must have forgotten to load it
         # from json in the constructor.
         assert isinstance(self.detvar_data, dict)
-
         variation_hist_data = cast(
             Dict[str, Dict[str, Histogram]], deepcopy(self.detvar_data["variation_hist_data"])
         )
@@ -1301,6 +1322,18 @@ class HistogramGenerator(SmoothHistogramMixin):
                 backgr_hist = self.generate(extra_query=backgr_query)
                 output += (backgr_hist.bin_counts * v) ** 2
         return output
+
+    def normalization_covariance(self) -> np.ndarray:
+        cv_hist = self.generate()
+        n_bins = cv_hist.n_bins
+        cov = np.zeros((n_bins, n_bins))
+
+        for i in range(n_bins):
+            for j in range(n_bins):
+                for f in self.normalization_uncertainty:
+                    cov[i][j] += cv_hist.bin_counts[i] * cv_hist.bin_counts[j] * f**2
+
+        return cov
 
     def _resync_parameters(self):
         """Not needed since there are no parameters in this class."""

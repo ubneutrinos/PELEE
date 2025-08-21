@@ -17,47 +17,176 @@ basic_variables = [
 ]
 
 variables_1e1p = [
-    # ('reco_e',21,(0.05,2.15),r"Reconstructed Energy [GeV]"),
-    # ('reco_e',20,(0.05,3.05),r"Reconstructed Energy [GeV]","extended"),
-    # ('reco_e',7,(0.05,2.85),r"Reconstructed Energy [GeV]","coarse"),
-    # ('reco_e',22,(-0.05,2.15),r"Reconstructed Energy [GeV]"),
-    # ('reco_e',21,(-0.05,4.15),r"Reconstructed Energy [GeV]","extended"),
-    ("reco_e", 20, (0.15, 2.95), "Reconstructed Neutrino Energy [GeV] \n (reco_e)", "note"),
+#     ("reco_e", 20, (0.15, 2.95), "Reconstructed Neutrino Energy [GeV] \n (reco_e)", "note"),
     # ('reco_e',10,(0.9,3.9),r"Reconstructed Energy [GeV]","highe"),
-    ("p", 20, (0, 4), "Total Reconstructed Momentum [GeV/c] \n (p)"),
-    ("pt", 20, (0, 2), "Total Reconstructed Transverse Momentum [GeV/c] \n (pt)"),
-    ("trk_energy", 10, (0, 1), "Reconstructed Proton Kinetic Energy [GeV] \n (trk_energy)"),
-    ("shr_energy_cali", 16, (0, 4), "Reconstructed Electron Energy [GeV] \n (shr_energy_cali)"),
-    ("mod_shr_p", 20, (0, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c] \n (mod_shr_p)"),
-    ("shr_px", 12, (-1.5, 1.5), "x component of Reconstructed Electron Momentum [GeV/c] \n (shr_px)"),
-    ("shr_py", 12, (-1.5, 1.5), "y component of Reconstructed Electron Momentum [GeV/c] \n (shr_py)"),
-    ("shr_pz", 12, (-1, 5), "z component of Reconstructed Electron Momentum [GeV/c] \n (shr_pz)"),
-    ("mod_trk_p", 20, (0, 1.5), "Modulus of the Reconstructed Proton Momentum [GeV/c] \n (mod_trk_p)"),
-    ("trk_px", 20, (-1, 1), "x component of Reconstructed Proton Momentum [GeV/c] \n (trk_px)"),
-    ("trk_py", 20, (-1.5, 1.5), "y component of Reconstructed Proton Momentum [GeV/c] \n (trk_py)"),
-    ("trk_pz", 20, (-1, 1.5), "z component of Reconstructed Proton Momentum [GeV/c] \n (trk_pz)"),
+#     ("p", 20, (0, 4), "Total Reconstructed Momentum [GeV/c] \n (p)"),
+#     ("pt", 20, (0, 2), "Total Reconstructed Transverse Momentum [GeV/c] \n (pt)"),
+#     ("trk_energy", 10, (0, 1), "Reconstructed Proton Kinetic Energy [GeV] \n (trk_energy)"),
+#     ("shr_energy_cali", 16, (0, 4), "Reconstructed Electron Energy [GeV] \n (shr_energy_cali)"),
+    ("RecoElecE", 16, (0, 4), "Reconstructed Electron Energy [GeV]"),
+#     ("RecoElecModMom", 20, (0, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c]"),
+#     ("RecoElecMomX", 12, (-1.5, 1.5), "x component of Reconstructed Electron Momentum [GeV/c]"),
+#     ("RecoElecMomY", 12, (-1.5, 1.5), "y component of Reconstructed Electron Momentum [GeV/c]"),
+    ("RecoElecMomZ", 12, (-1, 5), "z component of Reconstructed Electron Momentum [GeV/c]"),
+    ("RecoLeadProtonKE", 10, (0, 1), "Reconstructed Proton Kinetic Energy [GeV]"),
+#     ("RecoLeadProtonModMom", 20, (0, 1.5), "Modulus of the Reconstructed Proton Momentum [GeV/c]"),
+#     ("RecoLeadProtonMomX", 20, (-1, 1), "x component of Reconstructed Proton Momentum [GeV/c]"),
+#     ("RecoLeadProtonMomY", 20, (-1.5, 1.5), "y component of Reconstructed Proton Momentum [GeV/c]"),
+    ("RecoLeadProtonMomZ", 20, (-1, 1.5), "z component of Reconstructed Proton Momentum [GeV/c]"),
+    ("RecoPL", 10, (0, 2), "$p_L$ [GeV/c]"),
+    ("RecoECal", 10, (0, 4), "$E_{cal}$ [GeV]"),
+    ("RecoPN", None, None, "$p_n$ [GeV/c]", False, None, [0,0.3,1.7]),
+#     ("trk_llr_pid_score_v", 32, (-1, 1), "Track LLR PID Score"),
+#     ("shr_llr_pid_score_v", 32, (-1, 1), "Shower LLR PID Score"),
 ]
+
+import numpy as np
+pt = np.linspace(0, 1.35, 10)
+pt = np.append(pt,np.inf)
+at = np.linspace(0, 162, 10)
+at = np.append(pt,np.inf)
 
 TKI_variables_1e1p = [
-    ("mod_delta_pt", 20, (0, 2), "$\\delta p_T$ [GeV/c] \n (mod_delta_pt)"),
-    ("delta_alpha", 20, (0, 180), "$\\delta \\alpha_T$ [degrees] \n (delta_alpha)"),
+    # ("mod_delta_pt", 20, (0, 2), "$\\delta p_T$ [GeV/c] \n (mod_delta_pt)"),
+    # ("delta_alpha", 20, (0, 180), "$\\delta \\alpha_T$ [degrees] \n (delta_alpha)"),
+    # ("RecoDeltaPT_1e1p", None, None, "$\\delta p_T$ [GeV/c]", False, None, [0,0.3,1.7]),
+    # ("RecoDeltaAlphaT_1e1p", None, None, "$\\delta \\alpha_T$ [degrees]", False, None, [0,80.,180.]),
+    # ("RecoPN_1e1p", None, None, "$p_n$ [GeV/c]", False, None, [0,0.3,1.7]),
+    # ("RecoAlpha3D_1e1p", None, None, "$\\alpha_{3D}$ [degrees]", False, None, [0,90.,180.]),
+    ("RecoDeltaPT", None, None, "$\\delta p_T$ [GeV/c]", False, None, [0,0.3,1.7]),
+    ("RecoDeltaAlphaT", None, None, "$\\delta \\alpha_T$ [degrees]", False, None, [0,80.,180.]),
+    ("RecoPN", None, None, "$p_n$ [GeV/c]", False, None, [0,0.3,1.7]),
+    ("RecoAlpha3D", None, None, "$\\alpha_{3D}$ [degrees]", False, None, [0,90.,180.]),
+    # ("RecoElecE", 16, (0, 4), "Reconstructed Electron Energy [GeV]"),
+    # ("RecoElecModMom", 20, (0, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c]"),
+    # ("RecoElecMomX", 12, (-1.5, 1.5), "x component of Reconstructed Electron Momentum [GeV/c]"),
+    # ("RecoElecMomY", 12, (-1.5, 1.5), "y component of Reconstructed Electron Momentum [GeV/c]"),
+    # #("RecoElecMomZ", 12, (-1, 5), "z component of Reconstructed Electron Momentum [GeV/c]"),
+    # ("RecoLeadProtonKE", 10, (0, 1), "Reconstructed Proton Kinetic Energy [GeV]"),
+    # #("RecoLeadProtonModMom", 20, (0, 1.5), "Modulus of the Reconstructed Proton Momentum [GeV/c]"),
+    # ("RecoLeadProtonMomX", 20, (-1, 1), "x component of Reconstructed Proton Momentum [GeV/c]"),
+    # #("RecoLeadProtonMomY", 20, (-1.5, 1.5), "y component of Reconstructed Proton Momentum [GeV/c]"),
+    # #("RecoLeadProtonMomZ", 20, (-1, 1.5), "z component of Reconstructed Proton Momentum [GeV/c]"),
+    # ("RecoElecModMom", 20, (2, 5), "Modulus of the Reconstructed Electron Momentum [GeV/c]"),
+    # ("RecoDeltaPT", None, None, "$\\delta p_T$ [GeV/c]", False, None, pt),
+    # ("RecoDeltaAlphaT", None, None, "$\\delta \\alpha_T$ [degrees]", False, None, at),
+#     ("RecoDeltaPT", 10, (0, 1.7), "$\\delta p_T$ [GeV/c]"),
+#     ("RecoDeltaAlphaT", 10, (0, 180), "$\\delta \\alpha_T$ [degrees]"),
+#     ("RecoPN", 10, (0, 1.7), "$p_n$ [GeV/c]"),
+#     ("RecoAlpha3D", 10, (0, 180), "$\\alpha_{3D}$ [degrees]"),
+#     ("TrueDeltaPT", 10, (0, 1.7), "$\\delta p_T$ [GeV/c]"),
+#     ("TrueDeltaAlphaT", 10, (0, 180), "$\\delta \\alpha_T$ [degrees]"),
+#     ("TruePN", 10, (0, 1.7), "$p_n$ [GeV/c]"),
+#     ("TrueAlpha3D", 10, (0, 180), "$\\alpha_{3D}$ [degrees]"),
+    # ("pi0_score", 20, (0, 1), "BDT $\\pi^{0}$ score"),
+    # ("nonpi0_score", 20, (0, 1), "BDT non-$\\pi^{0}$ score"),
+    # ("bkg_score", 20, (0, 1), "1e0p BDT score"),
+    # ("RecoDeltaPT_1mu1p", None, None, "$\\delta p_T$ [GeV/c]", False, None, [0,0.3,1.7]),
+    # ("RecoDeltaAlphaT_1mu1p", None, None, "$\\delta \\alpha_T$ [degrees]", False, None, [0,80.,180.]),
+    # ("RecoPN_1mu1p", None, None, "$p_n$ [GeV/c]", False, None, [0,0.3,1.7]),
+    # ("RecoAlpha3D_1mu1p", None, None, "$\\alpha_{3D}$ [degrees]", False, None, [0,90.,180.]),
+    
 ]
 
-loosesel_variables_1eNp = [
+my_vars = [
+    ("RecoDeltaPT_1e1p", None, None, "$\\delta p_T$ [GeV/c]", False, None, [0,0.3,1.7]),
+    ("RecoDeltaAlphaT_1e1p", None, None, "$\\delta \\alpha_T$ [degrees]", False, None, [0,80.,180.]),
+    ("RecoPN_1e1p", None, None, "$p_n$ [GeV/c]", False, None, [0,0.3,1.7]),
+    ("RecoAlpha3D_1e1p", None, None, "$\\alpha_{3D}$ [degrees]", False, None, [0,90.,180.]),
+]
+
+sel_variables_1e1p = [
+    # ("pi0_score", 20, (0, 1), "BDT $\\pi^{0}$ score"),
+    # ("nonpi0_score", 20, (0, 1), "BDT non-$\\pi^{0}$ score"),
+    # ("bkg_score", 20, (0, 1), "1e0p BDT score"),
+    # ("pi0_score", 16, (0, 0.4), "BDT $\\pi^{0}$ score", "low"),
+    # ("pi0_score", 24, (0.4, 1), "BDT $\\pi^{0}$ score", "high"),
+    # ("bkg_score", 20, (0, 0.5), "1e0p BDT score", "low"),
+    # ("bkg_score", 20, (0.5, 1), "1e0p BDT score", "high"),
+    ("nproton", 5, (0, 5), "Number of true protons"),
+    # ("n_tracks_contained", 5, (0, 5), "Number of contained tracks"),
+    # ("shr_energy_tot_cali", 14, (0.05, 1.55), "reconstructed shower energy [GeV]"),
+]
+
+loosesel_variables_1e1p = [
     ("hits_ratio", 20, (0, 1), "shower hits/all hits"),
     ("trkfit", 20, (0, 1.0), "Fraction of Track-fitted points"),
     ("subcluster", 20, (0, 40), "N sub-clusters in shower"),
     ("CosmicIPAll3D", 20, (0, 200), "CosmicIPAll3D [cm]"),
-    ("shr_tkfit_dedx_max", 20, (0, 10), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    ("shr_tkfit_dedx_max", 10, (0, 10), "shr tkfit dE/dx max [MeV/cm]"),
     ("tksh_angle", 20, (-1, 1), "cos(trk-shr angle)"),
-    ("tksh_distance", 20, (0, 40), "trk-shr distance [cm]"),
+    #("tksh_angle", 10, (-0.9, 1), "cos(trk-shr angle)"),
+      ("tksh_distance", 12, (0, 6), "trk-shr distance [cm]"),
+#     ("tksh_distance", 2, (0, 6), "trk-shr distance [cm]"),
     ("shr_tkfit_nhits_tot", 20, (0, 20), "shr tkfit nhits (tot, 0-4 cm) [MeV/cm]"),
-    ("trkpid", 21, (-1, 1), "track LLR PID"),
+    # ("trkpid", 21, (-1, 1), "track LLR PID"),
+    #("trkpid", 5, (-1, 0.02), "track LLR PID"),
+    ("trkshrhitdist2", 10, (0, 10), "2D trk-shr distance (Y)"),
     ("shrmoliereavg", 20, (0, 50), "average Moliere angle [degrees]"),
     ("shr_trk_len", 40, (0, 400), "Shower track fit length [cm]"),
-    ("nonpi0_score", 10, (0, 1.0), "BDT non-$\\pi^0$ score", "log", True),
-    ("pi0_score", 10, (0, 1.0), "BDT $\\pi^0$ score", "log", True),
-    ("bkg_score", 10, (0, 1.0), "1e0p BDT score", "log", True),
+    # ("nonpi0_score", 10, (0, 1.0), "BDT non-$\\pi^0$ score", "log", True),
+    # ("pi0_score", 10, (0, 1.0), "BDT $\\pi^0$ score", "log", True),
+    # ("bkg_score", 10, (0, 1.0), "1e0p BDT score", "log", True),
+#     ("trk_len", 10, (0, 100), "length of longest track [cm]"),
+    ("RecoLeadProton_trk_len", 10, (0, 100), "length of longest candidate proton track [cm]"),
+    ("RecoLeadProton_trk_trunk_dEdx_y", 16, (0, 16), "Mean dEdx using first 1/3 of longest candidate proton track hits - Y plane [MeV/cm]"),
+    ("RecoLeadProton_dEdx_y_per_trklen", 10, (0, 1.5), "Mean dEdx (Y plane) / candidate proton track length [MeV/$cm^2$]"),
+   ("RecoLeadProtonCandidate_trk_pid", 10, (-1, 0.03), "Track LLR PID Score"),
+    ("RecoElectronCandidate_shr_pid", 20, (-1, 1), "Shower LLR PID Score"),
+    ("RecoElectron_conversion_dist", 10, (0, 10), "Candidate electron shower conversion distance [cm]"),
+    ("pi0_radlen1", 20, (0, 40), "Leading $\\pi^{0}$ shower conversion distance [cm]"),
+    ("pi0_radlen2", 20, (0, 60), "Subleading $\\pi^{0}$ shower conversion distance [cm]"),
+    # ("pi0_tkfit_dedx1_max", 10, (0, 20), "Leading $\\pi^{0}$ shower maximum dEdx [MeV]"),
+    # ("pi0_tkfit_dedx2_max", 10, (0, 20), "Subleading $\\pi^{0}$ shower maximum dEdx [MeV]"),
+]
+
+tightsel_variables = [
+    ("CosmicIPAll3D", 20, (0, 200), "CosmicIPAll3D [cm]"),
+    ("CosmicDirAll3D", 20, (-1, 1), "CosmicDirAll3D"),
+    ("trkpid", 21, (-1, 1), "track LLR PID"),
+    ("hits_ratio", 20, (0, 1), "shower hits/all hits"),
+    ("shrmoliereavg", 20, (0, 50), "average Moliere angle [degrees]"),
+    ("subcluster", 20, (0, 40), "N sub-clusters in shower"),
+    ("trkfit", 20, (0, 1.0), "Fraction of Track-fitted points"),
+    ("shr_trk_len", 40, (0, 400), "Shower track fit length [cm]"),
+    ("shr_score", 20, (0, 0.5), "Shower score"),
+    ("tksh_distance", 20, (0, 40), "trk-shr distance [cm]"),
+    ("shr_tkfit_nhits_tot", 20, (0, 20), "shr tkfit nhits (tot, 0-4 cm) [MeV/cm]"),
+    ("shr_tkfit_dedx_max", 20, (0, 10), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    ("trkshrhitdist2", 20, (0, 10), "2D trk-shr distance (Y)"),
+    ("secondshower_Y_nhit", 20, (0, 200), "Nhit 2nd shower (Y)"),
+    ("secondshower_Y_dot", 20, (-1, 1), "cos(2nd shower direction wrt vtx) (Y)"),
+    ("anglediff_Y", 14, (0, 350), "angle diff 1st-2nd shower (Y) [degrees]"),
+    ("secondshower_Y_vtxdist", 20, (0.0, 200), "vtx dist 2nd shower (Y)"),
+    ("tksh_angle", 20, (-1, 1), "cos(trk-shr angle)"),
+]
+
+loosesel_variables_1eNp = [
+    # ("hits_ratio", 20, (0, 1), "shower hits/all hits"),
+    # ("trkfit", 20, (0, 1.0), "Fraction of Track-fitted points"),
+    # ("subcluster", 20, (0, 40), "N sub-clusters in shower"),
+    # ("CosmicIPAll3D", 20, (0, 200), "CosmicIPAll3D [cm]"),
+    # ("shr_tkfit_dedx_max", 20, (0, 10), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    # ("tksh_angle", 20, (-1, 1), "cos(trk-shr angle)"),
+    #("tksh_angle", 10, (-0.9, 1), "cos(trk-shr angle)"),
+     ("tksh_distance", 12, (0, 6), "trk-shr distance [cm]"),
+    # ("shr_tkfit_nhits_tot", 20, (0, 20), "shr tkfit nhits (tot, 0-4 cm) [MeV/cm]"),
+    # ("trkpid", 21, (-1, 1), "track LLR PID"),
+    #("trkpid", 5, (-1, 0.02), "track LLR PID"),
+    #("trkshrhitdist2", 10, (0, 10), "2D trk-shr distance (Y)"),
+    # ("shrmoliereavg", 20, (0, 50), "average Moliere angle [degrees]"),
+    # ("shr_trk_len", 40, (0, 400), "Shower track fit length [cm]"),
+    # ("nonpi0_score", 10, (0, 1.0), "BDT non-$\\pi^0$ score", "log", True),
+    # ("pi0_score", 10, (0, 1.0), "BDT $\\pi^0$ score", "log", True),
+    # ("bkg_score", 10, (0, 1.0), "1e0p BDT score", "log", True),
+    ("trk_len", 10, (0, 100), "length of longest track [cm]"),
+    
+]
+
+presel_variables_1eNp = [
+    # ("tksh_angle", 20, (-1, 1), "cos(trk-shr angle)"),
+    # ("trkpid", 21, (-1, 1), "track LLR PID"),
+    ("trkshrhitdist2", 10, (0, 10), "2D trk-shr distance (Y)"),
 ]
 
 evtsel_variabls = [
@@ -151,6 +280,45 @@ kinematic_variables = [
     ("n_trks_gt10cm", 6, (-0.5, 5.5), "n tracks longer than 10 cm"),
     # ('n_trks_gt25cm',6,(-0.5, 5.5),"n tracks longer than 25 cm"),
 ]
+
+kinevars_1eNp = [
+    ('reco_e', 4, (0, 3.2), r"Reconstructed Energy [GeV]"),
+    # ('reco_e', 7, (0, 3), r"Reconstructed Energy [GeV]"),
+    # ('n_protons_attach', 4, (0.5, 4.5), r"N protons at vertex"),
+    # ("theta1PlusTheta2", 8, (0, 4), "shr theta + trk theta"),
+    # ('cos_shr_theta', 6, (-1, 1), r"cos(shr theta)"),
+    # ("shr_phi", 5, (-3.14, 3.14), r"Shower $\phi$"),
+    # ('shr_energy_tot_cali', 6, (0, 1.8), r"Shower Energy (calibrated) [GeV]"),
+    # ('cos_trk_theta', 6, (-1, 1), r"cos(trk theta)"),
+    # ("trk_phi", 5, (-3.14, 3.14), r"Track $\phi$"),
+    # ("protonenergy", 6, (0, 0.6), "proton kinetic energy [GeV]"),
+]
+
+kinevars_1eNp_low_energy = [
+    ('reco_e', 5, (0.1, 0.65), r"Reconstructed Energy [GeV]"),
+    ('n_protons_attach', 4, (0.5, 4.5), r"N protons at vertex"),
+    ("theta1PlusTheta2", 8, (0, 4), "shr theta + trk theta"),
+    ('cos_shr_theta', 6, (-1, 1), r"cos(shr theta)"),
+    ("shr_phi", 5, (-3.14, 3.14), r"Shower $\phi$"),
+    ('shr_energy_tot_cali', 3, (0, 0.6), r"Shower Energy (calibrated) [GeV]"),
+    ('cos_trk_theta', 6, (-1, 1), r"cos(trk theta)"),
+    ("trk_phi", 5, (-3.14, 3.14), r"Track $\phi$"),
+    ("protonenergy", 4, (0, 0.30), "proton kinetic energy [GeV]"),
+]
+
+kinevars_1e0p = [
+    ('reco_e', 3, (0, 2.4), r"Reconstructed Energy [GeV]"),
+    # ('reco_e', 5, (0, 2), r"Reconstructed Energy [GeV]"),
+    # ('cos_shr_theta', 10, (-1, 1), r"cos(shr theta)"),
+    # ("shr_phi", 5, (-3.14, 3.14), r"Shower $\phi$"),
+]
+
+kinevars_1e0p_low_energy = [
+    ('reco_e', 4, (0, 0.8), r"Reconstructed Energy [GeV]"),
+    ('cos_shr_theta', 10, (-1, 1), r"cos(shr theta)"),
+    ("shr_phi", 5, (-3.14, 3.14), r"Shower $\phi$"),
+]
+
 other_variables = [
     ("slclustfrac", 20, (0, 1), "slice clustered fraction"),
     ("reco_nu_vtx_x", 10, (0, 260), "vertex x [cm]"),
@@ -277,12 +445,12 @@ bdt_common_variables_1eNp = [
 ]
 
 bdt_1enp_variables = [
-    ("tksh_angle", 10, (-0.9, 1), "cos(trk-shr angle)"),
+    #("tksh_angle", 10, (-0.9, 1), "cos(trk-shr angle)"),
     ("trkshrhitdist2", 10, (0, 10), "2D trk-shr distance (Y)"),
-    ("tksh_distance", 6, (0, 6), "trk-shr distance [cm]"),
-    ("trkpid", 5, (-1, 0.02), "track LLR PID"),
-    ("hits_ratio", 10, (0.5, 1.0), "shower hits/all hits"),
-    ("shr_tkfit_dedx_max", 5, (0.5, 5.5), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    # ("tksh_distance", 6, (0, 6), "trk-shr distance [cm]"),
+    #("trkpid", 5, (-1, 0.02), "track LLR PID"),
+    # ("hits_ratio", 10, (0.5, 1.0), "shower hits/all hits"),
+    # ("shr_tkfit_dedx_max", 5, (0.5, 5.5), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
 ]
 
 bdt_common_variables_1e0p = [
