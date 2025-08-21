@@ -36,45 +36,51 @@ def plot_cov_matrix(cov, binning_def, binning):
 
 keep_vars = [
     "Signal_1e1p", "mc_signal_1e1p", "nu_pdg", "TrueElecIdx", "TrueLeadProtonIdx", "InFV", "HasNoMesons", "TrueNElec", "TrueNProt", 
+    "TrueDeltaPT_1e1p", "TrueDeltaAlphaT_1e1p", "TruePN_1e1p", "TrueAlpha3D_1e1p",
+    "TrueLeadProtonKE_1e1p", "TrueLeadProtonModMom_1e1p", "TrueLeadProtonE_1e1p", "TrueLeadProtonMomX_1e1p", "TrueLeadProtonMomY_1e1p", "TrueLeadProtonMomZ_1e1p",
+    "TrueElecKE_1e1p", "TrueElecModMom_1e1p", "TrueElecE_1e1p", "TrueElecMomX_1e1p", "TrueElecMomY_1e1p", "TrueElecMomZ_1e1p",
+
     "TrueDeltaPT", "TrueDeltaAlphaT", "TruePN", "TrueAlpha3D",
-    "TrueLeadProtonKE", "TrueLeadProtonModMom", "TrueLeadProtonE", "TrueLeadProtonMomX", "TrueLeadProtonMomY", "TrueLeadProtonMomZ",
-    "TrueElecKE", "TrueElecModMom", "TrueElecE", "TrueElecMomX", "TrueElecMomY", "TrueElecMomZ",
+    "mc_KE_prot", "mc_p_prot", "mc_E_prot", "mc_px_prot", "mc_py_prot", "mc_pz_prot",
+    "mc_KE_elec", "mc_p_elec", "mc_E_elec", "mc_px_elec", "mc_py_elec", "mc_pz_elec",
 
     "Sel_1e1p", "sel_1e1p_w_cuts", "RecoElectronCandidateIdx", "RecoLeadProtonCandidateIdx", "InFV_reco",
     "RecoElecPassMomCut", "RecoLeadProtonPassMomCut", "n_reco_tracks", "n_reco_showers",
-    "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D", "RecoECal", "Reco_mag_q", "RecoPL",
-    "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
+    "RecoDeltaPT_1e1p", "RecoDeltaAlphaT_1e1p", "RecoPN_1e1p", "RecoAlpha3D_1e1p", #"RecoECal_1e1p", "Reco_mag_q_1e1p", "RecoPL_1e1p",
+    "RecoLeadProtonKE_1e1p", "RecoLeadProtonModMom_1e1p", "RecoLeadProtonMomX_1e1p", "RecoLeadProtonMomY_1e1p", "RecoLeadProtonMomZ_1e1p",
     "RecoElecE", "RecoElecModMom", "RecoElecMomX", "RecoElecMomY", "RecoElecMomZ",
 
     "RecoLeadProton_trk_len", "RecoLeadProton_trk_trunk_dEdx_y", "RecoLeadProton_dEdx_y_per_trklen",
     "RecoLeadProtonCandidate_trk_pid", "RecoElectronCandidate_shr_pid", "RecoElectron_conversion_dist",
 
-    "nproton", "npion", "npi0", "nelec", "nmuon", "isVtxInFiducial", 
-
+    "nproton", "npion", "npi0", "nelec", "nmuon", "isVtxInFiducial", "elec_e", "proton_ke",
     "nslice", "selected", "shr_energy_tot_cali", "_opfilter_pe_beam", "_opfilter_pe_veto", "bnbdata", "extdata",
     "CosmicIPAll3D", "hits_ratio", "shrmoliereavg", "subcluster", "trkfit", "trkshrhitdist2", "tksh_distance",
     "shr_tkfit_nhits_tot", "shr_tkfit_dedx_max", "tksh_angle", "shr_trk_len", "reco_e",
     "trkpid", "trk_len", "n_showers_contained", "protonenergy_corr", "n_tracks_contained",
-    "pi0_radlen1", "pi0_radlen2", "pi0_score", "nonpi0_score", "bkg_score",
+    "pi0_radlen1", "pi0_radlen2", "pi0_score", "nonpi0_score", "bkg_score", "trk_id",
 
-    "InFV_1muNp", "TrueMuonIdx_1muNp", "TrueLeadProtonIdx_1muNp", "TrueNProt_1muNp", "TrueFSPions_1muNp", "Signal_1mu1p", 
-    "TrueDeltaPT_1mu1p", "TrueDeltaAlphaT_1mu1p", "TruePN_1mu1p", "TrueAlpha3D_1mu1p",
-    "TrueLeadProtonE_1muNp", "TrueLeadProtonMomX_1muNp", "TrueLeadProtonMomY_1muNp", "TrueLeadProtonMomZ_1muNp",
-    "TrueMuonE_1muNp", "TrueMuonMomX_1muNp", "TrueMuonMomY_1muNp", "TrueMuonMomZ_1muNp",
+    "RecoDeltaPT", "RecoDeltaAlphaT", "RecoPN", "RecoAlpha3D", #"RecoECal", "Reco_mag_q", "RecoPL",
+    "RecoLeadProtonKE", "RecoLeadProtonModMom", "RecoLeadProtonMomX", "RecoLeadProtonMomY", "RecoLeadProtonMomZ",
 
-    "sel_CC1p0pi", "InFV_reco_1muNp", "MuonCandidateIdx_1muNp", "LeadProtonIdx_1muNp", "LeadProtonPassMomentumCut_1muNp", "PFPStartsInPCV_1muNp", "PassTopoScoreCut_1muNp",
-    "PassNuMuCCSelection_1muNp", "NoRecoShowers_1muNp", "MuonContained_1muNp", "PassMuonMomentumCut_1muNp", "PassMuonQualCut_1muNp",
-    "LeadProtonPassMomentumCut_1muNp", "NProtons_1muNp",
-    "RecoDeltaPT_1mu1p", "RecoDeltaAlphaT_1mu1p", "RecoPN_1mu1p", "RecoAlpha3D_1mu1p", "RecoECal_1mu1p", "RecoPL_1mu1p",
-    "RecoLeadProtonE_1muNp", "RecoLeadProtonMomentum_1muNp", "RecoLeadProtonMomX_1muNp", "RecoLeadProtonMomY_1muNp", "RecoLeadProtonMomZ_1muNp", 
-    "RecoMuonE_1muNp", "RecoMuonMomentum_1muNp", "RecoMuonMomX_1muNp", "RecoMuonMomY_1muNp", "RecoMuonMomZ_1muNp",
+    # "InFV_1muNp", "TrueMuonIdx_1muNp", "TrueLeadProtonIdx_1muNp", "TrueNProt_1muNp", "TrueFSPions_1muNp", "Signal_1mu1p", 
+    # "TrueDeltaPT_1mu1p", "TrueDeltaAlphaT_1mu1p", "TruePN_1mu1p", "TrueAlpha3D_1mu1p",
+    # "TrueLeadProtonE_1muNp", "TrueLeadProtonMomX_1muNp", "TrueLeadProtonMomY_1muNp", "TrueLeadProtonMomZ_1muNp",
+    # "TrueMuonE_1muNp", "TrueMuonMomX_1muNp", "TrueMuonMomY_1muNp", "TrueMuonMomZ_1muNp",
+
+    # "sel_CC1p0pi", "InFV_reco_1muNp", "MuonCandidateIdx_1muNp", "LeadProtonIdx_1muNp", "LeadProtonPassMomentumCut_1muNp", "PFPStartsInPCV_1muNp", "PassTopoScoreCut_1muNp",
+    # "PassNuMuCCSelection_1muNp", "NoRecoShowers_1muNp", "MuonContained_1muNp", "PassMuonMomentumCut_1muNp", "PassMuonQualCut_1muNp",
+    # "LeadProtonPassMomentumCut_1muNp", "NProtons_1muNp",
+    # "RecoDeltaPT_1mu1p", "RecoDeltaAlphaT_1mu1p", "RecoPN_1mu1p", "RecoAlpha3D_1mu1p", "RecoECal_1mu1p", "RecoPL_1mu1p",
+    # "RecoLeadProtonE_1muNp", "RecoLeadProtonMomentum_1muNp", "RecoLeadProtonMomX_1muNp", "RecoLeadProtonMomY_1muNp", "RecoLeadProtonMomZ_1muNp", 
+    # "RecoMuonE_1muNp", "RecoMuonMomentum_1muNp", "RecoMuonMomX_1muNp", "RecoMuonMomY_1muNp", "RecoMuonMomZ_1muNp",
 ]
 
 keep_vars_detsys = keep_vars + ["ccnc", "nu_pdg",]
 
 #RUN = ["3"]
+#RUN = ["1","2","3_nocrt","3_crt","4b","4c","4d","5"] # PELEE analysis
 #RUN = ["1","2","3_nocrt","3_crt","4a","4b","4c","4d","5"] # use this if using CRT
-#RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"] # for detvars with bnb or for closure test
 RUN = ["1","2","3","4a","4b","4c","4d","5","1A_OT","1B_OT"] # for detvars with bnb or for closure test
 #RUN = ["1","2","3","4a","4c","5"] # for nuwro_fd, no run 4b and 4d available
 blinded = True
@@ -88,13 +94,13 @@ rundata, mc_weights, data_pot = dl.load_runs(
     data=data,
     loadpi0variables=False,
     loadshowervariables=True,
-    loadrecoveryvars=False,
+    loadrecoveryvars=True,
     loadsystematics=True,
     numupresel=False,
     loadnumuvariables=False,
     use_bdt=True,
     load_lee=False,
-    load_numu_tki=True,
+    load_numu_tki=False,
     load_nue_tki=True,
     keep_columns=keep_vars,
     blinded=blinded,
@@ -119,14 +125,28 @@ for run in RUN:
 # IntegratedFlux = (HistoFlux_int * data_pot / POTPerSpill / Nominal_UB_XY_Surface)
 # print('Integrated flux:', IntegratedFlux)
 
-selection = "OnePBDT"
-preselection = "OneP_new"
+# selection = "OnePBDT"
+# preselection = "OneP_new"
+# signal_query="category_1e1p == 12"
+
+selection = "OneP_NPBDTXS"
+preselection = "NUE"
+signal_query="category_1e1p_tki == 12"
 
 #detector_variations = ["cv","lydown","lyatt","lyrayleigh","sce","recomb2","wiremodx","wiremodyz","wiremodthetaxz","wiremodthetayz"]
 
 IntegratedFlux = 1
 
-for binning_def in vdef.TKI_variables_1e1p:
+# Needed to apply 20% flat uncertainty to bkg detvars
+extra_selection_query = "(abs(nu_pdg) == 12)"
+misc_background_query = "not (abs(nu_pdg) == 12)"
+misc_background_error_frac = 0.2
+extra_background_fractional_error = {misc_background_query: misc_background_error_frac}
+
+#truth_vars = ["TrueDeltaPT_1e1p", "TrueDeltaAlphaT_1e1p", "TruePN_1e1p", "TrueAlpha3D_1e1p"]
+#truth_vars = ["TrueDeltaPT", "TrueDeltaAlphaT", "TruePN", "TrueAlpha3D",]
+
+for i, binning_def in enumerate(vdef.TKI_variables_1e1p):
     # some binning definitions have more than 4 elements,
     # we ignore the last ones for now
     #binning = hist.Binning.from_config(*binning_def[:4])
@@ -143,20 +163,20 @@ for binning_def in vdef.TKI_variables_1e1p:
     preselection=preselection,
     use_kde_smoothing=False,
     make_plots=True,
-    plot_output_dir= "/exp/uboone/app/users/mmoudgal/PELEE/sandbox/mmoudgalya/analysis_1e1p/analysis_plots/detsys/",
+    plot_output_dir= "/exp/uboone/app/users/mmoudgal/PELEE/sandbox/mmoudgalya/analysis_1e1p/analysis_plots/detsys",
     enable_detvar_cache=True,
     detvar_cache_dir="/exp/uboone/data/users/mmoudgal/PELEE/detvar_cached_dataframes/",
-    extra_selection_query=None,
+    extra_selection_query=extra_selection_query,
     show_plots=False,
     loadpi0variables=False,
     loadshowervariables=True,
-    loadrecoveryvars=False,
+    loadrecoveryvars=True,
     loadsystematics=True,
     numupresel=False,
     loadnumuvariables=False,
     use_bdt=True,
     load_lee=False,
-    load_numu_tki=True,
+    load_numu_tki=False,
     load_nue_tki=True,
     keep_columns=keep_vars_detsys,
     blinded=blinded,
@@ -166,7 +186,7 @@ for binning_def in vdef.TKI_variables_1e1p:
     
     #plt.clf()
     
-    # Total error
+    #Total error
     signal_generator = hist.RunHistGenerator(
         rundata,
         binning.copy(),
@@ -176,9 +196,10 @@ for binning_def in vdef.TKI_variables_1e1p:
         sideband_generator=None,
         uncertainty_defaults=None,
         detvar_data=detvar_data,
+        extra_background_fractional_error = extra_background_fractional_error,
         mc_hist_generator_cls = XsecCovarHistGenerator,
         true_var_name=None, 
-        signal_query="category_1e1p == 12", 
+        signal_query=signal_query, 
         uncut_signal_df=rundata["nue"],
         normalization_uncertainty=[0.01,0.02]
     )
@@ -195,17 +216,29 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     fig, ax = plt.subplots()
     flux_norm_total_prediction.draw_covariance_matrix(ax=ax, as_correlation=False)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_total_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_total_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_total_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_total_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
     plt.show()
     plt.clf()
 
     fig2, ax2 = plt.subplots()
     flux_norm_total_prediction.draw_covariance_matrix(ax=ax2, as_correlation=False, as_fractional=True)
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_frac_total_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_frac_total_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_frac_total_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+    plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_frac_total_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
     plt.show()
     plt.clf()
+
+    # Data error
+    if blinded:
+        total_pred_counts = total_prediction.bin_counts
+        pred_data_stat_cov = np.diag(total_pred_counts)
+        pred_data_stat_error = np.sqrt(np.diagonal(pred_data_stat_cov)) / bin_counts
+    else:
+        # Data stat cov
+        data_hist = signal_generator.get_data_hist()
+        data_counts = data_hist.bin_counts
+        data_stat_cov = np.diag(data_counts)
+        data_error = np.sqrt(np.diagonal(data_stat_cov)) / bin_counts
     
     # Stat error 
     #(included by default - just need to turn flags off for syst errors)
@@ -221,7 +254,7 @@ for binning_def in vdef.TKI_variables_1e1p:
         detvar_data=None,
         mc_hist_generator_cls = XsecCovarHistGenerator,
         true_var_name=None, 
-        signal_query="category_1e1p == 12", 
+        signal_query=signal_query, 
         uncut_signal_df=rundata["nue"],
         normalization_uncertainty=None
     )
@@ -235,8 +268,8 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     if plot_cov:
         plot_cov_matrix(stat_cov, binning_def, binning)
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_stat_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_stat_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_stat_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_stat_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
         plt.clf()
     
@@ -252,7 +285,7 @@ for binning_def in vdef.TKI_variables_1e1p:
         detvar_data=None,
         mc_hist_generator_cls = XsecCovarHistGenerator,
         true_var_name=None, 
-        signal_query="category_1e1p == 12", 
+        signal_query=signal_query, 
         uncut_signal_df=rundata["nue"],
         normalization_uncertainty=[0.01]
     )
@@ -266,8 +299,8 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     if plot_cov:
         plot_cov_matrix(Ntargets_cov, binning_def, binning)
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_Ntargets_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_Ntargets_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_Ntargets_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_Ntargets_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
         plt.clf()
     
@@ -283,7 +316,7 @@ for binning_def in vdef.TKI_variables_1e1p:
         detvar_data=None,
         mc_hist_generator_cls = XsecCovarHistGenerator,
         true_var_name=None, 
-        signal_query="category_1e1p == 12", 
+        signal_query=signal_query, 
         uncut_signal_df=rundata["nue"],
         normalization_uncertainty=[0.02]
     )
@@ -297,8 +330,8 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     if plot_cov:
         plot_cov_matrix(POT_cov, binning_def, binning)
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_POT_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_POT_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_POT_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_POT_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
         plt.clf()
     
@@ -312,9 +345,10 @@ for binning_def in vdef.TKI_variables_1e1p:
         sideband_generator=None,
         uncertainty_defaults=None,
         detvar_data=detvar_data,
+        extra_background_fractional_error = extra_background_fractional_error,
         mc_hist_generator_cls = XsecCovarHistGenerator,
         true_var_name=None, 
-        signal_query="category_1e1p == 12", 
+        signal_query=signal_query, 
         uncut_signal_df=rundata["nue"],
         normalization_uncertainty=None
     )
@@ -328,8 +362,8 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     if plot_cov:
         plot_cov_matrix(detsys_cov, binning_def, binning)
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_detsys_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_detsys_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_detsys_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_detsys_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
         plt.clf()
     
@@ -345,7 +379,7 @@ for binning_def in vdef.TKI_variables_1e1p:
         detvar_data=None,
         mc_hist_generator_cls = XsecCovarHistGenerator,
         true_var_name=None, 
-        signal_query="category_1e1p == 12", 
+        signal_query=signal_query, 
         uncut_signal_df=rundata["nue"],
         normalization_uncertainty=None
     )
@@ -360,8 +394,8 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     if plot_cov:
         plot_cov_matrix(genie_multisim_cov, binning_def, binning)
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_multisim_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_multisim_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_multisim_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_multisim_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
         plt.clf()
     
@@ -378,8 +412,8 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     if plot_cov:
         plot_cov_matrix(genie_unisim_cov, binning_def, binning)
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_unisim_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_unisim_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_unisim_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_genie_unisim_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
         plt.clf()
     
@@ -391,8 +425,8 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     if plot_cov:
         plot_cov_matrix(flux_cov, binning_def, binning)
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_flux_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_flux_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_flux_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_flux_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
         plt.clf()
     
@@ -404,8 +438,8 @@ for binning_def in vdef.TKI_variables_1e1p:
 
     if plot_cov:
         plot_cov_matrix(reint_cov, binning_def, binning)
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_reint_cov_{data}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_reint_cov_{data}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_reint_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+        plt.savefig(f'analysis_plots/unfolding_inputs/cov_breakdown/{binning_def[0]}_reint_cov_{data}_{preselection}_{selection}_{run_combo}_{binning_def[1]}bins.png', bbox_inches='tight')
         plt.show()
         plt.clf()
     
@@ -436,14 +470,18 @@ for binning_def in vdef.TKI_variables_1e1p:
     ax2.stairs(Ntargets_error, bin_edges, label='NTargets', linestyle='dashdot')
     ax2.stairs(stat_error, bin_edges, label='MC Stat', linestyle='dashdot')
         
-    ax2.stairs(only_syst_error, bin_edges, label='Total Syst Errors', linestyle='dashdot', color='black')
-    ax2.stairs(total_error, bin_edges, label='Total Errors (Syst + Stat)', linestyle='solid', color='black', lw=1.7)
+    ax2.stairs(only_syst_error, bin_edges, label='Total Syst Errors', linestyle='dashdot', color='darkgrey')
+    ax2.stairs(total_error, bin_edges, label='Total Errors (Syst + MC Stat)', linestyle='solid', color='black', lw=1.7)
+    if blinded:
+        ax2.stairs(pred_data_stat_error, bin_edges, label='Data Stat, exp.', linestyle='dashdot', color='black')
+    else:
+        ax2.stairs(data_error, bin_edges, label='Data Stat', linestyle='dashdot', color='black')
     
     ax2.set_xlabel(binning.variable_tex)
     ax2.set_ylabel('Fractional uncertainty on total predicted events')
     ax2.legend(bbox_to_anchor=(0, 1.03, 1, 0.3), loc="lower left", mode="expand", ncol=2)
-    plt.savefig(f'analysis_plots/errors/total_errors_{data}_{run_combo}_{binning_def[0]}_{binning_def[1]}bins.pdf', bbox_inches='tight')
-    plt.savefig(f'analysis_plots/errors/total_errors_{data}_{run_combo}_{binning_def[0]}_{binning_def[1]}bins.png', bbox_inches='tight')
+    plt.savefig(f'analysis_plots/errors/total_errors_{data}_{preselection}_{selection}_{run_combo}_{binning_def[0]}_{binning_def[1]}bins.pdf', bbox_inches='tight')
+    plt.savefig(f'analysis_plots/errors/total_errors_{data}_{preselection}_{selection}_{run_combo}_{binning_def[0]}_{binning_def[1]}bins.png', bbox_inches='tight')
     plt.show()
     plt.clf()
     
