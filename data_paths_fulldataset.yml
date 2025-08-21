@@ -46,6 +46,33 @@ runs:
       file: run1_beamon_opentrigger_bnb_pandora_3v_b_reprocessing_v08_00_00_83_beam_good_ntuple_ntuple_ana
       pot: 8.93E+19 
       trig: 19789737
+  - run_id: "1_nuwrofd"
+    path: run1/nuepresel/
+    opendata_bnb:
+      file: beamon_pelee_ntuple_opendata_run1_5e19_ana 
+      pot: 4.56E+19 
+      trig: 10127569
+    bnb:
+      file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run1_C1 
+      pot: 1.67E+20
+      trig: 37273255.00
+    nuwro_fd:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
+      pot: 3.08E+20
+      trig: 0 
+    ext:
+      file: bnb_beam_off_peleeTuple_uboone_v08_00_00_70_run1 
+      trig: 65744587 
+    mc:
+      file: high_stat_prodgenie_bnb_nu_overlay_DetVar_Run1_NuWro_reco2_reco2
+      pot: 3.08E+20
+    nue:
+      file: prodnuwro_run1_intrinsic_nue_overlay_reco2_ana
+      pot: 2.63234E+22
+      filter: abs(nu_pdg)==12 and ccnc == 0 
+    drt:
+      file: overlay_peleeTuple_uboone_v08_00_00_70_run1_dirt 
+      pot: 3.1606E+20
   - run_id: "2"
     path: run2/nuepresel/
     bnb:

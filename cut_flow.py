@@ -56,7 +56,7 @@ def do_cut_flow(rundata, preselection, selection, *attributes, printed=False, we
         header = f"{'Step':<10}{'Cut Condition':<30}"
         init_counts_header = f"{'Cut.0':<10}{'No Cuts':<30}"
         for attr in attributes:
-            header += f"{attr:<10}{'Efficiency':<10}"
+            header += f"{attr:<10}{'Effic.':<10}"
             init_counts_header += f"{initial_counts[attr]:<10.2f}{'100.00%':<10}"
         print(header)
         print("-" * (10 + 30 + 20 * len(attributes)))

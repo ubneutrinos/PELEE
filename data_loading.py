@@ -396,8 +396,6 @@ def get_variables():
     PI0VARS = [
         "pi0_radlen1",
         "pi0_radlen2",
-        "pi0_tkfit_dedx1_max",
-        "pi0_tkfit_dedx2_max",
         "pi0_dot1",
         "pi0_dot2",
         "pi0_energy1_Y",
@@ -530,6 +528,8 @@ def add_paper_category_1e1p(df, key):
     df.loc[:, "category_1e1p"] = df["category_fixed"]
     if key in ["data", "ext"]:
         return
+    # Based on my own topological preselection variables
+    df.loc[df["category_fixed"].isin([11]), "category_1e1p"] = 10
     nue_cc0pi1p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNElec"] == 1) & (df["TrueNProt"] == 1))
     nue_cc0pi2p = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True) & (df["TrueNElec"] == 1) & (df["TrueNProt"] >= 2))
     df.loc[df["category_fixed"].isin([11]) & nue_cc0pi1p, "category_1e1p"] = 12
@@ -553,6 +553,19 @@ def add_paper_category_1e1p_1mu1p(df, key):
     df.loc[df["category_fixed"].isin([2]) & numu_cc0pi0p, "category_1e1p_1mu1p"] = 22
     df.loc[df["category_fixed"].isin([2]) & numu_cc0pi1p, "category_1e1p_1mu1p"] = 23
     df.loc[df["category_fixed"].isin([2]) & numu_cc0pi2p, "category_1e1p_1mu1p"] = 24
+
+def add_paper_category_1e1p_tki(df, key):
+    # "category_fixed" is the same as "category" from the ntuple but with the bug fix applied
+    df.loc[:, "category_1e1p_tki"] = df["category_fixed"]
+    if key in ["data", "ext"]:
+        return
+    # Based on the existing "category" column where 11 = 1eNp (N>0) and 10 = 1e0p
+    # category_1e1p_tki: 13 = 1e2+p, 12 = 1e1p
+    df.loc[df["category_fixed"].isin([11]), "category_1e1p_tki"] = 10
+    nue_cc0pi1p = ((df["nu_pdg"] == 12) & (df["isVtxInFiducial"] == 1) & (df["ccnc"] == 0) & (df["npi0"] == 0) & (df["npion"] == 0) & (df["elec_e"] > 0.03051) & (df["proton_ke"] > 0.05) & (df["nproton"] == 1))
+    nue_cc0pi2p = ((df["nu_pdg"] == 12) & (df["isVtxInFiducial"] == 1) & (df["ccnc"] == 0) & (df["npi0"] == 0) & (df["npion"] == 0) & (df["elec_e"] > 0.03051) & (df["proton_ke"] > 0.05) & (df["nproton"] > 1))
+    df.loc[df["category_fixed"].isin([11]) & nue_cc0pi1p, "category_1e1p_tki"] = 12
+    df.loc[df["category_fixed"].isin([11]) & nue_cc0pi2p, "category_1e1p_tki"] = 13
 
 def add_paper_xsec_category(df, key):
     df.loc[:, "paper_category_xsec"] = df["category"]
@@ -612,6 +625,7 @@ def add_paper_categories(df, key):
     add_paper_category(df, key)
     add_paper_xsec_category(df, key)
     add_paper_numu_category(df, key)
+    add_paper_category_1e1p_tki(df, key)
 
 
 def load_data_run(
@@ -1007,6 +1021,37 @@ def process_uproot_shower_variables(up, df):
     df["shr2_score"] = get_elm_from_vec_idx(trk_score_v, shr2_id)
     shr_moliere_avg_v = up.array("shr_moliere_avg_v")
     df["shr2_moliereavg"] = get_elm_from_vec_idx(shr_moliere_avg_v, shr2_id)
+
+    # Set the truth variables for the energy and momentum components for the electron and proton
+    print("Calculating electron and proton energy and momentum kinematics")
+    # electron kinematics
+    elec_mask = mc_pdg == 11
+    mostEelecIdx = get_idx_from_vec_sort(-1, mc_E, elec_mask)
+    mc_E_elec = get_elm_from_vec_idx(mc_E, mostEelecIdx)
+    mc_px_elec = get_elm_from_vec_idx(mc_px, mostEelecIdx)
+    mc_py_elec = get_elm_from_vec_idx(mc_py, mostEelecIdx)
+    mc_pz_elec = get_elm_from_vec_idx(mc_pz, mostEelecIdx)
+    mc_p_elec = np.sqrt(mc_px_elec ** 2 + mc_py_elec ** 2 + mc_pz_elec ** 2)
+    elec_mass = 0.511e-3 #GeV
+    elec_KE_min = 0.03 #GeV - minimum electron KE required to be visible inside the detector
+    elec_E_min = elec_KE_min + elec_mass
+    df["mc_px_elec"] = np.where((mc_E_elec > elec_E_min), mc_px_elec, np.nan)
+    df["mc_py_elec"] = np.where((mc_E_elec > elec_E_min), mc_py_elec, np.nan)
+    df["mc_pz_elec"] = np.where((mc_E_elec > elec_E_min), mc_pz_elec, np.nan)
+    df["mc_p_elec"] = np.where((mc_E_elec > elec_E_min), mc_p_elec, np.nan)
+    df["mc_E_elec"] = np.where((mc_E_elec > elec_E_min), mc_E_elec, np.nan)
+    df["mc_KE_elec"] = np.where((mc_E_elec > elec_E_min), mc_E_elec - elec_mass, np.nan)
+    #
+    # proton kinematics
+    proton_mass = 0.938 #GeV
+    proton_KE_min = 0.05 #GeV - minimum proton KE required to be visible inside the detector
+    proton_E_min = proton_KE_min + proton_mass
+    df["mc_px_prot"] = np.where((mc_E_prot > proton_E_min), mc_px_prot, np.nan)
+    df["mc_py_prot"] = np.where((mc_E_prot > proton_E_min), mc_py_prot, np.nan)
+    df["mc_pz_prot"] = np.where((mc_E_prot > proton_E_min), mc_pz_prot, np.nan)
+    df["mc_p_prot"] = np.where((mc_E_prot > proton_E_min), mc_p_prot, np.nan)
+    df["mc_E_prot"] = np.where((mc_E_prot > proton_E_min), mc_E_prot, np.nan)
+    df["mc_KE_prot"] = np.where((mc_E_prot > proton_E_min), mc_E_prot - proton_mass, np.nan)
 
     return
 
@@ -2145,8 +2190,13 @@ def load_sample(
             no_presel_path = rundict["path"][:-1] # deletes the last '/'
             no_presel_path = no_presel_path.rstrip('/detvar') # deletes the '/detvar' from path
             no_presel_path += "_detvar"
-            #data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
-            data_path = os.path.join(ls.ntuple_path, no_presel_path, rundict[variation][dataset]["file"] + append + ".root")
+            if run_number in ["4", "5"]: #preselected detvars for runs 4 and 5 in separate directories from the nominal CV n-tuple directories
+                #data_path = os.path.join(ls.ntuple_path, no_presel_path, subdir, rundict[variation][dataset]["file"] + append + ".root")
+                data_path = os.path.join(ls.ntuple_path, no_presel_path, rundict[variation][dataset]["file"] + append + ".root")
+                
+            else:
+                #data_path = os.path.join(ls.ntuple_path, rundict["path"], subdir, rundict[variation][dataset]["file"] + append + ".root")
+                data_path = os.path.join(ls.ntuple_path, no_presel_path, rundict[variation][dataset]["file"] + append + ".root")
         if verbose: print("Loading ntuple file",data_path)
  
         # try returning an empty dataframe
@@ -2306,7 +2356,7 @@ def load_sample(
 
     # Add the is_signal flag
     df["is_signal"] = df["category"] == 11
-    is_mc = category in ["runs", "numupresel"] and dataset not in datasets and dataset != "ext" 
+    is_mc = category in ["runs", "numupresel", "detvar"] and dataset not in datasets and dataset != "ext" 
     if is_mc:
         # The following adds MC weights and also the "flux" key.
         add_mc_weight_variables(df, pi0scaling=pi0scaling)
@@ -2327,9 +2377,6 @@ def load_sample(
          # Add category_1e1p column
         add_paper_category_1e1p(df, dataset)
         add_paper_category_1e1p_1mu1p(df, dataset)
-        # Add the boolean variable for the mc signal to be used later in Gardiner's unfolding code
-        df["mc_signal_1e1p"] = False
-        df.loc[df["category_1e1p"] == 12, "mc_signal_1e1p"] = True
 
     # CT: For some reason this only run over the EXT and data in the old code
     if dataset == "ext" or dataset == "bnb":
@@ -2339,7 +2386,7 @@ def load_sample(
         # We have to keep certain variables in order for everything to even function
         vardict = get_variables()
         minimum_columns = vardict["WEIGHTS"] + vardict["SYSTVARS"] + vardict["WEIGHTSLEE"]
-        minimum_columns += ["category", "category_fixed", "paper_category", "paper_category_xsec", "category_1e1p", "category_1e1p_1mu1p", "interaction"]
+        minimum_columns += ["category", "category_fixed", "paper_category", "paper_category_xsec", "category_1e1p", "category_1e1p_1mu1p", "category_1e1p_tki", "interaction"]
         keep_columns = set(keep_columns) | set(minimum_columns)
         # drop all columns that are not in keep_columns in place
         df.drop(columns=set(df.columns) - set(keep_columns), inplace=True)
@@ -2413,7 +2460,7 @@ def _load_run(
 
         # TODO CT temporary test to see if weights are driving discrepancy
         mc_df["weights"] = mc_df["weightSplineTimesTune"] * data_pot / mc_pot
-        #mc_df["weights"] = data_pot / mc_pot
+        mc_df["pot_weight"] = data_pot / mc_pot
 
 
         # For some calculations, specifically the multisim error calculations for GENIE, we need the
@@ -2446,7 +2493,7 @@ def _load_run(
             if expected_multisim_universes[ms_column] is None:
                 expected_multisim_universes[ms_column] = n_universes
             if n_universes != expected_multisim_universes[ms_column]:
-                if mc_set == "drt" and n_universes == 0:
+                if (mc_set == "drt" and n_universes == 0) or (run_number == "1_nuwrofd" and (mc_set == "mc" or mc_set == "nue" or mc_set == "drt")):
                     # For missing multisim universes, we replace them with a list of ones (stored as integer 1000) of the
                     # correct length
                     print(f"WARNING: {mc_set} has no {ms_column} universes, replacing with ones")
