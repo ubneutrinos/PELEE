@@ -1,0 +1,28 @@
+import sys
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# delta pt
+nuwro_resp_pt = np.array([0.16619371925841847,0.022317596566523604,0.016836927733636018,0.11888412017167382])
+genie_resp_pt = np.array([0.15136001588296444,0.0237551749944765,0.015712156090623975,0.12208322250735248])
+print("$\\delta p_T$: \n", nuwro_resp_pt/genie_resp_pt)
+print()
+
+# delta alphat
+nuwro_resp_alphat = np.array([0.14238857804360408,0.04093794532970592,0.0293266448003087,0.13706438657857237])
+genie_resp_alphat = np.array([0.12887398615783732,0.03367441852744456,0.029503404902985468,0.1294983967230166])
+print("$\\delta \\alpha_T$: \n", nuwro_resp_alphat/genie_resp_alphat)
+print()
+
+# pn
+nuwro_resp_pn = np.array([0.16473127119514952,0.012929675181330811,0.022505395128969274,0.12645853043204036])
+genie_resp_pn = np.array([0.14978666741238303,0.014357180606605749,0.02215484446663572,0.1274431328171176])
+print("$p_n$: \n", nuwro_resp_pn/genie_resp_pn)
+print()
+
+# alpha3d
+nuwro_resp_alpha3d = np.array([0.14498933901918976,0.047704151773439646,0.026652452025586353,0.13073962056640087])
+genie_resp_alpha3d = np.array([0.1285628904118917,0.03979950356947162,0.027879699387724777,0.12503409524958034])
+print("$\\alpha_{3D}$: \n", nuwro_resp_alpha3d/genie_resp_alpha3d)
+print()
