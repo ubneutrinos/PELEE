@@ -18,7 +18,8 @@ muon_E_max=math.sqrt(muon_p_max*muon_p_max+muon_mass*muon_mass) # SG's code impo
 def true_muon_idx(mc_pdg,mc_E):
 
     for i in range(0,len(mc_pdg)):
-        if abs(mc_pdg[i]) == 13 and mc_E[i] > muon_E_min and mc_E[i] < muon_E_max:
+        if abs(mc_pdg[i]) == 13 and mc_E[i] > muon_E_min:
+        #if abs(mc_pdg[i]) == 13 and mc_E[i] > muon_E_min and mc_E[i] < muon_E_max:
             return i
 
     return -1
@@ -26,8 +27,8 @@ def true_muon_idx(mc_pdg,mc_E):
 ################################################################################
 # Final state has one proton above threshold
 
-proton_p_min=0.250
-proton_p_max=1.0
+proton_p_min=0.3 #0.250
+proton_p_max=3.0 #1.0
 proton_mass=0.939
 proton_E_min=math.sqrt(proton_p_min*proton_p_min+proton_mass*proton_mass)
 proton_E_max=math.sqrt(proton_p_max*proton_p_max+proton_mass*proton_mass)
@@ -36,7 +37,8 @@ def true_proton_idx(mc_pdg,mc_E):
 
     idx=[]
     for i in range(0,len(mc_pdg)):
-        if abs(mc_pdg[i]) == 2212 and mc_E[i] > proton_E_min and mc_E[i] < proton_E_max:
+        if abs(mc_pdg[i]) == 2212 and mc_E[i] > proton_E_min:
+        #if abs(mc_pdg[i]) == 2212 and mc_E[i] > proton_E_min and mc_E[i] < proton_E_max:
             idx.append(i)
 
     return idx
@@ -83,13 +85,25 @@ FV_Z_MAX = 966.8
 DEAD_Z_MIN = 10000 # SG's code does not cut dead region 
 DEAD_Z_MAX = 10000
 '''
-# Definitions in other PeLEE code
-FV_X_MIN =   5.0
-FV_X_MAX =  251.0
-FV_Y_MIN = -111.0
-FV_Y_MAX =  111.0
-FV_Z_MIN =   20.0
-FV_Z_MAX =  986.0
+# # Definitions in other PeLEE code
+# FV_X_MIN =   5.0
+# FV_X_MAX =  251.0
+# FV_Y_MIN = -111.0
+# FV_Y_MAX =  111.0
+# FV_Z_MIN =   20.0
+# FV_Z_MAX =  986.0
+# DEAD_Z_MIN = 675 # SG's code does not cut dead region 
+# DEAD_Z_MAX = 775
+
+# Definitions in PeLEE technote and 'selected' variable
+# https://github.com/ubneutrinos/searchingfornues/blob/0489ac5457335a553a3bab54ee5d7ba91734adf0/Selection/SelectionTools/CC0piNpSelection_tool.cc#L97-L102
+# https://github.com/ubneutrinos/searchingfornues/blob/889002e5ec93b567265c3af8c178172363200490/Selection/SelectionTools/CC0piNpSelection_tool.cc#L415-L420
+FV_X_MIN =   10.0
+FV_X_MAX =  246.4
+FV_Y_MIN = -101.5
+FV_Y_MAX =  101.5
+FV_Z_MIN =   10.0
+FV_Z_MAX =  986.8
 DEAD_Z_MIN = 675 # SG's code does not cut dead region 
 DEAD_Z_MAX = 775
 
@@ -209,11 +223,13 @@ def set_Signal1muNp(up,df):
 
     df["TrueDeltaPhiT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TrueDeltaAlphaT_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
+    df['TrueDeltaAlphaT_1mu1p'] = np.degrees(df['TrueDeltaAlphaT_1mu1p'])
     df["TrueECal_1mu1p"] = df.apply(lambda x: (tki_calculators.Ecal(x["TrueMuonE_1muNp"],x["TrueLeadProtonE_1muNp"])),axis=1)
     df["TruePL_1mu1p"] = df.apply(lambda x: (tki_calculators.pL(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TrueDeltaPL_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_pL(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TruePN_1mu1p"] = df.apply(lambda x: (tki_calculators.pn(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TrueAlpha3D_1mu1p"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
+    df['TrueAlpha3D_1mu1p'] = np.degrees(df['TrueAlpha3D_1mu1p'])
     df["TruePhi3D_1mu1p"] = df.apply(lambda x: (tki_calculators.phi_3D(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TrueDeltaPTX_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_pT_X(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)
     df["TrueDeltaPTY_1mu1p"] = df.apply(lambda x: (tki_calculators.delta_pT_Y(x["TrueMuonE_1muNp"],x["TrueMuonMomX_1muNp"],x["TrueMuonMomY_1muNp"],x["TrueMuonMomZ_1muNp"],x["TrueLeadProtonE_1muNp"],x["TrueLeadProtonMomX_1muNp"],x["TrueLeadProtonMomY_1muNp"],x["TrueLeadProtonMomZ_1muNp"])),axis=1)

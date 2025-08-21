@@ -17,7 +17,7 @@ muon_E_max = np.sqrt(muon_p_max**2 + muon_mass**2) # SG's code imposes an upper 
 def true_muon_idx(mc_pdg,mc_E):
 
     for i in range(0,len(mc_pdg)):
-        if abs(mc_pdg[i]) == 13 and muon_E_min < mc_E[i] < muon_E_max:
+        if mc_pdg[i] == 13 and muon_E_min < mc_E[i] < muon_E_max:
             return i
 
     return -1
@@ -28,7 +28,7 @@ def true_muon_idx(mc_pdg,mc_E):
 elec_p_min = 0. #GeV
 elec_p_max = 1.2 #GeV
 elec_mass = 0.511e-3 #GeV
-elec_KE_min = 0.03051 #GeV - minimum electron KE required to be visible inside the detector
+elec_KE_min = 0.03 #GeV - minimum electron KE required to be visible inside the detector
 elec_E_min = elec_KE_min + elec_mass
 #elec_E_min = np.sqrt(elec_p_min**2 + elec_mass**2)
 elec_E_max = np.sqrt(elec_p_max**2 + elec_mass**2) # Upper limit currently unused
@@ -36,8 +36,8 @@ elec_E_max = np.sqrt(elec_p_max**2 + elec_mass**2) # Upper limit currently unuse
 def true_elec_idx(mc_pdg,mc_E):
 
     for i in range(0,len(mc_pdg)):
-        if abs(mc_pdg[i]) == 11 and mc_E[i] > elec_E_min:
-        #if abs(mc_pdg[i]) == 11 and elec_E_min < mc_E[i] < elec_E_max:
+        if mc_pdg[i] == 11 and mc_E[i] > elec_E_min:
+        #if mc_pdg[i] == 11 and elec_E_min < mc_E[i] < elec_E_max:
             return i
 
     return -1
@@ -49,8 +49,8 @@ def true_elec_indices(mc_pdg,mc_E):
 
     idx = []
     for i in range(0,len(mc_pdg)):
-        if abs(mc_pdg[i]) == 11 and mc_E[i] > elec_E_min:
-        #if abs(mc_pdg[i]) == 11 and elec_E_min < mc_E[i] < elec_E_max:
+        if mc_pdg[i] == 11 and mc_E[i] > elec_E_min:
+        #if mc_pdg[i] == 11 and elec_E_min < mc_E[i] < elec_E_max:
             idx.append(i)
 
     return idx
@@ -67,7 +67,7 @@ def n_elec(TrueIdx_v):
 
 proton_p_min = 0.3 #GeV #0.239
 proton_p_max = 3.0
-proton_mass = 0.939
+proton_mass = 0.938
 proton_E_min = np.sqrt(proton_p_min**2 + proton_mass**2)
 proton_E_max = np.sqrt(proton_p_max**2 + proton_mass**2) # Upper limit currently unused
 
@@ -75,8 +75,8 @@ def true_proton_idx(mc_pdg,mc_E):
 
     idx = []
     for i in range(0,len(mc_pdg)):
-        if abs(mc_pdg[i]) == 2212 and mc_E[i] > proton_E_min:
-        #if abs(mc_pdg[i]) == 2212 and proton_E_min < mc_E[i] < proton_E_max:
+        if mc_pdg[i] == 2212 and mc_E[i] > proton_E_min:
+        #if mc_pdg[i] == 2212 and proton_E_min < mc_E[i] < proton_E_max:
             idx.append(i)
 
     return idx
@@ -96,8 +96,8 @@ def true_lead_proton_idx(mc_pdg,mc_E):
     lead_idx = -1
     lead_E = -1
     for i in range(0,len(mc_pdg)):
-        if abs(mc_pdg[i]) == 2212 and mc_E[i] > proton_E_min and mc_E[i] > lead_E:
-        #if abs(mc_pdg[i]) == 2212 and proton_E_min < mc_E[i] < proton_E_max and mc_E[i] > lead_E:
+        if mc_pdg[i] == 2212 and mc_E[i] > proton_E_min and mc_E[i] > lead_E:
+        #if mc_pdg[i] == 2212 and proton_E_min < mc_E[i] < proton_E_max and mc_E[i] > lead_E:
             lead_E = mc_E[i]
             lead_idx = i
 
@@ -227,21 +227,21 @@ def set_Signal1e1p(up,df):
     df["TrueElecIndices"] = df.apply(lambda x: (true_elec_indices(x["mc_pdg"],x["mc_E"])),axis=1)
     df["TrueNElec"] = df.apply(lambda x: (n_elec(x["TrueElecIndices"])),axis=1)
 
-    df["TrueElecE"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_E"])),axis=1)
-    df["TrueElecMomX"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_px"])),axis=1)
-    df["TrueElecMomY"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_py"])),axis=1)
-    df["TrueElecMomZ"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_pz"])),axis=1)
+    df["TrueElecE_1e1p"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_E"])),axis=1)
+    df["TrueElecMomX_1e1p"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_px"])),axis=1)
+    df["TrueElecMomY_1e1p"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_py"])),axis=1)
+    df["TrueElecMomZ_1e1p"] = df.apply(lambda x: (true_mom(x["TrueElecIdx"],x["mc_pz"])),axis=1)
 
-    df["TrueElecKE"] = df["TrueElecE"] - elec_mass
-    df["TrueElecModMom"] = np.sqrt((df['TrueElecMomX'])**2 + (df['TrueElecMomY'])**2 + (df['TrueElecMomZ'])**2)
+    df["TrueElecKE_1e1p"] = df["TrueElecE_1e1p"] - elec_mass
+    df["TrueElecModMom_1e1p"] = np.sqrt((df['TrueElecMomX_1e1p'])**2 + (df['TrueElecMomY_1e1p'])**2 + (df['TrueElecMomZ_1e1p'])**2)
 
-    df["TrueLeadProtonE"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_E"])),axis=1)
-    df["TrueLeadProtonMomX"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_px"])),axis=1)
-    df["TrueLeadProtonMomY"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_py"])),axis=1)
-    df["TrueLeadProtonMomZ"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_pz"])),axis=1)
+    df["TrueLeadProtonE_1e1p"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_E"])),axis=1)
+    df["TrueLeadProtonMomX_1e1p"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_px"])),axis=1)
+    df["TrueLeadProtonMomY_1e1p"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_py"])),axis=1)
+    df["TrueLeadProtonMomZ_1e1p"] = df.apply(lambda x: (true_mom(x["TrueLeadProtonIdx"],x["mc_pz"])),axis=1)
 
-    df["TrueLeadProtonKE"] = df["TrueLeadProtonE"] - proton_mass
-    df["TrueLeadProtonModMom"] = np.sqrt((df['TrueLeadProtonMomX'])**2 + (df['TrueLeadProtonMomY'])**2 + (df['TrueLeadProtonMomZ'])**2)
+    df["TrueLeadProtonKE_1e1p"] = df["TrueLeadProtonE_1e1p"] - proton_mass
+    df["TrueLeadProtonModMom_1e1p"] = np.sqrt((df['TrueLeadProtonMomX_1e1p'])**2 + (df['TrueLeadProtonMomY_1e1p'])**2 + (df['TrueLeadProtonMomZ_1e1p'])**2)
     
     # Set the signal definition
     nue_cc0piNp = ((abs(df["nu_pdg"]) == 12) & (df["TrueElecIdx"] != -1) & (df["TrueLeadProtonIdx"] != -1) & (df["InFV"] == True) & (df["HasNoMesons"] == True))
@@ -293,17 +293,26 @@ def set_Signal1e1p(up,df):
 
     print("Calc true TKI variables for leading proton only")
 
-    df["TrueDeltaPT"] = df.apply(lambda x: (tki_calculators.delta_pT(x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
-    #df["TrueDeltaPhiT"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
-    df["TrueDeltaAlphaT"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
+    df["TrueDeltaPT_1e1p"] = df.apply(lambda x: (tki_calculators.delta_pT(x["TrueElecMomX_1e1p"],x["TrueElecMomY_1e1p"],x["TrueElecMomZ_1e1p"],x["TrueLeadProtonMomX_1e1p"],x["TrueLeadProtonMomY_1e1p"],x["TrueLeadProtonMomZ_1e1p"])),axis=1)
+    #df["TrueDeltaPhiT_1e1p"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["TrueElecMomX_1e1p"],x["TrueElecMomY_1e1p"],x["TrueElecMomZ_1e1p"],x["TrueLeadProtonMomX_1e1p"],x["TrueLeadProtonMomY_1e1p"],x["TrueLeadProtonMomZ_1e1p"])),axis=1)
+    df["TrueDeltaAlphaT_1e1p"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["TrueElecMomX_1e1p"],x["TrueElecMomY_1e1p"],x["TrueElecMomZ_1e1p"],x["TrueLeadProtonMomX_1e1p"],x["TrueLeadProtonMomY_1e1p"],x["TrueLeadProtonMomZ_1e1p"])),axis=1)
+    df['TrueDeltaAlphaT_1e1p'] = np.degrees(df['TrueDeltaAlphaT_1e1p'])
+
+    df["TrueDeltaPT"] = df.apply(lambda x: (tki_calculators.delta_pT(x["mc_px_elec"],x["mc_py_elec"],x["mc_pz_elec"],x["mc_px_prot"],x["mc_py_prot"],x["mc_pz_prot"])),axis=1)
+    #df["TrueDeltaPhiT"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["mc_px_elec"],x["mc_py_elec"],x["mc_pz_elec"],x["mc_px_prot"],x["mc_py_prot"],x["mc_pz_prot"])),axis=1)
+    df["TrueDeltaAlphaT"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["mc_px_elec"],x["mc_py_elec"],x["mc_pz_elec"],x["mc_px_prot"],x["mc_py_prot"],x["mc_pz_prot"])),axis=1)
     df['TrueDeltaAlphaT'] = np.degrees(df['TrueDeltaAlphaT'])
 
     print("Calc true GKI variables for leading proton only")
-    df["TruePN"] = df.apply(lambda x: (tki_calculators.pn(x["TrueElecE"],x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonE"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
-    df["TrueAlpha3D"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["TrueElecE"],x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonE"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
-    df["TrueAlpha3D"] = np.degrees(df["TrueAlpha3D"])
-    #df["TruePhi3D"] = df.apply(lambda x: (tki_calculators.phi_3D(x["TrueElecE"],x["TrueElecMomX"],x["TrueElecMomY"],x["TrueElecMomZ"],x["TrueLeadProtonE"],x["TrueLeadProtonMomX"],x["TrueLeadProtonMomY"],x["TrueLeadProtonMomZ"])),axis=1)
+    df["TruePN_1e1p"] = df.apply(lambda x: (tki_calculators.pn(x["TrueElecE_1e1p"],x["TrueElecMomX_1e1p"],x["TrueElecMomY_1e1p"],x["TrueElecMomZ_1e1p"],x["TrueLeadProtonE_1e1p"],x["TrueLeadProtonMomX_1e1p"],x["TrueLeadProtonMomY_1e1p"],x["TrueLeadProtonMomZ_1e1p"])),axis=1)
+    df["TrueAlpha3D_1e1p"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["TrueElecE_1e1p"],x["TrueElecMomX_1e1p"],x["TrueElecMomY_1e1p"],x["TrueElecMomZ_1e1p"],x["TrueLeadProtonE_1e1p"],x["TrueLeadProtonMomX_1e1p"],x["TrueLeadProtonMomY_1e1p"],x["TrueLeadProtonMomZ_1e1p"])),axis=1)
+    df["TrueAlpha3D_1e1p"] = np.degrees(df["TrueAlpha3D_1e1p"])
+    #df["TruePhi3D_1e1p"] = df.apply(lambda x: (tki_calculators.phi_3D(x["TrueElecE_1e1p"],x["TrueElecMomX_1e1p"],x["TrueElecMomY_1e1p"],x["TrueElecMomZ_1e1p"],x["TrueLeadProtonE_1e1p"],x["TrueLeadProtonMomX_1e1p"],x["TrueLeadProtonMomY_1e1p"],x["TrueLeadProtonMomZ_1e1p"])),axis=1)
     
+    df["TruePN"] = df.apply(lambda x: (tki_calculators.pn(x["mc_E_elec"],x["mc_px_elec"],x["mc_py_elec"],x["mc_pz_elec"],x["mc_E_prot"],x["mc_px_prot"],x["mc_py_prot"],x["mc_pz_prot"])),axis=1)
+    df["TrueAlpha3D"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["mc_E_elec"],x["mc_px_elec"],x["mc_py_elec"],x["mc_pz_elec"],x["mc_E_prot"],x["mc_px_prot"],x["mc_py_prot"],x["mc_pz_prot"])),axis=1)
+    df["TrueAlpha3D"] = np.degrees(df["TrueAlpha3D"])
+    #df["TruePhi3D"] = df.apply(lambda x: (tki_calculators.phi_3D(x["mc_E_elec"],x["mc_px_elec"],x["mc_py_elec"],x["mc_pz_elec"],x["mc_E_prot"],x["mc_px_prot"],x["mc_py_prot"],x["mc_pz_prot"])),axis=1)
     
     # Drop temporary data from dataframes
     #df.drop("mc_pdg", inplace=True, axis=1)

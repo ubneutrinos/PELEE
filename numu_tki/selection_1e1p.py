@@ -109,7 +109,7 @@ def pfp_starts_in_PCV_v(trk_sce_start_x_v, trk_sce_start_y_v, trk_sce_start_z_v)
 
 proton_p_min = 0.3 #GeV #0.239
 proton_p_max = 3.0
-proton_mass = 0.939
+proton_mass = 0.938
 proton_E_min = np.sqrt(proton_p_min**2 + proton_mass**2)
 proton_E_max = np.sqrt(proton_p_max**2 + proton_mass**2)
 
@@ -135,7 +135,7 @@ def reco_showers_v(pfp_generation_v, trk_score_v, pfp_starts_in_PCV_v):
     return idx
 
 ################################################################################
-# Get number of reconstructed showers with a starting point within FV
+# Get number of reconstructed showers with a starting point within FV (no momentum threshold applied)
 
 def n_reco_showers(reco_showers_v):
 
@@ -147,7 +147,7 @@ def n_reco_showers(reco_showers_v):
 elec_p_min = 0. #GeV
 elec_p_max = 1.2 #GeV
 elec_mass = 0.511e-3 #GeV
-elec_KE_min = 0.03051 #GeV - minimum electron KE required to be visible inside the detector
+elec_KE_min = 0.03 #GeV - minimum electron KE required to be visible inside the detector
 elec_E_min = elec_KE_min + elec_mass
 #elec_E_min = np.sqrt(elec_p_min**2 + elec_mass**2)
 elec_E_max = np.sqrt(elec_p_max**2 + elec_mass**2) # Upper limit currently unused
@@ -216,13 +216,13 @@ def find_proton_candidates(reco_elec_candidate_idx, longest_trk_len_idx, pfp_gen
     return proton_candidate_idx_v
 
 ################################################################################
-# Count the number of proton tracks fully contained in the FV
+# Count the number of proton tracks fully contained in the FV (no momentum threshold applied)
 
 def n_reco_protons(ProtonCandidateIdx_v):
     return len(ProtonCandidateIdx_v)
 
 ################################################################################
-# Find index of the longest proton track
+# Find index of the longest proton track (no momentum threshold applied)
 
 def find_leading_proton_candidate(ProtonCandidateIdx_v, trk_len_v):
     
@@ -249,11 +249,11 @@ def return_elm_from_vec_idx(Idx, vector_var):
 ################################################################################
 # Get momentum of reconstructed leading proton
 
-MASS_PROTON = 0.939 #0.93827
+MASS_PROTON = 0.938
 
 def get_reco_proton_mom(LeadProtonIdx, trk_energy_proton_v):
 
-    if LeadProtonIdx == -1:
+    if LeadProtonIdx == -1 or not ((LeadProtonIdx < len(trk_energy_proton_v)) & (LeadProtonIdx >= 0)):
         return np.nan
     ke = trk_energy_proton_v[LeadProtonIdx]
     return np.sqrt(ke**2 + (2*MASS_PROTON*ke))
@@ -263,7 +263,7 @@ def get_reco_proton_mom(LeadProtonIdx, trk_energy_proton_v):
 
 def get_reco_proton_mom_comp(LeadProtonIdx, trk_energy_proton_v, trk_dir_v):
 
-    if LeadProtonIdx == -1:
+    if LeadProtonIdx == -1 or not ((LeadProtonIdx < len(trk_energy_proton_v)) & (LeadProtonIdx >= 0)):
         return np.nan
 
     ke = trk_energy_proton_v[LeadProtonIdx]
@@ -281,7 +281,7 @@ def get_reco_proton_E(RecoLeadProtonMomentum):
 
 def get_reco_proton_KE(LeadProtonIdx, trk_energy_proton_v):
 
-    if LeadProtonIdx == -1:
+    if LeadProtonIdx == -1 or not ((LeadProtonIdx < len(trk_energy_proton_v)) & (LeadProtonIdx >= 0)):
         return np.nan
 
     return trk_energy_proton_v[LeadProtonIdx]
@@ -342,6 +342,29 @@ def get_conversion_dist(Idx,reco_nu_vtx_sce_x, reco_nu_vtx_sce_y, reco_nu_vtx_sc
     return np.sqrt(dx**2 + dy**2 + dz**2)
 
 ################################################################################
+# Get momentum of reconstructed leading proton consistent with PELEE analysis
+
+MASS_PROTON = 0.938
+
+def get_reco_proton_mom_pelee(LeadProtonIdx, trk_energy_proton_v, protonenergy_corr):
+
+    if LeadProtonIdx == -1 or not ((LeadProtonIdx < len(trk_energy_proton_v)) & (LeadProtonIdx >= 0)):
+        return np.nan
+    ke = protonenergy_corr
+    return np.sqrt(ke**2 + (2*MASS_PROTON*ke))
+
+################################################################################
+# Get momentum component of the reconstructed leading proton consistent with PELEE analysis
+
+def get_reco_proton_mom_comp_pelee(LeadProtonIdx, trk_energy_proton_v, trk_dir_v, protonenergy_corr):
+
+    if LeadProtonIdx == -1 or not ((LeadProtonIdx < len(trk_energy_proton_v)) & (LeadProtonIdx >= 0)):
+        return np.nan
+
+    ke = protonenergy_corr
+    return np.sqrt(ke**2 + (2*MASS_PROTON*ke)) * trk_dir_v[LeadProtonIdx]
+
+################################################################################
 # Add a column indicating if the events belong to the 1e1p selection
 
 def apply_selection_1e1p_tki(up,df):
@@ -351,6 +374,7 @@ def apply_selection_1e1p_tki(up,df):
     df["trk_dir_y_v"] = up.array("trk_dir_y_v")
     df["trk_dir_z_v"] = up.array("trk_dir_z_v")
     df["trk_energy_proton_v"] = up.array("trk_energy_proton_v")
+    df["trk_id"] = up.array("trk_id") - 1
     # df['shr_energy_cali'] = up.array('shr_energy_cali')
     # df['shr_energy'] = up.array('shr_energy')
     # df['shr_px'] = up.array('shr_px')
@@ -407,14 +431,22 @@ def apply_selection_1e1p_tki(up,df):
     #df["RecoLeadProton_dEdx_y_per_trklen"] = df["RecoLeadProton_trk_trunk_dEdx_y"] / df["RecoLeadProton_trk_len"]
     #df["longest_trk_dEdx_y_per_trklen"] = df["longest_trk_trunk_dEdx_y"] / df["longest_trk_len"]
 
-    df['RecoLeadProtonModMom'] = df.apply(lambda x: (get_reco_proton_mom(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"])), axis=1)
-    df["RecoLeadProtonMomX"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"], x["trk_dir_x_v"])), axis=1)
-    df["RecoLeadProtonMomY"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"], x["trk_dir_y_v"])), axis=1)
-    df["RecoLeadProtonMomZ"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"], x["trk_dir_z_v"])), axis=1)
-    df["RecoLeadProtonE"] = df.apply(lambda x: (get_reco_proton_E(x["RecoLeadProtonModMom"])),axis=1)
-    df["RecoLeadProtonKE"] = df.apply(lambda x: (get_reco_proton_KE(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"])),axis=1)
+    df['RecoLeadProtonModMom_1e1p'] = df.apply(lambda x: (get_reco_proton_mom(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"])), axis=1)
+    df["RecoLeadProtonMomX_1e1p"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"], x["trk_dir_x_v"])), axis=1)
+    df["RecoLeadProtonMomY_1e1p"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"], x["trk_dir_y_v"])), axis=1)
+    df["RecoLeadProtonMomZ_1e1p"] = df.apply(lambda x: (get_reco_proton_mom_comp(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"], x["trk_dir_z_v"])), axis=1)
+    df["RecoLeadProtonE_1e1p"] = df.apply(lambda x: (get_reco_proton_E(x["RecoLeadProtonModMom_1e1p"])),axis=1)
+    df["RecoLeadProtonKE_1e1p"] = df.apply(lambda x: (get_reco_proton_KE(x["RecoLeadProtonCandidateIdx"], x["trk_energy_proton_v"])),axis=1)
 
-    df["RecoLeadProtonPassMomCut"] = df.apply(lambda x: (pass_mom_cut(x["RecoLeadProtonModMom"], proton_p_min)),axis=1)
+    df["RecoLeadProtonPassMomCut"] = df.apply(lambda x: (pass_mom_cut(x["RecoLeadProtonModMom_1e1p"], proton_p_min)),axis=1)
+
+    # Proton kinematics using trk_id as index to be compatible with PELEE 1eNp-based 1e1p selection
+    df['RecoLeadProtonModMom'] = df.apply(lambda x: (get_reco_proton_mom_pelee(x["trk_id"], x["trk_energy_proton_v"], x["protonenergy_corr"])), axis=1)
+    df["RecoLeadProtonMomX"] = df.apply(lambda x: (get_reco_proton_mom_comp_pelee(x["trk_id"], x["trk_energy_proton_v"], x["trk_dir_x_v"], x["protonenergy_corr"])), axis=1)
+    df["RecoLeadProtonMomY"] = df.apply(lambda x: (get_reco_proton_mom_comp_pelee(x["trk_id"], x["trk_energy_proton_v"], x["trk_dir_y_v"], x["protonenergy_corr"])), axis=1)
+    df["RecoLeadProtonMomZ"] = df.apply(lambda x: (get_reco_proton_mom_comp_pelee(x["trk_id"], x["trk_energy_proton_v"], x["trk_dir_z_v"], x["protonenergy_corr"])), axis=1)
+    df["RecoLeadProtonE"] = df.apply(lambda x: (get_reco_proton_E(x["RecoLeadProtonModMom"])),axis=1)
+    df["RecoLeadProtonKE"] = df["protonenergy_corr"]
     
     # Set the reco signal definition (no additional cuts)
     #nue_cc0piNp = ((df["RecoElectronCandidateIdx"] != -1) & (df["RecoLeadProtonCandidateIdx"] != -1) & (df["InFV_reco"] == True) & (df["RecoElecPassMomCut"] == True) & (df["RecoLeadProtonPassMomCut"] == True))
@@ -426,27 +458,44 @@ def apply_selection_1e1p_tki(up,df):
     df.loc[nue_cc0pi1p, "Sel_1e1p"] = True
     df.loc[~nue_cc0pi1p, "Sel_1e1p"] = False
 
-    # Making the boolean variable which incorporates selection cuts along with Sel_1e1p to be used in Gardiner's unfolding framework later on
-    temp_df = df.query(query, engine='python')
-    df["sel_1e1p_w_cuts"] = False
-    df.loc[temp_df.index, "sel_1e1p_w_cuts"] = True
+    # # Making the boolean variable which incorporates selection cuts along with Sel_1e1p to be used in Gardiner's unfolding framework later on
+    # temp_df = df.query(query, engine='python')
+    # df["sel_1e1p_w_cuts"] = False
+    # df.loc[temp_df.index, "sel_1e1p_w_cuts"] = True
 
     print("Calc reco TKI variables for leading proton only")
 
+    df["RecoDeltaPT_1e1p"] = df.apply(lambda x: (tki_calculators.delta_pT(x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonMomX_1e1p"],x["RecoLeadProtonMomY_1e1p"],x["RecoLeadProtonMomZ_1e1p"])),axis=1)
+    #df["RecoDeltaPhiT_1e1p"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonMomX_1e1p"],x["RecoLeadProtonMomY_1e1p"],x["RecoLeadProtonMomZ_1e1p"])),axis=1)
+    df["RecoDeltaAlphaT_1e1p"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonMomX_1e1p"],x["RecoLeadProtonMomY_1e1p"],x["RecoLeadProtonMomZ_1e1p"])),axis=1)
+    df['RecoDeltaAlphaT_1e1p'] = np.degrees(df['RecoDeltaAlphaT_1e1p'])
+
+    # Proton kinematics using trk_id as index to be compatible with PELEE 1eNp-based 1e1p selection
     df["RecoDeltaPT"] = df.apply(lambda x: (tki_calculators.delta_pT(x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
     #df["RecoDeltaPhiT"] = df.apply(lambda x: (tki_calculators.delta_phiT(x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
     df["RecoDeltaAlphaT"] = df.apply(lambda x: (tki_calculators.delta_alphaT(x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
     df['RecoDeltaAlphaT'] = np.degrees(df['RecoDeltaAlphaT'])
 
     print("Calc reco GKI variables for leading proton only")
+
+    df["RecoPN_1e1p"] = df.apply(lambda x: (tki_calculators.pn(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE_1e1p"],x["RecoLeadProtonMomX_1e1p"],x["RecoLeadProtonMomY_1e1p"],x["RecoLeadProtonMomZ_1e1p"])),axis=1)
+    df["RecoAlpha3D_1e1p"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE_1e1p"],x["RecoLeadProtonMomX_1e1p"],x["RecoLeadProtonMomY_1e1p"],x["RecoLeadProtonMomZ_1e1p"])),axis=1)
+    df["RecoAlpha3D_1e1p"] = np.degrees(df["RecoAlpha3D_1e1p"])
+    #df["RecoPhi3D_1e1p"] = df.apply(lambda x: (tki_calculators.phi_3D(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE_1e1p"],x["RecoLeadProtonMomX_1e1p"],x["RecoLeadProtonMomY_1e1p"],x["RecoLeadProtonMomZ_1e1p"])),axis=1)
+    # df["RecoECal_1e1p"] = df.apply(lambda x: (tki_calculators.Ecal(x["RecoElecE"],x["RecoLeadProtonE_1e1p"])),axis=1)
+    # df["Reco_vec_q_1e1p"] = df.apply(lambda x: (tki_calculators.vec_q(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE_1e1p"],x["RecoLeadProtonMomX_1e1p"],x["RecoLeadProtonMomY_1e1p"],x["RecoLeadProtonMomZ_1e1p"])),axis=1)
+    # df["Reco_mag_q_1e1p"] = df.apply(lambda x: (get_magnitude(x["Reco_vec_q_1e1p"])), axis=1)
+    # df["RecoPL_1e1p"] = df.apply(lambda x: (tki_calculators.pL(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE_1e1p"],x["RecoLeadProtonMomX_1e1p"],x["RecoLeadProtonMomY_1e1p"],x["RecoLeadProtonMomZ_1e1p"])),axis=1)
+
+    # Proton kinematics using trk_id as index to be compatible with PELEE 1eNp-based 1e1p selection
     df["RecoPN"] = df.apply(lambda x: (tki_calculators.pn(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
     df["RecoAlpha3D"] = df.apply(lambda x: (tki_calculators.alpha_3D(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
     df["RecoAlpha3D"] = np.degrees(df["RecoAlpha3D"])
     #df["RecoPhi3D"] = df.apply(lambda x: (tki_calculators.phi_3D(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
-    df["RecoECal"] = df.apply(lambda x: (tki_calculators.Ecal(x["RecoElecE"],x["RecoLeadProtonE"])),axis=1)
-    df["Reco_vec_q"] = df.apply(lambda x: (tki_calculators.vec_q(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
-    df["Reco_mag_q"] = df.apply(lambda x: (get_magnitude(x["Reco_vec_q"])), axis=1)
-    df["RecoPL"] = df.apply(lambda x: (tki_calculators.pL(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
+    # df["RecoECal"] = df.apply(lambda x: (tki_calculators.Ecal(x["RecoElecE"],x["RecoLeadProtonE"])),axis=1)
+    # df["Reco_vec_q"] = df.apply(lambda x: (tki_calculators.vec_q(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
+    # df["Reco_mag_q"] = df.apply(lambda x: (get_magnitude(x["Reco_vec_q"])), axis=1)
+    # df["RecoPL"] = df.apply(lambda x: (tki_calculators.pL(x["RecoElecE"],x["RecoElecMomX"],x["RecoElecMomY"],x["RecoElecMomZ"],x["RecoLeadProtonE"],x["RecoLeadProtonMomX"],x["RecoLeadProtonMomY"],x["RecoLeadProtonMomZ"])),axis=1)
 
 
     # Drop all of the temporary columns added to the dataframe to save space
