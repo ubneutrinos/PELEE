@@ -61,17 +61,18 @@ class XsecCovarHistGenerator(HistogramGenerator):
         t_cv, bins = np.histogram(true_variable, bins=self.binning.bin_edges, weights=true_var_weightsCV)
         
         sig_vars_dict = dict()
-        for n,knob in enumerate(knob_v):
-            rmv_up, xb, yb = self.ResponseMatrix(raw_df, sel_df, self.signal_query, self.true_var_name, self.binning.variable, self.binning.bin_edges, base_weight_column, 0, f"{knob}up")
-            rp_up = rmv_up.dot(t_cv)
-            n_tot_v[n][0] += rp_up
+        if not raw_df.empty:
+            for n,knob in enumerate(knob_v):
+                rmv_up, xb, yb = self.ResponseMatrix(raw_df, sel_df, self.signal_query, self.true_var_name, self.binning.variable, self.binning.bin_edges, base_weight_column, 0, f"{knob}up")
+                rp_up = rmv_up.dot(t_cv)
+                n_tot_v[n][0] += rp_up
 
-            if (knob_n[n] == 2):
-                rmv_dn, xb, yb = self.ResponseMatrix(raw_df, sel_df, self.signal_query, self.true_var_name, self.binning.variable, self.binning.bin_edges, base_weight_column, 0, f"{knob}dn")
-                rp_dn = rmv_dn.dot(t_cv)
-                n_tot_v[n][1] += rp_dn
-                
-            sig_vars_dict[knob] = n_tot_v[n]
+                if (knob_n[n] == 2):
+                    rmv_dn, xb, yb = self.ResponseMatrix(raw_df, sel_df, self.signal_query, self.true_var_name, self.binning.variable, self.binning.bin_edges, base_weight_column, 0, f"{knob}dn")
+                    rp_dn = rmv_dn.dot(t_cv)
+                    n_tot_v[n][1] += rp_dn
+                    
+                sig_vars_dict[knob] = n_tot_v[n]
 
         # Add the signal and background variation hists and calculate cov matrix for each knob
         if central_value_hist is None:
@@ -80,7 +81,10 @@ class XsecCovarHistGenerator(HistogramGenerator):
         total_cov = np.zeros((self.binning.n_bins, self.binning.n_bins))
         total_vars_dict = dict()
         for n,knob in enumerate(knob_v):
-            total_vars_dict[knob] = sig_vars_dict[knob] + background_vars_dict[knob]
+            if not raw_df.empty:
+                total_vars_dict[knob] = sig_vars_dict[knob] + background_vars_dict[knob]
+            else:
+                total_vars_dict[knob] = background_vars_dict[knob]
             # If we get to this point without having either calculated a central value hist
             # or taken one from the cache, something is wrong
             assert central_value_hist is not None
@@ -179,7 +183,10 @@ class XsecCovarHistGenerator(HistogramGenerator):
                 n_tot[i] += rp
 
         # Add the signal and background variation hists
-        universe_hists = background_histograms + n_tot
+        if background_histograms is None:
+            universe_hists = n_tot
+        else:
+            universe_hists = background_histograms + n_tot
 
         # Now finally compute the covariance
         if central_value_hist is None:

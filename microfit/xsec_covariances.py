@@ -315,10 +315,10 @@ def unisim_err_with_resp_func(rundata, signame, var_name, true_var_name, presele
 
     n_cv_tot = np.zeros(n_bins) # this will store the sum of the CV hists
     n_tot_v = [] # this will store the variation hists
-    sig_tot_v = []
+    # sig_tot_v = []
     for u, knob in enumerate(knob_v):
         n_tot_v.append(np.zeros([ knob_n[u] ,n_bins]))
-        sig_tot_v.append(np.zeros([ knob_n[u] ,n_bins]))
+        # sig_tot_v.append(np.zeros([ knob_n[u] ,n_bins]))
 
     # First calculate the covariance for the background
     for key, df in rundata.items():
@@ -385,30 +385,30 @@ def unisim_err_with_resp_func(rundata, signame, var_name, true_var_name, presele
     true_var_weightsCV  = true_sig[weightCV]
     t_cv, bins = np.histogram(true_variable, bins=bins, weights=true_var_weightsCV)
 
-    for n,knob in enumerate(knob_v):
-        
-        rmv_up, xb, yb = ResponseMatrix(df, truth_def, query ,true_var_name, var_name, bins, base_weight_Var, 0, f"{knob}up")
-        rp_up = rmv_up.dot(t_cv)
-        n_tot_v[n][0] += rp_up
-        sig_tot_v[n][0] += rp_up
+    if not df.empty:
+         for n,knob in enumerate(knob_v):
+            rmv_up, xb, yb = ResponseMatrix(df, truth_def, query ,true_var_name, var_name, bins, base_weight_Var, 0, f"{knob}up")
+            rp_up = rmv_up.dot(t_cv)
+            n_tot_v[n][0] += rp_up
+            # sig_tot_v[n][0] += rp_up
 
-        if (knob_n[n] == 2):
-            rmv_dn, xb, yb = ResponseMatrix(df,truth_def, query, true_var_name, var_name, bins, base_weight_Var, 0, f"{knob}dn")
-            rp_dn = rmv_dn.dot(t_cv)
-            n_tot_v[n][1] += rp_dn
-            sig_tot_v[n][1] += rp_dn
+            if (knob_n[n] == 2):
+                rmv_dn, xb, yb = ResponseMatrix(df,truth_def, query, true_var_name, var_name, bins, base_weight_Var, 0, f"{knob}dn")
+                rp_dn = rmv_dn.dot(tcv)
+                n_tot_v[n][1] += rp_dn
+                # sig_tot_v[n][1] += rp_dn_
         
      # Now finally compute the covariance
-    total_vars_dict = dict()
-    sig_vars_dict = dict()
-    for n,knob in enumerate(knob_v):
-         total_vars_dict[knob] = n_tot_v[n]
-         sig_vars_dict[knob] = sig_tot_v[n]
+    # total_vars_dict = dict()
+    # sig_vars_dict = dict()
+    # for n,knob in enumerate(knob_v):
+    #      total_vars_dict[knob] = n_tot_v[n]
+    #      sig_vars_dict[knob] = sig_tot_v[n]
 
-    # print("My sig var dict: \n", sig_vars_dict)
-    # print()     
-    print("My total var dict: \n", total_vars_dict)
-    print()
+    # # print("My sig var dict: \n", sig_vars_dict)
+    # # print()     
+    # print("My total var dict: \n", total_vars_dict)
+    # print()
     cov = np.zeros([len(n_cv_tot), len(n_cv_tot)])
 
     for n,knob in enumerate(knob_v):

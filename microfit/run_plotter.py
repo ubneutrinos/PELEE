@@ -53,6 +53,7 @@ class RunHistPlotter:
         signal_category_num=None,
         include_multisim_errors=None,
         show_chi_square=False,
+        stat_variance_method="cnp",
         add_ext_error_floor=None,
         smooth_ext_histogram=False,
         show_data_mc_ratio=False,
@@ -110,8 +111,9 @@ class RunHistPlotter:
             scale_to_pot=scale_to_pot,
             smooth_ext_histogram=smooth_ext_histogram,
         )
-        assert isinstance(ext_hist, Histogram)
+        #assert isinstance(ext_hist, Histogram)
         if ext_hist is not None:
+            assert isinstance(ext_hist, Histogram)
             ext_hist.tex_string = "EXT" #"Cosmics"
             ext_hist = flatten(ext_hist)
 
@@ -194,6 +196,7 @@ class RunHistPlotter:
                 data_hist.bin_counts,
                 total_pred_hist.bin_counts,
                 total_pred_hist.covariance_matrix,
+                stat_variance_method = stat_variance_method
             )
         else:
             chi_square = None
@@ -304,6 +307,7 @@ class RunHistPlotter:
         mb_preliminary=True,
         signal_label=None,
         signal_color="red",
+        override_data_cov = False,
         **kwargs,
     ):
         if not include_empty_hists:
@@ -380,6 +384,8 @@ class RunHistPlotter:
                     data_label = f"Data: {data_hist.sum():.0f}"
                 else:
                     data_label = "Data"
+                if override_data_cov:
+                    data_hist.covariance_matrix = np.diag(data_hist.bin_counts)
                 ax = self.plot_hist(
                     data_hist,
                     ax=ax,
