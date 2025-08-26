@@ -14,6 +14,17 @@ PRESQ += ' and selected == 1'
 PRESQ += ' and shr_energy_tot_cali > 0.07'
 PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
 
+# Lucile's 1eNp0pi selection
+
+LucileSEL = PRESQ
+LucileSEL += ' and n_showers_contained > 0 and n_tracks_contained > 0'
+LucileSEL += ' and CosmicIPAll3D > 10. and trkpid<(0.015*trk_len+0.02) and hits_ratio > 0.50 and shrmoliereavg < 9 and subcluster > 4 and trkfit < 0.65 and shr_trk_len < 300.'
+LucileSEL += ' and n_showers_contained == 1 and tksh_distance < 10.0 and tksh_angle > -0.9 and pi0_score > 0.50 and nonpi0_score > 0.50 and protonenergy_corr > 0.05'
+
+# 1e1p by modifying Lucile's Np selection
+OneP_NPBDTXS = LucileSEL
+OneP_NPBDTXS += ' and n_tracks_contained == 1'
+
 # 1e1p preselection
 OnePPRESQ = PRESQ
 OnePPRESQ += ' and n_tracks_contained == 1 and n_showers_contained == 1'
@@ -604,6 +615,9 @@ selection_categories = {
 
     # Selections with added CRT
     'ZPBDT_CRT': {'query': ZPBDTLOOSE_CRT, 'title': '1e0p0$\\pi$ BDT sel. w/ CRT', 'dir': 'ZPBDTCRT'},
+
+    'TKI_1e1p': {'query': OneP_NPBDTXS, 'title': '1e1p Selection', 'dir':'TKI_1e1p'},
+    'TKI_1mu1p': {'query': "sel_CC1p0pi == True", 'title': '1mu1p Selection', 'dir':'TKI_1mu1p'}
 
 }
 

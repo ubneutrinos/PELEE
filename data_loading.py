@@ -18,6 +18,8 @@ from typing import List, Tuple, Any, Union
 from numpy.typing import NDArray
 from numu_tki import selection_1muNp 
 from numu_tki import signal_1muNp 
+from numu_tki import selection_1e1p 
+from numu_tki import signal_1e1p 
 from numu_tki import tki_calculators 
 
 from microfit.selections import extract_variables_from_query
@@ -922,6 +924,37 @@ def process_uproot_shower_variables(up, df):
     df["shr2_score"] = get_elm_from_vec_idx(trk_score_v, shr2_id)
     shr_moliere_avg_v = up.array("shr_moliere_avg_v")
     df["shr2_moliereavg"] = get_elm_from_vec_idx(shr_moliere_avg_v, shr2_id)
+
+    # Set the truth variables for the energy and momentum components for the electron and proton
+    print("Calculating electron and proton energy and momentum kinematics")
+    # electron kinematics
+    elec_mask = mc_pdg == 11
+    mostEelecIdx = get_idx_from_vec_sort(-1, mc_E, elec_mask)
+    mc_E_elec = get_elm_from_vec_idx(mc_E, mostEelecIdx)
+    mc_px_elec = get_elm_from_vec_idx(mc_px, mostEelecIdx)
+    mc_py_elec = get_elm_from_vec_idx(mc_py, mostEelecIdx)
+    mc_pz_elec = get_elm_from_vec_idx(mc_pz, mostEelecIdx)
+    mc_p_elec = np.sqrt(mc_px_elec ** 2 + mc_py_elec ** 2 + mc_pz_elec ** 2)
+    elec_mass = 0.511e-3 #GeV
+    elec_KE_min = 0.03 #GeV - minimum electron KE required to be visible inside the detector
+    elec_E_min = elec_KE_min + elec_mass
+    df["mc_px_elec"] = np.where((mc_E_elec > elec_E_min), mc_px_elec, np.nan)
+    df["mc_py_elec"] = np.where((mc_E_elec > elec_E_min), mc_py_elec, np.nan)
+    df["mc_pz_elec"] = np.where((mc_E_elec > elec_E_min), mc_pz_elec, np.nan)
+    df["mc_p_elec"] = np.where((mc_E_elec > elec_E_min), mc_p_elec, np.nan)
+    df["mc_E_elec"] = np.where((mc_E_elec > elec_E_min), mc_E_elec, np.nan)
+    df["mc_KE_elec"] = np.where((mc_E_elec > elec_E_min), mc_E_elec - elec_mass, np.nan)
+    #
+    # proton kinematics
+    proton_mass = 0.938 #GeV
+    proton_KE_min = 0.05 #GeV - minimum proton KE required to be visible inside the detector
+    proton_E_min = proton_KE_min + proton_mass
+    df["mc_px_prot"] = np.where((mc_E_prot > proton_E_min), mc_px_prot, np.nan)
+    df["mc_py_prot"] = np.where((mc_E_prot > proton_E_min), mc_py_prot, np.nan)
+    df["mc_pz_prot"] = np.where((mc_E_prot > proton_E_min), mc_pz_prot, np.nan)
+    df["mc_p_prot"] = np.where((mc_E_prot > proton_E_min), mc_p_prot, np.nan)
+    df["mc_E_prot"] = np.where((mc_E_prot > proton_E_min), mc_E_prot, np.nan)
+    df["mc_KE_prot"] = np.where((mc_E_prot > proton_E_min), mc_E_prot - proton_mass, np.nan)
 
     return
 
@@ -2031,6 +2064,7 @@ def load_sample(
     pi0scaling=0,
     load_crt_vars=False,
     load_numu_tki=False,
+    load_nue_tki=False,
     full_path="",
     keep_columns=None,
 ):
@@ -2202,6 +2236,9 @@ def load_sample(
         if load_numu_tki:
             df = signal_1muNp.set_Signal1muNp(up,df)
             df = selection_1muNp.apply_selection_1muNp(up,df) 
+        if load_nue_tki:
+            df = signal_1e1p.set_Signal1e1p(up,df)
+            df = selection_1e1p.apply_selection_1e1p_tki(up,df) 
 
     if use_bdt:
         add_bdt_scores(df)
