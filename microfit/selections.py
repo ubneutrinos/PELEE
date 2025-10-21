@@ -401,6 +401,15 @@ NUMUSELCRT0P0PI = NUMUSELCRT0PI + ' and n_protons_tot == 0 and topological_score
 
 NUMUSEL1MU1P = NUMUSEL + ' and n_tracks_contained == 2 and trk2_pid < -0.2'
 
+
+
+# oLEE selections
+NUMUSEL1SH = NUMUSEL + ' and n_showers_contained == 1'
+NUMUSEL1SHTOT = NUMUSEL + ' and n_showers_tot == 1'
+OLEETRUTHSEL = "true_crit_vel_slice_bool == True"
+#OLEETRUTHSEL = "true_crit_vel_test_vector == True" #Problem
+OLEERECOSEL = "reco_crit_vel_slice_bool == True"
+
 # eta queries
 ETASLICE = ' nslice == 1'
 ETASLICE += ' and topological_score > 0.1'
@@ -457,7 +466,8 @@ preselection_categories = {
     'NSLICE': {'query': 'nslice==1', 'title': r"SliceID selection", 'dir': 'NSLICE'},
     'NUMU': {'query': NUMUPRESEL, 'title': r"$\nu_{\mu}$ selection", 'dir': 'NUMU'},
     'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ pre-selection w/ CRT", 'dir': 'NUMUCRT'},
-    'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'}
+    'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'},
+    #'oLEEtruePreSel': {'query': OLEETRUTHPRESEL, 'title': 'oLEE mc truth preselection cut', 'dir': 'OLEETRUTHPreSel'}, #oLEE
 
 }
 
@@ -492,6 +502,8 @@ selection_categories = {
     'NUMUCRT': {'query': NUMUSELCRT, 'title': r"$\nu_{\mu}$ selection w/ CRT", 'dir': 'NUMUCRT'},
     'NUMUCRT0PI': {'query': NUMUSELCRT0PI, 'title': r"$\nu_{\mu}$0$\pi$ selection w/ CRT", 'dir': 'NUMUCRT0PI'},
     'NUMU1MU1P': {'query': NUMUSEL1MU1P, 'title': r"$\nu_{\mu}$ 1$\mu$1$p$ selection", 'dir': 'NUMU1MU1P'},
+    'NUMU1SH': {'query': NUMUSEL1SH, 'title': r"$\nu_{\mu}$ 1 Shower selection Fid. Vol.", 'dir': 'NUMU1SH'}, # oLEE
+    'NUMU1SHTOT': {'query': NUMUSEL1SHTOT, 'title': r"$\nu_{\mu}$ 1 Shower selection", 'dir': 'NUMU1SHTOT'}, # oLEE
     'PI0SEL': {'query': PI0SEL,'title': r"$\pi^0$ selection",'dir':"PI0"},
     'CCNCPI0': {'query': CCNCPI0SEL, 'title': r"CC/NC pi0 selection", 'dir': 'CCNCPI0'},
     'CCPI0': {'query': CCPI0SEL, 'title': r"CC pi0 selection", 'dir': 'CCPI0'},
@@ -516,6 +528,8 @@ selection_categories = {
     'ZPXSBDTAllShr': {'query': ZPXSBDTQ_all_showers, 'title': '1e0p xsec BDT sel., 0+ showers', 'dir': 'ZPXSBDTAllShr'},
     'XPXSBDT': {'query': XPXSBDTQ, 'title': '1eXp xsec BDT sel.', 'dir': 'XPXSBDT'},
     'OnePL': {'query': OnePLCUTQ, 'title': '1e1p Loose cuts', 'dir': 'OnePL'},
+    'oLEEtrue': {'query': OLEETRUTHSEL, 'title': 'oLEE mc truth cut', 'dir': 'OLEETRUTH'}, #oLEE
+    'oLEEreco': {'query': OLEERECOSEL, 'title': 'oLEE reco cut', 'dir': 'OLEERECO'},       #oLEE
 
     # CT: Full selections with BDT cuts inverted
     'ZPBDT_INV': {'query': ZPBDTLOOSE_INV, 'title': 'Inverted 1e0p BDT sel.', 'dir': 'ZPBDT_INV'},

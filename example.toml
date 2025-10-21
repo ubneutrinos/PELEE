@@ -1,0 +1,92 @@
+
+# We can define any number of signal and constraint channels, which are identified
+# by the selection name. The only limitation is that the channel must be defined 
+# by one of the generators below and must be unique. Signal channels can be
+# blinded or unblinded. Constraint channels must be unblinded.
+# With blinded signal channels, we can still plot the MC prediction and 
+# calculate sensitivities.
+
+[channels]
+signal_channels = ["NPBDT", "ZPBDT"]
+constraint_channels = ["NUMUCRT"]
+
+# Each expression in double brackets is an element in a list.
+# We can define any number of generators in the same file.
+
+[[generator]]
+
+# The arguments in `load_runs` are all passed directly to the `load_runs` function.
+[generator.load_runs]
+run_numbers = ["3"]
+data = "opendata_bnb"
+truth_filtered_sets = ["nue", "drt"]
+loadshowervariables = false
+loadsystematics = true
+use_bdt = false
+loadnumuvariables = true
+load_crt_vars = true
+numupresel = true
+enable_cache = true
+blinded = false
+
+# We can define any number of channels with different selections and binnings 
+# for each generator. The `variable` is the name of the variable in the dataframe.
+# The `selection` is the name of the selection defined in `selections.py`, and is
+# also used to identify the channel. This also means that the selection must be unique
+# across all generators.
+
+[[generator.channel]]
+variable = "neutrino_energy"
+n_bins = 14
+limits = [0.15, 1.55]
+selection = "NUMUCRT"
+preselection = "NUMU"
+variable_tex = "Neutrino Reconstructed Energy (GeV)"
+
+[[generator]]
+
+# Here we use the `SignalOverBackgroundGenerator` class as described above. The analysis
+# automatically searches the namespace for the class name and instantiates it.
+
+mc_hist_generator_cls = "SignalOverBackgroundGenerator"
+
+[generator.load_runs]
+run_numbers = ["1"]
+data = "bnb"
+truth_filtered_sets = ["nue", "drt"]
+loadpi0variables = true
+loadshowervariables = true
+loadrecoveryvars = true
+loadsystematics = true
+load_lee = true
+enable_cache = true
+blinded = false
+
+# With this generator, we need to define the signal strength parameter
+[[generator.parameter]]
+name = "signal_strength"
+value = 1.0
+bounds = [0.0, 10.0]
+
+# We also define two different channels with different selections. 
+# We are using the same binning in both channels, but that is not required.
+# We could also choose to plot different variables in the same selection, or
+# use overlapping selections. In such cases where there are overlaps between
+# the events in the bins of two channels, the statistical covariance will be
+# calculated correctly.
+[[generator.channel]]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.55]
+selection = "NPBDT"
+preselection = "NP"
+variable_tex = "Reconstructed Energy (GeV)"
+
+[[generator.channel]]
+variable = "reco_e"
+n_bins = 10
+limits = [0.15, 1.55]
+selection = "ZPBDT"
+preselection = "ZP"
+variable_tex = "Reconstructed Energy (GeV)"
+

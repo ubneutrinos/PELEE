@@ -16,6 +16,10 @@ def get_category_label(category_column, category):
         return category_labels_1e1p.get(category, "Other")
     elif category_column == "interaction":
         return int_labels.get(category, "Other")
+    elif category_column == "mc_pdg":
+        return pdg_labels.get(category, "Other")
+    #elif category_column == "backtracked_pdg":
+    #    return pdg_labels.get(category, "Other")
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
@@ -35,6 +39,10 @@ def get_categories(category_column):
         return list(category_labels_1e1p.keys())
     elif category_column == "interaction":
         return list(int_labels.keys())
+    elif category_column == "mc_pdg":
+        return list(pdg_labels.keys())
+    #elif category_column == "backtracked_pdg":
+    #    return list(pdg_labels.keys())
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
 
@@ -44,6 +52,14 @@ def get_category_color(category_column, category):
 
     if category_column == "interaction":
         return int_colors[category]
+    elif category_column == "mc_pdg":
+        try:
+            return pdg_colors[abs(category)]
+        except KeyError: 
+            print("Got bad category, ", category)
+            return "#000000"
+    #elif category_column == "backtracked_pdg":
+    #    return pdg_colors[abs(category)]
     return category_colors[category]
 
 
@@ -172,15 +188,24 @@ pdg_labels = {
     13: r"$\mu$",
     11: r"$e$",
     111: r"$\pi^0$",
-    -13: r"$\mu$",
-    -11: r"$e$",
-    211: r"$\pi^{\pm}$",
-    -211: r"$\pi$",
+    -13: r"$\mu^+$",
+    -11: r"$e^+$",
+    211: r"$\pi^+$",
+    -211: r"$\pi^-$",
     2112: r"$n$",
     22: r"$\gamma$",
-    321: r"$K$",
-    -321: r"$K$",
+    321: r"$K^+$",
+    -321: r"$K^-$",
     0: "Cosmic",
+    3122: r"$\Lambda^+$",
+    -3122: r"$\Lambda^-$",
+    3222: r"$\Sigma^+$",
+    3112: r"$\Sigma^-$",
+    311: r"$K^0$",
+    3212: r"$\Sigma^0$",
+    130: r"$K^0_L$",
+    310: r"$K^0_S$",
+
 }
 
 int_labels = {
@@ -263,4 +288,11 @@ pdg_colors = {
     11: "#ff7f00",
     321: "#fdbf6f",
     2112: "#cab2d6",
+    3122: "#3c00c0",
+    3222: "#3c00c0",
+    3112: "#3c00c0",
+    311: "#fdbf6f",
+    3212: "#3c00c0",
+    130: "#fdbf6f",
+    310: "#fdbf6f",
 }

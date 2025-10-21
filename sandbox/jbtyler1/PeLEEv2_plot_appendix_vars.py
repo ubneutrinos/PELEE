@@ -39,7 +39,7 @@ print('Plotting for Np vars with NP presel')
 selection = "None"
 preselection = "NP"
 
-for binning_def in vdef.presel_variables_1eNp:                  #Variable definition name (name for list of variables in variable_defs.py) goes here
+for binning_def in vdef.NP_presel_none_1eNp:                  #Variable definition name (name for list of variables in variable_defs.py) goes here
     # some binning definitions have more than 4 elements,
     # we ignore the last ones for now
     binning = hist.Binning.from_config(*binning_def[:4])
@@ -66,13 +66,13 @@ for binning_def in vdef.presel_variables_1eNp:                  #Variable defini
     plt.show()
 
 
-#A2 1eNp
+#App2 1eNp
 print('Plotting for Np vars with NP presel and loose cuts')
 
 selection = "NPL"
 preselection = "NP"
 
-for binning_def in vdef.loosesel_variables_1eNp:                    #Variable definition name goes here
+for binning_def in vdef.NP_presel_NPL_sel_1eNp:                    #Variable definition name goes here
     # some binning definitions have more than 4 elements,
     # we ignore the last ones for now
     binning = hist.Binning.from_config(*binning_def[:4])
@@ -95,17 +95,17 @@ for binning_def in vdef.loosesel_variables_1eNp:                    #Variable de
         show_chi_square=True,
     )
     
-    plt.savefig(f'plots/PeLEE_A2_Plots/appendix_{preselection}_{selection}_{binning_def[0]}.pdf', bbox_inches='tight')
+    plt.savefig(f'Plots/PeLEE_A2_Plots/appendix_{preselection}_{selection}_{binning_def[0]}.pdf', bbox_inches='tight')
     plt.show()
 
 
-#A3 1eNp
+#App3 1eNp
 print('Plotting for Np vars with NP presel and BDT cuts')
 
 selection = "NPBDT"
 preselection = "NP"
 
-for binning_def in vdef.bdt_1enp_variables:                     #Variable definition name goes here
+for binning_def in vdef.NP_presel_NPBDT_sel_1eNp:                     #Variable definition name goes here
     # some binning definitions have more than 4 elements,
     # we ignore the last ones for now
     binning = hist.Binning.from_config(*binning_def[:4])
@@ -120,7 +120,7 @@ for binning_def in vdef.bdt_1enp_variables:                     #Variable defini
         uncertainty_defaults=None,
     )
     plotter = rp.RunHistPlotter(signal_generator)
-    axes2 = plotter.plot(
+    axes3 = plotter.plot(
         category_column="paper_category",
         include_multisim_errors=True,
         add_ext_error_floor=False,
@@ -128,10 +128,107 @@ for binning_def in vdef.bdt_1enp_variables:                     #Variable defini
         show_chi_square=True,
     )
     
-    plt.savefig(f'plots/PeLEE_A3_Plots/appendix_{preselection}_{selection}_{binning_def[0]}.pdf', bbox_inches='tight')
+    plt.savefig(f'Plots/PeLEE_A3_Plots/appendix_{preselection}_{selection}_{binning_def[0]}.pdf', bbox_inches='tight')
     plt.show()
 
 
+#App4 1e0p
+print('Plotting for 0p vars with ZP presel only')
+
+selection = "None"
+preselection = "ZPOneShr"
+
+for binning_def in vdef.ZPOneShr_presel_various_sels_1e0p:                     #Variable definition name goes here
+    # some binning definitions have more than 4 elements,
+    # we ignore the last ones for now
+    binning = hist.Binning.from_config(*binning_def[:4])
+    print(binning_def)
+    signal_generator = hist.RunHistGenerator(
+        rundata,
+        binning,
+        data_pot=data_pot,
+        selection=selection,
+        preselection=preselection,
+        sideband_generator=None,
+        uncertainty_defaults=None,
+    )
+    plotter = rp.RunHistPlotter(signal_generator)
+    axes4 = plotter.plot(
+        category_column="paper_category",
+        include_multisim_errors=True,
+        add_ext_error_floor=False,
+        show_data_mc_ratio=True,
+        show_chi_square=True,
+    )
+    
+    plt.savefig(f'Plots/PeLEE_A4_Plots/appendix_{preselection}_{selection}_{binning_def[0]}.pdf', bbox_inches='tight')
+    plt.show()
+
+
+#A5 1e0p
+print('Plotting for 0p vars with ZP presel and loose cuts')
+
+selection = "ZPLOOSESEL"
+preselection = "ZPOneShr"
+
+for binning_def in vdef.ZPOneShr_presel_various_sels_1e0p:                     #Variable definition name goes here
+    # some binning definitions have more than 4 elements,
+    # we ignore the last ones for now
+    binning = hist.Binning.from_config(*binning_def[:4])
+    print(binning_def)
+    signal_generator = hist.RunHistGenerator(
+        rundata,
+        binning,
+        data_pot=data_pot,
+        selection=selection,
+        preselection=preselection,
+        sideband_generator=None,
+        uncertainty_defaults=None,
+    )
+    plotter = rp.RunHistPlotter(signal_generator)
+    axes5 = plotter.plot(
+        category_column="paper_category",
+        include_multisim_errors=True,
+        add_ext_error_floor=False,
+        show_data_mc_ratio=True,
+        show_chi_square=True,
+    )
+    
+    plt.savefig(f'Plots/PeLEE_A5_Plots/appendix_{preselection}_{selection}_{binning_def[0]}.pdf', bbox_inches='tight')
+    plt.show()
+
+
+#A6 1e0p
+print('Plotting for 0p vars with ZP presel and BDT CRT cuts')
+
+selection = "ZPBDT_CRT"
+preselection = "ZPOneShr"
+
+for binning_def in vdef.ZPOneShr_presel_various_sels_1e0p:                     #Variable definition name goes here
+    # some binning definitions have more than 4 elements,
+    # we ignore the last ones for now
+    binning = hist.Binning.from_config(*binning_def[:4])
+    print(binning_def)
+    signal_generator = hist.RunHistGenerator(
+        rundata,
+        binning,
+        data_pot=data_pot,
+        selection=selection,
+        preselection=preselection,
+        sideband_generator=None,
+        uncertainty_defaults=None,
+    )
+    plotter = rp.RunHistPlotter(signal_generator)
+    axes6 = plotter.plot(
+        category_column="paper_category",
+        include_multisim_errors=True,
+        add_ext_error_floor=False,
+        show_data_mc_ratio=True,
+        show_chi_square=True,
+    )
+    
+    plt.savefig(f'Plots/PeLEE_A6_Plots/appendix_{preselection}_{selection}_{binning_def[0]}.pdf', bbox_inches='tight')
+    plt.show()
 
 print()
 print('Done :D')

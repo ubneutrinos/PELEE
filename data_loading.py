@@ -19,6 +19,8 @@ from numpy.typing import NDArray
 from numu_tki import selection_1muNp 
 from numu_tki import signal_1muNp 
 from numu_tki import tki_calculators 
+import oLEE_truth
+import oLEE_reco
 
 from microfit.selections import extract_variables_from_query
 
@@ -94,14 +96,14 @@ def get_variables():
         # The variables below are not floating point numbers, but vectors of variable length
         # that can only be stored in awkward arrays. These are very memory intensive, so we
         # do not want to load them into the final dataframe.
-        # "mc_pdg",
+        "mc_pdg",
         # "mc_px",
         # "mc_py",
         # "mc_pz",
         # "mc_E",
         #############
         "slpdg",
-        # "backtracked_pdg",
+        #"backtracked_pdg",
         # "trk_score_v",
         "category",
         "ccnc",
@@ -116,7 +118,7 @@ def get_variables():
         # "nu_flashmatch_score","best_cosmic_flashmatch_score","best_obviouscosmic_flashmatch_score",
         #"flash_pe",
         # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
-        # "trk_llr_pid_score_v",  # trk-PID score
+        #"trk_llr_pid_score_v",  # trk-PID score
         "_opfilter_pe_beam",
         "_opfilter_pe_veto",  # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x",
@@ -162,6 +164,8 @@ def get_variables():
         # a lot of memory
         # "pfp_generation_v",
         "shr_energy_cali",
+        "shr_energy_second_cali", # oLEE
+        "shr_energy_third_cali", # oLEE
         # "trk_dir_x_v",
         # "trk_dir_y_v",
         # "trk_dir_z_v",
@@ -289,6 +293,8 @@ def get_variables():
         "shr_tkfit_dedx_V",
         "trk_bkt_pdg",
         "shr_energy",
+        "shr_energy_second", # oLEE
+        "shr_energy_third", # oLEE
         "shr_dedx_U",
         "shr_dedx_V",
         "shr_phi",
@@ -2031,6 +2037,7 @@ def load_sample(
     pi0scaling=0,
     load_crt_vars=False,
     load_numu_tki=False,
+    load_oLEE=False,
     full_path="",
     keep_columns=None,
 ):
@@ -2201,6 +2208,12 @@ def load_sample(
         if load_numu_tki:
             df = signal_1muNp.set_Signal1muNp(up,df)
             df = selection_1muNp.apply_selection_1muNp(up,df) 
+            
+        if load_oLEE:
+            df = oLEE_truth.process_oLEE_truth(up,df)
+            print("oLEE truth called")
+            df = oLEE_reco.process_oLEE_reco(up,df)
+            print("oLEE reco called")
 
     if use_bdt:
         add_bdt_scores(df)

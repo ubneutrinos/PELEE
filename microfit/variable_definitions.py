@@ -258,9 +258,9 @@ numupresel_variables = [
 
 
 numusel_variables = [
-    ("muon_energy", 14, (0.15, 1.55), "muon candidate reconstructed energy [GeV]"),
-    ("neutrino_energy", 14, (0.15, 1.55), "neutrino reconstructed energy [GeV]"),
-    ("muon_theta", 28, (-1, 1), r"muon candidate $\cos(\theta)$"),
+    ("muon_energy", 25, (0.15, 1.45), "muon candidate reconstructed energy [GeV]"),
+    #("neutrino_energy", 14, (0.15, 1.55), "neutrino reconstructed energy [GeV]"),
+    #("muon_theta", 28, (-1, 1), r"muon candidate $\cos(\theta)$"),
 ]
 
 bdt_common_variables_1eNp = [
@@ -360,6 +360,150 @@ tki_reco_variables_1mu1p = [
     ("RecoPNT_1mu1p", 10, (0.0,0.5), "pnT"),
     ("RecoPNII_1mu1p", 10, (-0.5,0.75), "pnII"),
 ]
+
+# Jennifer's Variables
+OLEE_truth_variables = [
+    #("muon_energy", 25, (0.15, 1.45), "Muon Candidate Reconstructed Energy [GeV]"),
+    #("shr_energy_cali", 16, (0, 0.7), "Reconstructed Electron Energy [GeV] \n (shr_energy_cali)"),
+    #("n_showers_tot", 10, (0, 6), "Total Number of Showers"),
+    #("electron_e", 10, (0, 2), "Electron Candidate Reconstructed Energy [GeV]"),
+    #("interaction", 11, (0, 11), "Interaction ID"),
+    
+    #("mc_E", 39, (0, 1.3), "True Total Energy (KE + Rest Mass) [GeV] Sub-Cherenkov Threshold (39 Bins)"),
+                                                                                        #True Total Energy (including Rest Mass)
+    #("mc_E", 20, (0.1, 0.2), "True Total Energy (KE + Rest Mass) [GeV] (Low Energy) Sub-Cherenkov Threshold (20 Bins)"),
+                                                                                        #Variations of True Energy for examination
+    #("mc_E", 20, (0.9, 1.3), "True Total Energy (KE + Rest Mass) [GeV] (High Energy) Sub-Cherenkov Threshold (20 Bins)"),
+                                                                                        #Variations of True Energy for examination
+    
+    #("true_vel_vector", 16, (0.68, 1), "True Velocity [$\\beta$] 16 bins"),            #True Velocity beta
+    #("true_vel_vector", 20, (0, 1), "True Velocity [$\\beta$] 20 Bins"),               #Variations of True Velocity beta for examination
+    #("true_vel_vector", 17, (0, 0.68), "True Velocity [$\\beta$] Sub-Cherenkov Threshold (17 Bins)"),
+                                                                                        #Variations of True Velocity beta for examination
+    
+    #("true_KE_vector", 35, (0, 0.35), "True KE [GeV] Sub-Cherenkov Threshold (35 Bins)"),  #True KE for examination
+    #("true_KE_vector", 28, (0.04, 0.6), "True KE (Zoom-In on Two Bumps) [GeV]"),       #Variations of True KE for examination
+    #("true_KE_vector", 20, (0.2, 0.4), "True KE (Fine Binning, Mid Energy) [GeV]"),    #Variations of True KE for examination
+    
+    ("SubChrnkv_E", 20, (0, 3), "KE Below Cherenkov Threshold (20 Bins) [GeV]"),
+        #Below Cherenkov threshold KE, visible to uBooNE & invisble to mBooNE
+    
+    #("Name_of_Variable", 10, (x-axis, range), "Title of Plot"),                        #Format
+
+]
+
+OLEE_reco_variables = [
+    #("trk_llr_pid_score_v", 32, (-1, 1), "track-PID score"),        #Reconstructed track PID score
+    #("RecoProtonE", 40, (0, 1.6), "Recontructed Energy (Protons) [GeV]"),
+    #("reco_vel_vector", 40, (0, 1), "Reconstructed Velocity (Protons) [$\\beta$]"),   #Velocity beta
+    #("reco_KE_vector", 20, (0, 0.8), "True KE (Protons) [GeV]"),              #True KE for examination
+    
+    #("", 10, (), ""),                                              #Format
+
+]
+
+
+#Appendix Variables for tech note v2
+#App1
+NP_presel_none_1eNp = [
+    ("tksh_distance", 20, (0, 40), "trk-shr distance [cm]"),
+    ("tksh_angle", 20, (-1, 1), "cos(trk-shr angle)"),
+    ("shr_tkfit_dedx_max", 20, (0, 10), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    ("trkfit", 20, (0, 1.0), "Fraction of Track-fitted points"),
+    ("trkpid", 21, (-1, 1), "track LLR PID"),
+    ("subcluster", 20, (0, 40), "N sub-clusters in shower"),
+    ("shrmoliereavg", 20, (0, 50), "average Moliere angle [degrees]"),
+    ("trkshrhitdist2", 10, (0, 10), "2D trk-shr distance (Y)"),
+    ("hits_ratio", 20, (0, 1), "shower hits/all hits"),
+    ("secondshower_Y_nhit", 10, (0, 200), "Nhit 2nd shower (Y)"),
+    ("secondshower_Y_dot", 10, (-1, 1), "cos(2nd shower direction wrt vtx) (Y)"),
+    ("anglediff_Y", 10, (0, 350), "angle diff 1st-2nd shower (Y) [degrees]"),
+    ("secondshower_Y_vtxdist", 10, (0.0, 200), "vtx dist 2nd shower (Y)"),
+    ("CosmicIPAll3D", 20, (0, 200), "CosmicIPAll3D [cm]"),
+    ("CosmicDirAll3D", 10, (-1, 1), "cos(CosmicDirAll3D)"),
+    ("shr_score", 10, (0, 0.5), "shr score"),
+    ("pi0_score", 10, (0.0, 1.0), "pi0 score"),
+    ("nonpi0_score", 10, (0.0, 1.0), "non-pi0 score"),
+]
+#App2
+NP_presel_NPL_sel_1eNp = [
+    ("tksh_distance", 12, (0, 6), "trk-shr distance [cm]"),
+    ("tksh_angle", 10, (-1, 1), "cos(trk-shr angle)"),
+    ("shr_tkfit_dedx_max", 5, (0, 5.5), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    ("trkfit", 10, (0, 0.66), "Fraction of Track-fitted points"),
+    ("trkpid", 5, (-1, 0.1), "track LLR PID"),
+    ("subcluster", 9, (5, 50), "N sub-clusters in shower"),
+    ("shrmoliereavg", 9, (0, 9), "average Moliere angle [degrees]"),
+    ("trkshrhitdist2", 10, (0, 10), "2D trk-shr distance (Y)"),
+    ("hits_ratio", 10, (0, 1), "shower hits/all hits"),
+    ("secondshower_Y_nhit", 10, (0, 200), "Nhit 2nd shower (Y)"),
+    ("secondshower_Y_dot", 10, (0.0, 1.0), "cos(2nd shower direction wrt vtx) (Y)"),
+    ("anglediff_Y", 10, (0, 350), "angle diff 1st-2nd shower (Y) [degrees]"),
+    ("secondshower_Y_vtxdist", 10, (0.0, 200), "vtx dist 2nd shower (Y)"),
+    ("CosmicIPAll3D", 10, (0, 200), "CosmicIPAll3D [cm]"),
+    ("CosmicDirAll3D", 10, (-1, 1), "cos(CosmicDirAll3D)"),
+    ("shr_score", 10, (0, 0.5), "shr score"),
+    ("pi0_score", 10, (0.0, 1.0), "pi0 score"),
+    ("nonpi0_score", 10, (0.0, 1.0), "non-pi0 score"),
+]
+#App3
+NP_presel_NPBDT_sel_1eNp = [
+    ("tksh_distance", 6, (0, 6), "trk-shr distance [cm]"),
+    ("tksh_angle", 10, (-1, 1), "cos(trk-shr angle)"),
+    ("shr_tkfit_dedx_max", 5, (0, 5.5), "shr tkfit dE/dx (max, 0-4 cm) [MeV/cm]"),
+    ("trkfit", 10, (0, 0.66), "Fraction of Track-fitted points"),
+    ("trkpid", 5, (-1, 0.1), "track LLR PID"),
+    ("subcluster", 9, (5, 50), "N sub-clusters in shower"),
+    ("shrmoliereavg", 9, (0, 9), "average Moliere angle [degrees]"),
+    ("trkshrhitdist2", 10, (0, 10), "2D trk-shr distance (Y)"),
+    ("hits_ratio", 10, (0, 1), "shower hits/all hits"),
+    ("secondshower_Y_nhit", 10, (0, 200), "Nhit 2nd shower (Y)"),
+    ("secondshower_Y_dot", 10, (0.0, 1.0), "cos(2nd shower direction wrt vtx) (Y)"),
+    ("anglediff_Y", 10, (0, 350), "angle diff 1st-2nd shower (Y) [degrees]"),
+    ("secondshower_Y_vtxdist", 10, (0.0, 200), "vtx dist 2nd shower (Y)"),
+    ("CosmicIPAll3D", 10, (0, 220), "CosmicIPAll3D [cm]"),
+    ("CosmicDirAll3D", 10, (-1, 1), "cos(CosmicDirAll3D)"),
+    ("shr_score", 10, (0, 0.5), "shr score"),
+    ("pi0_score", 10, (0.0, 1.0), "pi0 score"),
+    ("nonpi0_score", 10, (0.0, 1.0), "non-pi0 score"),
+]
+#App4 - App5 - App6
+ZPOneShr_presel_various_sels_1e0p = [
+    ("anglediff_U", 10, (0, 350), "angle diff 1st-2nd shower (U) [degrees]"),
+    ("anglediff_V", 10, (0, 350), "angle diff 1st-2nd shower (V) [degrees]"),
+    ("anglediff_Y", 10, (0, 350), "angle diff 1st-2nd shower (Y) [degrees]"),
+    ("CosmicDirAll3D", 10, (-1, 1), "cos(CosmicDirAll3D)"),
+    ("CosmicIPAll3D", 10, (0, 200), "CosmicIPAll3D [cm]"),
+    ("CylFrac2h_1cm", 10, (0, 1), "Frac. of spacepoints in 1cm cylinder (2nd half of shr)"),
+    ("DeltaRMS2h", 10, (0, 10), "Median spread of spacepoints"),
+    ("shr_score", 10, (0, 0.5), "shr score"),
+    ("shrMCSMom", 10, (0, 200), "shr mcs mom [MeV]"),
+    ("secondshower_U_dot", 10, (-1, 1), "cos(2nd shower direction wrt vtx) (U)"),
+    ("secondshower_V_dot", 10, (-1, 1), "cos(2nd shower direction wrt vtx) (V)"),
+    ("secondshower_Y_dot", 10, (0.0, 1.0), "cos(2nd shower direction wrt vtx) (Y)"),
+    ("secondshower_U_nhit", 10, (0, 200), "Nhit 2nd shower (U)"),
+    ("secondshower_V_nhit", 10, (0, 200), "Nhit 2nd shower (V)"),
+    ("secondshower_Y_nhit", 10, (0, 200), "Nhit 2nd shower (Y)"),
+    ("secondshower_U_vtxdist", 10, (0.0, 200), "vtx dist 2nd shower (U)"),
+    ("secondshower_V_vtxdist", 10, (0.0, 200), "vtx dist 2nd shower (V)"),
+    ("secondshower_Y_vtxdist", 10, (0.0, 200), "vtx dist 2nd shower (Y)"),
+    ("shr_tkfit_2cm_dedx_Y", 10, (0, 10), "shr tkfit dE/dx (Y, 0-2 cm) [MeV/cm]"),
+    ("shr_tkfit_2cm_dedx_V", 10, (0, 10), "shr tkfit dE/dx (V, 0-2 cm) [MeV/cm]"),
+    ("shr_tkfit_2cm_dedx_U", 10, (0, 10), "shr tkfit dE/dx (U, 0-2 cm) [MeV/cm]"),
+    ("shr_tkfit_gap10_dedx_Y", 10, (0, 10), "shr tkfit dE/dx (Y, 1-5 cm) [MeV/cm]"),
+    ("shr_tkfit_gap10_dedx_V", 10, (0, 10), "shr tkfit dE/dx (V, 1-5 cm) [MeV/cm]"),
+    ("shr_tkfit_gap10_dedx_U", 10, (0, 10), "shr tkfit dE/dx (U, 1-5 cm) [MeV/cm]"),
+    ("shrmoliereavg", 9, (0, 15), "average Moliere angle [degrees]"),
+    ("shrPCA1CMed_5cm", 10, (0.5, 1.0), "Median of 1st component of shr PCA (5cm window)"),
+    ("subcluster", 10, (4.5, 45), "N sub-clusters in shower"),
+    ("trkfit", 10, (0, 0.66), "Fraction of Track-fitted points"),
+    ("shr_trk_len", 40, (0, 400), "Shower track fit length [cm]"),
+    ("shr_trk_sce_start_y", 20, (-120, 120), "shr_trk_sce_start y [cm]"),
+    ("shr_trk_sce_end_y", 20, (-120, 120), "shr_trk_sce_end y [cm]"),
+    ("n_tracks_contained", 6, (-0.5, 5.5), "n tracks contained"),
+    ("tk1sh1_angle_alltk", 20, (-1, 1), "cos(tk1sh1)"),
+]
+
 
 # NP Far Sideband
 NP_far_sideband_variables = bdt_common_variables_1eNp + bdt_1enp_variables + [
