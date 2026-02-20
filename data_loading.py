@@ -104,7 +104,7 @@ def get_variables():
         #############
         "slpdg",
         # "backtracked_pdg",
-        # "trk_score_v",
+        "trk_score_v",
         "category",
         "ccnc",
         "endmuonmichel",
@@ -119,7 +119,7 @@ def get_variables():
         #"flash_pe",
         # The TRK scroe is a rugged array and loading it directly into the Dataframe is very memory intensive
         #"trk_llr_pid_score_v",  # trk-PID score
-        # "shr_llr_pid_score_v",
+       # "shr_llr_pid_score_v",
         "_opfilter_pe_beam",
         "_opfilter_pe_veto",  # did the event pass the common optical filter (for MC only)
         "reco_nu_vtx_sce_x",
@@ -164,7 +164,7 @@ def get_variables():
         # We do not want to load "vector" variables into the final dataframe, as they take up 
         # a lot of memory
         # "pfp_generation_v",
-        "shr_energy_cali",
+       # "shr_energy_cali",
         # "trk_dir_x_v",
         # "trk_dir_y_v",
         # "trk_dir_z_v",
@@ -444,7 +444,7 @@ def assign_category(up, df):
     # Define the topological categories directly using the truth variables
 
     # Load the branches required
-    df["nmuon"] = up.array("nmuon")
+    #df["nmuon"] = up.array("nmuon")
 
     # Define category constants
     k_nu_e_other = 1
@@ -465,7 +465,7 @@ def assign_category(up, df):
         # No "data" category, we focus on simulated data
         there_is_true_proton = row["nproton"] > 0
         there_is_true_pi = row["npion"] > 0
-        there_is_true_mu = row["nmuon"] > 0
+       # there_is_true_mu = row["nmuon"] > 0
         there_is_true_pi0 = row["npi0"] > 0
         there_is_true_electron = row["nelec"] > 0
 
@@ -487,7 +487,7 @@ def assign_category(up, df):
                     df.at[idx, "category_fixed"] = k_nc_pi0
 
         elif abs(row["nu_pdg"]) == 14:  # muon neutrino
-            if there_is_true_mu:
+            if row["ccnc"] == 0:
                 if there_is_true_pi0:
                     df.at[idx, "category_fixed"] = k_nu_mu_pi0
                 else:
@@ -497,6 +497,9 @@ def assign_category(up, df):
                     df.at[idx, "category_fixed"] = k_nc
                 else:
                     df.at[idx, "category_fixed"] = k_nc_pi0
+
+            df.loc[(df['category_fixed']==2)&(df['ccnc']==0)&(df['npi0']==0)&(df['npion']==0)&(df['nproton']==0), 'category_fixed'] = 26
+            df.loc[(df['category_fixed']==2)&(df['ccnc']==0)&(df['npi0']==0)&(df['npion']==0)&(df['nproton']>0), 'category_fixed'] = 27 
 
         else:
             df.at[idx, "category_fixed"] = k_cosmic
@@ -820,7 +823,11 @@ def process_uproot_shower_variables(up, df):
     trk_energy_proton_sel = get_elm_from_vec_idx(trk_energy_proton_v, trk_id)
     df["trkpid"] = trk_llr_pid_v_sel
     df["trackcaloenergy"] = trk_calo_energy_y_sel
-    df["protonenergy"] = trk_energy_proton_sel
+    trk_score_v = up.array("trk_score_v")
+    proton_mask = ((trk_score_v > 0.5) & (trk_llr_pid_v < 0.5)) ## Was 0, let's see.
+    ProtonIdx = get_idx_from_vec_sort(-1, trk_energy_proton_v, proton_mask)
+    #df['protonenergy'] = trk_energy_proton_sel
+    df['protonenergy'] = get_elm_from_vec_idx(trk_energy_proton_v,ProtonIdx)
     trk_sce_start_x_v = up.array("trk_sce_start_x_v")
     trk_sce_start_y_v = up.array("trk_sce_start_y_v")
     trk_sce_start_z_v = up.array("trk_sce_start_z_v")
@@ -1052,6 +1059,8 @@ def process_uproot_shower_variables(up, df):
     df["mc_p_prot"] = np.where((mc_E_prot > proton_E_min), mc_p_prot, np.nan)
     df["mc_E_prot"] = np.where((mc_E_prot > proton_E_min), mc_E_prot, np.nan)
     df["mc_KE_prot"] = np.where((mc_E_prot > proton_E_min), mc_E_prot - proton_mass, np.nan)
+
+    print("Done with process_uproot_shower_variables")
 
     return
 
@@ -2373,6 +2382,89 @@ def load_sample(
 
     add_paper_categories(df, dataset)
 
+
+    #### Variables for ratio here so that we can still use the recovery algo:
+    ## Ratio things
+    '''
+    if (loadshowervariables):
+       # for i,df in enumerate(df_v):
+        QUERY_NUE = " nslice == 1 and selected == 1 and shr_energy_tot_cali > 0.07 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1) and n_tracks_contained > 0 and CosmicIPAll3D > 10. and trkpid<(0.015*trk_len+0.02) and hits_ratio > 0.50 and shrmoliereavg < 9 and subcluster > 4 and trkfit < 0.65 and tksh_distance < 10.0 and tksh_angle > -0.9 and shr_trk_len < 300. and protonenergy_corr > 0.05 and pi0_score > 0.50 and nonpi0_score > 0.50 and n_showers_contained == 1"
+        QUERY_NUMU = "nslice == 1 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)and reco_nu_vtx_sce_x > 10.0 and reco_nu_vtx_sce_x < 246.4 and n_tracks_contained > 0 and reco_nu_vtx_sce_y > -101.5 and reco_nu_vtx_sce_y < 101.5 and reco_nu_vtx_sce_z > 10.0 and reco_nu_vtx_sce_z < 986.8 and topological_score > 0.06 and n_muons_tot > 0 and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5. and n_muons_tot == 1 and n_showers_tot == 0 and n_protons_tot > 0"
+        ACC_NUE  = " isVtxInFiducial == 1 and ccnc==0 and nu_pdg==12 and npi0==0 and npion==0 and elec_e>0.03051 and proton_ke>0.05" # and opening_angle> -0.9"          
+        ACC_NUMU = "isVtxInFiducial == 1 and ccnc==0 and nu_pdg==14 and npi0==0 and npion==0 and proton_ke>0.05"# and opening_angle> -0.9"
+        QUERY_NUE0P = " nslice == 1 and selected == 1 and shr_energy_tot_cali > 0.07 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1) and shr_tkfit_gap10_dedx_max<4 and n_tracks_tot == 0 and shr_trk_len < 300. and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100  and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 90 and secondshower_Y_nhit < 50 and trkfit < 0.65  and subcluster > 4 and shrmoliereavg < 10 and _closestNuCosmicDist > 5. and n_tracks_contained == 0 and bkg_score>0.4 and electron_e>0.51 and cos_shr_theta>0.6 and n_showers_contained == 1"
+        QUERY_NUMU0P = "nslice == 1 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)and reco_nu_vtx_sce_x > 10.0 and reco_nu_vtx_sce_x < 246.4 and reco_nu_vtx_sce_y > -101.5 and reco_nu_vtx_sce_y < 101.5 and reco_nu_vtx_sce_z > 10.0 and reco_nu_vtx_sce_z < 986.8 and topological_score > 0.06 and n_muons_tot > 0 and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5. and n_muons_tot == 1 and n_showers_tot == 0  and topological_score > 0.2"
+        ACC_NUEXP  = " isVtxInFiducial == 1 and ccnc==0 and nu_pdg==12 and npi0==0 and npion==0 and elec_e>0.03051 and ((proton_ke>0.05) or (elec_e>0.5 and elec_pz>0.6))"     ## put back opening angle like this      and ((proton_ke>0.05 and opening_angle> -0.9)
+        ACC_NUMUXP = "isVtxInFiducial == 1 and ccnc==0 and nu_pdg==14 and npi0==0 and npion==0 and ((proton_ke>0.05) or (proton_ke<0.05))" ## put back opening angle like this and ((proton_ke>0.05 and opening_angle> -0.9) or (proton_ke<0.05))
+        QUERY_NUEXP = "(("+QUERY_NUE+") or ("+QUERY_NUE0P+"))" 
+        QUERY_NUMUXP = "(("+QUERY_NUMU+") or ("+QUERY_NUMU0P+"))" 
+
+        ## Proton angle
+        binsPa = np.array([-1,0,0.4,0.55,0.7,0.85,1])
+        num_bins_Pa = 6
+        mask_nue = df.eval(QUERY_NUE,engine='python')
+        mask_numu = df.eval(QUERY_NUMU,engine='python')
+        # Digitize the x values according to the CC and NC bins
+        digitized_nuePa = np.digitize(df.loc[mask_nue, "cos_trk_theta"], bins=binsPa) - 1  # bins 0-5
+        digitized_numuPa = np.digitize(df.loc[mask_numu, "cos_trk_theta"], bins=binsPa) - 1 + num_bins_Pa  # bins 6-11
+        # Create a new column for digitized data, initialize with NaN
+        df['digitized_bin_cos_trk_theta'] = -9999
+                    
+        # Assign the digitized bin values to the new column
+        #print("digitized_nuePa =  ", digitized_nuePa)
+        #print("digitized_numuPa =  ", digitized_numuPa)
+        df.loc[mask_nue, 'digitized_bin_cos_trk_theta'] = digitized_nuePa
+        df.loc[mask_numu, 'digitized_bin_cos_trk_theta'] = digitized_numuPa
+
+        # Ensure that the digitized_bin column is integer type
+        df['digitized_bin_cos_trk_theta'] = df['digitized_bin_cos_trk_theta'].astype('Int64')
+                            
+            ## True space                 
+        mask_NUE = df.eval(ACC_NUE,engine='python')
+        mask_NUMU =  df.eval(ACC_NUMU,engine='python')
+        digitized_nuePa_VART = np.digitize(df.loc[mask_NUE, "proton_pz"], bins=binsPa) - 1  
+        digitized_numuPa_VART = np.digitize(df.loc[mask_NUMU, "proton_pz"], bins=binsPa) - 1 + num_bins_Pa  
+
+        df['digitized_bin_proton_pz'] = np.nan
+        df.loc[mask_NUE, 'digitized_bin_proton_pz'] = digitized_nuePa_VART
+        df.loc[mask_NUMU, 'digitized_bin_proton_pz'] = digitized_numuPa_VART
+        # Ensure that the digitized_bin column is integer type
+        df['digitized_bin_proton_pz'] = df['digitized_bin_proton_pz'].astype('Int64')
+
+        ## proton energy
+        binsPe = np.array([0.0,0.05,0.1,0.15,0.2,0.3,0.8])
+        num_bins_Pe = 6
+        mask_nueXP = df.eval(QUERY_NUEXP,engine='python')
+        mask_numuXP = df.eval(QUERY_NUMUXP,engine='python')
+        # Digitize the x values according to the CC and NC bins
+        digitized_nuePe = np.digitize(df.loc[mask_nueXP, "protonenergy_corr"], bins=binsPe) - 1  # bins 0-5
+        digitized_numuPe = np.digitize(df.loc[mask_numuXP, "protonenergy_corr"], bins=binsPe) - 1 + num_bins_Pe  # bins 6-11
+        # Create a new column for digitized data, initialize with NaN
+        df['digitized_bin_protonenergy_corr'] = -9999
+                    
+        # Assign the digitized bin values to the new column
+        df.loc[mask_nueXP, 'digitized_bin_protonenergy_corr'] = digitized_nuePe
+        df.loc[mask_numuXP, 'digitized_bin_protonenergy_corr'] = digitized_numuPe
+
+            # Ensure that the digitized_bin column is integer type
+        df['digitized_bin_protonenergy_corr'] = df['digitized_bin_protonenergy_corr'].astype('Int64')
+                            
+        ## True space                 
+        mask_NUEXP = df.eval(ACC_NUEXP,engine='python')
+        mask_NUMUXP =  df.eval(ACC_NUMUXP,engine='python')
+        digitized_nuePe_VART = np.digitize(df.loc[mask_NUEXP, "proton_ke"], bins=binsPe) - 1  
+        digitized_numuPe_VART = np.digitize(df.loc[mask_NUMUXP, "proton_ke"], bins=binsPe) - 1 + num_bins_Pe  
+
+        df['digitized_bin_proton_ke'] = np.nan
+        df.loc[mask_NUEXP, 'digitized_bin_proton_ke'] = digitized_nuePe_VART
+        df.loc[mask_NUMUXP, 'digitized_bin_proton_ke'] = digitized_numuPe_VART
+        # Ensure that the digitized_bin column is integer type
+        df['digitized_bin_proton_ke'] = df['digitized_bin_proton_ke'].astype('Int64')
+    
+    '''
+    ### End ratio things
+
+
     if load_nue_tki:
          # Add category_1e1p column
         add_paper_category_1e1p(df, dataset)
@@ -2977,7 +3069,7 @@ def get_run_variables(
     #if dataset != "ext" and dataset != "data":
     #    ALLVARS += VARDICT["MCFVARS"]
 
-    ALLVARS += VARDICT["MCFVARS"]
+   # ALLVARS += VARDICT["MCFVARS"]
 
     return list(set(ALLVARS))
 

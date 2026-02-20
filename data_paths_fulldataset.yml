@@ -8,7 +8,7 @@
 # https://docs.google.com/spreadsheets/d/1dX-W4DGTHeZbJLt2HvwXS4QDNeEwYKveHHSCkVrJcSU/edit#gid=0
 runs:
   - run_id: "1"
-    path: run1/nuepresel/
+    path: run1/
     opendata_bnb:
       file: beamon_pelee_ntuple_opendata_run1_5e19_ana 
       pot: 4.56E+19 
@@ -35,19 +35,19 @@ runs:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run1_dirt 
       pot: 3.1606E+20
   - run_id: "1A_OT"
-    path: run1_opentrigger/nuepresel/
+    path: run1_opentrigger/
     bnb:
       file: run1_beamon_opentrigger_bnb_pandora_3v_a_reprocessing_v08_00_00_83_ntuple_ntuple_ana
       pot: 5.89E+19 
       trig: 15639842
   - run_id: "1B_OT"
-    path: run1_opentrigger/nuepresel/
+    path: run1_opentrigger/
     bnb:
       file: run1_beamon_opentrigger_bnb_pandora_3v_b_reprocessing_v08_00_00_83_beam_good_ntuple_ntuple_ana
       pot: 8.93E+19 
       trig: 19789737
   - run_id: "1_nuwrofd"
-    path: run1/nuepresel/
+    path: run1/
     opendata_bnb:
       file: beamon_pelee_ntuple_opendata_run1_5e19_ana 
       pot: 4.56E+19 
@@ -74,7 +74,7 @@ runs:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run1_dirt 
       pot: 3.1606E+20
   - run_id: "2"
-    path: run2/nuepresel/
+    path: run2/
     bnb:
       file: bnb_beam_on_peleeTuple_uboone_v08_00_00_70_run2 
       pot: 2.61E+20 
@@ -102,7 +102,7 @@ runs:
       pot: 5.47E+20
     # apparently there are no detailed background MC sets for run2
   - run_id: "3"
-    path: run3/nuepresel/
+    path: run3/
     opendata_bnb:
       file: beamon_pelee_ntuple_opendata_run3_1e19_ana 
       pot: 9.84E+18
@@ -129,7 +129,7 @@ runs:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
       pot: 3.27E+20
   - run_id: "3_crt"
-    path: run3/nuepresel/
+    path: run3/
     opendata_bnb:
       file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
       pot: 9.43E+18
@@ -152,7 +152,7 @@ runs:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
       pot: 3.27E+20
   - run_id: "3_nocrt"
-    path: run3/nuepresel/
+    path: run3/
     opendata_bnb:
       file: data_bnb_mcc9.1_v08_00_00_25_reco2_G1_beam_good_reco2_1e19 
       pot: 9.43E+18
@@ -175,7 +175,7 @@ runs:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run3_dirt
       pot: 3.27E+20
   - run_id: "4a"
-    path: run4a/nuepresel/
+    path: run4/
     opendata_bnb:
       file: OpenData_Run4a_bnb_beamOn_PeLee_ntuples_run4a_ana 
       pot: 1.48E+19
@@ -202,7 +202,7 @@ runs:
       file: Run4a_BNB_dirt_overlay_Pandora_Unified_Reco2_fixed_run4a_ana 
       pot: 1.10E+20
   - run_id: "4b"
-    path: run4b/nuepresel/
+    path: run4/
     opendata_bnb:
       file: OpenData_Run4b_bnb_beamOn_PeLee_ntuples_run4b_ana 
       pot: 4.59E+19
@@ -225,7 +225,7 @@ runs:
       file: Run4b_BNB_dirt_overlay_Pandora_Reco2_reco2_ana
       pot: 3.02E+20
   - run_id: "4c"
-    path: run4c/nuepresel/
+    path: run4/
     opendata_bnb:
       file: OpenData_Run4c_bnb_beamOn_PeLee_ntuples_run4c_ana_ana
       pot: 2.98E+19
@@ -252,7 +252,7 @@ runs:
       file: overlay_peleeTuple_uboone_v08_00_00_70_run4c_dirt
       pot: 1.78E+20
   - run_id: "4d"
-    path: run4d/nuepresel/
+    path: run4/
     opendata_bnb:
       file: OpenData_Run4d_bnb_beamOn_PeLee_ntuples_run4d_ana_ana 
       pot: 1.63E+19
@@ -275,7 +275,7 @@ runs:
       file: Run4d_BNB_dirt_overlay_Pandora_Unified_Reco2_reco2_ana
       pot: 2.01E+20
   - run_id: "5"
-    path: run5/nuepresel/
+    path: run5/
     opendata_bnb:
       file: OpenData_run5_bnb_beamon_PeLEE_ntuples_run5_ana 
       pot: 4.87E+19

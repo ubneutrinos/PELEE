@@ -40,6 +40,10 @@ variables_1e1p = [
 #     ("shr_llr_pid_score_v", 32, (-1, 1), "Shower LLR PID Score"),
 ]
 
+variables_ratio = [
+    ("RecoElecMomZ", 12, (-1, 5), "z component of Reconstructed Electron Momentum [GeV/c]"),
+]
+
 import numpy as np
 pt = np.linspace(0, 1.35, 10)
 pt = np.append(pt,np.inf)
