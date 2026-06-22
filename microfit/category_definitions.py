@@ -1,5 +1,5 @@
 """Definitions of event categories and their associated labels and colors."""
-
+import numpy as np
 
 def get_category_label(category_column, category):
     """Get the appropriate label for a given category depending on which category column was used."""
@@ -22,7 +22,9 @@ def get_category_label(category_column, category):
         return category_labels_1e1p.get(category, "Other")
     elif category_column == "interaction":
         return int_labels.get(category, "Other")
-    elif category_column == "backtracked_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+    elif category_column == "backtracked_pdg" or category_column == "trk_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+        if category == np.nan:
+            category = 16
         return pdg_labels.get(category, "Other")
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
@@ -49,7 +51,9 @@ def get_categories(category_column):
         return list(category_labels_1e1p.keys())
     elif category_column == "interaction":
         return list(int_labels.keys())
-    elif category_column == "backtracked_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+    elif category_column == "backtracked_pdg" or category_column == "trk_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+        if np.isnan (category):
+            category = 16
         return list(pdg_labels.keys())
     else:
         raise ValueError("Invalid category column: {}".format(category_column))
@@ -60,7 +64,11 @@ def get_category_color(category_column, category):
 
     if category_column == "interaction":
         return int_colors[category]
-    elif category_column == "backtracked_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+    elif category_column == "backtracked_pdg" or category_column == "trk_pdg" or category_column == "RecoLeadProtonCandidate_backtracked_pdg" or category_column == "RecoElectronCandidate_backtracked_pdg":
+        print(category)
+        if category == np.nan or np.isnan (category):
+            print("Im in the np.nan exception")
+            category = 16
         return pdg_colors[abs(category)]
     return category_colors[category]
 
@@ -204,6 +212,7 @@ pdg_labels = {
     0: "Cosmic",
     3122: r"$\Lambda$",
     -3122: r"$\Lambda$",
+    16: r"Other"
 }
 
 int_labels = {
@@ -298,4 +307,5 @@ pdg_colors = {
     2112: "#cab2d6",
     3122: "#3c00c0",
     -3122: "#3c00c0",
+    16: "pink"
 }

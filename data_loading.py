@@ -104,7 +104,7 @@ def get_variables():
         #############
         "slpdg",
         # "backtracked_pdg",
-        "trk_score_v",
+       # "trk_score_v",
         "category",
         "ccnc",
         "endmuonmichel",
@@ -168,6 +168,7 @@ def get_variables():
         # "trk_dir_x_v",
         # "trk_dir_y_v",
         # "trk_dir_z_v",
+        "opening_angle",
     ]
 
     VARDICT["VARIABLES"] = VARIABLES
@@ -349,6 +350,7 @@ def get_variables():
         "shr_start_y",
         "pi0truth_gamma1_xpos",
         "shr_start_x",
+        
     ]
 
     VARDICT["NUEVARS"] = NUEVARS
@@ -660,6 +662,12 @@ def get_elm_from_vec_idx(
 
     return np.array([pidv[tid] if ((tid < len(pidv)) & (tid >= 0)) else fillval for pidv, tid in zip(myvec, idx)])
 
+def get_elm_from_vec_idx_forProtE(
+    myvec: ak.JaggedArray, idx: Union[List[int], NDArray[Any]], fillval=0.
+) -> NDArray[np.float64]:
+    """Returns the element of a vector at position idx, where idx is a vector of indices. If idx is out of bounds, returns a filler value"""
+
+    return np.array([pidv[tid] if ((tid < len(pidv)) & (tid >= 0)) else fillval for pidv, tid in zip(myvec, idx)])
 
 def get_idx_from_vec_sort(argidx: int, vecsort: NDArray[np.float64], mask: NDArray[np.bool_]) -> List[int]:
     """Returns the index of the element of a vector at position argidx, where argidx is a vector of indices. If argidx is out of bounds, returns -1."""
@@ -817,6 +825,8 @@ def process_uproot_shower_variables(up, df):
     trk_llr_pid_v = up.array("trk_llr_pid_score_v")
     trk_calo_energy_y_v = up.array("trk_calo_energy_y_v")
     trk_energy_proton_v = up.array("trk_energy_proton_v")
+    trk_energy_proton_v = up.array("trk_energy_proton_v")
+    trk_theta_v = up.array("trk_theta_v")
 
     trk_llr_pid_v_sel = get_elm_from_vec_idx(trk_llr_pid_v, trk_id)
     trk_calo_energy_y_sel = get_elm_from_vec_idx(trk_calo_energy_y_v, trk_id)
@@ -824,10 +834,11 @@ def process_uproot_shower_variables(up, df):
     df["trkpid"] = trk_llr_pid_v_sel
     df["trackcaloenergy"] = trk_calo_energy_y_sel
     trk_score_v = up.array("trk_score_v")
-    proton_mask = ((trk_score_v > 0.5) & (trk_llr_pid_v < 0.5)) ## Was 0, let's see.
+    proton_mask = ((trk_score_v > 0.5) & (trk_llr_pid_v < 0)) ## Was 0, let's see.
     ProtonIdx = get_idx_from_vec_sort(-1, trk_energy_proton_v, proton_mask)
     #df['protonenergy'] = trk_energy_proton_sel
-    df['protonenergy'] = get_elm_from_vec_idx(trk_energy_proton_v,ProtonIdx)
+    df['protonenergy'] = get_elm_from_vec_idx_forProtE(trk_energy_proton_v,ProtonIdx)
+    df['cos_prot_theta'] = get_elm_from_vec_idx(np.cos(trk_theta_v),ProtonIdx)
     trk_sce_start_x_v = up.array("trk_sce_start_x_v")
     trk_sce_start_y_v = up.array("trk_sce_start_y_v")
     trk_sce_start_z_v = up.array("trk_sce_start_z_v")
@@ -913,7 +924,7 @@ def process_uproot_shower_variables(up, df):
         (p_endx - p_vx) * (p_endx - p_vx) + (p_endy - p_vy) * (p_endy - p_vy) + (p_endz - p_vz) * (p_endz - p_vz)
     )
     #
-    trk_score_v = up.array("trk_score_v")
+    #trk_score_v = up.array("trk_score_v")
     shr_mask = trk_score_v < 0.5
     trk_mask = trk_score_v > 0.5
     df["n_tracks_tot"] = trk_mask.sum()
@@ -1059,6 +1070,40 @@ def process_uproot_shower_variables(up, df):
     df["mc_p_prot"] = np.where((mc_E_prot > proton_E_min), mc_p_prot, np.nan)
     df["mc_E_prot"] = np.where((mc_E_prot > proton_E_min), mc_E_prot, np.nan)
     df["mc_KE_prot"] = np.where((mc_E_prot > proton_E_min), mc_E_prot - proton_mass, np.nan)
+
+    mc_pdg = up.array("mc_pdg")
+    mc_E = up.array("mc_E")
+    mc_px = up.array("mc_px")
+    mc_py = up.array("mc_py")
+    mc_pz = up.array("mc_pz")
+
+    # compute momentum transfer
+    nu_e = up.array("nu_e")
+    lepton_mask = (
+        (mc_pdg == 11)
+        | (mc_pdg == -11)
+        | (mc_pdg == 13)
+        | (mc_pdg == -13)
+        | (mc_pdg == 15)
+        | (mc_pdg == -15)
+        | (mc_pdg == 12)
+        | (mc_pdg == -12)
+        | (mc_pdg == 14)
+        | (mc_pdg == -14)
+        | (mc_pdg == 16)
+        | (mc_pdg == -16)
+    )
+    mc_E_lep = sum_elements_from_mask(mc_E, lepton_mask)
+    mc_px_lep = sum_elements_from_mask(mc_px, lepton_mask)
+    mc_py_lep = sum_elements_from_mask(mc_py, lepton_mask)
+    mc_pz_lep = sum_elements_from_mask(mc_pz, lepton_mask)
+    mc_q_E = nu_e - mc_E_lep
+    mc_q_px = -1 * mc_px_lep
+    mc_q_py = -1 * mc_py_lep
+    mc_q_pz = nu_e - mc_pz_lep
+    mc_Q2 = -1 * (mc_q_E * mc_q_E - mc_q_px * mc_q_px - mc_q_py * mc_q_py - mc_q_pz * mc_q_pz)
+    df["mc_Q2_true"] = mc_Q2
+
 
     print("Done with process_uproot_shower_variables")
 
@@ -1252,7 +1297,7 @@ def process_uproot_ccncpi0vars(up, df):
     df["mc_Q2"] = mc_Q2
     #
     #
-    protonidcut = 0.5  # fimxe (original was 0)
+    protonidcut = 0.  # fimxe (original was 0)
     trk_dir_x_v = up.array("trk_dir_x_v")
     trk_dir_y_v = up.array("trk_dir_y_v")
     trk_dir_z_v = up.array("trk_dir_z_v")
@@ -1382,7 +1427,6 @@ def process_uproot_recoveryvars(up, df):
     shr_energy_y_v = up.array("shr_energy_y_v")
     df["trk2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, trk2_id, 0.0)
     df["shr2_energy"] = get_elm_from_vec_idx(shr_energy_y_v, shr2_id, 0.0)
-
     #
     shr_start_x_v = up.array("shr_start_x_v")
     shr_start_y_v = up.array("shr_start_y_v")
@@ -1969,6 +2013,9 @@ def process_uproot_numu(up, df):
     trk_start_x_v = up.array("trk_sce_start_x_v")
     trk_start_y_v = up.array("trk_sce_start_y_v")
     trk_start_z_v = up.array("trk_sce_start_z_v")
+    reco_nu_vtx_sce_x = up.array("reco_nu_vtx_sce_x")
+    reco_nu_vtx_sce_y = up.array("reco_nu_vtx_sce_y")
+    reco_nu_vtx_sce_z = up.array("reco_nu_vtx_sce_z")
    
 
     trk_energy_proton_v = up.array("trk_energy_proton_v")  # range-based proton kinetic energy
@@ -1981,6 +2028,22 @@ def process_uproot_numu(up, df):
     trk_calo_energy_y_v = up.array("trk_calo_energy_y_v")
     trk_pfp_id_v = up.array("trk_pfp_id_v")
     pfp_pdg_v = up.array("backtracked_pdg")
+
+
+
+    mc_pdg = up.array("mc_pdg")
+    mc_px = up.array("mc_px")
+    mc_py = up.array("mc_py")
+    mc_pz = up.array("mc_pz")
+    mc_E = up.array("mc_E")
+    truemuon_mask = (mc_pdg == -13) | (mc_pdg == 13)
+    mostEmuonIdx = get_idx_from_vec_sort(-1, mc_E, truemuon_mask)
+    mc_pz_muon = get_elm_from_vec_idx(mc_pz, mostEmuonIdx)
+    mc_px_muon = get_elm_from_vec_idx(mc_px, mostEmuonIdx)
+    mc_py_muon = get_elm_from_vec_idx(mc_py, mostEmuonIdx)
+    mc_p_muon = np.sqrt(mc_px_muon * mc_px_muon + mc_py_muon * mc_py_muon + mc_pz_muon * mc_pz_muon)
+    df["muon_pz"] = np.where((mc_pz_muon / mc_p_muon > -1), mc_pz_muon / mc_p_muon, np.nan)
+    #df["muon_pz"] = mc_pz_muon
 
     # CT: Adding track starts to the dataframe
     # df["trk_sce_start_x_v"] = trk_start_x_v
@@ -1998,8 +2061,8 @@ def process_uproot_numu(up, df):
     # df["trk_distance_v"] = trk_distance_v
     # df["trk_len_v"] = trk_len_v
 
-    trk_mask = trk_score_v > 0.0
-    proton_mask = (trk_score_v > 0.5) & (trk_llr_pid_v < 0.0)
+    #trk_mask = trk_score_v > 0.0
+    proton_mask = (trk_score_v > 0.5) & (trk_llr_pid_v < 0.) ##was 0
 
     df["proton_range_energy"] = ak.fromiter(
         [
@@ -2027,18 +2090,19 @@ def process_uproot_numu(up, df):
     muon_mask = (
         (trk_score_v > 0.8)
         & (trk_llr_pid_v > 0.2)
-        & (trk_start_x_v > 5.0)
-        & (trk_start_x_v < 251.0)
-        & (trk_end_x_v > 5.0)
-        & (trk_end_x_v < 251.0)
-        & (trk_start_y_v > -110.0)
-        & (trk_start_y_v < 110.0)
-        & (trk_end_y_v > -110.0)
-        & (trk_end_y_v < 110.0)
-        & (trk_start_z_v > 20.0)
-        & (trk_start_z_v < 986.0)
-        & (trk_end_z_v > 20.0)
-        & (trk_end_z_v < 986.0)
+        ## Fiducial volume from ISVtxInFiducial 
+        & (trk_start_x_v > 10)
+        & (trk_start_x_v < 246.4)
+        & (trk_end_x_v > 10)
+        & (trk_end_x_v < 246.4)
+        & (trk_start_y_v > -101.5)
+        & (trk_start_y_v < 101.5)
+        & (trk_end_y_v > -101.5)
+        & (trk_end_y_v < 101.5)
+        & (trk_start_z_v > 10.0)
+        & (trk_start_z_v < 986.8)
+        & (trk_end_z_v > 10.0)
+        & (trk_end_z_v < 986.8)
         & (trk_len_v > 10)
         & (trk_distance_v < 4.0)
         & (pfp_generation_v == 2)
@@ -2046,19 +2110,43 @@ def process_uproot_numu(up, df):
         & (((trk_mcs_muon_mom_v - trk_range_muon_mom_v) / trk_range_muon_mom_v) < 0.5)
     )
 
+    trk_score_v = up.array("trk_score_v")
     muon_idx = get_idx_from_vec_sort(-1, trk_len_v, muon_mask)
+    proton_mask = ((trk_score_v > 0.5) & (trk_llr_pid_v < 0.)) ## Was 0, let's see.
+    ProtonIdx = get_idx_from_vec_sort(-1, trk_energy_proton_v, proton_mask)
+    trk_dir_x_v = up.array("trk_dir_x_v")
+    trk_dir_y_v = up.array("trk_dir_y_v")
+    trk_dir_z_v = up.array("trk_dir_z_v")
+    df["trk1_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v, muon_idx)
+    df["trk2_dir_x"] = get_elm_from_vec_idx(trk_dir_x_v, ProtonIdx)
+    df["trk1_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v, muon_idx)
+    df["trk2_dir_y"] = get_elm_from_vec_idx(trk_dir_y_v, ProtonIdx)
+    df["trk1_dir_z"] = get_elm_from_vec_idx(trk_dir_z_v, muon_idx)
+    df["trk2_dir_z"] = get_elm_from_vec_idx(trk_dir_z_v, ProtonIdx)
+
+    pfp_pdg_v = up.array("backtracked_pdg")
+    trk_pdg_prot = get_elm_from_vec_idx(pfp_pdg_v, ProtonIdx)
+    df["trk_pdg_prot"] = trk_pdg_prot
+    pfp_pur_v = up.array("backtracked_purity")
+    trk_pur_prot = get_elm_from_vec_idx(pfp_pur_v, ProtonIdx)
+    df["trk_pur_prot"] = trk_pur_prot
+    pfp_cmp_v = up.array("backtracked_completeness")
+    trk_cmp_prot = get_elm_from_vec_idx(pfp_cmp_v, ProtonIdx)
+    df["trk_cmp_prot"] = trk_cmp_prot
+
+    df["muon_Prot_Ang"] = cos_angle_two_vecs(df["trk1_dir_x"],df["trk1_dir_y"],df["trk1_dir_z"],df["trk2_dir_x"],df["trk2_dir_y"],df["trk2_dir_z"])
 
     df["muon_length"] = get_elm_from_vec_idx(trk_len_v, muon_idx)
     df["muon_momentum"] = get_elm_from_vec_idx(trk_range_muon_mom_v, muon_idx)
     df["muon_phi"] = get_elm_from_vec_idx(trk_phi_v, muon_idx)
-    df["muon_theta"] = get_elm_from_vec_idx(np.cos(trk_theta_v), muon_idx)
+    df["cos_muon_theta"] = get_elm_from_vec_idx(np.cos(trk_theta_v), muon_idx)
     df["muon_proton_energy"] = get_elm_from_vec_idx(np.cos(trk_energy_proton_v), muon_idx)
     df["muon_energy"] = np.sqrt(df["muon_momentum"] ** 2 + 0.105**2)
     # df['neutrino_energy'] = df['trk_energy_tot'] + df['muon_energy'] - df['muon_proton_energy']
     df["neutrino_energy"] = df["trk_energy_tot"] + get_elm_from_vec_idx(muon_energy_correction_v, muon_idx)
     df["muon_mcs_consistency"] = get_elm_from_vec_idx(muon_mcs_consistency_v, muon_idx)
 
-    trk_score_v = up.array("trk_score_v")
+   # trk_score_v = up.array("trk_score_v")
     df["n_muons_tot"] = muon_mask.sum()
     df["n_tracks_tot"] = trk_mask.sum()
     # df['n_tracks_contained'] = contained_track_mask.sum()
@@ -2385,28 +2473,30 @@ def load_sample(
 
     #### Variables for ratio here so that we can still use the recovery algo:
     ## Ratio things
-    '''
+    
     if (loadshowervariables):
-       # for i,df in enumerate(df_v):
-        QUERY_NUE = " nslice == 1 and selected == 1 and shr_energy_tot_cali > 0.07 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1) and n_tracks_contained > 0 and CosmicIPAll3D > 10. and trkpid<(0.015*trk_len+0.02) and hits_ratio > 0.50 and shrmoliereavg < 9 and subcluster > 4 and trkfit < 0.65 and tksh_distance < 10.0 and tksh_angle > -0.9 and shr_trk_len < 300. and protonenergy_corr > 0.05 and pi0_score > 0.50 and nonpi0_score > 0.50 and n_showers_contained == 1"
-        QUERY_NUMU = "nslice == 1 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)and reco_nu_vtx_sce_x > 10.0 and reco_nu_vtx_sce_x < 246.4 and n_tracks_contained > 0 and reco_nu_vtx_sce_y > -101.5 and reco_nu_vtx_sce_y < 101.5 and reco_nu_vtx_sce_z > 10.0 and reco_nu_vtx_sce_z < 986.8 and topological_score > 0.06 and n_muons_tot > 0 and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5. and n_muons_tot == 1 and n_showers_tot == 0 and n_protons_tot > 0"
-        ACC_NUE  = " isVtxInFiducial == 1 and ccnc==0 and nu_pdg==12 and npi0==0 and npion==0 and elec_e>0.03051 and proton_ke>0.05" # and opening_angle> -0.9"          
-        ACC_NUMU = "isVtxInFiducial == 1 and ccnc==0 and nu_pdg==14 and npi0==0 and npion==0 and proton_ke>0.05"# and opening_angle> -0.9"
-        QUERY_NUE0P = " nslice == 1 and selected == 1 and shr_energy_tot_cali > 0.07 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1) and shr_tkfit_gap10_dedx_max<4 and n_tracks_tot == 0 and shr_trk_len < 300. and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100  and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 90 and secondshower_Y_nhit < 50 and trkfit < 0.65  and subcluster > 4 and shrmoliereavg < 10 and _closestNuCosmicDist > 5. and n_tracks_contained == 0 and bkg_score>0.4 and electron_e>0.51 and cos_shr_theta>0.6 and n_showers_contained == 1"
-        QUERY_NUMU0P = "nslice == 1 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)and reco_nu_vtx_sce_x > 10.0 and reco_nu_vtx_sce_x < 246.4 and reco_nu_vtx_sce_y > -101.5 and reco_nu_vtx_sce_y < 101.5 and reco_nu_vtx_sce_z > 10.0 and reco_nu_vtx_sce_z < 986.8 and topological_score > 0.06 and n_muons_tot > 0 and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5. and n_muons_tot == 1 and n_showers_tot == 0  and topological_score > 0.2"
-        ACC_NUEXP  = " isVtxInFiducial == 1 and ccnc==0 and nu_pdg==12 and npi0==0 and npion==0 and elec_e>0.03051 and ((proton_ke>0.05) or (elec_e>0.5 and elec_pz>0.6))"     ## put back opening angle like this      and ((proton_ke>0.05 and opening_angle> -0.9)
-        ACC_NUMUXP = "isVtxInFiducial == 1 and ccnc==0 and nu_pdg==14 and npi0==0 and npion==0 and ((proton_ke>0.05) or (proton_ke<0.05))" ## put back opening angle like this and ((proton_ke>0.05 and opening_angle> -0.9) or (proton_ke<0.05))
+ 
+       # Selections and signal definitions
+        QUERY_NUE = "nslice == 1 and selected == 1 and shr_energy_tot_cali > 0.07 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1) and n_tracks_contained > 0 and CosmicIPAll3D > 10. and trkpid<(0.015*trk_len+0.02) and hits_ratio > 0.50 and shrmoliereavg < 9 and subcluster > 4 and trkfit < 0.65 and tksh_distance < 10.0 and tksh_angle > -0.9 and shr_trk_len < 300. and protonenergy_corr > 0.05 and pi0_score > 0.50 and nonpi0_score > 0.50 and n_showers_contained == 1"
+        QUERY_NUMU = "nslice == 1 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1) and reco_nu_vtx_sce_x > 10.0 and reco_nu_vtx_sce_x < 246.4 and n_tracks_contained > 1 and reco_nu_vtx_sce_y > -101.5 and reco_nu_vtx_sce_y < 101.5 and reco_nu_vtx_sce_z > 10.0 and reco_nu_vtx_sce_z < 986.8 and topological_score > 0.06 and muon_Prot_Ang> -0.9 and n_muons_tot > 0 and n_muons_tot == 1 and n_showers_tot == 0 and n_protons_tot > 0 and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5. and protonenergy_corr > 0.05"
+        ACC_NUE  = "isVtxInFiducial == 1 and ccnc==0 and nu_pdg==12 and npi0==0 and npion==0 and elec_e>0.03051 and proton_ke>0.05 and opening_angle> -0.9"          
+        ACC_NUMU = "isVtxInFiducial == 1 and ccnc==0 and nu_pdg==14 and npi0==0 and npion==0 and muon_e>0.13566 and  proton_ke>0.05 and opening_angle> -0.9"
+        QUERY_NUE0P = "nslice == 1 and selected == 1 and shr_energy_tot_cali > 0.07 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1) and shr_tkfit_gap10_dedx_max<4 and n_tracks_tot == 0 and shr_trk_len < 300. and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100  and shr_trk_sce_start_y > -100 and shr_trk_sce_start_y < 90 and  (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5. and secondshower_Y_nhit < 50 and trkfit < 0.65  and subcluster > 4 and shrmoliereavg < 10 and n_tracks_contained == 0 and bkg_score>0.4 and electron_e>0.51 and cos_shr_theta>0.6 and n_showers_contained == 1"
+        QUERY_NUMU0P = "nslice == 1 and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1) and reco_nu_vtx_sce_x > 10.0 and reco_nu_vtx_sce_x < 246.4 and reco_nu_vtx_sce_y > -101.5 and reco_nu_vtx_sce_y < 101.5 and reco_nu_vtx_sce_z > 10.0 and reco_nu_vtx_sce_z < 986.8 and topological_score > 0.06 and n_muons_tot > 0 and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5. and n_muons_tot == 1 and n_showers_tot == 0  and topological_score > 0.2 and n_tracks_contained == 1 and n_tracks_tot == 1 and n_protons_tot ==0 and muon_energy > 0.605 and cos_muon_theta > 0.6"
+        ACC_NUEXP  = " isVtxInFiducial == 1 and ccnc==0 and nu_pdg==12 and npi0==0 and npion==0 and elec_e>0.03051 and ((proton_ke>0.05 and opening_angle> -0.9) or (elec_e>0.5 and elec_pz>0.6))"     ## put back opening angle like this      and ((proton_ke>0.05 and opening_angle> -0.9)
+        ACC_NUMUXP = "isVtxInFiducial == 1 and ccnc==0 and nu_pdg==14 and npi0==0 and npion==0 and muon_e>0.13566 and ((proton_ke>0.05 and opening_angle> -0.9) or (muon_pz >0.6 and muon_e > 0.605))" ## put back opening angle like this and ((proton_ke>0.05 and opening_angle> -0.9) or (proton_ke<0.05))
         QUERY_NUEXP = "(("+QUERY_NUE+") or ("+QUERY_NUE0P+"))" 
         QUERY_NUMUXP = "(("+QUERY_NUMU+") or ("+QUERY_NUMU0P+"))" 
+        print("QUERY_NUEXP  ",QUERY_NUEXP)
 
         ## Proton angle
         binsPa = np.array([-1,0,0.4,0.55,0.7,0.85,1])
         num_bins_Pa = 6
         mask_nue = df.eval(QUERY_NUE,engine='python')
         mask_numu = df.eval(QUERY_NUMU,engine='python')
-        # Digitize the x values according to the CC and NC bins
-        digitized_nuePa = np.digitize(df.loc[mask_nue, "cos_trk_theta"], bins=binsPa) - 1  # bins 0-5
-        digitized_numuPa = np.digitize(df.loc[mask_numu, "cos_trk_theta"], bins=binsPa) - 1 + num_bins_Pa  # bins 6-11
+        # Digitize the x values according to the NUE and NUMU bins
+        digitized_nuePa = np.digitize(df.loc[mask_nue, "cos_prot_theta"], bins=binsPa) - 1  # bins 0-5
+        digitized_numuPa = np.digitize(df.loc[mask_numu, "cos_prot_theta"], bins=binsPa) - 1 + num_bins_Pa  # bins 6-11
         # Create a new column for digitized data, initialize with NaN
         df['digitized_bin_cos_trk_theta'] = -9999
                     
@@ -2417,7 +2507,16 @@ def load_sample(
         df.loc[mask_numu, 'digitized_bin_cos_trk_theta'] = digitized_numuPa
 
         # Ensure that the digitized_bin column is integer type
-        df['digitized_bin_cos_trk_theta'] = df['digitized_bin_cos_trk_theta'].astype('Int64')
+       # print("digitized_bin_cos_trk_theta has NaNs:", df["digitized_bin_cos_trk_theta"].hasnans)
+       # print(df["digitized_bin_cos_trk_theta"].dtype) 
+       # print(df["digitized_bin_cos_trk_theta"].head()) 
+       # print(df["digitized_bin_cos_trk_theta"].apply(type).unique())
+
+       # for col in df.columns: 
+        #    try: df[col].astype("int64") 
+        #    except Exception as e: print(col, "->", type(df[col].dtype), ":", e)
+
+     #   df['digitized_bin_cos_trk_theta'] = df['digitized_bin_cos_trk_theta'].astype('int64')
                             
             ## True space                 
         mask_NUE = df.eval(ACC_NUE,engine='python')
@@ -2429,25 +2528,52 @@ def load_sample(
         df.loc[mask_NUE, 'digitized_bin_proton_pz'] = digitized_nuePa_VART
         df.loc[mask_NUMU, 'digitized_bin_proton_pz'] = digitized_numuPa_VART
         # Ensure that the digitized_bin column is integer type
-        df['digitized_bin_proton_pz'] = df['digitized_bin_proton_pz'].astype('Int64')
+      #  df['digitized_bin_proton_pz'] = df['digitized_bin_proton_pz'].astype('int64')
 
         ## proton energy
         binsPe = np.array([0.0,0.05,0.1,0.15,0.2,0.3,0.8])
         num_bins_Pe = 6
+        binsPe0p = np.array([0.0,0.05])
+        num_bins_Pe0p = 1
+        binsPeNp = np.array([0.05,0.1,0.15,0.2,0.3,0.8])
+        num_bins_PeNp = 5
         mask_nueXP = df.eval(QUERY_NUEXP,engine='python')
         mask_numuXP = df.eval(QUERY_NUMUXP,engine='python')
-        # Digitize the x values according to the CC and NC bins
+        mask_nue0P = df.eval(QUERY_NUE0P,engine='python')
+        mask_numu0P = df.eval(QUERY_NUMU0P,engine='python')
+        # Digitize the x values according to the NUE and NUMU bins
+        '''
         digitized_nuePe = np.digitize(df.loc[mask_nueXP, "protonenergy_corr"], bins=binsPe) - 1  # bins 0-5
         digitized_numuPe = np.digitize(df.loc[mask_numuXP, "protonenergy_corr"], bins=binsPe) - 1 + num_bins_Pe  # bins 6-11
+        '''
+        digitized_nuePe0p = np.digitize(df.loc[mask_nue0P, "protonenergy_corr"], bins=binsPe0p) - 1  
+        digitized_nuePeNp = np.digitize(df.loc[mask_nue, "protonenergy_corr"], bins=binsPeNp) - 1 + num_bins_Pe0p
+        digitized_numuPe0p = np.digitize(df.loc[mask_numu0P, "protonenergy_corr"], bins=binsPe0p) - 1 + num_bins_Pe  
+        digitized_numuPeNp = np.digitize(df.loc[mask_numu, "protonenergy_corr"], bins=binsPeNp) - 1 + num_bins_Pe + num_bins_Pe0p
+
+
+
         # Create a new column for digitized data, initialize with NaN
         df['digitized_bin_protonenergy_corr'] = -9999
                     
         # Assign the digitized bin values to the new column
+        '''
         df.loc[mask_nueXP, 'digitized_bin_protonenergy_corr'] = digitized_nuePe
         df.loc[mask_numuXP, 'digitized_bin_protonenergy_corr'] = digitized_numuPe
+        '''
+        df.loc[mask_nue0P, 'digitized_bin_protonenergy_corr'] = digitized_nuePe0p
+        df.loc[mask_nue, 'digitized_bin_protonenergy_corr'] = digitized_nuePeNp
+        df.loc[mask_numu0P, 'digitized_bin_protonenergy_corr'] = digitized_numuPe0p
+        df.loc[mask_numu, 'digitized_bin_protonenergy_corr'] = digitized_numuPeNp
+
 
             # Ensure that the digitized_bin column is integer type
-        df['digitized_bin_protonenergy_corr'] = df['digitized_bin_protonenergy_corr'].astype('Int64')
+       # print(" df['digitized_bin_protonenergy_corr'] ",  df.loc[df["digitized_bin_protonenergy_corr"].isna(), ["digitized_bin_protonenergy_corr"]])
+       # print("digitized_bin_protonenergy_corr has NaNs:", df["digitized_bin_protonenergy_corr"].hasnans)
+        #rows_with_inf = df[np.isinf(df['protonenergy_corr'])]
+        #print("Rows with infinite values:")
+        #print(rows_with_inf)
+      #  df['digitized_bin_protonenergy_corr'] = df['digitized_bin_protonenergy_corr'].astype('int64')
                             
         ## True space                 
         mask_NUEXP = df.eval(ACC_NUEXP,engine='python')
@@ -2459,9 +2585,70 @@ def load_sample(
         df.loc[mask_NUEXP, 'digitized_bin_proton_ke'] = digitized_nuePe_VART
         df.loc[mask_NUMUXP, 'digitized_bin_proton_ke'] = digitized_numuPe_VART
         # Ensure that the digitized_bin column is integer type
-        df['digitized_bin_proton_ke'] = df['digitized_bin_proton_ke'].astype('Int64')
+      #  df['digitized_bin_proton_ke'] = df['digitized_bin_proton_ke'].astype('int64')
+
+
+      ## lepton cosine angle
+        binsLa = np.array([-1.,0.2,0.7,0.9,1])
+        num_bins_La = 4
+        # Digitize the x values according to the NUE and NUMU bins
+        digitized_nueLa = np.digitize(df.loc[mask_nue, "cos_shr_theta"], bins=binsLa) - 1  # bins 0-5
+        digitized_numuLa = np.digitize(df.loc[mask_numu, "cos_muon_theta"], bins=binsLa) - 1 + num_bins_La  # bins 6-11
+        # Create a new column for digitized data, initialize with NaN
+        df['digitized_bin_cos_lep_theta'] = -9999
+                    
+        # Assign the digitized bin values to the new column
+        df.loc[mask_nue, 'digitized_bin_cos_lep_theta'] = digitized_nueLa
+        df.loc[mask_numu, 'digitized_bin_cos_lep_theta'] = digitized_numuLa
+         ## True space                 
+        digitized_nueLa_VART = np.digitize(df.loc[mask_NUE, "elec_pz"], bins=binsLa) - 1  
+        digitized_numuLa_VART = np.digitize(df.loc[mask_NUMU, "muon_pz"], bins=binsLa) - 1 + num_bins_La  
+        df['digitized_bin_lep_pz'] = np.nan
+        df.loc[mask_NUE, 'digitized_bin_lep_pz'] = digitized_nueLa_VART
+        df.loc[mask_NUMU, 'digitized_bin_lep_pz'] = digitized_numuLa_VART
+
+      ## lepton energy
+
+        binsLe = np.array([0.,0.4,0.65,0.9,1.5,4.5])
+        num_bins_Le = 5
+        # Digitize the x values according to the NUE and NUMU bins
+        digitized_nueLe = np.digitize(df.loc[mask_nue, "electron_e"], bins=binsLe) - 1  # bins 0-5
+        digitized_numuLe = np.digitize(df.loc[mask_numu, "muon_energy"], bins=binsLe) - 1 + num_bins_Le  # bins 6-11
+        # Create a new column for digitized data, initialize with NaN
+        df['digitized_bin_Elep'] = -9999
+                    
+        # Assign the digitized bin values to the new column
+        df.loc[mask_nue, 'digitized_bin_Elep'] = digitized_nueLe
+        df.loc[mask_numu, 'digitized_bin_Elep'] = digitized_numuLe
+         ## True space                 
+        digitized_nueLe_VART = np.digitize(df.loc[mask_NUE, "elec_e"], bins=binsLe) - 1  
+        digitized_numuLe_VART = np.digitize(df.loc[mask_NUMU, "muon_e"], bins=binsLe) - 1 + num_bins_Le
+        df['digitized_bin_Elep_true'] = np.nan
+        df.loc[mask_NUE, 'digitized_bin_Elep_true'] = digitized_nueLe_VART
+        df.loc[mask_NUMU, 'digitized_bin_Elep_true'] = digitized_numuLe_VART
+
+      ## lepton proton opening angle
+
+        binsLPa = np.array([-0.9,-0.500,-0.250,0,0.250,0.5,1])
+        num_bins_LPa = 6
+        # Digitize the x values according to the NUE and NUMU bins
+        digitized_nueLPa = np.digitize(df.loc[mask_nue, "tksh_angle"], bins=binsLPa) - 1  # bins 0-5
+        digitized_numuLPa = np.digitize(df.loc[mask_numu, "muon_Prot_Ang"], bins=binsLPa) - 1 + num_bins_LPa  # bins 6-11
+        # Create a new column for digitized data, initialize with NaN
+        df['digitized_bin_OpAng'] = -9999
+                    
+        # Assign the digitized bin values to the new column
+        df.loc[mask_nue, 'digitized_bin_OpAng'] = digitized_nueLPa
+        df.loc[mask_numu, 'digitized_bin_OpAng'] = digitized_numuLPa
+         ## True space                 
+        digitized_nueLPa_VART = np.digitize(df.loc[mask_NUE, "opening_angle"], bins=binsLPa) - 1  
+        digitized_numuLPa_VART = np.digitize(df.loc[mask_NUMU, "opening_angle"], bins=binsLPa) - 1 + num_bins_LPa
+        df['digitized_bin_OpAng_true'] = np.nan
+        df.loc[mask_NUE, 'digitized_bin_OpAng_true'] = digitized_nueLPa_VART
+        df.loc[mask_NUMU, 'digitized_bin_OpAng_true'] = digitized_numuLPa_VART
+
     
-    '''
+    
     ### End ratio things
 
 
@@ -2482,6 +2669,26 @@ def load_sample(
         keep_columns = set(keep_columns) | set(minimum_columns)
         # drop all columns that are not in keep_columns in place
         df.drop(columns=set(df.columns) - set(keep_columns), inplace=True)
+
+
+    
+  #  for col in df.columns: 
+     #   try: 
+      #      sample = df[col].iloc[0] 
+      #      print(col, type(sample),df[col].shape,df[col][54].shape ) 
+      #  except Exception as e: 
+         #   print(col, "ERROR:", e)
+    '''
+    for col in df.columns:
+        try:
+            sizes = df[col].apply(lambda x: sum(item.nbytes if hasattr(item, "nbytes") else 0 for item in x) if hasattr(x, "__iter__") else 0)
+            print(col, sizes.max())
+        except Exception as e:
+            print(col, "ERROR:", e)
+    '''
+   # for col in df.columns: 
+    #print(df.weightsReint)
+    
     return df
 
 # CT: plotter currently requires the pot weights to be passed in as another dictionary
@@ -2584,6 +2791,8 @@ def _load_run(
             ), f"Multisim weights for {mc_set} have different numbers of universes"
             if expected_multisim_universes[ms_column] is None:
                 expected_multisim_universes[ms_column] = n_universes
+                print("n_universes = ", n_universes) 
+
             if n_universes != expected_multisim_universes[ms_column]:
                 if (mc_set == "drt" and n_universes == 0) or (run_number == "1_nuwrofd" and (mc_set == "mc" or mc_set == "nue" or mc_set == "drt")):
                     # For missing multisim universes, we replace them with a list of ones (stored as integer 1000) of the

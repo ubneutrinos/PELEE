@@ -12,9 +12,11 @@ PREPI0Q += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata
 PRESQ = 'nslice == 1'
 PRESQ += ' and selected == 1'
 PRESQ += ' and shr_energy_tot_cali > 0.07'
-#PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
+PRESQ += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
 
 # Lucile's 1eNp0pi selection
+
+ONETRACK = 'nslice == 1 and n_tracks_tot == 1 and '
 
 LucileSEL = PRESQ
 LucileSEL += ' and n_showers_contained > 0 and n_tracks_contained > 0'
@@ -283,12 +285,17 @@ ZPXSLQ_all_showers += ' and shr_trk_sce_end_y > -100 and shr_trk_sce_end_y < 100
 ZPXSLQ_all_showers += ' and shr_trk_len < 300.'
 ZPXSLQ_all_showers += ' and n_tracks_tot == 0'
 ZPXSLQ_all_showers += ' and shr_tkfit_gap10_dedx_max<4'
+ZPXSLQ_all_showers += ' and (crtveto != 1 or crthitpe < 100) and _closestNuCosmicDist > 5.'  ## CRT Cuts
+
 ZPXSLQ = ZPXSLQ_all_showers + ' and n_showers_contained == 1'
 ZPXSBDTQ_all_showers = ZPXSLQ_all_showers
 ZPXSBDTQ_all_showers += ' and bkg_score>0.4'
 ZPXSBDTQ_all_showers += ' and cos_shr_theta>0.6'
 ZPXSBDTQ_all_showers += ' and electron_e>0.51'
 ZPXSBDTQ = ZPXSBDTQ_all_showers + ' and n_showers_contained == 1'
+
+#ZPXSBDTQ  += " and isVtxInFiducial == 1 and ccnc==0 and nu_pdg==12 and npi0==0 and npion==0 and elec_e>0.03051 and elec_e>0.5 and elec_pz>0.6"     ## test true signal for purity
+
 
 XPXSBDTQ = "(("+ZPXSBDTQ+") or ("+NPXSBDTQ+"))"
 
@@ -396,10 +403,15 @@ PI0SEL += ' and pi0_dedx1_fit_Y >= %f'%DEDXCUT
 # numu selection
 NUMUPRESEL = 'nslice == 1'
 NUMUPRESEL += ' and ( (_opfilter_pe_beam > 0 and _opfilter_pe_veto < 20) or bnbdata == 1 or extdata == 1)'
-NUMUPRESEL += ' and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251. '
-NUMUPRESEL += ' and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110. '
-NUMUPRESEL += ' and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986. '
-NUMUPRESEL += ' and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775) '
+
+#NUMUPRESEL += ' and reco_nu_vtx_sce_x > 5 and reco_nu_vtx_sce_x < 251. '  ## default value
+#NUMUPRESEL += ' and reco_nu_vtx_sce_y > -110 and reco_nu_vtx_sce_y < 110. '## default value
+#NUMUPRESEL += ' and reco_nu_vtx_sce_z > 20 and reco_nu_vtx_sce_z < 986. '## default value
+NUMUPRESEL += ' and reco_nu_vtx_sce_x > 10 and reco_nu_vtx_sce_x < 246.4 '##  value from ISVTXINFIDUCIAL
+NUMUPRESEL += ' and reco_nu_vtx_sce_y > -101.5 and reco_nu_vtx_sce_y < 101.5 ' ##  value from ISVTXINFIDUCIAL
+NUMUPRESEL += ' and reco_nu_vtx_sce_z > 10 and reco_nu_vtx_sce_z < 986.8 ' ##  value from ISVTXINFIDUCIAL
+
+#NUMUPRESEL += ' and (reco_nu_vtx_sce_z < 675 or reco_nu_vtx_sce_z > 775) '
 NUMUPRESEL += ' and topological_score > 0.06 '
 #NUMUPRESEL += ' and contained_fraction > 0.9 '
 
@@ -410,29 +422,21 @@ NUMUPRESELCRT = NUMUPRESEL + NUMUCRT
 NUMUSEL = NUMUPRESEL + ' and n_muons_tot > 0'
 NUMUSEL0PI = NUMUSEL + ' and n_muons_tot == 1 and n_showers_tot == 0'
 
-NUMUSEL0PI = NUMUSEL + ' and n_muons_tot == 1 and n_showers_tot == 0'
-
 NUMUSELNP = NUMUSEL + ' and n_protons_tot > 0'
 NUMUSEL0P = NUMUSEL + ' and n_protons_tot == 0'
-NUMUSELNP0PI = NUMUSEL0PI + ' and n_protons_tot > 0'
-NUMUSEL0P0PI = NUMUSEL0PI + ' and n_protons_tot == 0'
-
 NUMUSELNP0PI = NUMUSEL0PI + ' and n_protons_tot > 0'
 NUMUSEL0P0PI = NUMUSEL0PI + ' and n_protons_tot == 0'
 
 NUMUSELCRT = NUMUSEL + NUMUCRT
 NUMUSELCRT0PI = NUMUSEL0PI + NUMUCRT
 
-NUMUSELCRT0PI = NUMUSEL0PI + NUMUCRT
-
 NUMUSELCRTNP = NUMUSELCRT + ' and n_protons_tot > 0'
 NUMUSELCRT0P = NUMUSELCRT + ' and n_protons_tot == 0'
-NUMUSELCRTNP0PI = NUMUSELCRT0PI + ' and n_protons_tot > 0'
-NUMUSELCRT0P0PI = NUMUSELCRT0PI + ' and n_protons_tot == 0 and topological_score > 0.2'
-
-NUMUSELCRTNP0PI = NUMUSELCRT0PI + ' and n_protons_tot > 0'
-NUMUSELCRT0P0PI = NUMUSELCRT0PI + ' and n_protons_tot == 0 and topological_score > 0.2'
-
+NUMUSELCRTNP0PI = NUMUSELCRT0PI + ' and n_protons_tot > 0' +'and n_tracks_contained > 1' +'and protonenergy_corr > 0.05' +'and muon_Prot_Ang> -0.9' #
+#NUMUSELCRTNP0PI += 'and isVtxInFiducial == 1 and ccnc==0 and nu_pdg==14 and npi0==0 and muon_e>0.13566 and npion==0 and proton_ke>0.05 and opening_angle> -0.9' ##  ## To delete. true signal test for purity
+NUMUSELCRT0P0PI = NUMUSELCRT0PI  +' and n_tracks_tot == 1'  + ' and n_protons_tot == 0 and protonenergy_corr < 0.05' +'and n_tracks_contained == 1' +' and topological_score > 0.2'
+NUMUSELCRT0P0PI += 'and muon_energy > 0.605 and cos_muon_theta > 0.6'  ## Phase space cuts from NUE 0p
+#NUMUSELCRT0P0PI += 'and isVtxInFiducial == 1 and ccnc==0 and nu_pdg==14 and npi0==0 and muon_e>0.13566 and npion==0' and muon_pz >0.6 and muon_e > 0.605'  ## To delete. true signal test for purity
 NUMUSEL1MU1P = NUMUSEL + ' and n_tracks_contained == 2 and trk2_pid < -0.2'
 
 # eta queries
@@ -493,7 +497,8 @@ preselection_categories = {
     'NUMUCRT': {'query': NUMUPRESELCRT, 'title': r"$\nu_{\mu}$ pre-selection w/ CRT", 'dir': 'NUMUCRT'},
     #'OneP': {'query': OnePPRESQ, 'title': '1e1p Presel.', 'dir': 'OneP'},
     'OneP_new': {'query': OnePPRESQ_new, 'title': '1e1p Presel.', 'dir': 'OneP'},
-
+    'OneTrack': {'query': ONETRACK, 'title': '1 slice with 1 track', 'dir': 'OneTrack'},
+    
 }
 
 

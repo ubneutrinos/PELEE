@@ -41,7 +41,55 @@ variables_1e1p = [
 ]
 
 variables_ratio = [
-    ("RecoElecMomZ", 12, (-1, 5), "z component of Reconstructed Electron Momentum [GeV/c]"),
+   # ("digitized_bin_cos_trk_theta", None, None, r'Bin numbers for $cos\theta_{p}^{reco}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5]),
+    #("digitized_bin_cos_trk_theta", None, None, r'NUMU Bin numbers only for $cos\theta_{p}^{reco}$', False, None, [5.5,6.5,7.5,8.5,9.5,10.5,11.5]),
+   
+    
+    #("protonenergy_corr", None, None, r'$KE_{p}^{reco}$ [GeV]', False, None, [0.0,0.05,0.1,0.15,0.2,0.3,0.8]),
+   # ("protonenergy_corr", "0P", None, r'$KE_{p}^{reco}$ [GeV]', False, None, [0.0,0.05]),
+   #("proton_ke", "0P", None, r'$KE_{p}^{true}$ [GeV]', False, None, [0.0,0.05,0.1,0.15,0.2,0.3,0.8]),
+   # ("isVtxInFiducial", "0P", None, r'isVtxInFiducial', False, None, [0.0,1,2]),
+   # ("muon_pz", "0P", None, r'muon_pz true', False, None, [-2,-1,0,0.6,0.7,0.9,1,2]),
+   # ("muon_e", "0P", None, r'muon_e true', False, None, [0,0.00247,0.003,0.006]),
+
+   # ("digitized_bin_protonenergy_corr", None, None, r'Bin numbers for $KE_{p}^{reco}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5]),    
+   # ("digitized_bin_cos_trk_theta", "NUE", None, r'NUE Bin numbers only for $cos\theta_{p}^{reco}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5]),
+    #("digitized_bin_protonenergy_corr", "NUE", None, r'NUE Bin numbers only for $KE_{p}^{reco}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5]),   
+  #  ("digitized_bin_proton_pz", None, None, r'Bin numbers for $cos\theta_{p}^{true}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5]),
+  ## #("digitized_bin_proton_pz", "NUMU", None, r'NUMU Bin numbers only for $cos\theta_{p}^{true}$', False, None, [5.5,6.5,7.5,8.5,9.5,10.5,11.5]),
+   #("digitized_bin_proton_ke", None, None, r'Bin numbers for $KE_{p}^{true}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5]),    
+   # ("digitized_bin_proton_pz", "NUE", None, r'NUE Bin numbers only for $cos\theta_{p}^{true}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5]),
+  #  ("digitized_bin_proton_ke", "NUE", None, r'NUE Bin numbers only for $KE_{p}^{true}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5]),   
+    
+  #  ("digitized_bin_Elep", None, None, r'Bin numbers for $E_{lepton}^{reco}$ [GeV]', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5]),
+   # ("digitized_bin_Elep_true", None, None, r'Bin numbers for $E_{lepton}^{true}$ [GeV]', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5]),
+  #  ("digitized_bin_lep_pz", None, None, r'Bin numbers for $cos\theta_{lepton}^{true}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5]),
+    #("digitized_bin_cos_lep_theta", None, None, r'Bin numbers for $cos\theta_{lepton}^{reco}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5]),
+
+    #("digitized_bin_Elep", "NUE", None, r'NUE Bin numbers only for $E_{lepton}^{reco}$ [GeV]', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5]),
+   # ("digitized_bin_Elep_true", "NUE", None, r'NUE Bin numbers only for $E_{lepton}^{true}$ [GeV]', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5]),
+   # ("digitized_bin_lep_pz", "NUE", None, r'NUE Bin numbers only for $cos\theta_{lepton}^{true}$', False, None, [-0.5,0.5,1.5,2.5,3.5]),
+   # ("digitized_bin_cos_lep_theta", "NUE", None, r'NUE Bin numbers only for $cos\theta_{lepton}^{reco}$', False, None, [-0.5,0.5,1.5,2.5,3.5]),
+    
+   
+   # ("cos_prot_theta", None, None, r'$cos\theta_{p}^{reco}$', False, None, [-1,0,0.4,0.55,0.7,0.85,1]),
+    #("opening_angle", None, None, r'$cos\theta_{lp}^{true}$', False, None, [-1,-0.9,-0.500,-0.250,0,0.250,0.5,1]),
+    #("tksh_angle", None, None, r'$cos\theta_{ep}^{reco}$', False, None, [-1,-0.9,-0.500,-0.250,0,0.250,0.5,1]),
+    ("muon_Prot_Ang", None, None, r'$cos\theta_{\mu p}^{reco}$', False, None, [-1,-0.9,-0.500,-0.250,0,0.250,0.5,1]),
+
+    #("digitized_bin_OpAng_true", None, None, r'Bin numbers for $cos\theta_{lp}^{true}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5]),
+   # ("digitized_bin_OpAng", None, None, r'Bin numbers for $cos\theta_{lp}^{reco}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5,10.5,11.5]),
+   # ("digitized_bin_OpAng", "NUE", None, r'NUE Bin numbers only for $cos\theta_{lp}^{reco}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5]),
+   # ("digitized_bin_OpAng_true", "NUE", None, r'NUE Bin numbers only for $cos\theta_{lp}^{true}$', False, None, [-0.5,0.5,1.5,2.5,3.5,4.5,5.5]),
+
+   # ("trkpid", None, None, r'trkpid', False, None, [-1,0,0.4,0.55,0.7,0.85,1]),
+   # ("trkpid", 25, (-1, 1), "trkpid"),
+  # ("topological_score", 25, (0, 1), "topological_score"),
+   #("contained_fraction", 25, (0, 1), "contained_fraction"),
+  #  ("muon_energy", None, None, r'$E_{\mu}^{reco}$', False, None, [0.,0.4,0.65,0.9,1.5,4.5]),
+   # ("cos_muon_theta", None, None, r'$cos\theta_{\mu}^{reco}$', False, None, [-1.,0.2,0.7,0.9,1]),
+
+
 ]
 
 import numpy as np
